@@ -159,7 +159,8 @@ const members = rows.map(r => {
     familyName: safeStr(r.Nama_keluarga),
     gender: mapGender(r.Jenis_Kelamin),
     birthPlace: safeStr(r.Tempat_lahir),
-    birthDate: birthDate || now.slice(0, 10),
+    // Kosongkan (bukan default ke tanggal import) agar tidak dihitung sebagai "ulang tahun hari ini" di Dashboard
+    birthDate: birthDate || '',
     age: safeStr(r.usia) && !Number.isNaN(Number(r.usia)) ? Number(r.usia) : calcAge(birthDate),
     baptismStatus: mapYn(r.Status_Baptis),
     sidiStatus: mapYn(r.Status_Sidi),
