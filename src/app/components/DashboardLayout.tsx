@@ -1,0 +1,631 @@
+import React, { ReactNode, useState, useEffect, useMemo } from 'react';
+import { useApp } from '../context/AppContext';
+import { PAGE_MODULE } from '../../lib/permissions';
+import { NotificationBell } from './NotificationCenter';
+import { GlobalSearch } from './GlobalSearch';
+import { AccessibilityModal } from './AccessibilityModal';
+import {
+  LayoutDashboard, Users, UserCog, User,
+  LogOut, Church, Calendar, Activity, DollarSign,
+  ChevronDown, ChevronRight, ChevronLeft,
+  Shield, Database, ShieldCheck, HardDrive,
+  Menu, X, Package, Clock, Layers,
+  PanelLeftClose, PanelLeftOpen,
+  BookOpen, FileText, HeartHandshake, Heart,
+  MessageSquareHeart, BarChart3, Sliders,
+  QrCode, Book, Home, MapPin, Cross, Library, DoorOpen, Gift,
+  Bell, ChevronRight as BreadcrumbArrow, Printer, FileSpreadsheet
+} from 'lucide-react';
+
+interface DashboardLayoutProps {
+  children: ReactNode;
+  currentPage: string;
+  onNavigate: (page: string) => void;
+}
+
+interface MenuItem {
+  id: string;
+  label: string;
+  page: string;
+  icon: any;
+  badge?: string | number;
+  badgeColor?: string;
+}
+
+interface MenuSection {
+  id: string;
+  label: string;
+  icon: any;
+  items: MenuItem[];
+}
+
+export const PAGE_LABELS: Record<string, { title: string; category: string }> = {
+  dashboard:             { title: 'Dashboard Utama', category: 'Utama' },
+  members:               { title: 'Database Warga Jemaat', category: 'Database Jemaat' },
+  families:              { title: 'Data Keluarga (KK)', category: 'Database Jemaat' },
+  sectors:               { title: 'Sektor Pelayanan', category: 'Database Jemaat' },
+  sacraments:            { title: 'Sakramen (Baptis/Sidi/Nikah)', category: 'Database Jemaat' },
+  attestations:          { title: 'Surat Atestasi & Mutasi', category: 'Database Jemaat' },
+  'member-card':         { title: 'Kartu Anggota Digital', category: 'Database Jemaat' },
+  'sensus-report':       { title: 'Laporan Sensus & Demografi', category: 'Database Jemaat' },
+  'worship-schedules':   { title: 'Jadwal & Petugas Ibadah', category: 'Peribadahan & Kegiatan' },
+  'e-warta':             { title: 'E-Warta Jemaat', category: 'Peribadahan & Kegiatan' },
+  'sermon-archive':      { title: 'Arsip Khotbah & Renungan', category: 'Peribadahan & Kegiatan' },
+  liturgy:               { title: 'Liturgi Digital', category: 'Peribadahan & Kegiatan' },
+  events:                { title: 'Kalender Kegiatan', category: 'Peribadahan & Kegiatan' },
+  ministries:            { title: 'Pelkat & Komisi Pelayanan', category: 'Peribadahan & Kegiatan' },
+  livestream:            { title: 'Livestream & Pengingat', category: 'Peribadahan & Kegiatan' },
+  attendance:            { title: 'Presensi Ibadah & QR', category: 'Peribadahan & Kegiatan' },
+  announcements:         { title: 'Warta & Pengumuman', category: 'Peribadahan & Kegiatan' },
+  'church-finance':      { title: 'Kas & Rekening Gereja', category: 'Keuangan & Persembahan' },
+  offerings:             { title: 'Persembahan & QRIS', category: 'Keuangan & Persembahan' },
+  financial:             { title: 'Jurnal Transaksi & Laporan Keuangan', category: 'Keuangan & Persembahan' },
+  assets:                { title: 'Manajemen Aset & Inventaris', category: 'Fasilitas & Inventaris' },
+  'room-booking':        { title: 'Peminjaman Ruangan & Fasilitas', category: 'Fasilitas & Inventaris' },
+  'resource-library':    { title: 'Perpustakaan Digital', category: 'Fasilitas & Inventaris' },
+  'service-requests':    { title: 'Layanan Diakonia & Bantuan', category: 'Pelayanan Kasih & Komunikasi' },
+  'aid-distribution':    { title: 'Distribusi Bantuan Sosial', category: 'Pelayanan Kasih & Komunikasi' },
+  prayers:               { title: 'Pokok & Pergumulan Doa', category: 'Pelayanan Kasih & Komunikasi' },
+  users:                 { title: 'Pengguna Sistem', category: 'Admin Sistem' },
+  roles:                 { title: 'Manajemen Hak Akses', category: 'Admin Sistem' },
+  backup:                { title: 'Backup & Restore Database', category: 'Admin Sistem' },
+  data:                  { title: 'Pusat Manajemen Data', category: 'Admin Sistem' },
+  'master-data':         { title: 'Pengaturan Master Data', category: 'Admin Sistem' },
+  activity:              { title: 'Log Aktivitas Sistem', category: 'Admin Sistem' },
+};
+
+function ProfileDropdown({ user, onLogout, onClose }: { user: any; onLogout: () => void; onClose: () => void }) {
+  return (
+    <>
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl shadow-xl bg-white border z-50 overflow-hidden" style={{ borderColor: '#e2d8c4' }}>
+        <div className="px-4 py-4 flex items-center gap-3" style={{ background: '#0d1a2d' }}>
+          <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-base flex-shrink-0 bg-amber-500/20 text-amber-300 border border-amber-400/30">
+            {user?.name?.charAt(0) || 'U'}
+          </div>
+          <div className="min-w-0">
+            <p className="text-white font-semibold truncate text-xs">{user?.name}</p>
+            <span className="inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              {user?.role}
+            </span>
+          </div>
+        </div>
+        <div className="px-4 py-2 text-xs">
+          {[
+            { label: 'Username', value: user?.username },
+            { label: 'Email',    value: user?.email || '—' },
+          ].map(r => (
+            <div key={r.label} className="flex justify-between items-center py-2 border-b border-gray-100">
+              <span className="text-gray-500">{r.label}</span>
+              <span className="truncate ml-2 font-medium text-gray-900 max-w-[60%] text-right">{r.value}</span>
+            </div>
+          ))}
+          <div className="flex justify-between items-center py-2">
+            <span className="text-gray-500">Status</span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              {user?.isActive ? 'Aktif' : 'Nonaktif'}
+            </span>
+          </div>
+        </div>
+        <div className="px-4 pb-3">
+          <button
+            onClick={onLogout}
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl transition-all bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-semibold"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Keluar dari Sistem
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+export function DashboardLayout({ children, currentPage, onNavigate }: DashboardLayoutProps) {
+  const {
+    currentUser,
+    logout,
+    can,
+    prayerRequests = [],
+    serviceRequests = [],
+    members = [],
+    families = []
+  } = useApp();
+
+  const pendingPrayers = prayerRequests.filter((p: any) => p.status === 'Pending').length;
+  const pendingServices = serviceRequests.filter((s: any) => s.status === 'Diajukan' || s.status === 'Diproses').length;
+
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    jemaat: true,
+    peribadahan: false,
+    keuangan: false,
+    fasilitas: false,
+    diakonia: false,
+    admin: false,
+  });
+
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [tooltip, setTooltip] = useState<{ label: string; y: number } | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showAccessibilityModal, setShowAccessibilityModal] = useState(false);
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const timeString = useMemo(() => {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const h = pad(now.getHours());
+    const m = pad(now.getMinutes());
+    const s = pad(now.getSeconds());
+    return `${h}.${m}.${s} WIB`;
+  }, [now]);
+
+  // Complete, original menu sections with all features & permissions
+  const menuSections: MenuSection[] = useMemo(() => [
+    {
+      id: 'jemaat',
+      label: 'Database Jemaat',
+      icon: Users,
+      items: [
+        { id: 'members',       label: 'Database Warga',          page: 'members',       icon: Users,        badge: members.length > 0 ? members.length : undefined },
+        { id: 'families',      label: 'Data Keluarga (KK)',      page: 'families',      icon: Home,         badge: families.length > 0 ? families.length : undefined },
+        { id: 'sectors',       label: 'Sektor Pelayanan',        page: 'sectors',       icon: MapPin },
+        { id: 'sacraments',    label: 'Sakramen & Berkat',       page: 'sacraments',    icon: Cross },
+        { id: 'attestations',  label: 'Atestasi & Mutasi',       page: 'attestations',  icon: FileText },
+        { id: 'member-card',   label: 'Kartu Anggota Digital',   page: 'member-card',   icon: Users },
+        { id: 'sensus-report', label: 'Laporan Sensus Jemaat',   page: 'sensus-report', icon: BarChart3 },
+        { id: 'report-center', label: 'Pusat Laporan Konsolidasi', page: 'report-center', icon: Printer },
+      ],
+    },
+    {
+      id: 'peribadahan',
+      label: 'Peribadahan & Kegiatan',
+      icon: Church,
+      items: [
+        { id: 'worship-schedules', label: 'Jadwal & Petugas Ibadah', page: 'worship-schedules', icon: Calendar },
+        { id: 'e-warta',           label: 'E-Warta Jemaat',          page: 'e-warta',           icon: FileText },
+        { id: 'sermon-archive',    label: 'Arsip Khotbah & Renungan',page: 'sermon-archive',    icon: BookOpen },
+        { id: 'liturgy',           label: 'Liturgi Digital',         page: 'liturgy',           icon: Book },
+        { id: 'events',            label: 'Kalender Kegiatan',       page: 'events',            icon: Calendar },
+        { id: 'ministries',        label: 'Pelkat & Komisi',         page: 'ministries',        icon: HeartHandshake },
+        { id: 'livestream',        label: 'Livestream & Reminder',   page: 'livestream',        icon: Clock },
+        { id: 'attendance',        label: 'Presensi Ibadah (QR)',    page: 'attendance',        icon: QrCode },
+        { id: 'announcements',     label: 'Warta & Pengumuman',      page: 'announcements',     icon: Bell },
+      ],
+    },
+    {
+      id: 'keuangan',
+      label: 'Keuangan & Persembahan',
+      icon: DollarSign,
+      items: [
+        { id: 'church-finance', label: 'Kas & Rekening Gereja', page: 'church-finance', icon: DollarSign },
+        { id: 'offerings',      label: 'Persembahan Digital',   page: 'offerings',      icon: Heart },
+        { id: 'financial',      label: 'Jurnal & Neraca Kas',   page: 'financial',      icon: BarChart3 },
+      ],
+    },
+    {
+      id: 'fasilitas',
+      label: 'Fasilitas & Inventaris',
+      icon: Package,
+      items: [
+        { id: 'assets',           label: 'Manajemen Aset',         page: 'assets',           icon: Package },
+        { id: 'room-booking',     label: 'Peminjaman Ruangan',     page: 'room-booking',     icon: DoorOpen },
+        { id: 'resource-library', label: 'Perpustakaan Digital',   page: 'resource-library', icon: Library },
+      ],
+    },
+    {
+      id: 'diakonia',
+      label: 'Pelayanan Kasih & Doa',
+      icon: HeartHandshake,
+      items: [
+        { id: 'service-requests', label: 'Permohonan Diakonia',   page: 'service-requests', icon: Heart,               badge: pendingServices > 0 ? pendingServices : undefined, badgeColor: '#ef4444' },
+        { id: 'aid-distribution', label: 'Distribusi Bantuan',    page: 'aid-distribution', icon: Gift },
+        { id: 'prayers',          label: 'Pokok & Pergumulan Doa',page: 'prayers',          icon: MessageSquareHeart,  badge: pendingPrayers > 0 ? pendingPrayers : undefined,   badgeColor: '#f59e0b' },
+      ],
+    },
+    {
+      id: 'admin',
+      label: 'Admin Sistem',
+      icon: Shield,
+      items: [
+        { id: 'users',       label: 'Pengguna Sistem',        page: 'users',       icon: UserCog },
+        { id: 'roles',       label: 'Manajemen Hak Akses',    page: 'roles',       icon: ShieldCheck },
+        { id: 'backup',      label: 'Backup & Restore',       page: 'backup',      icon: HardDrive },
+        { id: 'data',        label: 'Pusat Manajemen Data',  page: 'data',        icon: Database },
+        { id: 'master-data', label: 'Master Data',            page: 'master-data', icon: Layers },
+        { id: 'activity',    label: 'Log Aktivitas',          page: 'activity',    icon: Activity },
+      ],
+    },
+  ], [members.length, families.length, pendingPrayers, pendingServices]);
+
+  // Auto-expand the active section if user navigated
+  useEffect(() => {
+    menuSections.forEach(section => {
+      if (section.items.some(i => i.page === currentPage)) {
+        setExpandedSections(prev => ({ ...prev, [section.id]: true }));
+      }
+    });
+  }, [currentPage, menuSections]);
+
+  const toggleSection = (id: string) => {
+    setExpandedSections(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const sidebarWidth = !sidebarOpen ? '0px' : sidebarCollapsed ? '72px' : '260px';
+  const mainMargin   = !sidebarOpen ? '0px' : sidebarCollapsed ? '72px' : '260px';
+
+  const currentMeta = PAGE_LABELS[currentPage] || { title: 'Dashboard Utama', category: 'Utama' };
+
+  return (
+    <div className="min-h-screen flex flex-col font-sans" style={{ background: '#f6f2ea' }}>
+
+      {/* ══════════════════════ TOP NAVBAR (DARK NAVY WITH GOLD ACCENTS) ══════════════════════ */}
+      <header
+        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 lg:px-6 h-16 shadow-md transition-all"
+        style={{
+          background: '#0d1a2d',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+        }}
+      >
+        {/* Left: Brand Identity with GPIB Emblem */}
+        <div className="flex items-center gap-3">
+          <div
+            onClick={() => onNavigate('dashboard')}
+            className="flex items-center gap-3 cursor-pointer group"
+          >
+            <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm border border-white/20 flex-shrink-0 group-hover:scale-105 transition-transform">
+              <img
+                src="/logo-gpib.jpg"
+                alt="GPIB Emblem"
+                className="w-full h-full object-contain rounded-full"
+              />
+            </div>
+
+            <div className="flex flex-col">
+              <span className="font-serif-church text-white font-bold tracking-wider text-sm lg:text-[15px] leading-tight group-hover:text-amber-200 transition-colors">
+                GPIB TRINITAS
+              </span>
+              <span className="text-[10.5px] font-medium tracking-wide" style={{ color: '#dfb774' }}>
+                Gereja Manajemen Sistem - GEMAS
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Search, Role Pill, Notifications, Accessibility, Clock, Profile */}
+        <div className="flex items-center gap-2.5">
+          {/* Search Input */}
+          <div className="hidden sm:block">
+            <GlobalSearch
+              variant="dark"
+              placeholder="Cari data, ibadah, warga, kas..."
+              onNavigate={onNavigate}
+            />
+          </div>
+
+          {/* Accessibility Settings Quick Button */}
+          <button
+            onClick={() => setShowAccessibilityModal(true)}
+            title="Pengaturan Aksesibilitas"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+            style={{ border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)' }}
+          >
+            <Sliders className="w-3.5 h-3.5 text-amber-300" />
+          </button>
+
+          {/* Notification Bell */}
+          <NotificationBell dark />
+
+          {/* User Role Pill Button */}
+          <div className="relative">
+            <button
+              onClick={() => setShowProfile(p => !p)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-white/90 transition-all hover:bg-white/10"
+              style={{
+                background: '#182842',
+                border: '1px solid rgba(255,255,255,0.14)',
+              }}
+            >
+              <User className="w-3.5 h-3.5 text-amber-300" />
+              <span>{currentUser?.role || 'Jemaat'}</span>
+            </button>
+
+            {showProfile && (
+              <ProfileDropdown
+                user={currentUser}
+                onLogout={() => { setShowProfile(false); logout(); }}
+                onClose={() => setShowProfile(false)}
+              />
+            )}
+          </div>
+
+          {/* Live Clock Pill */}
+          <div
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-white/90"
+            style={{
+              background: '#182842',
+              border: '1px solid rgba(255,255,255,0.14)',
+            }}
+          >
+            <Clock className="w-3.5 h-3.5 text-amber-300" />
+            <span className="font-mono tracking-wide">{timeString}</span>
+          </div>
+        </div>
+      </header>
+
+      {/* ══════════════════════ BODY WRAPPER ══════════════════════ */}
+      <div className="flex-1 flex pt-16">
+
+        {/* ══════════════════════ SIDEBAR (DARK NAVY WITH CATEGORIES) ══════════════════════ */}
+        <aside
+          className="fixed left-0 top-16 bottom-0 flex flex-col transition-all duration-300 z-40 shadow-xl"
+          style={{
+            width: sidebarWidth,
+            background: '#0d1a2d',
+            borderRight: '1px solid rgba(255,255,255,0.08)',
+          }}
+        >
+          {/* Header section inside sidebar */}
+          <div className="relative px-3.5 pt-3.5 pb-2.5 flex items-center justify-between min-h-[46px]">
+            {!sidebarCollapsed ? (
+              <>
+                <span
+                  className="text-[10.5px] font-bold tracking-widest uppercase font-serif-church truncate pr-6"
+                  style={{ color: '#dfb774' }}
+                >
+                  MENU NAVIGASI SISTEM
+                </span>
+                <button
+                  onClick={() => setSidebarCollapsed(true)}
+                  title="Ciutkan Sidebar (Hide)"
+                  className="absolute -right-3 top-1/2 -translate-y-1/2 z-50 w-6 h-6 rounded-full flex items-center justify-center text-amber-300 hover:text-slate-950 bg-[#0d1a2d] hover:bg-amber-400 border border-amber-400/50 shadow-md transition-all duration-150"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+              </>
+            ) : (
+              <div className="w-full flex justify-center">
+                <button
+                  onClick={() => setSidebarCollapsed(false)}
+                  title="Perluas Sidebar (Unhide)"
+                  className="absolute -right-3 top-1/2 -translate-y-1/2 z-50 w-6 h-6 rounded-full flex items-center justify-center text-amber-300 hover:text-slate-950 bg-[#0d1a2d] hover:bg-amber-400 border border-amber-400/50 shadow-md transition-all duration-150"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Navigation Menu List */}
+          <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2.5 space-y-1.5 pb-6">
+            {/* Dashboard Single Item */}
+            <button
+              onClick={() => onNavigate('dashboard')}
+              onMouseEnter={e => {
+                if (sidebarCollapsed) {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setTooltip({ label: 'Dashboard Utama', y: rect.top + rect.height / 2 });
+                }
+              }}
+              onMouseLeave={() => sidebarCollapsed && setTooltip(null)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 text-left ${
+                currentPage === 'dashboard'
+                  ? 'text-white font-bold shadow-sm'
+                  : 'text-white/70 hover:text-white hover:bg-white/5 font-medium'
+              }`}
+              style={{
+                background: currentPage === 'dashboard' ? 'rgba(212, 175, 55, 0.14)' : 'transparent',
+                border: currentPage === 'dashboard' ? '1px solid #caa049' : '1px solid transparent',
+                justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+              }}
+            >
+              <div
+                className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                  currentPage === 'dashboard' ? 'bg-amber-400/20 text-amber-300' : 'text-white/60'
+                }`}
+              >
+                <LayoutDashboard className="w-4 h-4" />
+              </div>
+              {!sidebarCollapsed && (
+                <span className="truncate text-xs leading-tight font-semibold">
+                  Dashboard Utama
+                </span>
+              )}
+            </button>
+
+            {/* Menu Sections with Filtered Items & Categories */}
+            {menuSections.map(section => {
+              // Filter items by permission
+              const visibleItems = section.items.filter(item => {
+                const mod = PAGE_MODULE[item.page];
+                return !mod || can(mod, 'view');
+              });
+
+              if (visibleItems.length === 0) return null;
+
+              const isExpanded = expandedSections[section.id] ?? true;
+              const hasActiveChild = visibleItems.some(i => i.page === currentPage);
+              const SectionIcon = section.icon;
+
+              return (
+                <div key={section.id} className="pt-1">
+                  {/* Category Header */}
+                  {!sidebarCollapsed ? (
+                    <button
+                      onClick={() => toggleSection(section.id)}
+                      className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left text-white/50 hover:text-white/80 hover:bg-white/5 transition-all"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <SectionIcon className="w-3.5 h-3.5 text-amber-300/70 flex-shrink-0" />
+                        <span className="text-[10.5px] font-bold uppercase tracking-wider truncate" style={{ color: '#d8c29d' }}>
+                          {section.label}
+                        </span>
+                      </div>
+                      {isExpanded ? (
+                        <ChevronDown className="w-3 h-3 text-white/40 flex-shrink-0" />
+                      ) : (
+                        <ChevronRight className="w-3 h-3 text-white/30 flex-shrink-0" />
+                      )}
+                    </button>
+                  ) : (
+                    <div className="w-full my-1.5 h-px bg-white/10" />
+                  )}
+
+                  {/* Category Items */}
+                  {(sidebarCollapsed || isExpanded) && (
+                    <div className={sidebarCollapsed ? 'space-y-1' : 'space-y-0.5 mt-0.5'}>
+                      {visibleItems.map(item => {
+                        const active = currentPage === item.page;
+                        const ItemIcon = item.icon;
+
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => onNavigate(item.page)}
+                            onMouseEnter={e => {
+                              if (sidebarCollapsed) {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                setTooltip({ label: item.label, y: rect.top + rect.height / 2 });
+                              }
+                            }}
+                            onMouseLeave={() => sidebarCollapsed && setTooltip(null)}
+                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-all duration-150 ${
+                              active
+                                ? 'text-white font-bold shadow-xs'
+                                : 'text-white/70 hover:text-white hover:bg-white/5'
+                            }`}
+                            style={{
+                              background: active ? 'rgba(212, 175, 55, 0.15)' : 'transparent',
+                              border: active ? '1px solid #caa049' : '1px solid transparent',
+                              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                            }}
+                          >
+                            <div
+                              className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 ${
+                                active ? 'text-amber-300' : 'text-white/50'
+                              }`}
+                            >
+                              <ItemIcon className="w-3.5 h-3.5" />
+                            </div>
+
+                            {!sidebarCollapsed && (
+                              <div className="flex-1 flex items-center justify-between min-w-0">
+                                <span className="truncate text-xs leading-tight">
+                                  {item.label}
+                                </span>
+                                {item.badge !== undefined && (
+                                  <span
+                                    className="ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold flex-shrink-0"
+                                    style={{
+                                      background: item.badgeColor || 'rgba(255,255,255,0.15)',
+                                      color: '#ffffff',
+                                    }}
+                                  >
+                                    {item.badge}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+
+          {/* Bottom Sidebar Footer Card */}
+          {!sidebarCollapsed ? (
+            <div className="p-3 m-2.5 rounded-2xl border" style={{ background: '#07111e', borderColor: 'rgba(255,255,255,0.08)' }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center p-0.5 flex-shrink-0">
+                  <img src="/logo-gpib.jpg" alt="GPIB" className="w-full h-full object-contain rounded-full" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold font-serif-church truncate" style={{ color: '#dfb774' }}>
+                    GPIB Trinitas
+                  </p>
+                  <p className="text-[10px] text-gray-400 truncate">
+                    Membangun Persekutuan Kasih.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="p-2 flex justify-center">
+              <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center p-0.5">
+                <img src="/logo-gpib.jpg" alt="GPIB" className="w-full h-full object-contain rounded-full" />
+              </div>
+            </div>
+          )}
+        </aside>
+
+        {/* Floating Tooltip in Collapsed Mode */}
+        {sidebarCollapsed && tooltip && (
+          <div
+            className="fixed z-50 pointer-events-none"
+            style={{ left: '80px', top: tooltip.y, transform: 'translateY(-50%)' }}
+          >
+            <div
+              className="px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap text-xs font-medium text-white border"
+              style={{
+                background: '#0d1a2d',
+                borderColor: 'rgba(212,175,55,0.3)',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.4)',
+              }}
+            >
+              {tooltip.label}
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════ MAIN CONTENT ══════════════════════ */}
+        <main
+          className="flex-1 flex flex-col min-h-[calc(100vh-4rem)] transition-all duration-300 overflow-x-hidden"
+          style={{ marginLeft: mainMargin }}
+        >
+          {/* Breadcrumb Header */}
+          <div className="px-4 md:px-6 lg:px-8 pt-4 pb-1">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <button
+                onClick={() => onNavigate('dashboard')}
+                className="hover:text-amber-800 transition-colors font-medium"
+              >
+                GEMAS
+              </button>
+              <BreadcrumbArrow className="w-3 h-3 text-gray-400" />
+              <span className="text-gray-600 font-medium">{currentMeta.category}</span>
+              <BreadcrumbArrow className="w-3 h-3 text-gray-400" />
+              <span className="text-gray-900 font-semibold">{currentMeta.title}</span>
+            </div>
+          </div>
+
+          <div className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+            {children}
+          </div>
+
+          {/* Footer */}
+          <footer
+            className="px-6 py-4 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 border-t mt-auto"
+            style={{ borderColor: '#e2d8c4', background: '#faf7f0' }}
+          >
+            <p>© {new Date().getFullYear()} GPIB Trinitas — Gereja Manajemen Sistem (GEMAS)</p>
+            <p className="mt-1 sm:mt-0 font-medium">Soli Deo Gloria</p>
+          </footer>
+        </main>
+      </div>
+
+      {/* Accessibility Modal */}
+      <AccessibilityModal
+        isOpen={showAccessibilityModal}
+        onClose={() => setShowAccessibilityModal(false)}
+      />
+    </div>
+  );
+}

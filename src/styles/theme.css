@@ -1,0 +1,301 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   GEMAS Design System v2 — Color Token System
+   Primary:   #1A77A3  (Steel Blue)
+   Secondary: #f0ede5  (Warm Light Cream)
+═══════════════════════════════════════════════════════════════════════════ */
+
+@custom-variant dark (&:is(.dark *));
+
+/* ── Raw Palette Tokens ───────────────────────────────────────────────────── */
+:root {
+  /* Primary Scale — Steel Blue */
+  --ds-primary-50:  #f5f7f9;
+  --ds-primary-100: #e8ecf0;
+  --ds-primary-200: #b8d5e8;
+  --ds-primary-300: #a5b4bf;
+  --ds-primary-400: #7290a0;
+  --ds-primary-500: #3a7fa0;
+  --ds-primary-600: #1A77A3;
+  --ds-primary-700: #144f6b;
+  --ds-primary-800: #0f2d41;
+  --ds-primary-900: #0a1e2c;
+  --ds-primary-950: #0d121a;
+
+  /* Secondary Scale — Warm Light Cream (replacing Gold) */
+  --ds-secondary-50:  #faf9f7;
+  --ds-secondary-100: #f6f4f0;
+  --ds-secondary-200: #f2f0ea;
+  --ds-secondary-300: #f0ede5;
+  --ds-secondary-400: #e8e4d8;
+  --ds-secondary-500: #d6d0c0;
+  --ds-secondary-600: #c2baaa;
+  --ds-secondary-700: #9c9486;
+  --ds-secondary-800: #767064;
+  --ds-secondary-900: #504c44;
+
+  /* Semantic: Success */
+  --ds-success-50:  #f0fdf4;
+  --ds-success-100: #dcfce7;
+  --ds-success-500: #22c55e;
+  --ds-success-600: #16a34a;
+  --ds-success-700: #15803d;
+  --ds-success-900: #14532d;
+
+  /* Semantic: Warning — anchored to secondary neutral/warm */
+  --ds-warning-50:  #f6f4f0;
+  --ds-warning-100: #f0ede5;
+  --ds-warning-500: #d6d0c0;
+  --ds-warning-600: #c2baaa;
+  --ds-warning-700: #9c9486;
+  --ds-warning-900: #767064;
+
+  /* Semantic: Danger */
+  --ds-danger-50:  #fef2f2;
+  --ds-danger-100: #fee2e2;
+  --ds-danger-500: #ef4444;
+  --ds-danger-600: #dc2626;
+  --ds-danger-700: #b91c1c;
+  --ds-danger-900: #7f1d1d;
+
+  /* Semantic: Info */
+  --ds-info-50:  #f0f6fd;
+  --ds-info-100: #daeaf9;
+  --ds-info-500: #3b9ed9;
+  --ds-info-600: #2076ad;
+  --ds-info-700: #1a5e8a;
+  --ds-info-900: #0d3354;
+
+  /* Gradients */
+  --ds-gradient-primary:        linear-gradient(135deg, #3a7fa0 0%, #1A77A3 60%, #144f6b 100%);
+  --ds-gradient-sidebar:        linear-gradient(180deg, #144f6b 0%, #0f2d41 60%, #0a1e2c 100%);
+  --ds-gradient-secondary:      linear-gradient(135deg, #f6f4f0 0%, #f0ede5 60%, #e8e4d8 100%);
+  --ds-gradient-warm:           linear-gradient(135deg, #f6f4f0 0%, #f5f7f9 100%);
+  --ds-gradient-card:           linear-gradient(180deg, #ffffff 0%, #f5f7f9 100%);
+  --ds-gradient-hero:           linear-gradient(135deg, #144f6b 0%, #0a1e2c 100%);
+  --ds-gradient-primary-glow:   linear-gradient(135deg, #3a7fa0 0%, #1A77A3 100%);
+  --ds-gradient-secondary-glow: linear-gradient(135deg, #f0ede5 0%, #d6d0c0 100%);
+  --ds-gradient-contrast:       linear-gradient(135deg, #1A77A3 0%, #f0ede5 150%);
+}
+
+/* ── Component Semantic Tokens — Light Mode ───────────────────────────────── */
+:root {
+  --font-size: 15px;
+
+  /* Surfaces */
+  --background:         #f5f7f9;
+  --foreground:         #0a1e2c;
+  --card:               #ffffff;
+  --card-foreground:    #0f2d41;
+  --popover:            #ffffff;
+  --popover-foreground: #0a1e2c;
+
+  /* Brand */
+  --primary:            #1A77A3;
+  --primary-foreground: #ffffff;
+
+  /* Secondary accent */
+  --secondary:            #f0ede5;
+  --secondary-foreground: #1A77A3;
+
+  /* Supporting */
+  --muted:            #e8ecf0;
+  --muted-foreground: #3a7fa0;
+  --accent:           #f6f4f0;
+  --accent-foreground: #1A77A3;
+
+  /* Semantic */
+  --destructive:            #dc2626;
+  --destructive-foreground: #ffffff;
+
+  /* Structure */
+  --border:            #b8d5e8;
+  --input:             transparent;
+  --input-background:  #f5f7f9;
+  --switch-background: #a5b4bf;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring:   #1A77A3;
+  --radius: 0.75rem;
+
+  /* Charts */
+  --chart-1: #1A77A3;
+  --chart-2: #c2baaa;
+  --chart-3: #22c55e;
+  --chart-4: #3b9ed9;
+  --chart-5: #ef4444;
+
+  /* Sidebar */
+  --sidebar:                    #144f6b;
+  --sidebar-foreground:         #f5f7f9;
+  --sidebar-primary:            #f0ede5;
+  --sidebar-primary-foreground: #144f6b;
+  --sidebar-accent:             rgba(240,237,229,0.08);
+  --sidebar-accent-foreground:  #ffffff;
+  --sidebar-border:             rgba(255,255,255,0.08);
+  --sidebar-ring:               #f0ede5;
+}
+
+/* ── Component Semantic Tokens — Dark Mode ────────────────────────────────── */
+.dark {
+  --background:         #0a1e2c;
+  --foreground:         #e8ecf0;
+  --card:               #0f2d41;
+  --card-foreground:    #e8ecf0;
+  --popover:            #0f2d41;
+  --popover-foreground: #e8ecf0;
+
+  --primary:            #f0ede5;
+  --primary-foreground: #144f6b;
+
+  --secondary:            #144f6b;
+  --secondary-foreground: #e8ecf0;
+
+  --muted:            #144f6b;
+  --muted-foreground: #a5b4bf;
+  --accent:           #1A77A3;
+  --accent-foreground: #f0ede5;
+
+  --destructive:            #ef4444;
+  --destructive-foreground: #ffffff;
+
+  --border:           #1A77A3;
+  --input:            #0f2d41;
+  --input-background: #0f2d41;
+  --switch-background: #1A77A3;
+  --ring: #f0ede5;
+
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+
+  --chart-1: #f0ede5;
+  --chart-2: #7290a0;
+  --chart-3: #22c55e;
+  --chart-4: #3b9ed9;
+  --chart-5: #ef4444;
+
+  --sidebar:                    #0a1e2c;
+  --sidebar-foreground:         #e8ecf0;
+  --sidebar-primary:            #f0ede5;
+  --sidebar-primary-foreground: #0a1e2c;
+  --sidebar-accent:             rgba(240,237,229,0.08);
+  --sidebar-accent-foreground:  #ffffff;
+  --sidebar-border:             rgba(255,255,255,0.06);
+  --sidebar-ring:               #f0ede5;
+}
+
+/* ── Tailwind Theme Bridge ────────────────────────────────────────────────── */
+@theme inline {
+  --color-background:         var(--background);
+  --color-foreground:         var(--foreground);
+  --color-card:               var(--card);
+  --color-card-foreground:    var(--card-foreground);
+  --color-popover:            var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary:            var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary:            var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted:            var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent:            var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive:            var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border:            var(--border);
+  --color-input:             var(--input);
+  --color-input-background:  var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring:      var(--ring);
+  --color-chart-1:   var(--chart-1);
+  --color-chart-2:   var(--chart-2);
+  --color-chart-3:   var(--chart-3);
+  --color-chart-4:   var(--chart-4);
+  --color-chart-5:   var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar:                    var(--sidebar);
+  --color-sidebar-foreground:         var(--sidebar-foreground);
+  --color-sidebar-primary:            var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent:             var(--sidebar-accent);
+  --color-sidebar-accent-foreground:  var(--sidebar-accent-foreground);
+  --color-sidebar-border:             var(--sidebar-border);
+  --color-sidebar-ring:               var(--sidebar-ring);
+}
+
+/* ── Base Typography ──────────────────────────────────────────────────────── */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: 'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html { font-size: var(--font-size); }
+
+  h1 {
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--ds-primary-900);
+  }
+  h2 {
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    font-size: var(--text-xl);
+    font-weight: 700;
+    line-height: 1.35;
+  }
+  h3 {
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    font-size: var(--text-lg);
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  h4 {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+  label {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--ds-primary-700);
+  }
+  button {
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+  input, textarea, select {
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-normal);
+    line-height: 1.5;
+  }
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar        { width: 5px; height: 5px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: var(--ds-primary-200); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ds-primary-300); }
+
+aside::-webkit-scrollbar-thumb       { background: rgba(255,239,178,0.15); }
+aside::-webkit-scrollbar-thumb:hover { background: rgba(255,239,178,0.28); }
+
+.font-serif-church {
+  font-family: 'Cinzel', 'Playfair Display', Georgia, serif;
+}
+
+.font-serif-heading {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+}

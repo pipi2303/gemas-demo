@@ -1,0 +1,869 @@
+import React, { useState, useMemo } from 'react';
+import { useApp } from '../context/AppContext';
+import { toast } from 'sonner';
+import { RoomBooking, RoomBookingStatus } from '../types';
+import { 
+  Calendar, Clock, Users, CheckCircle, XCircle, Plus, X,
+  MapPin, Phone, User, FileText, Pencil, Trash2, Eye,
+  Building, DoorOpen, Info
+} from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { Button } from './ui/button';
+import { Label } from './ui/label';
+import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
+import { SearchDropdown } from './ui/SearchDropdown';
+
+export function RoomBookingComponent() {
+  const { roomBookings, members, rooms, addRoomBooking, updateRoomBooking, deleteRoomBooking, getMasterDataByCategory } = useApp();
+  const statusRuanganList = getMasterDataByCategory('status_peminjaman_ruangan').map((m: any) => m.value);
+  const STATUS_OPTS = statusRuanganList.length ? statusRuanganList : ['Pending', 'Approved', 'Rejected', 'Completed', 'Cancelled'];
+  const activeRooms = (rooms || []).filter(r => r.isActive);
+  const defaultRoom = activeRooms[0]?.name ?? 'Aula Utama';
+
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<RoomBooking | null>(null);
+
+  // memberSearch state for SearchDropdown display
+  const [memberSearch, setMemberSearch] = useState('');
+
+  // Form State
+  const [formData, setFormData] = useState({
+    roomName: defaultRoom,
+    date: '',
+    startTime: '',
+    endTime: '',
+    purpose: '',
+    bookedBy: '',
+    memberId: '',
+    phone: '',
+    organization: '',
+    attendees: 0,
+    facilities: [] as string[],
+    notes: '',
+    status: 'Pending' as RoomBookingStatus
+  });
+
+  // Fasilitas dari ruangan yang dipilih, fallback ke semua fasilitas unik dari semua ruangan
+  const availableFacilities = useMemo(() => {
+    const selectedRoom = activeRooms.find(r => r.name === formData.roomName);
+    if (selectedRoom) return selectedRoom.facilities;
+    const all = new Set<string>();
+    activeRooms.forEach(r => r.facilities.forEach(f => all.add(f)));
+    return Array.from(all);
+  }, [activeRooms, formData.roomName]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    if (name === 'attendees') {
+      setFormData(prev => ({ ...prev, [name]: parseInt(value) || 0 }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleMemberSelect = (memberId: string) => {
+    if (memberId) {
+      const member = members.find(m => m.id === memberId);
+      if (member) {
+        setFormData(prev => ({
+          ...prev,
+          memberId,
+          bookedBy: member.fullName,
+          phone: member.phone
+        }));
+      }
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        memberId: '',
+        bookedBy: '',
+        phone: ''
+      }));
+    }
+  };
+
+  const handleFacilityToggle = (facility: string) => {
+    setFormData(prev => ({
+      ...prev,
+      facilities: prev.facilities.includes(facility)
+        ? prev.facilities.filter(f => f !== facility)
+        : [...prev.facilities, facility]
+    }));
+  };
+
+  const resetForm = () => {
+    setFormData({
+      roomName: defaultRoom,
+      date: '',
+      startTime: '',
+      endTime: '',
+      purpose: '',
+      bookedBy: '',
+      memberId: '',
+      phone: '',
+      organization: '',
+      attendees: 0,
+      facilities: [],
+      notes: '',
+      status: 'Pending'
+    });
+    setMemberSearch('');
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validasi
+    if (!formData.date || !formData.startTime || !formData.endTime) {
+      toast.error('Mohon lengkapi Tanggal, Waktu Mulai, dan Waktu Selesai');
+      return;
+    }
+
+    if (!formData.bookedBy || !formData.phone || !formData.purpose) {
+      toast.error('Mohon lengkapi Nama Pemesan, Telepon, dan Tujuan Peminjaman');
+      return;
+    }
+
+    addRoomBooking({ ...formData, roomType: 'Aula', email: '' });
+    resetForm();
+    setIsCreateDialogOpen(false);
+  };
+
+  const handleEdit = (booking: RoomBooking) => {
+    setIsEditMode(true);
+    setSelectedBooking(booking);
+    setIsDetailDialogOpen(false);
+    setFormData({
+      roomName: booking.roomName,
+      date: booking.date,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      purpose: booking.purpose,
+      bookedBy: booking.bookedBy,
+      memberId: booking.memberId || '',
+      phone: booking.phone,
+      organization: booking.organization || '',
+      attendees: booking.attendees,
+      facilities: booking.facilities || [],
+      notes: booking.notes || '',
+      status: booking.status
+    });
+    setMemberSearch(booking.memberId ? members.find(m => m.id === booking.memberId)?.fullName || '' : '');
+    setIsCreateDialogOpen(true);
+  };
+
+  const handleUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validasi
+    if (!formData.date || !formData.startTime || !formData.endTime) {
+      toast.error('Mohon lengkapi Tanggal, Waktu Mulai, dan Waktu Selesai');
+      return;
+    }
+
+    if (!formData.bookedBy || !formData.phone || !formData.purpose) {
+      toast.error('Mohon lengkapi Nama Pemesan, Telepon, dan Tujuan Peminjaman');
+      return;
+    }
+
+    if (selectedBooking) updateRoomBooking(selectedBooking.id, formData);
+    resetForm();
+    setIsCreateDialogOpen(false);
+    setIsEditMode(false);
+    setSelectedBooking(null);
+  };
+
+  const handleViewDetail = (booking: RoomBooking) => {
+    setSelectedBooking(booking);
+    setIsDetailDialogOpen(true);
+  };
+
+  const handleDelete = (booking: RoomBooking) => {
+    const confirmDelete = window.confirm(
+      `Apakah Anda yakin ingin menghapus booking:\n\n${booking.roomName} - ${booking.bookedBy}\nTanggal: ${new Date(booking.date).toLocaleDateString('id-ID')}\n\nData yang dihapus tidak dapat dikembalikan.`
+    );
+    
+    if (confirmDelete) {
+      deleteRoomBooking(booking.id);
+      setIsDetailDialogOpen(false);
+    }
+  };
+
+  const handleStatusChange = (booking: RoomBooking, newStatus: RoomBookingStatus) => {
+    updateRoomBooking(booking.id, { status: newStatus });
+    setSelectedBooking(prev => prev ? { ...prev, status: newStatus } : prev);
+  };
+
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      'Pending': 'bg-[#f0ede5] text-[#144f6b] border-[#e8e4d8]',
+      'Approved': 'bg-green-100 text-green-800 border-green-200',
+      'Rejected': 'bg-red-100 text-red-800 border-red-200',
+      'Completed': 'bg-[#f0ede5] text-blue-800 border-[#b8d5e8]',
+      'Cancelled': 'bg-gray-100 text-gray-800 border-gray-200'
+    };
+    return colors[status] || 'bg-gray-100 text-gray-800 border-gray-200';
+  };
+
+  // Calculate statistics
+  const stats = {
+    total: roomBookings.length,
+    pending: roomBookings.filter(b => b.status === 'Pending').length,
+    approved: roomBookings.filter(b => b.status === 'Approved').length,
+    completed: roomBookings.filter(b => b.status === 'Completed').length
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900 mb-2">Reservasi Ruangan</h1>
+          <p className="text-gray-600">Sistem peminjaman gedung dan sarana gereja</p>
+        </div>
+        <button 
+          onClick={() => setIsCreateDialogOpen(true)}
+          className="px-4 py-2 bg-[#1A77A3] text-white rounded-lg hover:bg-[#144f6b] transition-colors flex items-center gap-2"
+        >
+          <Plus className="w-5 h-5" />
+          Booking Ruangan
+        </button>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-[#1A77A3] rounded-lg shadow-sm border border-blue-400 p-5 text-white">
+          <p className="text-blue-100 text-sm mb-1">Total Booking</p>
+          <p className="text-3xl font-bold">{stats.total}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-[#e8e4d8] p-5">
+          <p className="text-[#1A77A3] text-sm mb-1">Pending</p>
+          <p className="text-3xl font-bold text-[#144f6b]">{stats.pending}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-green-200 p-5">
+          <p className="text-green-700 text-sm mb-1">Approved</p>
+          <p className="text-3xl font-bold text-green-900">{stats.approved}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-[#b8d5e8] p-5">
+          <p className="text-[#144f6b] text-sm mb-1">Completed</p>
+          <p className="text-3xl font-bold text-blue-900">{stats.completed}</p>
+        </div>
+      </div>
+
+      {/* Calendar View Placeholder */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <Calendar className="w-5 h-5 text-blue-600" />
+          Kalender Reservasi
+        </h3>
+        <div className="bg-[#f0f7fb] rounded-lg p-8 text-center border border-blue-200">
+          <Calendar className="w-12 h-12 text-blue-400 mx-auto mb-3" />
+          <p className="text-[#144f6b] font-medium">Kalender reservasi akan ditampilkan di sini</p>
+          <p className="text-sm text-blue-600 mt-1">Lihat jadwal booking ruangan per bulan</p>
+        </div>
+      </div>
+
+      {/* Booking List */}
+      <div className="space-y-4">
+        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+          <DoorOpen className="w-5 h-5 text-green-600" />
+          Daftar Booking
+        </h3>
+        {roomBookings.map((booking) => (
+          <div 
+            key={booking.id} 
+            onClick={() => handleViewDetail(booking)}
+            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 cursor-pointer hover:shadow-md transition-shadow"
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <Building className="w-5 h-5 text-gray-400" />
+                  <h3 className="font-semibold text-gray-900 text-lg">{booking.roomName}</h3>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(booking.status)}`}>
+                    {booking.status}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 ml-8">{booking.purpose}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 text-sm">
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                  <span className="text-gray-600">
+                    {new Date(booking.date).toLocaleDateString('id-ID', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 text-sm">
+                  <Clock className="w-4 h-4 text-gray-400" />
+                  <span className="text-gray-600">
+                    {booking.startTime} - {booking.endTime} WIB
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 text-sm">
+                  <Users className="w-4 h-4 text-gray-400" />
+                  <span className="text-gray-600">{booking.attendees} peserta</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-sm">
+                  <span className="font-medium text-gray-700">Pemesan:</span>
+                  <span className="text-gray-600 ml-2">{booking.bookedBy}</span>
+                </div>
+                {booking.organization && (
+                  <div className="text-sm">
+                    <span className="font-medium text-gray-700">Organisasi:</span>
+                    <span className="text-gray-600 ml-2">{booking.organization}</span>
+                  </div>
+                )}
+                <div className="text-sm">
+                  <span className="font-medium text-gray-700">Kontak:</span>
+                  <span className="text-gray-600 ml-2">{booking.phone}</span>
+                </div>
+              </div>
+            </div>
+
+            {booking.facilities && booking.facilities.length > 0 && (
+              <div className="mb-4 pb-4 border-b border-gray-100">
+                <p className="text-sm font-medium text-gray-700 mb-2">Fasilitas:</p>
+                <div className="flex flex-wrap gap-2">
+                  {booking.facilities.map((facility, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2 py-1 bg-[#f0f7fb] text-[#144f6b] rounded text-xs border border-blue-200"
+                    >
+                      {facility}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {booking.notes && (
+              <div className="bg-[#f6f4f0] border border-[#e8e4d8] rounded-lg p-3 mb-4">
+                <p className="text-sm text-[#144f6b] line-clamp-2">{booking.notes}</p>
+              </div>
+            )}
+
+            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+              {booking.status === 'Pending' && (
+                <>
+                  <button 
+                    onClick={() => handleStatusChange(booking, 'Approved')}
+                    className="px-4 py-2 bg-[#1A77A3] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm flex items-center gap-2"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Setujui
+                  </button>
+                  <button 
+                    onClick={() => handleStatusChange(booking, 'Rejected')}
+                    className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm flex items-center gap-2"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Tolak
+                  </button>
+                </>
+              )}
+              {booking.status === 'Approved' && (
+                <button 
+                  onClick={() => handleStatusChange(booking, 'Completed')}
+                  className="px-4 py-2 bg-[#1A77A3] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm"
+                >
+                  Tandai Selesai
+                </button>
+              )}
+              {booking.status === 'Completed' && (
+                <button className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg cursor-default text-sm">
+                  <CheckCircle className="w-4 h-4 inline mr-1" />
+                  Selesai
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setIsCreateDialogOpen(false);
+          setIsEditMode(false);
+          setSelectedBooking(null);
+          resetForm();
+        }
+      }}>
+        <DialogContent className="sm:max-w-3xl p-0 gap-0 max-h-[90vh] flex flex-col">
+          {/* Header */}
+          <div className="bg-white border-b border-gray-200 px-6 pt-6 pb-4 flex-shrink-0">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-gray-900">
+                {isEditMode ? 'Edit Booking Ruangan' : 'Booking Ruangan Baru'}
+              </DialogTitle>
+              <DialogDescription className="mt-0.5 text-xs">
+                {isEditMode ? 'Ubah informasi booking ruangan yang sudah ada.' : 'Buat reservasi ruangan untuk kegiatan gereja.'}
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          
+          {/* Form */}
+          <form onSubmit={isEditMode ? handleUpdate : handleSubmit} className="flex flex-col flex-1 min-h-0">
+            {/* Scrollable Content */}
+            <div className="overflow-y-auto flex-1 px-6 min-h-0">
+              <div className="space-y-6 py-4">
+                {/* Informasi Ruangan */}
+                <div className="bg-[#f0f7fb] rounded-lg p-4 border border-blue-100">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 bg-[#1A77A3] rounded-lg flex items-center justify-center">
+                      <Building className="w-4 h-4 text-white" />
+                    </div>
+                    <h3 className="font-semibold text-gray-900">Informasi Ruangan</h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="roomName">Nama Ruangan *</Label>
+                      <select
+                        id="roomName"
+                        name="roomName"
+                        value={formData.roomName}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                        required
+                      >
+                        {activeRooms.map(r => (
+                          <option key={r.id} value={r.name}>{r.name} (kapasitas {r.capacity} orang)</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <Label htmlFor="status">Status *</Label>
+                      <select
+                        id="status"
+                        name="status"
+                        value={formData.status}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                        required
+                      >
+                        {STATUS_OPTS.map((s: string) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <Label htmlFor="purpose">Tujuan Peminjaman *</Label>
+                    <Input
+                      id="purpose"
+                      name="purpose"
+                      value={formData.purpose}
+                      onChange={handleInputChange}
+                      placeholder="Contoh: Rapat Majelis, Persekutuan Pemuda, dll"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Waktu Peminjaman */}
+                <div className="bg-white rounded-lg p-4 border border-gray-200">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                      <Calendar className="w-4 h-4 text-green-600" />
+                    </div>
+                    <h3 className="font-semibold text-gray-900">Waktu Peminjaman</h3>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="date">Tanggal *</Label>
+                      <Input
+                        id="date"
+                        name="date"
+                        type="date"
+                        value={formData.date}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="startTime">Waktu Mulai *</Label>
+                      <Input
+                        id="startTime"
+                        name="startTime"
+                        type="time"
+                        value={formData.startTime}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="endTime">Waktu Selesai *</Label>
+                      <Input
+                        id="endTime"
+                        name="endTime"
+                        type="time"
+                        value={formData.endTime}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <Label htmlFor="attendees">Jumlah Peserta *</Label>
+                    <Input
+                      id="attendees"
+                      name="attendees"
+                      type="number"
+                      min="0"
+                      value={formData.attendees}
+                      onChange={handleInputChange}
+                      placeholder="0"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Informasi Pemesan */}
+                <div className="bg-white rounded-lg p-4 border border-gray-200">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 bg-[#f0ede5] rounded-lg flex items-center justify-center">
+                      <User className="w-4 h-4 text-purple-600" />
+                    </div>
+                    <h3 className="font-semibold text-gray-900">Informasi Pemesan</h3>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Pilih Jemaat Terdaftar</Label>
+                      <SearchDropdown<any>
+                        value={memberSearch}
+                        onChange={v => {
+                          setMemberSearch(v);
+                          if (!v) handleMemberSelect('');
+                        }}
+                        placeholder="Cari nama jemaat..."
+                        items={members}
+                        filterFn={(m, q) => {
+                          const lq = q.toLowerCase();
+                          return m.fullName.toLowerCase().includes(lq) || m.memberNumber?.toLowerCase().includes(lq);
+                        }}
+                        renderResult={m => (
+                          <div>
+                            <p style={{fontSize:'13px',fontWeight:600,color:'#0f172a',margin:0}}>{m.fullName}</p>
+                            <p style={{fontSize:'11px',color:'#64748b',margin:0}}>{m.memberNumber||'-'}</p>
+                          </div>
+                        )}
+                        onSelect={m => {
+                          handleMemberSelect(m.id);
+                          setMemberSearch(m.fullName);
+                        }}
+                        onClear={() => { handleMemberSelect(''); setMemberSearch(''); }}
+                      />
+                    </div>
+                    <div className="border-t border-gray-200 pt-4">
+                      <p className="text-xs text-gray-500 mb-3">Atau isi manual:</p>
+                      <div className="space-y-3">
+                        <div>
+                          <Label htmlFor="bookedBy">Nama Pemesan *</Label>
+                          <Input
+                            id="bookedBy"
+                            name="bookedBy"
+                            value={formData.bookedBy}
+                            onChange={handleInputChange}
+                            placeholder="Nama lengkap"
+                            required
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label htmlFor="phone">Telepon *</Label>
+                            <Input
+                              id="phone"
+                              name="phone"
+                              value={formData.phone}
+                              onChange={handleInputChange}
+                              placeholder="08xx"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="organization">Organisasi</Label>
+                            <Input
+                              id="organization"
+                              name="organization"
+                              value={formData.organization}
+                              onChange={handleInputChange}
+                              placeholder="Nama organisasi (opsional)"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Fasilitas yang Dibutuhkan */}
+                <div className="bg-white rounded-lg p-4 border border-gray-200">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 bg-[#f0ede5] rounded-lg flex items-center justify-center">
+                      <DoorOpen className="w-4 h-4 text-[#1A77A3]" />
+                    </div>
+                    <h3 className="font-semibold text-gray-900">Fasilitas yang Dibutuhkan</h3>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {availableFacilities.map((facility) => (
+                      <label
+                        key={facility}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
+                          formData.facilities.includes(facility)
+                            ? 'bg-[#f0f7fb] border-blue-300 text-blue-900'
+                            : 'bg-white border-gray-200 text-gray-700 hover:bg-[#f2f0ea] cursor-pointer group'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.facilities.includes(facility)}
+                          onChange={() => handleFacilityToggle(facility)}
+                          className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <span className="text-sm">{facility}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-3">
+                    Terpilih: {formData.facilities.length} fasilitas
+                  </p>
+                </div>
+
+                {/* Catatan Tambahan */}
+                <div className="bg-white rounded-lg p-4 border border-gray-200">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <FileText className="w-4 h-4 text-gray-600" />
+                    </div>
+                    <h3 className="font-semibold text-gray-900">Catatan Tambahan</h3>
+                  </div>
+                  <Textarea
+                    id="notes"
+                    name="notes"
+                    value={formData.notes}
+                    onChange={handleInputChange}
+                    placeholder="Catatan atau permintaan khusus..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-white border-t border-gray-200 px-6 py-4 flex-shrink-0">
+              <div className="flex gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsCreateDialogOpen(false)}
+                >
+                  <X className="w-4 h-4 mr-1.5" />
+                  Batal
+                </Button>
+                <Button type="submit">
+                  <Plus className="w-4 h-4 mr-1.5" />
+                  {isEditMode ? 'Simpan Perubahan' : 'Buat Booking'}
+                </Button>
+              </div>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail Dialog */}
+      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+        <DialogContent className="sm:max-w-2xl p-0 gap-0 max-h-[90vh] flex flex-col">
+          {/* Header */}
+          <div className="bg-white border-b border-gray-200 px-6 pt-6 pb-4 flex-shrink-0">
+            <DialogHeader>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <DialogTitle className="text-xl font-bold text-gray-900">
+                    Detail Booking Ruangan
+                  </DialogTitle>
+                  <DialogDescription className="mt-0.5 text-xs">
+                    {selectedBooking?.roomName} - {selectedBooking?.bookedBy}
+                  </DialogDescription>
+                </div>
+                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${selectedBooking ? getStatusColor(selectedBooking.status) : ''}`}>
+                  {selectedBooking?.status}
+                </span>
+              </div>
+            </DialogHeader>
+          </div>
+          
+          {/* Scrollable Content */}
+          <div className="overflow-y-auto flex-1 px-6 min-h-0">
+            <div className="space-y-4 py-4">
+              {/* Room Info Card */}
+              <div className="bg-[#f0f7fb] rounded-lg p-5 border border-blue-200">
+                <div className="flex items-center gap-3 mb-2">
+                  <Building className="w-6 h-6 text-blue-600" />
+                  <div>
+                    <p className="text-sm font-medium text-[#144f6b] mb-0.5">Ruangan</p>
+                    <p className="text-2xl font-bold text-blue-900">{selectedBooking?.roomName}</p>
+                  </div>
+                </div>
+                <p className="text-sm text-blue-800 mt-3">{selectedBooking?.purpose}</p>
+              </div>
+
+              {/* Schedule Info */}
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center gap-2 mb-3">
+                  <Calendar className="w-5 h-5 text-green-600" />
+                  <h3 className="font-semibold text-gray-900">Jadwal</h3>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Tanggal</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {selectedBooking && new Date(selectedBooking.date).toLocaleDateString('id-ID', {
+                        weekday: 'long',
+                        day: '2-digit',
+                        month: 'long',
+                        year: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Waktu</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {selectedBooking?.startTime} - {selectedBooking?.endTime} WIB
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Jumlah Peserta</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {selectedBooking?.attendees} orang
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Booker Info */}
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center gap-2 mb-3">
+                  <User className="w-5 h-5 text-purple-600" />
+                  <h3 className="font-semibold text-gray-900">Informasi Pemesan</h3>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Nama</span>
+                    <span className="text-sm font-medium text-gray-900">{selectedBooking?.bookedBy}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Telepon</span>
+                    <span className="text-sm font-medium text-gray-900">{selectedBooking?.phone}</span>
+                  </div>
+                  {selectedBooking?.organization && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Organisasi</span>
+                      <span className="text-sm font-medium text-gray-900">{selectedBooking.organization}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Facilities */}
+              {selectedBooking?.facilities && selectedBooking.facilities.length > 0 && (
+                <div className="bg-white rounded-lg p-4 border border-gray-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <DoorOpen className="w-5 h-5 text-[#1A77A3]" />
+                    <h3 className="font-semibold text-gray-900">Fasilitas yang Dibutuhkan</h3>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedBooking.facilities.map((facility, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1.5 bg-[#f0f7fb] text-[#144f6b] rounded-lg text-sm border border-[#b8d5e8] font-medium"
+                      >
+                        {facility}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              {selectedBooking?.notes && (
+                <div className="bg-[#f6f4f0] border border-[#e8e4d8] rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="w-5 h-5 text-[#1A77A3]" />
+                    <h3 className="font-semibold text-[#144f6b]">Catatan</h3>
+                  </div>
+                  <p className="text-sm text-[#144f6b] whitespace-pre-wrap">{selectedBooking.notes}</p>
+                </div>
+              )}
+
+              {/* Status Actions */}
+              {selectedBooking && selectedBooking.status !== 'Completed' && selectedBooking.status !== 'Cancelled' && selectedBooking.status !== 'Rejected' && (
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <h3 className="font-semibold text-gray-900 mb-3">Ubah Status</h3>
+                  <div className="flex gap-2">
+                    {selectedBooking.status === 'Pending' && (
+                      <>
+                        <Button 
+                          onClick={() => handleStatusChange(selectedBooking, 'Approved')}
+                          size="sm"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
+                          Setujui
+                        </Button>
+                        <Button 
+                          onClick={() => handleStatusChange(selectedBooking, 'Rejected')}
+                          size="sm"
+                          variant="destructive"
+                        >
+                          <XCircle className="w-3.5 h-3.5 mr-1.5" />
+                          Tolak
+                        </Button>
+                      </>
+                    )}
+                    {selectedBooking.status === 'Approved' && (
+                      <Button 
+                        onClick={() => handleStatusChange(selectedBooking, 'Completed')}
+                        size="sm"
+                      >
+                        <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
+                        Tandai Selesai
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="bg-white border-t border-gray-200 px-6 py-4 flex-shrink-0">
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsDetailDialogOpen(false)} className="flex-1">
+                <X className="w-3.5 h-3.5 mr-1.5" />
+                Tutup
+              </Button>
+              <Button type="button" onClick={() => handleEdit(selectedBooking!)} className="flex-1">
+                <Pencil className="w-3.5 h-3.5 mr-1.5" />
+                Edit
+              </Button>
+              <Button type="button" onClick={() => handleDelete(selectedBooking!)} variant="destructive" className="flex-1">
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                Hapus
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

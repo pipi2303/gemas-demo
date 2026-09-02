@@ -1,0 +1,397 @@
+import React, { useMemo, useState, useEffect } from 'react';
+import { useApp } from '../context/AppContext';
+import { Resource } from '../types';
+import { BookOpen, Search, Play, Pause, Download, User, Volume2, Sparkles, StopCircle, RefreshCw } from 'lucide-react';
+
+export function SermonArchive() {
+  const { resources, updateResource } = useApp();
+  const [search, setSearch] = useState('');
+  const [activeTag, setActiveTag] = useState('Semua');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+
+  const sermons = useMemo(
+    () => resources
+      .filter(r => r.type === 'Khotbah')
+      .sort((a, b) => (b.publishedDate || '').localeCompare(a.publishedDate || '')),
+    [resources]
+  );
+
+  const tags = useMemo(() => {
+    const set = new Set<string>();
+    sermons.forEach(s => (s.tags || []).forEach(t => set.add(t)));
+    return ['Semua', ...Array.from(set)];
+  }, [sermons]);
+
+  const filtered = useMemo(() => {
+    return sermons.filter(s => {
+      const matchesTag = activeTag === 'Semua' || (s.tags || []).includes(activeTag);
+      const q = search.trim().toLowerCase();
+      const matchesSearch = !q ||
+        s.title.toLowerCase().includes(q) ||
+        (s.author || '').toLowerCase().includes(q) ||
+        (s.bibleVerse || '').toLowerCase().includes(q);
+      return matchesTag && matchesSearch;
+    });
+  }, [sermons, activeTag, search]);
+
+  const selected: Resource | undefined = useMemo(
+    () => filtered.find(s => s.id === selectedId) || filtered[0],
+    [filtered, selectedId]
+  );
+
+  const formatDate = (d?: string) => {
+    if (!d) return '-';
+    try {
+      return new Date(d).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+    } catch { return d; }
+  };
+
+  const handleSelect = (r: Resource) => {
+    setSelectedId(r.id);
+    stopAudioAndSpeech();
+  };
+
+  const stopAudioAndSpeech = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsPlaying(false);
+    setIsSpeaking(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      stopAudioAndSpeech();
+    };
+  }, []);
+
+  const togglePlay = () => {
+    if (!selected) return;
+
+    if (selected.fileUrl) {
+      if (!audioRef.current) return;
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        audioRef.current.play();
+        setIsPlaying(true);
+      }
+    } else {
+      // Fallback to Web Speech API TTS for elderly / listening support
+      if (!('speechSynthesis' in window)) {
+        alert('Browser tidak mendukung pembacaan suara audio otomatis.');
+        return;
+      }
+
+      if (isSpeaking) {
+        window.speechSynthesis.cancel();
+        setIsSpeaking(false);
+      } else {
+        window.speechSynthesis.cancel();
+        const textToRead = `${selected.title}. Pelayan Firman, ${selected.author || 'Hamba Tuhan'}. Nats Alkitab, ${selected.bibleVerse || ''}. ${selected.description || ''}. ${selected.fullTranscript || ''}`;
+        const utterance = new SpeechSynthesisUtterance(textToRead);
+        utterance.lang = 'id-ID';
+        const rate = parseFloat(localStorage.getItem('gemas_tts_speed') || '1.0');
+        utterance.rate = rate;
+
+        utterance.onend = () => setIsSpeaking(false);
+        utterance.onerror = () => setIsSpeaking(false);
+
+        window.speechSynthesis.speak(utterance);
+        setIsSpeaking(true);
+      }
+    }
+  };
+
+  const handleDownloadTranscript = () => {
+    if (!selected) return;
+    const text = selected.fullTranscript || selected.description || 'Naskah belum tersedia.';
+    const blob = new Blob([`${selected.title}\nPelayan: ${selected.author || '-'}\nNats: ${selected.bibleVerse || '-'}\n\n${text}`], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${selected.title.replace(/[^a-z0-9]+/gi, '-')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    updateResource(selected.id, { downloads: (selected.downloads || 0) + 1 });
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header Banner */}
+      <div
+        className="rounded-2xl shadow-sm border p-6 text-white"
+        style={{
+          background: 'linear-gradient(135deg, #0d1a2d 0%, #152744 100%)',
+          borderColor: 'rgba(212,175,55,0.25)',
+        }}
+      >
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-amber-400/20 text-amber-300 border border-amber-400/30">
+              <BookOpen className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-xl lg:text-2xl font-bold font-serif-heading tracking-wide">
+                Arsip Khotbah &amp; Renungan Firman
+              </h1>
+              <p className="text-xs lg:text-sm text-gray-300 mt-1">
+                Dengarkan rekaman suara khotbah, pelajari nats Alkitab, dan unduh naskah renungan mingguan.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/10 text-amber-300 border border-white/15">
+              {sermons.length} Khotbah Tersedia
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {sermons.length === 0 ? (
+        <div className="bg-white rounded-2xl shadow-sm border p-12 text-center" style={{ borderColor: '#e8e0cc' }}>
+          <BookOpen className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+          <p className="text-gray-600 font-medium">Belum ada khotbah yang diarsipkan.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          {/* Left Column: Search & Filter List */}
+          <div className="lg:col-span-1 space-y-4">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Cari tema, ayat, pengkhotbah..."
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border text-xs lg:text-sm bg-white shadow-xs focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-600 transition-all"
+                style={{ borderColor: '#e2d8c4' }}
+              />
+            </div>
+
+            {/* Tags Pills */}
+            <div className="flex flex-wrap gap-1.5">
+              {tags.map(tag => {
+                const count = tag === 'Semua' ? sermons.length : sermons.filter(s => (s.tags || []).includes(tag)).length;
+                const active = tag === activeTag;
+                return (
+                  <button
+                    key={tag}
+                    onClick={() => setActiveTag(tag)}
+                    className="px-3 py-1 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5"
+                    style={active
+                      ? { background: '#0d1a2d', color: '#fef08a', border: '1px solid #caa049' }
+                      : { background: '#ffffff', color: '#475569', border: '1px solid #e2d8c4' }}
+                  >
+                    {tag}
+                    <span
+                      className="px-1.5 py-0.2 rounded-full text-[10px]"
+                      style={active ? { background: 'rgba(255,255,255,0.2)' } : { background: '#f1f5f9' }}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* List of Sermon Cards */}
+            <div className="space-y-2.5 max-h-[600px] overflow-y-auto pr-1">
+              {filtered.length === 0 && (
+                <p className="text-xs text-gray-500 p-3 text-center">Tidak ada materi yang sesuai filter.</p>
+              )}
+              {filtered.map(s => {
+                const active = selected?.id === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => handleSelect(s)}
+                    className="w-full text-left rounded-2xl p-4 transition-all duration-200"
+                    style={{
+                      background: active ? '#0d1a2d' : '#ffffff',
+                      color: active ? '#ffffff' : '#0f172a',
+                      border: active ? '1.5px solid #caa049' : '1px solid #e2d8c4',
+                      boxShadow: active ? '0 4px 14px rgba(13,26,45,0.2)' : '0 1px 3px rgba(0,0,0,0.03)',
+                    }}
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span
+                        className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase"
+                        style={{
+                          background: active ? 'rgba(212,175,55,0.25)' : '#fef3c7',
+                          color: active ? '#fde047' : '#92400e',
+                          border: active ? '1px solid rgba(212,175,55,0.4)' : '1px solid #fde68a',
+                        }}
+                      >
+                        {(s.tags && s.tags[0]) || 'Materi'}
+                      </span>
+                      <span className={`text-[11px] ${active ? 'text-gray-300' : 'text-gray-400'}`}>
+                        {formatDate(s.publishedDate)}
+                      </span>
+                    </div>
+                    <p className={`font-bold text-sm leading-snug font-serif-heading ${active ? 'text-white' : 'text-gray-900'}`}>
+                      {s.title}
+                    </p>
+                    {s.author && (
+                      <p className={`text-xs mt-2 flex items-center gap-1.5 ${active ? 'text-amber-200/80' : 'text-gray-600'}`}>
+                        <User className="w-3.5 h-3.5" />
+                        <span className="truncate">{s.author}</span>
+                      </p>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right Column: Detailed Viewer & Media Narration */}
+          <div className="lg:col-span-2">
+            {!selected ? (
+              <div className="bg-white rounded-2xl shadow-sm border p-12 text-center" style={{ borderColor: '#e8e0cc' }}>
+                <p className="text-gray-500">Pilih khotbah di sebelah kiri untuk melihat detail.</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl shadow-sm border p-6 space-y-6" style={{ borderColor: '#e2d8c4' }}>
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span
+                      className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200"
+                    >
+                      {(selected.tags && selected.tags[0]) || 'Materi'} • {formatDate(selected.publishedDate)}
+                    </span>
+                  </div>
+                  <h2 className="text-2xl lg:text-3xl font-bold font-serif-heading text-gray-900 leading-tight">
+                    {selected.title}
+                  </h2>
+                  <div className="mt-3 flex flex-wrap gap-y-1 gap-x-4 text-xs lg:text-sm text-gray-600">
+                    {selected.author && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-gray-400">Pelayan Firman:</span>
+                        <span className="font-semibold text-gray-900">{selected.author}</span>
+                      </div>
+                    )}
+                    {selected.bibleVerse && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-gray-400">Nats Alkitab:</span>
+                        <span className="font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                          {selected.bibleVerse}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="h-px bg-gray-100" />
+
+                {/* Audio Player Card (Dark Navy with Gold Accents) */}
+                <div
+                  className="rounded-2xl p-5 text-white shadow-md border"
+                  style={{
+                    background: '#0d1a2d',
+                    borderColor: 'rgba(212,175,55,0.3)',
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2 text-sm font-semibold">
+                      <div className="w-7 h-7 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 border border-emerald-500/30">
+                        <Volume2 className="w-4 h-4" />
+                      </div>
+                      <span>Pemutar Audio Suara Khotbah / Pembaca Teks</span>
+                    </div>
+                    <span className="text-[11px] px-2.5 py-1 rounded-full bg-white/10 text-amber-300 border border-white/15">
+                      Audio Ramah Lansia
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      onClick={togglePlay}
+                      className="px-5 py-2.5 rounded-xl text-xs lg:text-sm font-bold flex items-center gap-2 transition-all shadow-sm active:scale-95"
+                      style={{
+                        background: '#caa049',
+                        color: '#0d1a2d',
+                      }}
+                    >
+                      {isPlaying || isSpeaking ? (
+                        <>
+                          <StopCircle className="w-4 h-4" />
+                          <span>Jeda / Hentikan Suara Khotbah</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-4 h-4 fill-current" />
+                          <span>Putar Suara Khotbah</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={handleDownloadTranscript}
+                      className="px-4 py-2.5 rounded-xl text-xs lg:text-sm font-semibold flex items-center gap-2 transition-all bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                    >
+                      <Download className="w-4 h-4" />
+                      Unduh Naskah (.txt)
+                    </button>
+                  </div>
+
+                  {selected.fileUrl && (
+                    <audio
+                      ref={audioRef}
+                      src={selected.fileUrl}
+                      onEnded={() => setIsPlaying(false)}
+                      className="hidden"
+                    />
+                  )}
+
+                  <p className="text-[11.5px] mt-3 text-gray-300/80">
+                    {isSpeaking
+                      ? '🔊 Sedang membacakan naskah khotbah secara otomatis...'
+                      : isPlaying
+                      ? '▶️ Sedang memutar rekaman suara...'
+                      : selected.fileUrl
+                      ? 'Klik "Putar Suara Khotbah" untuk mendengarkan rekaman suara audio.'
+                      : 'Audio siap dibacakan langsung melalui fitur narasi suara otomatis (TTS).'}
+                  </p>
+                </div>
+
+                {/* Ringkasan Intisari */}
+                <div
+                  className="rounded-2xl p-5 border"
+                  style={{ background: '#faf7f0', borderColor: '#e2d8c4' }}
+                >
+                  <p className="text-sm font-bold font-serif-heading text-gray-900 mb-2">
+                    Ringkasan / Intisari Khotbah
+                  </p>
+                  <p className="text-xs lg:text-sm text-gray-700 leading-relaxed">
+                    {selected.description || 'Ringkasan belum tersedia untuk materi ini.'}
+                  </p>
+                </div>
+
+                {/* Naskah Khotbah Lengkap */}
+                <div>
+                  <p className="text-sm font-bold font-serif-heading text-gray-900 mb-2">
+                    Naskah Khotbah Lengkap
+                  </p>
+                  <div
+                    className="rounded-2xl border p-5 max-h-80 overflow-y-auto text-xs lg:text-sm text-gray-800 whitespace-pre-wrap leading-relaxed bg-white"
+                    style={{ borderColor: '#e2d8c4' }}
+                  >
+                    {selected.fullTranscript || selected.description || 'Naskah lengkap belum tersedia untuk materi ini.'}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

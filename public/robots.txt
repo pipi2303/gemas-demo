@@ -1,0 +1,14 @@
+# GPIB Bahtera Kasih - GEMAS
+# This is an internal Gereja Management System
+# Not intended for public search engine indexing
+
+User-agent: *
+Disallow: /
+
+# Allow access to manifest and service worker
+Allow: /manifest.json
+Allow: /service-worker.js
+Allow: /icons/
+
+# Sitemap (if needed later)
+# Sitemap: https://yourdomain.com/sitemap.xml

@@ -1,0 +1,6 @@
+{
+  "name": "GEMAS - Gereja Management System",
+  "description": "Sistem informasi manajemen data jemaat, pelayanan, peribadahan, dan administrasi gereja GPIB Trinitas",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
