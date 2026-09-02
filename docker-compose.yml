@@ -1,17 +1,17 @@
 services:
 
-  gemas_db:
+  gemas_demo_db:
     image: postgres:16-alpine
-    container_name: gemas_db
+    container_name: gemas_demo_db
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
-      - gemas_postgres_data:/var/lib/postgresql/data
+      - gemas_demo_postgres_data:/var/lib/postgresql/data
     networks:
-      - gemas_net
+      - gemas_demo_net
     deploy:
       resources:
         limits:
@@ -23,35 +23,34 @@ services:
       timeout: 5s
       retries: 5
 
-  gemas:
-    image: ghcr.io/pipi2303/dev-gemas:${IMAGE_TAG:-latest}
-    container_name: gemas
+  gemas_demo:
+    image: ghcr.io/pipi2303/gemas-demo:${IMAGE_TAG:-latest}
+    container_name: gemas_demo
     ports:
-      - "8091:5411"
+      - "8093:3000"
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@gemas_db:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@gemas_demo_db:5432/${POSTGRES_DB}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required (min 32 chars)}
-      PORT: 5411
-      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-http://123.176.120.78:8091}
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-http://123.176.120.78:8093}
       NODE_ENV: production
     volumes:
-      - gemas_backups:/app/backups
+      - gemas_demo_backups:/app/backups
     networks:
-      - gemas_net
+      - gemas_demo_net
     depends_on:
-      gemas_db:
+      gemas_demo_db:
         condition: service_healthy
     deploy:
       resources:
         limits:
-          cpus: '2'
-          memory: 1G
+          cpus: '1'
+          memory: 512M
 
 networks:
-  gemas_net:
+  gemas_demo_net:
     driver: bridge
 
 volumes:
-  gemas_postgres_data:
-  gemas_backups:
+  gemas_demo_postgres_data:
+  gemas_demo_backups:
