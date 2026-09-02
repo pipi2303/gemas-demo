@@ -23,13 +23,6 @@ export function LoginPage() {
     if (!success) setError('Username atau password tidak valid.');
   };
 
-  const handleQuickFill = (u: string, p: string) => {
-    setUsername(u);
-    setPassword(p);
-    setError('');
-  };
-
-
 
   return (
     <>
@@ -114,9 +107,9 @@ export function LoginPage() {
               </div>
               <div>
                 <p className="text-white font-bold" style={{ fontSize: '14px', letterSpacing: '0.04em' }}>
-                  GPIB TRINITAS
+                  G E M A S
                 </p>
-                <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)' }}>Gereja Protestan di Indonesia bagian Barat</p>
+                <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)' }}>Gereja Management System</p>
               </div>
             </div>
 
@@ -169,8 +162,8 @@ export function LoginPage() {
                 />
               </div>
               <div>
-                <p className="font-bold text-gray-900" style={{ fontSize: '13px' }}>GPIB TRINITAS</p>
-                <p className="text-gray-400" style={{ fontSize: '11px' }}>Gereja Management System — GEMAS</p>
+                <p className="font-bold text-gray-900" style={{ fontSize: '13px' }}>G E M A S</p>
+                <p className="text-gray-400" style={{ fontSize: '11px' }}>Gereja Management System</p>
               </div>
             </div>
 
@@ -281,33 +274,6 @@ export function LoginPage() {
                 </button>
               </div>
             </form>
-
-            {/* Quick Demo Accounts */}
-            <div className="fade-up-4 mt-6 pt-5" style={{ borderTop: '1px solid #e2e8f0' }}>
-              <p style={{ fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>
-                Akun Cepat (Klik untuk mengisi):
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill('pipi', 'pipi123')}
-                  className="px-3 py-2 text-left rounded-lg transition-all"
-                  style={{ background: '#f8fafc', border: '1px solid #e2e8f0', fontSize: '12px' }}
-                >
-                  <p style={{ fontWeight: 600, color: '#0f172a' }}>pipi</p>
-                  <p style={{ fontSize: '10.5px', color: '#64748b' }}>Admin (pipi123)</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickFill('admin', 'admin123')}
-                  className="px-3 py-2 text-left rounded-lg transition-all"
-                  style={{ background: '#f8fafc', border: '1px solid #e2e8f0', fontSize: '12px' }}
-                >
-                  <p style={{ fontWeight: 600, color: '#0f172a' }}>admin</p>
-                  <p style={{ fontSize: '10.5px', color: '#64748b' }}>Admin (admin123)</p>
-                </button>
-              </div>
-            </div>
 
             <p className="fade-up-5 text-center mt-6" style={{ fontSize: '11px', color: '#d1d5db' }}>
               Sistem Internal · Hanya untuk Pengurus & Majelis GPIB Trinitas
