@@ -44,8 +44,9 @@ import { useSortable } from '../../hooks/useSortable';
 import { toast } from 'sonner';
 
 export function UserManagement() {
-  const { users, addUser, updateUser, currentUser } = useApp();
+  const { users, addUser, updateUser, currentUser, customRoles } = useApp();
   const { sorted: sortedUsers, sortKey, sortDir, requestSort } = useSortable(users);
+  const allRoleNames: string[] = ['Admin', 'Majelis', 'Ketua Sektor', 'Operator', ...customRoles.map(r => r.name)];
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -134,14 +135,17 @@ export function UserManagement() {
     }
   };
 
-  const getRoleBadgeColor = (role: UserRole) => {
-    const colors = {
+  const getRoleBadgeProps = (role: UserRole): { className: string; style?: React.CSSProperties } => {
+    const builtInColors: Record<string, string> = {
       Admin: 'bg-red-100 text-red-700',
       Majelis: 'bg-[#f0ede5] text-[#3a7fa0]',
       'Ketua Sektor': 'bg-[#f0ede5] text-[#144f6b]',
       Operator: 'bg-gray-100 text-gray-700'
     };
-    return colors[role];
+    if (builtInColors[role]) return { className: builtInColors[role] };
+    const custom = customRoles.find(r => r.name === role);
+    if (custom) return { className: '', style: { backgroundColor: `${custom.warna}1a`, color: custom.warna } };
+    return { className: 'bg-gray-100 text-gray-700' };
   };
 
   return (
@@ -226,7 +230,7 @@ export function UserManagement() {
                 <TableCell>{user.username}</TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
-                  <Badge className={getRoleBadgeColor(user.role)}>
+                  <Badge {...getRoleBadgeProps(user.role)}>
                     {user.role}
                   </Badge>
                 </TableCell>
@@ -337,10 +341,9 @@ export function UserManagement() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Admin">Admin</SelectItem>
-                      <SelectItem value="Majelis">Majelis</SelectItem>
-                      <SelectItem value="Ketua Sektor">Ketua Sektor</SelectItem>
-                      <SelectItem value="Operator">Operator</SelectItem>
+                      {allRoleNames.map(r => (
+                        <SelectItem key={r} value={r}>{r}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

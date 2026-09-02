@@ -66,7 +66,7 @@ export const PAGE_LABELS: Record<string, { title: string; category: string }> = 
   'service-requests':    { title: 'Layanan Diakonia & Bantuan', category: 'Pelayanan Kasih & Komunikasi' },
   'aid-distribution':    { title: 'Distribusi Bantuan Sosial', category: 'Pelayanan Kasih & Komunikasi' },
   prayers:               { title: 'Pokok & Pergumulan Doa', category: 'Pelayanan Kasih & Komunikasi' },
-  users:                 { title: 'Pengguna Sistem', category: 'Admin Sistem' },
+  users:                 { title: 'List User', category: 'Admin Sistem' },
   roles:                 { title: 'Manajemen Hak Akses', category: 'Admin Sistem' },
   backup:                { title: 'Backup & Restore Database', category: 'Admin Sistem' },
   data:                  { title: 'Pusat Manajemen Data', category: 'Admin Sistem' },
@@ -232,7 +232,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
       label: 'Admin Sistem',
       icon: Shield,
       items: [
-        { id: 'users',       label: 'Pengguna Sistem',        page: 'users',       icon: UserCog },
+        { id: 'users',       label: 'List User',              page: 'users',       icon: UserCog },
         { id: 'roles',       label: 'Manajemen Hak Akses',    page: 'roles',       icon: ShieldCheck },
         { id: 'backup',      label: 'Backup & Restore',       page: 'backup',      icon: HardDrive },
         { id: 'data',        label: 'Pusat Manajemen Data',  page: 'data',        icon: Database },
