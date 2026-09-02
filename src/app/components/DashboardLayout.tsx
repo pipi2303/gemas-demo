@@ -287,10 +287,10 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
 
             <div className="flex flex-col">
               <span className="font-serif-church text-white font-bold tracking-wider text-sm lg:text-[15px] leading-tight group-hover:text-amber-200 transition-colors">
-                GPIB TRINITAS
+                G E M A S
               </span>
               <span className="text-[10.5px] font-medium tracking-wide" style={{ color: '#dfb774' }}>
-                Gereja Manajemen Sistem - GEMAS
+                Gereja Manajemen Sistem
               </span>
             </div>
           </div>
@@ -549,10 +549,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-bold font-serif-church truncate" style={{ color: '#dfb774' }}>
-                    GPIB Trinitas
-                  </p>
-                  <p className="text-[10px] text-gray-400 truncate">
-                    Membangun Persekutuan Kasih.
+                    Gereja Manajemen System
                   </p>
                 </div>
               </div>
