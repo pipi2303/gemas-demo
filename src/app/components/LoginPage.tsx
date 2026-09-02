@@ -137,7 +137,7 @@ export function LoginPage() {
               </div>
             </div>
 
-            {/* Center: hero + feature list */}
+            {/* Center: hero + tagline */}
             <div>
               {/* Badge */}
               <div className="fade-up-1 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full mb-7"
@@ -160,13 +160,13 @@ export function LoginPage() {
               </p>
 
               {/* Tagline */}
-              <div className="fade-up mt-7 inline-flex items-center gap-3 py-1">
+              <div className="fade-up-4 mt-7 inline-flex items-center gap-3 py-1">
                 <span className="flex-shrink-0" style={{ width: '22px', height: '1.5px', background: 'linear-gradient(90deg, #f0ede5, rgba(240,237,229,0))' }} />
                 <p style={{
                   fontSize: '13.5px', fontStyle: 'italic', fontWeight: 600,
                   color: '#f0ede5', letterSpacing: '0.015em', lineHeight: 1.4,
                 }}>
-                  Melayani dengan Data Bertumbuh dengan Iman
+                  Melayani dengan Data, Bertumbuh dengan Iman
                 </p>
               </div>
             </div>
@@ -200,63 +200,13 @@ export function LoginPage() {
             {/* Card wrapper */}
             <div className="rounded-3xl bg-white p-8" style={{ border: '1px solid #ececec', boxShadow: '0 20px 50px -12px rgba(15,23,42,0.12)' }}>
 
-            {/* Mobile logo */}
-            <div className="flex lg:hidden items-center gap-3 mb-8">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-white p-1.5 shadow-sm" style={{ border: '1px solid #ececec' }}>
-                <img
-                  src="/logo-gpib.jpg"
-                  alt="GPIB Logo"
-                  className="w-full h-full object-contain"
-                />
-              </div>
-              <div>
-                <h2 className="text-gray-900 mb-0" style={{ fontSize: '18px', fontWeight: 800 }}>
-                  Selamat Datang
-                </h2>
-                <p style={{ fontSize: '13px', color: '#64748b' }}>
-                  Silakan Login ke Aplikasi <span style={{ color: '#1A77A3', fontWeight: 600 }}>GEMAS</span>
-                </p>
-              </div>
-            </div>
-
-            {/* Heading with church icon badge */}
-            <div className="fade-up mb-8 hidden lg:block">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-4 shadow-md"
-                style={{ background: 'linear-gradient(135deg, #1A77A3, #144f6b)' }}>
-                <Lock className="w-5 h-5 text-white" />
-              </div>
-              <h2 className="text-gray-900 mb-1" style={{ fontSize: '26px', fontWeight: 800 }}>
-                Selamat Datang
-              </h2>
-              <p style={{ fontSize: '14px', color: '#64748b' }}>
-                Silakan Login ke Aplikasi <span style={{ color: '#1A77A3', fontWeight: 600 }}>GEMAS</span>
-              </p>
-              <p className="mt-2" style={{ fontSize: '12px', fontStyle: 'italic', fontWeight: 500, color: '#1A77A3', opacity: 0.75 }}>
-                Melayani dengan Data Bertumbuh dengan Iman
-              </p>
-            </div>
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Username */}
-              <div className="fade-up-1">
-                <label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>
-                  Username
-                </label>
-                <div className="relative">
-                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center" style={{ color: '#94a3b8' }}>
-                    <Users className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={e => setUsername(e.target.value)}
-                    placeholder="Masukkan username Anda"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl outline-none transition-all"
-                    style={{ border: '1.5px solid #e2e8f0', fontSize: '14px', color: '#0f172a', background: '#f8fafc' }}
-                    onFocus={e => { e.currentTarget.style.border = '1.5px solid #1A77A3'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(26,119,163,0.1)'; e.currentTarget.style.background = '#fff'; }}
-                    onBlur={e => { e.currentTarget.style.border = '1.5px solid #e2e8f0'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.background = '#f8fafc'; }}
-
+              {/* Mobile logo */}
+              <div className="flex lg:hidden items-center gap-3 mb-8">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-white p-1.5 shadow-sm" style={{ border: '1px solid #ececec' }}>
+                  <img
+                    src="/logo-gpib.jpg"
+                    alt="GPIB Logo"
+                    className="w-full h-full object-contain"
                   />
                 </div>
                 <div>
