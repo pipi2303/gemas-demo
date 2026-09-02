@@ -1,0 +1,72 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Portainer redeploy
+        run: |
+          code=$(curl -sk -o /tmp/portainer_response.json -w "%{http_code}" \
+            -X PUT \
+            -H "X-API-Key: ${{ secrets.PORTAINER_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "pullImage": true,
+              "repositoryAuthentication": true,
+              "repositoryUsername": "pipi2303",
+              "repositoryPassword": "${{ secrets.GH_PAT }}",
+              "env": [
+                {"name": "POSTGRES_DB", "value": "${{ secrets.STACK_POSTGRES_DB }}"},
+                {"name": "POSTGRES_USER", "value": "${{ secrets.STACK_POSTGRES_USER }}"},
+                {"name": "POSTGRES_PASSWORD", "value": "${{ secrets.STACK_POSTGRES_PASSWORD }}"},
+                {"name": "JWT_SECRET", "value": "${{ secrets.STACK_JWT_SECRET }}"},
+                {"name": "CLIENT_ORIGIN", "value": "${{ secrets.STACK_CLIENT_ORIGIN }}"},
+                {"name": "IMAGE_TAG", "value": "${{ github.sha }}"}
+              ]
+            }' \
+            "${{ secrets.PORTAINER_URL }}/api/stacks/${{ secrets.PORTAINER_STACK_ID }}/git/redeploy?endpointId=3")
+          echo "HTTP status: $code"
+          # Jangan cetak response mentah — Portainer bisa meng-echo balik payload
+          # (termasuk POSTGRES_PASSWORD/JWT_SECRET/GH_PAT) yang akan tercetak
+          # sebagai teks biasa di log Actions. Cukup ambil field non-sensitif.
+          jq -c '{Status: .Status, Id: .Id, Message: .Message}' /tmp/portainer_response.json 2>/dev/null || echo "(response tidak dalam format JSON yang diharapkan)"
+          if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
+            echo "::error::Portainer redeploy failed with HTTP $code"
+            exit 1
+          fi

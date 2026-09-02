@@ -129,7 +129,8 @@ for row in ws.iter_rows(min_row=2, values_only=True):
         'degree':                 safe_str(r.get('Gelar')),
         'gender':                 map_gender(r.get('Gender')),
         'birthPlace':             safe_str(r.get('Tempat Lahir')),
-        'birthDate':              birth_date or now[:10],
+        # Kosongkan (bukan default ke tanggal import) agar tidak dihitung sebagai "ulang tahun hari ini" di Dashboard
+        'birthDate':              birth_date or '',
         'age':                    calc_age(birth_date),
         'bloodType':              safe_str(r.get('Gol. Darah')),
         'maritalStatus':          safe_str(r.get('Status Nikah')),

@@ -2312,7 +2312,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       { id: 'attendance', label: 'Absensi & Kehadiran', keywords: ['absensi', 'kehadiran', 'hadir', 'attendance'], icon: 'check-square', page: 'attendance' },
       { id: 'schedule', label: 'Jadwal Pelayan', keywords: ['jadwal pelayan', 'petugas ibadah', 'piket'], icon: 'list-checks', page: 'worship-schedules' },
       { id: 'reports', label: 'Laporan', keywords: ['laporan umum', 'report'], icon: 'file-bar-chart', page: 'reports' },
-      { id: 'users', label: 'Pengguna Sistem', keywords: ['pengguna', 'user', 'akun sistem', 'admin'], icon: 'user-cog', page: 'users' },
+      { id: 'users', label: 'List User', keywords: ['pengguna', 'user', 'akun sistem', 'admin'], icon: 'user-cog', page: 'users' },
       { id: 'roles', label: 'Manajemen Roles', keywords: ['roles', 'hak akses', 'permission', 'izin akses'], icon: 'shield-check', page: 'roles' },
       { id: 'backup', label: 'Backup Data & Aplikasi', keywords: ['backup', 'restore', 'pulihkan', 'sinkron', 'ekspor', 'integritas'], icon: 'hard-drive', page: 'backup' },
       { id: 'data', label: 'Manajemen Data', keywords: ['import data', 'export data', 'migrasi'], icon: 'database', page: 'data' },

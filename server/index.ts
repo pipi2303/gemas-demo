@@ -1,22 +1,14 @@
 import 'dotenv/config';
-import express, { Request, Response, NextFunction } from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import cookieParser from 'cookie-parser';
+import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import rateLimit from 'express-rate-limit';
 import { hashPassword, isHashed } from './lib/passwordUtils.js';
 import cron from 'node-cron';
 import { initSchema, getPool, getAll, upsert } from './lib/db.js';
 import { logger } from './lib/logger.js';
-import authRoutes from './routes/auth.js';
-import dataRoutes from './routes/data.js';
-import backupRoutes from './routes/backup.js';
-import permissionsRoutes from './routes/permissions.js';
-import adminRoutes from './routes/admin.js';
 import { createServer as createViteServer } from 'vite';
+import { createApp } from './app.js';
 
 // ── Validate environment variables ───────────────────────────────────────────
 function validateEnv() {
@@ -91,72 +83,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 async function startServer() {
   validateEnv();
 
-  const app = express();
+  const app = createApp();
   const PORT = 3000;
-
-  // ── Trust reverse proxy (Cloud Run, ingress, load balancers) ──────────────────
-  app.set('trust proxy', true);
-
-  // ── Security headers ──────────────────────────────────────────────────────────
-  app.use(helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false,
-  }));
-
-  app.use(cookieParser());
-  app.use(express.json({ limit: '10mb' }));
-
-  const allowedOrigins = (process.env.CLIENT_ORIGIN || '')
-    .split(',')
-    .map(o => o.trim())
-    .filter(Boolean);
-
-  app.use(cors({
-    origin: (origin, cb) => {
-      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
-        return cb(null, true);
-      }
-      cb(null, true);
-    },
-    credentials: true,
-  }));
-
-  // ── General API rate limit: 1000 req/min per IP ──────────────────────────────
-  const apiLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    max: 1000,
-    standardHeaders: true,
-    legacyHeaders: false,
-    validate: false,
-    message: { error: 'Terlalu banyak request. Coba lagi sebentar.' },
-    skip: (req) => req.path === '/auth/me' || req.path === '/health',
-  });
-  app.use('/api/', apiLimiter);
-
-  // ── Request logging ───────────────────────────────────────────────────────────
-  app.use((req: Request, _res: Response, next: NextFunction) => {
-    if (req.path.startsWith('/api')) {
-      logger.info('request', { method: req.method, path: req.path, ip: req.ip });
-    }
-    next();
-  });
-
-  // ── Health check ──────────────────────────────────────────────────────────────
-  app.get('/api/health', async (_req, res) => {
-    try {
-      await getPool().query('SELECT 1');
-      res.json({ status: 'ok', database: 'connected' });
-    } catch {
-      res.json({ status: 'ok', database: 'in-memory-fallback' });
-    }
-  });
-
-  // ── API routes ────────────────────────────────────────────────────────────────
-  app.use('/api/auth', authRoutes);
-  app.use('/api/data', dataRoutes);
-  app.use('/api/backup', backupRoutes);
-  app.use('/api/permissions', permissionsRoutes);
-  app.use('/api/admin', adminRoutes);
 
   // ── Vite middleware (dev) / Static asset serving (prod) ───────────────────────
   if (process.env.NODE_ENV !== 'production') {
@@ -179,12 +107,6 @@ async function startServer() {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
-
-  // ── Global Express error handler ──────────────────────────────────────────────
-  app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-    logger.error('Unhandled error', { message: err.message });
-    res.status(500).json({ error: 'Internal server error' });
-  });
 
   // ── Initialize database schema and background jobs ───────────────────────────
   await initSchema();
