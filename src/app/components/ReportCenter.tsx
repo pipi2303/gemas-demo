@@ -36,9 +36,11 @@ export function ReportCenter() {
     members,
     families,
     sectors,
-    sacraments,
+    baptisms,
+    sidis,
+    marriages,
     attestations,
-    transactions,
+    financialRecords,
     financialSummary,
     bankAccounts,
     pettyCash,
@@ -194,12 +196,12 @@ export function ReportCenter() {
 
   // Keuangan metrics
   const totalIncome = useMemo(() => {
-    return transactions.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
-  }, [transactions]);
+    return financialRecords.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
+  }, [financialRecords]);
 
   const totalExpense = useMemo(() => {
-    return transactions.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
-  }, [transactions]);
+    return financialRecords.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
+  }, [financialRecords]);
 
   const totalBankBalance = useMemo(() => {
     return bankAccounts.reduce((s, b) => s + (b.balance || 0), 0);
@@ -224,9 +226,9 @@ export function ReportCenter() {
   const badConditionAssets = churchAssets.filter(a => a.condition === 'Rusak' || a.condition === 'Afkir').length;
 
   // Sakramen metrics
-  const baptisEvents = sacraments.filter(s => s.type === 'Baptis Anak' || s.type === 'Baptis Dewasa').length;
-  const sidiEvents = sacraments.filter(s => s.type === 'Peneguhan Sidi').length;
-  const marriageEvents = sacraments.filter(s => s.type === 'Pernikahan Kudus' || s.type === 'Pemberkatan Nikah').length;
+  const baptisEvents = baptisms.length;
+  const sidiEvents = sidis.length;
+  const marriageEvents = marriages.length;
   const attestationIn = attestations.filter(a => a.type === 'Masuk').length;
   const attestationOut = attestations.filter(a => a.type === 'Keluar').length;
 
@@ -914,7 +916,7 @@ export function ReportCenter() {
                         {mod.id === 'sensus' && `${totalMembersCount} Jiwa (${totalFamiliesCount} KK)`}
                         {mod.id === 'keuangan' && `Saldo: ${formatRp(totalCashBalance)}`}
                         {mod.id === 'inventaris' && `${totalAssetsCount} Aset (${formatRp(totalAssetBookValue)})`}
-                        {mod.id === 'sakramen' && `${sacraments.length} Sakramen, ${attestations.length} Atestasi`}
+                        {mod.id === 'sakramen' && `${baptisms.length + sidis.length + marriages.length} Sakramen, ${attestations.length} Atestasi`}
                         {mod.id === 'peribadahan' && `${worshipCount} Ibadah, ${eventsCount} Acara`}
                         {mod.id === 'diakonia' && `${aidRecipientsCount} Bantuan (${formatRp(aidTotalDistributed)})`}
                       </span>
