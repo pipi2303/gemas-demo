@@ -21,7 +21,6 @@ import { LiturgyDigital } from './components/LiturgyDigital';
 import { OfferingsQRIS } from './components/OfferingsQRIS';
 import { ServiceRequestsComponent } from './components/ServiceRequests';
 // NEW IMPORTS: Fitur Pengembangan
-import { MemberCardDigital } from './components/MemberCardDigital';
 import { LivestreamReminder } from './components/LivestreamReminder';
 import { ChurchFinanceHub } from './components/ChurchFinanceHub';
 // NEW: Enhanced database components
@@ -113,8 +112,6 @@ function AppContent() {
         return <SacramentDatabase />;
       case 'attestations':
         return <AttestationDatabase />;
-      case 'member-card':
-        return <MemberCardDigital />;
       case 'sensus-report':
         return <LaporanSensus />;
       case 'report-center':

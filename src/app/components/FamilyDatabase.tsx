@@ -7,9 +7,12 @@ import { SearchDropdown } from './ui/SearchDropdown';
 import {
   Home, Users, MapPin, Search, Plus, Eye, Pencil, Trash2,
   ChevronLeft, ChevronRight, X, AlertCircle, Phone, Mail,
-  User, Baby, Heart, LayoutGrid, List, Download, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw
+  User, Baby, Heart, LayoutGrid, List, Download, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw,
+  IdCard, Printer
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { toast } from 'sonner';
 import { MemberDetail } from './MemberDatabase';
 import { roleStyle, sortByRole, isKK } from '../../lib/familyRole';
@@ -27,15 +30,341 @@ function AvatarFamily({ name, role, size=36 }: { name:string; role?:string; size
   );
 }
 
+// ── KARTU KELUARGA (preview, cetak, unduh PDF) ─────────────────────────────────
+// Urutkan: KK -> Istri -> Anak (tertua ke termuda), sesuai konvensi Kartu Keluarga
+const sortFamilyMembers = <T extends { familyRole?: string; birthDate?: string }>(arr: T[]): T[] =>
+  sortByRole(
+    [...arr].sort((a, b) => new Date(a.birthDate || 0).getTime() - new Date(b.birthDate || 0).getTime())
+  );
+
+const formatFamilyRole = (role: string) => {
+  const mapping: Record<string, string> = {
+    'KK': 'Kepala Keluarga',
+    'IS': 'Istri',
+    'AN': 'Anak',
+    'OT': 'Orang Tua',
+    'DL': 'Dan Lain-lain',
+  };
+  return mapping[role] || role || 'Anggota Keluarga';
+};
+
+// Preview kartu keluarga bergaya Kartu Keluarga (KK) tradisional
+function FamilyCardPreview({ family, members, sectors }: { family: any; members: any[]; sectors: any[] }) {
+  const sector = sectors.find(s => s.id === family.sectorId);
+  const familyMembers = sortFamilyMembers(members.filter(m => m.familyId === family.id));
+  const headMember = familyMembers.find(m => isKK(m.familyRole)) || members.find((m: any) => m.id === family.headMemberId);
+  const sectorLeaderName = (sector?.leaderId && members.find((m: any) => m.id === sector.leaderId)?.fullName) || sector?.leader || '';
+
+  return (
+    <div className="w-full bg-white border-2 border-gray-800 p-6 font-mono text-[10px] text-gray-900 shadow-sm overflow-x-auto">
+      <div className="text-center border-b-2 border-gray-800 pb-4 mb-4">
+        <h2 className="text-lg font-bold uppercase tracking-widest">Kartu Keluarga Jemaat</h2>
+        <h3 className="text-sm font-bold uppercase">GPIB Trinitas</h3>
+        <p className="mt-2 font-bold">No. {family.id.toUpperCase()}</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-8 mb-4">
+        <div className="space-y-1">
+          <div className="flex">
+            <span className="w-28 font-bold">Keluarga</span>
+            <span className="mx-2">:</span>
+            <span className="font-bold uppercase">{family.headOfFamily}</span>
+          </div>
+          <div className="flex">
+            <span className="w-28">Alamat</span>
+            <span className="mx-2">:</span>
+            <span>{family.address || '-'}</span>
+          </div>
+        </div>
+        <div className="space-y-1">
+          <div className="flex">
+            <span className="w-28">Sektor</span>
+            <span className="mx-2">:</span>
+            <span>{sector?.name || '-'}</span>
+          </div>
+          <div className="flex">
+            <span className="w-28">Kabupaten/Kota</span>
+            <span className="mx-2">:</span>
+            <span>{family.address?.split(',').slice(-1)[0]?.trim() || '-'}</span>
+          </div>
+        </div>
+      </div>
+
+      <table className="w-full border-collapse border border-gray-800 mb-6">
+        <thead>
+          <tr className="bg-gray-50">
+            <th className="border border-gray-800 p-1 text-center w-6">No</th>
+            <th className="border border-gray-800 p-1 text-center w-20">No. Induk</th>
+            <th className="border border-gray-800 p-1 text-left">Nama Lengkap</th>
+            <th className="border border-gray-800 p-1 text-center w-24">Hubungan</th>
+            <th className="border border-gray-800 p-1 text-center w-10">L/P</th>
+            <th className="border border-gray-800 p-1 text-left w-24">Tempat Lahir</th>
+            <th className="border border-gray-800 p-1 text-center w-20">Tgl Lahir</th>
+            <th className="border border-gray-800 p-1 text-center w-16">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {familyMembers.map((m, i) => (
+            <tr key={m.id}>
+              <td className="border border-gray-800 p-1 text-center">{i + 1}</td>
+              <td className="border border-gray-800 p-1 font-mono text-[9px] text-center">{m.memberNumber || m.id.slice(0, 8).toUpperCase()}</td>
+              <td className="border border-gray-800 p-1 font-bold">{m.fullName.toUpperCase()}</td>
+              <td className="border border-gray-800 p-1 text-center">{formatFamilyRole(m.familyRole)}</td>
+              <td className="border border-gray-800 p-1 text-center">{m.gender === 'Laki-laki' ? 'L' : 'P'}</td>
+              <td className="border border-gray-800 p-1">{m.birthPlace || '-'}</td>
+              <td className="border border-gray-800 p-1 text-center">{m.birthDate}</td>
+              <td className="border border-gray-800 p-1 text-center">{m.membershipStatus || 'Aktif'}</td>
+            </tr>
+          ))}
+          {Array.from({ length: Math.max(0, 5 - familyMembers.length) }).map((_, i) => (
+            <tr key={`empty-${i}`} className="h-6">
+              <td className="border border-gray-800 p-1"></td>
+              <td className="border border-gray-800 p-1"></td>
+              <td className="border border-gray-800 p-1"></td>
+              <td className="border border-gray-800 p-1"></td>
+              <td className="border border-gray-800 p-1"></td>
+              <td className="border border-gray-800 p-1"></td>
+              <td className="border border-gray-800 p-1"></td>
+              <td className="border border-gray-800 p-1"></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div className="flex justify-between items-start mt-8 px-4">
+        <div className="text-center">
+          <p>Dikeluarkan Tanggal:</p>
+          <p className="font-bold border-b border-gray-800 pb-1">{new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' })}</p>
+          <p className="mt-12 font-bold">( {sectorLeaderName ? sectorLeaderName.toUpperCase() : '..................................'} )</p>
+          <p className="text-[8px]">Ketua Sektor / Majelis</p>
+        </div>
+        <div className="text-center">
+          <p className="mb-14">Kepala Keluarga,</p>
+          <p className="font-bold">( {(headMember?.fullName || family.headOfFamily).toUpperCase()} )</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function handlePrintFamilyCard(family: any, members: any[], sectors: any[]) {
+  const printWin = window.open('', '_blank', 'width=900,height=600');
+  if (!printWin) return;
+
+  const familyMembers = sortFamilyMembers(members.filter(m => m.familyId === family.id));
+  const sector = sectors.find(s => s.id === family.sectorId);
+  const headMember = familyMembers.find(m => isKK(m.familyRole)) || members.find((m: any) => m.id === family.headMemberId);
+  const sectorLeaderName = (sector?.leaderId && members.find((m: any) => m.id === sector.leaderId)?.fullName) || sector?.leader || '';
+
+  const rows = familyMembers.map((m, i) => `
+    <tr>
+      <td style="border: 1px solid black; padding: 4px; text-align: center;">${i + 1}</td>
+      <td style="border: 1px solid black; padding: 4px; font-family: monospace; font-size: 10px; text-align: center;">${m.memberNumber || m.id.slice(0, 8).toUpperCase()}</td>
+      <td style="border: 1px solid black; padding: 4px; font-weight: bold;">${m.fullName.toUpperCase()}</td>
+      <td style="border: 1px solid black; padding: 4px; text-align: center;">${formatFamilyRole(m.familyRole)}</td>
+      <td style="border: 1px solid black; padding: 4px; text-align: center;">${m.gender === 'Laki-laki' ? 'L' : 'P'}</td>
+      <td style="border: 1px solid black; padding: 4px;">${m.birthPlace || '-'}</td>
+      <td style="border: 1px solid black; padding: 4px; text-align: center;">${m.birthDate}</td>
+      <td style="border: 1px solid black; padding: 4px; text-align: center;">${m.membershipStatus || 'Aktif'}</td>
+    </tr>
+  `).join('');
+
+  printWin.document.write(`
+    <html>
+    <head>
+      <title>Kartu Keluarga - ${family.headOfFamily}</title>
+      <style>
+        body { font-family: 'Courier New', Courier, monospace; padding: 40px; color: black; font-size: 12px; }
+        .header { text-align: center; border-bottom: 2px solid black; margin-bottom: 20px; padding-bottom: 10px; }
+        .info { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        th, td { border: 1px solid black; padding: 6px; }
+        .footer { display: flex; justify-content: space-between; margin-top: 50px; }
+        @media print { body { padding: 0; } }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h2 style="margin: 0; text-transform: uppercase; letter-spacing: 2px;">Kartu Keluarga Jemaat</h2>
+        <h3 style="margin: 5px 0; text-transform: uppercase;">GPIB Trinitas</h3>
+        <p style="margin: 10px 0; font-weight: bold;">No. ${family.id.toUpperCase()}</p>
+      </div>
+
+      <div class="info">
+        <div>
+          <p><strong>Kepala Keluarga :</strong> ${family.headOfFamily.toUpperCase()}</p>
+          <p><strong>Alamat :</strong> ${family.address || '-'}</p>
+        </div>
+        <div style="text-align: right;">
+          <p><strong>Sektor :</strong> ${sector?.name || '-'}</p>
+          <p><strong>Kota :</strong> ${family.address?.split(',').slice(-1)[0]?.trim() || '-'}</p>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr style="background-color: #f0f0f0;">
+            <th>No</th>
+            <th>No. Induk</th>
+            <th>Nama Lengkap</th>
+            <th>Hubungan</th>
+            <th>L/P</th>
+            <th>Tempat Lahir</th>
+            <th>Tgl Lahir</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+
+      <div class="footer">
+        <div style="text-align: center;">
+          <p>Dikeluarkan Tanggal: ${new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' })}</p>
+          <br><br><br>
+          <p style="font-weight: bold;">( ${sectorLeaderName ? sectorLeaderName.toUpperCase() : '..................................'} )</p>
+          <p style="font-size: 10px;">Ketua Sektor / Majelis</p>
+        </div>
+        <div style="text-align: center;">
+          <p>Kepala Keluarga,</p>
+          <br><br><br>
+          <p><strong>( ${(headMember?.fullName || family.headOfFamily).toUpperCase()} )</strong></p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `);
+  printWin.document.close();
+  printWin.print();
+}
+
+// Unduh kartu keluarga sebagai file PDF sungguhan (jsPDF + autoTable)
+function generateFamilyCardPDF(family: any, members: any[], sectors: any[]) {
+  const familyMembers = sortFamilyMembers(members.filter(m => m.familyId === family.id));
+  const sector = sectors.find(s => s.id === family.sectorId);
+  const headMember = familyMembers.find(m => isKK(m.familyRole)) || members.find((m: any) => m.id === family.headMemberId);
+  const sectorLeaderName = (sector?.leaderId && members.find((m: any) => m.id === sector.leaderId)?.fullName) || sector?.leader || '';
+
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const W = doc.internal.pageSize.getWidth();
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.text('KARTU KELUARGA JEMAAT', W / 2, 18, { align: 'center' });
+  doc.setFontSize(11);
+  doc.text('GPIB TRINITAS', W / 2, 25, { align: 'center' });
+  doc.setLineWidth(0.4);
+  doc.line(15, 30, W - 15, 30);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.text(`No. ${family.id.toUpperCase()}`, W / 2, 36, { align: 'center' });
+
+  let y = 46;
+  doc.setFont('helvetica', 'normal');
+  doc.text('Keluarga', 15, y);
+  doc.text(':', 45, y);
+  doc.setFont('helvetica', 'bold');
+  doc.text(family.headOfFamily.toUpperCase(), 48, y);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Sektor', W / 2, y);
+  doc.text(':', W / 2 + 22, y);
+  doc.text(sector?.name || '-', W / 2 + 25, y);
+
+  y += 6;
+  doc.text('Alamat', 15, y);
+  doc.text(':', 45, y);
+  doc.text(family.address || '-', 48, y, { maxWidth: W / 2 - 55 });
+  doc.text('Kabupaten/Kota', W / 2, y);
+  doc.text(':', W / 2 + 22, y);
+  doc.text(family.address?.split(',').slice(-1)[0]?.trim() || '-', W / 2 + 25, y);
+
+  const rows = familyMembers.map((m, i) => [
+    String(i + 1),
+    m.memberNumber || m.id.slice(0, 8).toUpperCase(),
+    m.fullName.toUpperCase(),
+    formatFamilyRole(m.familyRole),
+    m.gender === 'Laki-laki' ? 'L' : 'P',
+    m.birthPlace || '-',
+    m.birthDate || '-',
+    m.membershipStatus || 'Aktif',
+  ]);
+  autoTable(doc, {
+    startY: y + 8,
+    head: [['No', 'No. Induk', 'Nama Lengkap', 'Hubungan', 'L/P', 'Tempat Lahir', 'Tgl Lahir', 'Status']],
+    body: rows,
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [20, 79, 107] },
+  });
+
+  const finalY = (doc as any).lastAutoTable.finalY + 20;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('Dikeluarkan Tanggal:', 37, finalY, { align: 'center' });
+  doc.setFont('helvetica', 'bold');
+  doc.text(new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }), 37, finalY + 5, { align: 'center' });
+  doc.line(15, finalY + 16, 62, finalY + 16);
+  doc.text(sectorLeaderName ? sectorLeaderName.toUpperCase() : '..........................', 38.5, finalY + 20, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text('Ketua Sektor / Majelis', 38.5, finalY + 24, { align: 'center' });
+
+  doc.setFontSize(9);
+  doc.text('Kepala Keluarga,', W - 40, finalY, { align: 'center' });
+  doc.setFont('helvetica', 'bold');
+  doc.text((headMember?.fullName || family.headOfFamily).toUpperCase(), W - 40, finalY + 22, { align: 'center' });
+
+  doc.save(`Kartu-Keluarga-${family.headOfFamily.replace(/\s+/g, '-')}.pdf`);
+}
+
+// ── KARTU KELUARGA MODAL ───────────────────────────────────────────────────────
+function FamilyCardModal({ family, members, sectors, onClose }: {
+  family: Family; members: Member[]; sectors: any[]; onClose: () => void;
+}) {
+  const { offset, onMouseDown } = useDraggable();
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
+      <div className="w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'90vh', transform:`translate(${offset.x}px,${offset.y}px)`}} onClick={e=>e.stopPropagation()}>
+        <div className="px-6 py-5 flex-shrink-0 flex items-center justify-between" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',cursor:'move'}} onMouseDown={onMouseDown}>
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{background:'rgba(255,255,255,0.15)'}}>
+              <IdCard className="w-5 h-5 text-white"/>
+            </div>
+            <div>
+              <h3 className="text-white font-bold" style={{fontSize:'16px'}}>Kartu Keluarga Jemaat</h3>
+              <p style={{fontSize:'12px',color:'rgba(255,255,255,0.6)'}}>Keluarga {family.headOfFamily}</p>
+            </div>
+          </div>
+          <button onClick={onClose} data-tooltip="Tutup" className="p-2 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-colors"><X className="w-5 h-5"/></button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+          <FamilyCardPreview family={family} members={members} sectors={sectors} />
+          <div className="flex gap-3 justify-end">
+            <button onClick={()=>handlePrintFamilyCard(family, members, sectors)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium hover:bg-gray-50 transition-colors" style={{borderColor:'#e2e8f0',color:'#4b5563'}}>
+              <Printer className="w-4 h-4"/> Cetak Kartu
+            </button>
+            <button onClick={()=>generateFamilyCardPDF(family, members, sectors)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition-colors" style={{background:'linear-gradient(135deg,#3a7fa0,#1A77A3)'}}>
+              <Download className="w-4 h-4"/> Unduh PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── FAMILY DETAIL MODAL ───────────────────────────────────────────────────────
-function FamilyDetail({ family, members, sectors, onClose, onEdit, onDelete }: {
+function FamilyDetail({ family, members, sectors, onClose, onEdit, onDelete, onViewCard }: {
   family: Family; members: Member[]; sectors: any[];
-  onClose:()=>void; onEdit:()=>void; onDelete:()=>void;
+  onClose:()=>void; onEdit:()=>void; onDelete:()=>void; onViewCard:()=>void;
 }) {
   const { offset, onMouseDown } = useDraggable();
   const { attestations, updateMember, deleteMember, can: canFn } = useApp();
   const detailCanEdit   = canFn('Data Keluarga', 'edit');
   const detailCanDelete = canFn('Data Keluarga', 'delete');
+  const detailCanExport = canFn('Data Keluarga', 'export');
   const fam = members.filter(m=>m.familyId===family.id);
   const sector = sectors.find(s=>s.id===family.sectorId);
   const head = members.find(m=>m.id===family.headMemberId);
@@ -70,6 +399,7 @@ function FamilyDetail({ family, members, sectors, onClose, onEdit, onDelete }: {
               </div>
             </div>
             <div className="flex gap-2 flex-shrink-0">
+              {detailCanExport && <button onClick={onViewCard} data-tooltip="Lihat/Cetak Kartu Keluarga" className="p-2 rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors"><IdCard className="w-4 h-4"/></button>}
               {detailCanEdit && <button onClick={onEdit} data-tooltip="Edit" className="p-2 rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors"><Pencil className="w-4 h-4"/></button>}
               {detailCanDelete && <button onClick={onDelete} data-tooltip="Hapus" className="p-2 rounded-xl hover:bg-red-500/20 text-white/60 hover:text-red-300 transition-colors"><Trash2 className="w-4 h-4"/></button>}
               <button onClick={onClose} data-tooltip="Tutup" className="p-2 rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors"><X className="w-4 h-4"/></button>
@@ -284,6 +614,7 @@ export function FamilyDatabase() {
   const [showForm, setShowForm] = useState(false);
   const [formMode, setFormMode] = useState<'add'|'edit'>('add');
   const [deleteTarget, setDeleteTarget] = useState<Family|null>(null);
+  const [cardFamily, setCardFamily] = useState<Family|null>(null);
   const [kpiDetail, setKpiDetail] = useState<{label:string;items:Family[]}|null>(null);
   const [kpiSearch, setKpiSearch] = useState('');
   const ITEMS = 20;
@@ -630,6 +961,12 @@ export function FamilyDatabase() {
                   className="p-1.5 rounded-lg hover:bg-[#e8f4fb] transition-colors opacity-0 group-hover:opacity-100">
                   <Eye className="w-3.5 h-3.5" style={{color:'#1A77A3'}}/>
                 </button>
+                {canExport && (
+                  <button onClick={()=>setCardFamily(f)} data-tooltip="Lihat/Cetak Kartu Keluarga"
+                    className="p-1.5 rounded-lg hover:bg-[#e8f4fb] transition-colors opacity-0 group-hover:opacity-100">
+                    <IdCard className="w-3.5 h-3.5" style={{color:'#1A77A3'}}/>
+                  </button>
+                )}
                 {canEdit && (
                   <button onMouseDown={e=>e.preventDefault()} onClick={()=>{setSelected(f);setFormMode('edit');setShowForm(true);}} data-tooltip="Edit"
                     className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors opacity-0 group-hover:opacity-100">
@@ -678,7 +1015,11 @@ export function FamilyDatabase() {
       {showDetail && selected && (
         <FamilyDetail family={selected} members={members} sectors={sectors} onClose={()=>setShowDetail(false)}
           onEdit={()=>{setFormMode('edit');setShowDetail(false);setShowForm(true);}}
-          onDelete={()=>{setDeleteTarget(selected);setShowDetail(false);}}/>
+          onDelete={()=>{setDeleteTarget(selected);setShowDetail(false);}}
+          onViewCard={()=>{setShowDetail(false);setCardFamily(selected);}}/>
+      )}
+      {cardFamily && (
+        <FamilyCardModal family={cardFamily} members={members} sectors={sectors} onClose={()=>setCardFamily(null)}/>
       )}
       {showForm && (
         <FamilyForm mode={formMode} initial={selected||undefined} sectors={sectors} members={members}

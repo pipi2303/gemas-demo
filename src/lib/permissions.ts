@@ -40,7 +40,6 @@ export const PAGE_MODULE: Record<string, string> = {
   sectors:               'Sektor Pelayanan',
   sacraments:            'Sakramen & Atestasi',
   attestations:          'Sakramen & Atestasi',
-  'member-card':         'Laporan & Direktori',
   'sensus-report':       'Laporan & Direktori',
   'report-center':       'Laporan & Direktori',
   'worship-schedules':   'Peribadahan & Kegiatan',

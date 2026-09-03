@@ -2296,7 +2296,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       { id: 'sectors', label: 'Data Sektor', keywords: ['sektor', 'wilayah', 'sector'], icon: 'map-pin', page: 'sectors' },
       { id: 'sacraments', label: 'Sakramen', keywords: ['sakramen', 'baptis', 'sidi', 'nikah', 'pernikahan'], icon: 'cross', page: 'sacraments' },
       { id: 'attestations', label: 'Surat Atestasi', keywords: ['atestasi', 'surat pindah', 'pindah gereja'], icon: 'file-text', page: 'attestations' },
-      { id: 'member-card', label: 'Kartu Jemaat Digital', keywords: ['kartu jemaat', 'id card', 'kartu digital'], icon: 'credit-card', page: 'member-card' },
       { id: 'worship-schedules', label: 'Jadwal Ibadah', keywords: ['jadwal ibadah', 'kebaktian', 'ibadah minggu'], icon: 'calendar', page: 'worship-schedules' },
       { id: 'e-warta', label: 'E-Warta', keywords: ['warta', 'bulletin', 'berita gereja', 'ewarta'], icon: 'book-open', page: 'e-warta' },
       { id: 'liturgy', label: 'Liturgi Digital', keywords: ['liturgi', 'tata ibadah', 'liturgy'], icon: 'scroll', page: 'liturgy' },

@@ -950,7 +950,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
           {[
             { label: 'Data Warga', page: 'members' }, { label: 'Data Keluarga', page: 'families' },
             { label: 'Sektor Pelayanan', page: 'sectors' }, { label: 'Atestasi', page: 'attestations' },
-            { label: 'Kartu Keluarga', page: 'member-card' }, { label: 'Sakramen', page: 'sacraments' },
+            { label: 'Sakramen', page: 'sacraments' },
           ].map(item => (
             <button key={item.page} onClick={() => nav(item.page)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors hover:bg-blue-50" style={{ fontSize: '12px', fontWeight: 500, color: '#3b82f6', background: '#eff6ff' }}>
               {item.label} <ChevronRight className="w-3 h-3" />
