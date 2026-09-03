@@ -42,6 +42,7 @@ export function PrayerRequests() {
 
   const activeRequests = filteredRequests.filter(r => r.status === 'Aktif');
   const answeredRequests = filteredRequests.filter(r => r.status === 'Terjawab');
+  const closedRequests = filteredRequests.filter(r => r.status === 'Ditutup');
 
   const openAddForm = () => {
     setFormData({
@@ -207,6 +208,42 @@ export function PrayerRequests() {
               </Card>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Closed Requests */}
+      {closedRequests.length > 0 && (
+        <div>
+          <h3 className="font-semibold text-gray-900 mb-4">Pokok Doa Ditutup</h3>
+          <div className="space-y-3">
+            {closedRequests.map((request) => (
+              <Card key={request.id} className="p-4 bg-gray-50 border-gray-200">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center flex-shrink-0">
+                    <X className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-medium text-gray-900">
+                        {getMemberName(request.memberId)}
+                      </p>
+                      <Badge className={getCategoryColor(request.category)} >
+                        {request.category}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-gray-700">{request.request}</p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {filteredRequests.length === 0 && (
+        <div className="text-center py-12 text-gray-400">
+          <Heart className="w-12 h-12 mx-auto mb-3 opacity-50" />
+          <p>Tidak ada pokok doa untuk filter ini</p>
         </div>
       )}
 

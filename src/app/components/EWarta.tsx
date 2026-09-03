@@ -198,8 +198,8 @@ export function EWarta() {
 
     // Build announcements
     const announcements: string[] = sunday.schedules
-      .filter(ws => ws.type === 'Minggu')
-      .map(ws => `Ibadah Minggu ${ws.time} WIB di ${ws.location}${ws.preacher ? ` · ${ws.preacher}` : ''}`);
+      .filter(ws => /minggu/i.test(ws.type))
+      .map(ws => `${ws.title} · ${ws.time} WIB di ${ws.location}${ws.preacher ? ` · ${ws.preacher}` : ''}`);
     if (announcements.length === 0) announcements.push('');
 
     setFormData({
