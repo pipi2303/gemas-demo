@@ -174,12 +174,6 @@ export function LoginPage() {
             {/* Bottom: trust row + copyright */}
             <div className="fade-up-5">
               <div className="gold-divider mb-5" />
-              <div className="flex items-center gap-2 mb-2.5">
-                <ShieldCheck className="w-3.5 h-3.5" style={{ color: GOLD, opacity: 0.7 }} />
-                <span style={{ fontSize: '11.5px', color: 'rgba(255,255,255,0.4)' }}>
-                  Data tersimpan aman &amp; terenkripsi end-to-end
-                </span>
-              </div>
               <p style={{ fontSize: '11.5px', color: 'rgba(255,255,255,0.2)' }}>
                 © {new Date().getFullYear()} GEMAS — Gereja Management System. Hak cipta dilindungi undang-undang.
               </p>
