@@ -10,6 +10,7 @@ import { useDraggable } from '../../lib/useDraggable';
 import { useUnsavedChanges } from '../../lib/useUnsavedChanges';
 import { useResizableColumns } from '../../hooks/useResizableColumns';
 import { ColResizeHandle } from './ui/resizable-th';
+import { normPelkat } from '../utils/pelkatUtils';
 import { toast } from 'sonner';
 import {
   Search, Plus, Eye, Pencil, Trash2, ChevronLeft, ChevronRight,
@@ -911,16 +912,6 @@ function normalizePhone(val: any): string {
   if (s.startsWith('62')) s = '0' + s.slice(2);
   else if (!s.startsWith('0') && s.length >= 9) s = '0' + s;
   return s;
-}
-
-// Normalisasi nilai Pelkat supaya perbandingan filter tidak gagal hanya karena
-// beda format penulisan antar sumber data — data hasil import Excel disimpan
-// apa adanya (mis. "GP", "Pelkat GP", "PELKAT-GP"), sedangkan pilihan di
-// dropdown filter berasal dari Master Data (mis. "PELKAT GP"). Dibandingkan
-// setelah dibuang prefix "PELKAT" dan semua karakter non-alfanumerik, jadi
-// "PELKAT-GP" / "PELKAT GP" / "Pelkat GP" / "GP" semuanya dianggap sama.
-function normPelkat(val: any): string {
-  return String(val || '').toUpperCase().replace(/PELKAT/g, '').replace(/[^A-Z0-9]/g, '');
 }
 
 function mapGemasFmt(row: Record<string, any>, sectors: any[]): Omit<Member, 'id' | 'createdAt' | 'updatedAt'> | null {

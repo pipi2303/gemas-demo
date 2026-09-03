@@ -11,6 +11,7 @@ import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 import { MemberDetail } from './MemberDatabase';
 import { roleStyle, sortByRole } from '../../lib/familyRole';
+import { normPelkat, PELKAT_LABELS } from '../utils/pelkatUtils';
 
 const SECTOR_THEMES = [
   {bg:'#1A77A3',light:'#f0fdf4',border:'#b8d5e8',accent:'#1A77A3',icon:'#f0fdf4'},
@@ -54,8 +55,14 @@ function SectorDetail({ sector, members, families, theme, onClose, onEdit }: {
   const lansia = sMembers.filter(m=>m.age>=60).length;
   const sudahBaptis = sMembers.filter(m=>m.baptismStatus==='Sudah').length;
   const sudahSidi = sMembers.filter(m=>m.sidiStatus==='Sudah').length;
+  // Dikelompokkan pakai normPelkat() (bukan string mentah) supaya variasi
+  // penulisan seperti "PELKAT-GP" / "PELKAT GP" / "GP" masuk ke hitungan yang
+  // sama, tidak pecah jadi baris terpisah-pisah di rekap.
   const pelkatMap: Record<string,number> = {};
-  sMembers.forEach(m=>{if(m.pelkatStatus) pelkatMap[m.pelkatStatus]=(pelkatMap[m.pelkatStatus]||0)+1;});
+  sMembers.forEach(m=>{
+    const key = normPelkat(m.pelkatStatus);
+    if(key) pelkatMap[key]=(pelkatMap[key]||0)+1;
+  });
 
   const filteredMembers = search ? sMembers.filter(m=>m.fullName.toLowerCase().includes(search.toLowerCase())) : sMembers;
 
@@ -149,7 +156,7 @@ function SectorDetail({ sector, members, families, theme, onClose, onEdit }: {
                   <p style={{fontSize:'12px',color:'#94a3b8'}}>Belum ada data pelkat</p>
                 ) : Object.entries(pelkatMap).map(([k,v])=>(
                   <div key={k} className="flex items-center justify-between mb-2">
-                    <span style={{fontSize:'12px',color:'#4b5563'}}>{k}</span>
+                    <span style={{fontSize:'12px',color:'#4b5563'}}>{PELKAT_LABELS[k] || k}</span>
                     <span className="px-2.5 py-0.5 rounded-full text-xs font-bold" style={{background:theme.light,color:theme.accent}}>{v} orang</span>
                   </div>
                 ))}
