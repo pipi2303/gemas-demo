@@ -240,12 +240,12 @@ export function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Username */}
               <div className="fade-up-1">
-                <label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>
-                  Username
+                <label className="block mb-1.5" style={{ fontSize: '12.5px', fontWeight: 600, color: '#374151', letterSpacing: '0.02em' }}>
+                  USERNAME
                 </label>
                 <div className="relative">
                   <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center" style={{ color: '#94a3b8' }}>
-                    <Users className="w-4 h-4" />
+                    <User className="w-4 h-4" />
                   </div>
                   <input
                     type="text"
@@ -256,125 +256,79 @@ export function LoginPage() {
                     style={{ border: '1.5px solid #e2e8f0', fontSize: '14px', color: '#0f172a', background: '#f8fafc' }}
                     onFocus={e => { e.currentTarget.style.border = '1.5px solid #1A77A3'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(26,119,163,0.1)'; e.currentTarget.style.background = '#fff'; }}
                     onBlur={e => { e.currentTarget.style.border = '1.5px solid #e2e8f0'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.background = '#f8fafc'; }}
-
                   />
                 </div>
-                <div>
-                  <p className="font-serif-church font-bold text-gray-900" style={{ fontSize: '13px', letterSpacing: '0.1em' }}>G E M A S</p>
-                  <p className="text-gray-400" style={{ fontSize: '11px' }}>Gereja Management System</p>
-                </div>
               </div>
 
-              {/* Heading with church icon badge */}
-              <div className="fade-up mb-8">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-4"
-                  style={{
-                    background: 'linear-gradient(135deg, #1A77A3, #144f6b)',
-                    boxShadow: `0 6px 18px rgba(26,119,163,0.35), 0 0 0 4px rgba(223,183,116,0.12)`,
-                  }}>
-                  <Lock className="w-5 h-5 text-white" />
-                </div>
-                <h2 className="font-serif-church text-gray-900 mb-1.5" style={{ fontSize: '26px', fontWeight: 700 }}>
-                  Selamat Datang
-                </h2>
-                <p style={{ fontSize: '14px', color: '#64748b' }}>
-                  Silakan masuk ke akun <span style={{ color: '#1A77A3', fontWeight: 600 }}>GEMAS</span> Anda
-                </p>
-              </div>
-
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Username */}
-                <div className="fade-up-1">
-                  <label className="block mb-1.5" style={{ fontSize: '12.5px', fontWeight: 600, color: '#374151', letterSpacing: '0.02em' }}>
-                    USERNAME
-                  </label>
-                  <div className="relative">
-                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center" style={{ color: '#94a3b8' }}>
-                      <User className="w-4 h-4" />
-                    </div>
-                    <input
-                      type="text"
-                      value={username}
-                      onChange={e => setUsername(e.target.value)}
-                      placeholder="Masukkan username Anda"
-                      className="w-full pl-10 pr-4 py-3 rounded-xl outline-none transition-all"
-                      style={{ border: '1.5px solid #e2e8f0', fontSize: '14px', color: '#0f172a', background: '#f8fafc' }}
-                      onFocus={e => { e.currentTarget.style.border = '1.5px solid #1A77A3'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(26,119,163,0.1)'; e.currentTarget.style.background = '#fff'; }}
-                      onBlur={e => { e.currentTarget.style.border = '1.5px solid #e2e8f0'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.background = '#f8fafc'; }}
-                    />
+              {/* Password */}
+              <div className="fade-up-2">
+                <label className="block mb-1.5" style={{ fontSize: '12.5px', fontWeight: 600, color: '#374151', letterSpacing: '0.02em' }}>
+                  PASSWORD
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#94a3b8' }}>
+                    <Lock className="w-4 h-4" />
                   </div>
-                </div>
-
-                {/* Password */}
-                <div className="fade-up-2">
-                  <label className="block mb-1.5" style={{ fontSize: '12.5px', fontWeight: 600, color: '#374151', letterSpacing: '0.02em' }}>
-                    PASSWORD
-                  </label>
-                  <div className="relative">
-                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#94a3b8' }}>
-                      <Lock className="w-4 h-4" />
-                    </div>
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      placeholder="Masukkan password Anda"
-                      className="w-full pl-10 pr-12 py-3 rounded-xl outline-none transition-all"
-                      style={{ border: '1.5px solid #e2e8f0', fontSize: '14px', color: '#0f172a', background: '#f8fafc' }}
-                      onFocus={e => { e.currentTarget.style.border = '1.5px solid #1A77A3'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(26,119,163,0.1)'; e.currentTarget.style.background = '#fff'; }}
-                      onBlur={e => { e.currentTarget.style.border = '1.5px solid #e2e8f0'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.background = '#f8fafc'; }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors"
-                      style={{ color: '#94a3b8' }}
-                      onMouseOver={e => (e.currentTarget.style.color = '#1A77A3')}
-                      onMouseOut={e => (e.currentTarget.style.color = '#94a3b8')}
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Error */}
-                {error && (
-                  <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl"
-                    style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
-                    <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-xs font-bold">!</span>
-                    </div>
-                    <p style={{ fontSize: '13px', color: '#dc2626' }}>{error}</p>
-                  </div>
-                )}
-
-                {/* Submit */}
-                <div className="fade-up-3 pt-1">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="Masukkan password Anda"
+                    className="w-full pl-10 pr-12 py-3 rounded-xl outline-none transition-all"
+                    style={{ border: '1.5px solid #e2e8f0', fontSize: '14px', color: '#0f172a', background: '#f8fafc' }}
+                    onFocus={e => { e.currentTarget.style.border = '1.5px solid #1A77A3'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(26,119,163,0.1)'; e.currentTarget.style.background = '#fff'; }}
+                    onBlur={e => { e.currentTarget.style.border = '1.5px solid #e2e8f0'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.background = '#f8fafc'; }}
+                  />
                   <button
-                    type="submit"
-                    disabled={loading}
-                    className="login-btn w-full flex items-center justify-center gap-2.5 rounded-xl font-semibold"
-                    style={{
-                      height: '50px',
-                      color: 'white',
-                      fontSize: '14px',
-                      boxShadow: loading ? 'none' : '0 4px 16px rgba(26,119,163,0.38)',
-                      cursor: loading ? 'not-allowed' : 'pointer',
-                      opacity: loading ? 0.7 : 1,
-                    }}
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors"
+                    style={{ color: '#94a3b8' }}
+                    onMouseOver={e => (e.currentTarget.style.color = '#1A77A3')}
+                    onMouseOut={e => (e.currentTarget.style.color = '#94a3b8')}
                   >
-                    {loading ? (
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        <Lock className="w-4 h-4" />
-                        Masuk ke GEMAS
-                      </>
-                    )}
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-              </form>
+              </div>
+
+              {/* Error */}
+              {error && (
+                <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl"
+                  style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
+                  <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white text-xs font-bold">!</span>
+                  </div>
+                  <p style={{ fontSize: '13px', color: '#dc2626' }}>{error}</p>
+                </div>
+              )}
+
+              {/* Submit */}
+              <div className="fade-up-3 pt-1">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="login-btn w-full flex items-center justify-center gap-2.5 rounded-xl font-semibold"
+                  style={{
+                    height: '50px',
+                    color: 'white',
+                    fontSize: '14px',
+                    boxShadow: loading ? 'none' : '0 4px 16px rgba(26,119,163,0.38)',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    opacity: loading ? 0.7 : 1,
+                  }}
+                >
+                  {loading ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4" />
+                      Masuk ke GEMAS
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
             </div>
 
             <div className="fade-up-5 flex items-center justify-center gap-2 mt-6">
