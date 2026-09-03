@@ -1056,11 +1056,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }));
     }
 
-    // Sync family.members[]
+    // Sync family.members[] and memberCount
     if (newMember.familyId) {
       setFamilies(prev => prev.map(f => {
         if (f.id !== newMember.familyId) return f;
-        const updated = { ...f, members: [...(f.members ?? []), newMember.id] };
+        const members = [...(f.members ?? []), newMember.id];
+        const updated = { ...f, members, memberCount: members.length };
         apiSave('families', f.id, updated);
         return updated;
       }));
@@ -1105,18 +1106,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }));
     }
 
-    // Sync family.members[] when familyId changes
+    // Sync family.members[] and memberCount when familyId changes
     const oldFamilyId = member.familyId;
     const newFamilyId = memberData.familyId;
     if (newFamilyId !== undefined && newFamilyId !== oldFamilyId) {
       setFamilies(prev => prev.map(f => {
         if (f.id === oldFamilyId) {
-          const u = { ...f, members: (f.members ?? []).filter(mid => mid !== id) };
+          const members = (f.members ?? []).filter(mid => mid !== id);
+          const u = { ...f, members, memberCount: members.length };
           apiSave('families', f.id, u);
           return u;
         }
         if (f.id === newFamilyId) {
-          const u = { ...f, members: [...(f.members ?? []), id] };
+          const members = [...(f.members ?? []), id];
+          const u = { ...f, members, memberCount: members.length };
           apiSave('families', f.id, u);
           return u;
         }
@@ -1153,11 +1156,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }));
     }
 
-    // Sync family.members[]
+    // Sync family.members[] and memberCount
     if (member.familyId) {
       setFamilies(prev => prev.map(f => {
         if (f.id !== member.familyId) return f;
-        const updated = { ...f, members: (f.members ?? []).filter(mid => mid !== id) };
+        const members = (f.members ?? []).filter(mid => mid !== id);
+        const updated = { ...f, members, memberCount: members.length };
         apiSave('families', f.id, updated);
         return updated;
       }));

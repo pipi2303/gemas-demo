@@ -16,7 +16,7 @@ const ROLE_MAP: Record<string, string> = {
 };
 const HEAD_ROLES = new Set(['KK', 'Kepala Keluarga']);
 
-type SyncResult = { familiesCreated: number; rolesNormalized: number; sectorsUpdated: number };
+type SyncResult = { familiesCreated: number; familiesUpdated: number; rolesNormalized: number; sectorsUpdated: number };
 
 async function runSync(): Promise<SyncResult> {
   const now = new Date().toISOString();
@@ -84,8 +84,35 @@ async function runSync(): Promise<SyncResult> {
     }
   }
 
+  // Reconcile members[] & memberCount for EXISTING families too (not just the
+  // orphaned ones created above) — a member added/edited/deleted/moved between
+  // families anywhere (single edit, CSV import, etc.) must be reflected here,
+  // mirroring the sector reconciliation above.
+  const familyMemberIds: Record<string, string[]> = {};
+  for (const m of members) {
+    if (m.familyId) {
+      (familyMemberIds[m.familyId] ??= []).push(m.id);
+    }
+  }
+  let familiesUpdated = 0;
+  for (const f of families) {
+    const actualMembers = familyMemberIds[f.id] ?? [];
+    const currentMembers = Array.isArray(f.members) ? f.members : [];
+    const sameMembers =
+      currentMembers.length === actualMembers.length &&
+      [...currentMembers].sort().join(',') === [...actualMembers].sort().join(',');
+    if (!sameMembers || f.memberCount !== actualMembers.length) {
+      batchItems.push({
+        collection: 'families',
+        id: f.id,
+        data: { ...f, members: actualMembers, memberCount: actualMembers.length, updatedAt: now },
+      });
+      familiesUpdated++;
+    }
+  }
+
   await batchUpsert(batchItems);
-  return { familiesCreated, rolesNormalized, sectorsUpdated };
+  return { familiesCreated, familiesUpdated, rolesNormalized, sectorsUpdated };
 }
 
 async function writeAuditLog(userId: string, username: string, action: string, meta: Record<string, unknown>) {
@@ -175,7 +202,14 @@ router.delete('/members/:id', requireAuth, async (req: AuthRequest, res: Respons
 
     await pool.query('COMMIT');
     logger.info('Member deleted atomically', { memberId: id, user: req.user?.username });
-    res.json({ ok: true });
+    // Reconcile sector/family member counts now that a member is gone — this route
+    // bypasses the client-side addMember/updateMember/deleteMember sync in AppContext,
+    // so without this the deleted member would linger in sector/family counts.
+    const syncResult = await runSync().catch(err => {
+      logger.error('Post-delete sync error', { memberId: id, message: String(err) });
+      return null;
+    });
+    res.json({ ok: true, ...(syncResult ?? {}) });
   } catch (err) {
     await pool.query('ROLLBACK').catch(() => {});
     logger.error('Atomic member delete error', { message: String(err) });

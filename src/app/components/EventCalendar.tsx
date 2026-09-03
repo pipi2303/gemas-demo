@@ -285,7 +285,7 @@ export function EventCalendar() {
             <span style={{fontSize:'9px',fontWeight:700,letterSpacing:'0.08em',color:'#b0bec5',textTransform:'uppercase',minWidth:'68px'}}>Filter</span>
             {([
               {val:filterType,set:(v:string)=>setFilterType(v as any),opts:[{v:'all',l:'Semua Jenis'},...EVENT_TYPES_LIST.map(t=>({v:t,l:t}))]},
-              {val:filterStatus,set:(v:string)=>setFilterStatus(v as any),opts:[{v:'all',l:'Semua Status'},...(['Akan Datang','Berlangsung','Selesai','Dibatalkan'] as const).map(s=>({v:s,l:s}))]},
+              {val:filterStatus,set:(v:string)=>setFilterStatus(v as any),opts:[{v:'all',l:'Semua Status'},...STATUS_EVENT.map(s=>({v:s,l:s}))]},
             ] as {val:string;set:(v:string)=>void;opts:{v:string;l:string}[]}[]).map((f,i)=>{
               const active=f.val!=='all';
               return <select key={i} value={f.val} onChange={e=>f.set(e.target.value)} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#1A77A3':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#1A77A3':'#64748b',fontWeight:active?600:400}}>{f.opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>;

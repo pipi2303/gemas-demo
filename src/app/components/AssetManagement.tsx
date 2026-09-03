@@ -72,7 +72,7 @@ const COND_CFG: Record<AssetCondition, { text: string; bg: string; border: strin
   'Rusak Berat':  { text: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
   'Tidak Layak':  { text: '#7f1d1d', bg: '#fff1f2', border: '#fca5a5' },
 };
-const CATEGORIES: AssetCategory[] = ['Tanah', 'Bangunan', 'Kendaraan', 'Inventaris', 'Elektronik', 'Peralatan Ibadah', 'Lainnya'];
+const DEFAULT_ASSET_CATEGORIES: AssetCategory[] = ['Tanah', 'Bangunan', 'Kendaraan', 'Inventaris', 'Elektronik', 'Peralatan Ibadah', 'Lainnya'];
 const CONDITIONS: AssetCondition[] = ['Baik', 'Cukup Baik', 'Rusak Ringan', 'Rusak Berat', 'Tidak Layak'];
 const ACQ_METHODS: AcquisitionMethod[] = ['Pembelian', 'Donasi', 'Hibah', 'Pembangunan', 'Wakaf'];
 const MAINT_TYPES: MaintenanceType[] = ['Perawatan Rutin', 'Perbaikan', 'Penggantian Komponen', 'Inspeksi'];
@@ -185,7 +185,11 @@ export function AssetManagement() {
     churchAssets: assets, assetMaintenances: maintenances, assetLoanHistories: loanHistories,
     addChurchAsset, updateChurchAsset, deleteChurchAsset,
     addAssetMaintenance, addAssetLoanHistory, updateAssetLoanHistory,
+    getMasterDataByCategory,
   } = useApp();
+
+  const kategoriAsetOpts = getMasterDataByCategory('kategori_aset').map(m => m.value) as AssetCategory[];
+  const CATEGORIES = kategoriAsetOpts.length ? kategoriAsetOpts : DEFAULT_ASSET_CATEGORIES;
 
   const canCreate = can('Manajemen Aset', 'create');
   const canEdit   = can('Manajemen Aset', 'edit');

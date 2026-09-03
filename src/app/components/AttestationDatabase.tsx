@@ -359,7 +359,7 @@ export function AttestationForm({ initial, members, onSave, onClose }: {
 // ── MAIN ──────────────────────────────────────────────────────────────────────
 export function AttestationDatabase() {
   const { offset, onMouseDown } = useDraggable();
-  const { attestations, members, currentUser, addAttestation: _addAttestation, updateAttestation: _updateAttestation } = useApp();
+  const { attestations, members, currentUser, addAttestation: _addAttestation, updateAttestation: _updateAttestation, getMasterDataByCategory } = useApp();
 
   // Use context attestations as source of truth; sync via API
   const [items, setItems] = useState<Attestation[]>(attestations||[]);
@@ -387,6 +387,8 @@ export function AttestationDatabase() {
   const [editItem, setEditItem] = useState<Attestation|null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Attestation|null>(null);
   const ITEMS = 12;
+  const statusSuratListMain = getMasterDataByCategory('status_permohonan_surat').map(m => m.value);
+  const STATUS_SURAT_OPTS = statusSuratListMain.length ? statusSuratListMain : ['Diajukan', 'Diproses', 'Selesai', 'Ditolak'];
 
   const filtered = useMemo(()=>{
     let r=[...items];
@@ -550,7 +552,7 @@ export function AttestationDatabase() {
           <div className="flex flex-wrap items-center gap-2">
             <span style={{fontSize:'9px',fontWeight:700,letterSpacing:'0.08em',color:'#b0bec5',textTransform:'uppercase',minWidth:'68px'}}>Filter</span>
             {([
-              {val:statusF,set:(v:string)=>{setStatusF(v);setPage(1);},opts:[{v:'all',l:'Semua Status'},...['Diajukan','Diproses','Selesai','Ditolak'].map(s=>({v:s,l:s}))]},
+              {val:statusF,set:(v:string)=>{setStatusF(v);setPage(1);},opts:[{v:'all',l:'Semua Status'},...STATUS_SURAT_OPTS.map(s=>({v:s,l:s}))]},
               {val:yearF,set:(v:string)=>{setYearF(v);setPage(1);},opts:[{v:'all',l:'Semua Tahun'},...Array.from({length:5},(_,i)=>String(new Date().getFullYear()-i)).map(y=>({v:y,l:y}))]},
             ] as {val:string;set:(v:string)=>void;opts:{v:string;l:string}[]}[]).map((f,i)=>{
               const active=f.val!=='all';

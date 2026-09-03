@@ -302,7 +302,7 @@ function MarriageForm({ initial, onSave, onClose }: { initial?: Partial<Marriage
 export function SacramentDatabase() {
   const { offset: offset1, onMouseDown: onMouseDown1 } = useDraggable();
   const { offset: offset2, onMouseDown: onMouseDown2 } = useDraggable();
-  const { baptisms, sidis, marriages, addBaptism, updateBaptism, deleteBaptism, addSidi, updateSidi, deleteSidi, addMarriage, updateMarriage, deleteMarriage, currentUser, can } = useApp();
+  const { baptisms, sidis, marriages, addBaptism, updateBaptism, deleteBaptism, addSidi, updateSidi, deleteSidi, addMarriage, updateMarriage, deleteMarriage, currentUser, can, getMasterDataByCategory } = useApp();
 
   const canCreate = can('Sakramen & Atestasi', 'create');
   const canEdit   = can('Sakramen & Atestasi', 'edit');
@@ -322,6 +322,8 @@ export function SacramentDatabase() {
   const ITEMS = 12;
 
   const YEARS = ['all','2026','2025','2024','2023'];
+  const statusSakramenOptsMain = getMasterDataByCategory('status_sakramen').map(m => m.value);
+  const STATUS_OPTS = statusSakramenOptsMain.length ? statusSakramenOptsMain : ['Terjadwal','Selesai','Ditunda','Dibatalkan'];
 
   const filteredBaptisms = useMemo(()=>{
     let r=[...baptisms];
@@ -515,7 +517,7 @@ export function SacramentDatabase() {
           <div className="flex flex-wrap items-center gap-2">
             <span style={{fontSize:'9px',fontWeight:700,letterSpacing:'0.08em',color:'#b0bec5',textTransform:'uppercase',minWidth:'68px'}}>Filter</span>
             {([
-              {val:statusF,set:(v:string)=>{setStatusF(v);setPage(1);},opts:[{v:'all',l:'Semua Status'},...['Terjadwal','Selesai','Ditunda','Dibatalkan'].map(s=>({v:s,l:s}))]},
+              {val:statusF,set:(v:string)=>{setStatusF(v);setPage(1);},opts:[{v:'all',l:'Semua Status'},...STATUS_OPTS.map(s=>({v:s,l:s}))]},
               {val:yearF,set:(v:string)=>{setYearF(v);setPage(1);},opts:YEARS.map(y=>({v:y,l:y==='all'?'Semua Tahun':y}))},
             ] as {val:string;set:(v:string)=>void;opts:{v:string;l:string}[]}[]).map((f,i)=>{
               const active=f.val!=='all';

@@ -272,7 +272,7 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
                 <SectionHeader icon={<Calendar className="w-3.5 h-3.5 text-[#1A77A3]"/>} title="Kelahiran"/>
                 <InfoRow label="Tempat Lahir" value={member.birthPlace}/>
                 <InfoRow label="Tanggal Lahir" value={fmtDate(member.birthDate)}/>
-                <InfoRow label="Usia" value={member.age ? `${member.age} tahun` : undefined}/>
+                <InfoRow label="Usia" value={member.birthDate ? `${liveAge(member)} tahun` : undefined}/>
               </div>
               <div>
                 <SectionHeader icon={<Heart className="w-3.5 h-3.5 text-[#1A77A3]"/>} title="Status Pernikahan"/>
@@ -898,6 +898,13 @@ function calcAge(birthDate: string): number {
   return Math.floor((Date.now() - new Date(birthDate).getTime()) / (1000 * 60 * 60 * 24 * 365.25));
 }
 
+// Usia dihitung ulang dari birthDate setiap kali dipakai (bukan dari field `age` yang
+// tersimpan statis sejak data dibuat/diedit terakhir), supaya filter & tampilan usia
+// selalu akurat terhadap tanggal hari ini.
+function liveAge(m: { birthDate?: string; age?: number }): number {
+  return m.birthDate ? calcAge(m.birthDate) : (m.age ?? 0);
+}
+
 function normalizePhone(val: any): string {
   if (!val) return '';
   let s = String(val).replace(/\D/g, '');
@@ -1419,7 +1426,7 @@ const MEMBER_TABLE_DEFAULT_WIDTHS: Record<string, number> = {
 export function MemberDatabase() {
   const { offset: offset1, onMouseDown: onMouseDown1 } = useDraggable();
   const { offset: offset2, onMouseDown: onMouseDown2 } = useDraggable();
-  const { members, sectors, families, addMember, updateMember, deleteMember, currentUser, attestations, can, reloadData } = useApp();
+  const { members, sectors, families, addMember, updateMember, deleteMember, currentUser, attestations, can, reloadData, getMasterDataByCategory } = useApp();
 
   const canCreate = can('Database Warga', 'create');
   const canEdit   = can('Database Warga', 'edit');
@@ -1474,10 +1481,16 @@ export function MemberDatabase() {
     if(statusF!=='all') r=r.filter(m=>m.membershipStatus===statusF);
     if(genderF!=='all') r=r.filter(m=>m.gender===genderF);
     if(pelkatF!=='all') r=r.filter(m=>m.pelkatStatus===pelkatF);
-    if(ageF==='anak') r=r.filter(m=>m.age<13);
-    else if(ageF==='pemuda') r=r.filter(m=>m.age>=13&&m.age<25);
-    else if(ageF==='dewasa') r=r.filter(m=>m.age>=25&&m.age<60);
-    else if(ageF==='lansia') r=r.filter(m=>m.age>=60);
+    if(ageF!=='all') {
+      r=r.filter(m=>{
+        const a=liveAge(m);
+        if(ageF==='anak') return a<13;
+        if(ageF==='pemuda') return a>=13&&a<25;
+        if(ageF==='dewasa') return a>=25&&a<60;
+        if(ageF==='lansia') return a>=60;
+        return true;
+      });
+    }
     if(periodeFrom||periodeTo) {
       r=r.filter(m=>{
         const val=(m as any)[periodeField];
@@ -1530,13 +1543,14 @@ export function MemberDatabase() {
 
   const handleImportMembers = async (rows: Omit<Member, 'id' | 'createdAt' | 'updatedAt'>[]) => {
     try {
-      const res = await api.post<{ ok: boolean; imported: number; duplicates: number; familiesCreated: number; sectorsUpdated: number }>(
+      const res = await api.post<{ ok: boolean; imported: number; duplicates: number; familiesCreated: number; familiesUpdated: number; sectorsUpdated: number }>(
         '/api/admin/members/import',
         { members: rows },
       );
       await reloadData();
       const extra = [];
       if (res.familiesCreated > 0) extra.push(`${res.familiesCreated} keluarga dibuat`);
+      if (res.familiesUpdated > 0) extra.push(`${res.familiesUpdated} keluarga diperbarui`);
       if (res.sectorsUpdated > 0)  extra.push(`${res.sectorsUpdated} sektor diperbarui`);
       const suffix = extra.length > 0 ? ` · ${extra.join(', ')}` : '';
       toast.success(`${res.imported} anggota berhasil diimpor${suffix}`);
@@ -1582,7 +1596,7 @@ export function MemberDatabase() {
       m.familyRoleOther || '',
       m.birthPlace || '',
       m.birthDate || '',
-      m.age ? `${m.age} tahun` : '',
+      m.birthDate ? `${liveAge(m)} tahun` : '',
       m.bloodType || '',
       m.maritalStatus || '',
       m.marriageDateChurch || '',
@@ -1638,7 +1652,8 @@ export function MemberDatabase() {
     XLSX.writeFile(wb, filename);
   };
 
-  const PELKAT_LIST = ['PELKAT-PKB','PELKAT-PKP','PELKAT-PKLU','PELKAT-GP'];
+  const pelkatOptsFromMaster = getMasterDataByCategory('pelkat').map(m => m.value);
+  const PELKAT_LIST = pelkatOptsFromMaster.length ? pelkatOptsFromMaster : ['PELKAT-PA','PELKAT-PT','PELKAT-GP','PELKAT-PKB','PELKAT-PKP','PELKAT-PKLU'];
 
   return (
     <div className="space-y-5">
@@ -1909,7 +1924,7 @@ export function MemberDatabase() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm" style={{color:'#4b5563'}}>{m.gender==='Laki-laki'?'L':'P'}</td>
-                      <td className="px-4 py-3 text-sm" style={{color:'#4b5563'}}>{m.age} th</td>
+                      <td className="px-4 py-3 text-sm" style={{color:'#4b5563'}}>{liveAge(m)} th</td>
                       <td className="px-4 py-3 text-sm" style={{color:'#4b5563'}}>{sec?.name?.replace(/Sektor \d+ - /,'')??'—'}</td>
                       <td className="px-4 py-3 text-sm" style={{color:'#4b5563'}}>{m.position||'—'}</td>
                       <td className="px-4 py-3">
@@ -1975,7 +1990,7 @@ export function MemberDatabase() {
                       <MapPin className="w-3 h-3 flex-shrink-0"/><span data-tooltip={sec?.name||'—'} data-tooltip-truncate className="truncate">{sec?.name||'—'}</span>
                     </div>
                     <div className="flex items-center gap-1.5" style={{fontSize:'11.5px',color:'#64748b'}}>
-                      <Calendar className="w-3 h-3 flex-shrink-0"/><span>{m.age} tahun · {m.gender}</span>
+                      <Calendar className="w-3 h-3 flex-shrink-0"/><span>{liveAge(m)} tahun · {m.gender}</span>
                     </div>
                     {m.phone && <div className="flex items-center gap-1.5" style={{fontSize:'11.5px',color:'#64748b'}}><Phone className="w-3 h-3"/><span>{m.phone}</span></div>}
                   </div>
