@@ -24,6 +24,19 @@ const SACRAMENT_TABLE_DEFAULT_WIDTHS: Record<string, number> = {
 
 const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }) : '—';
 
+// Master Data 'status_sakramen' menyediakan opsi dropdown status, tapi mengedit label item
+// Master Data di menu admin ikut menimpa value-nya (value = label). Fungsi ini menambah
+// jalur cadangan lewat kata kunci supaya warna badge dan KPI "Selesai" tidak diam-diam
+// berhenti mengenali status kalau label salah satu dari 4 status ini pernah diedit.
+function normStatusSakramen(status: string): 'Terjadwal' | 'Selesai' | 'Ditunda' | 'Dibatalkan' {
+  const s = (status || '').toLowerCase();
+  if (s === 'terjadwal' || s.includes('jadwal')) return 'Terjadwal';
+  if (s === 'selesai' || s.includes('selesai')) return 'Selesai';
+  if (s === 'ditunda' || s.includes('tunda')) return 'Ditunda';
+  if (s === 'dibatalkan' || s.includes('batal')) return 'Dibatalkan';
+  return 'Terjadwal';
+}
+
 function StatusPill({ status }: { status: string }) {
   const cfg: Record<string, { bg: string; color: string; icon: React.ReactNode }> = {
     'Terjadwal': { bg:'#f0ede5', color:'#1A77A3', icon:<Clock className="w-3 h-3"/> },
@@ -31,7 +44,7 @@ function StatusPill({ status }: { status: string }) {
     'Ditunda':   { bg:'#f6f4f0', color:'#9c9486', icon:<Clock className="w-3 h-3"/> },
     'Dibatalkan':{ bg:'#fef2f2', color:'#dc2626', icon:<Ban className="w-3 h-3"/> },
   };
-  const c = cfg[status] || { bg:'#f1f5f9', color:'#64748b', icon:null };
+  const c = cfg[normStatusSakramen(status)];
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold" style={{background:c.bg,color:c.color}}>
       {c.icon}{status}
@@ -371,14 +384,14 @@ export function SacramentDatabase() {
 
   const stats = {
     baptisms: baptisms.length,
-    baptismsSelesai: baptisms.filter(b=>b.status==='Selesai').length,
+    baptismsSelesai: baptisms.filter(b=>normStatusSakramen(b.status)==='Selesai').length,
     baptismsAnak: baptisms.filter(b=>b.type==='Anak').length,
-    baptismsSelesaiAnak: baptisms.filter(b=>b.status==='Selesai'&&b.type==='Anak').length,
-    baptismsSelesaiDewasa: baptisms.filter(b=>b.status==='Selesai'&&b.type==='Dewasa').length,
+    baptismsSelesaiAnak: baptisms.filter(b=>normStatusSakramen(b.status)==='Selesai'&&b.type==='Anak').length,
+    baptismsSelesaiDewasa: baptisms.filter(b=>normStatusSakramen(b.status)==='Selesai'&&b.type==='Dewasa').length,
     sidis: sidis.length,
-    sidisSelesai: sidis.filter(s=>s.status==='Selesai').length,
+    sidisSelesai: sidis.filter(s=>normStatusSakramen(s.status)==='Selesai').length,
     marriages: marriages.length,
-    marriagesSelesai: marriages.filter(m=>m.status==='Selesai').length,
+    marriagesSelesai: marriages.filter(m=>normStatusSakramen(m.status)==='Selesai').length,
   };
 
   const handleSave = (d:any) => {
@@ -459,11 +472,11 @@ export function SacramentDatabase() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
           {l:'Total Baptisan',v:stats.baptisms,sub:'semua tipe',c:'#3a7fa0',bg:'#ecfeff',bo:'#a5f3fc', type:'baptism' as const, items:baptisms},
-          {l:'Baptisan Selesai',v:stats.baptismsSelesai,sub:`${stats.baptismsSelesaiAnak} anak, ${stats.baptismsSelesaiDewasa} dewasa`,c:'#1A77A3',bg:'#f0fdf4',bo:'#b8d5e8', type:'baptism' as const, items:baptisms.filter(b=>b.status==='Selesai')},
+          {l:'Baptisan Selesai',v:stats.baptismsSelesai,sub:`${stats.baptismsSelesaiAnak} anak, ${stats.baptismsSelesaiDewasa} dewasa`,c:'#1A77A3',bg:'#f0fdf4',bo:'#b8d5e8', type:'baptism' as const, items:baptisms.filter(b=>normStatusSakramen(b.status)==='Selesai')},
           {l:'Total Sidi',v:stats.sidis,sub:'semua status',c:'#1A77A3',bg:'#f0fdf4',bo:'#b8d5e8', type:'sidi' as const, items:sidis},
-          {l:'Sidi Selesai',v:stats.sidisSelesai,sub:'sudah sidi',c:'#1A77A3',bg:'#f0fdf4',bo:'#b8d5e8', type:'sidi' as const, items:sidis.filter(s=>s.status==='Selesai')},
+          {l:'Sidi Selesai',v:stats.sidisSelesai,sub:'sudah sidi',c:'#1A77A3',bg:'#f0fdf4',bo:'#b8d5e8', type:'sidi' as const, items:sidis.filter(s=>normStatusSakramen(s.status)==='Selesai')},
           {l:'Total Pernikahan',v:stats.marriages,sub:'semua status',c:'#1A77A3',bg:'#fdf2f8',bo:'#fbcfe8', type:'marriage' as const, items:marriages},
-          {l:'Nikah Selesai',v:stats.marriagesSelesai,sub:'sudah diberkati',c:'#1A77A3',bg:'#fdf2f8',bo:'#fbcfe8', type:'marriage' as const, items:marriages.filter(m=>m.status==='Selesai')},
+          {l:'Nikah Selesai',v:stats.marriagesSelesai,sub:'sudah diberkati',c:'#1A77A3',bg:'#fdf2f8',bo:'#fbcfe8', type:'marriage' as const, items:marriages.filter(m=>normStatusSakramen(m.status)==='Selesai')},
         ].map((s,i)=>(
           <div key={i} className="rounded-xl p-3 border text-center cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all" style={{background:s.bg,borderColor:s.bo}} onClick={()=>{setKpiDetail({label:s.l,type:s.type,items:s.items});setKpiSearch('');}}>
             <p style={{fontSize:'20px',fontWeight:700,color:s.c,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{s.v}</p>
