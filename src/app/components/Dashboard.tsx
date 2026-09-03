@@ -11,6 +11,7 @@ import {
   HandHeart, Stethoscope, Printer, Layers,
 } from 'lucide-react';
 import { AgeGroup } from '../types';
+import { liveAge } from '../../lib/age';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatRp(n: number) {
@@ -364,7 +365,7 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors }:
           <DSection title="Informasi Pribadi" icon={Users}>
             <DRow label="Nama Lengkap" value={m.fullName || `${m.firstName} ${m.lastName}`} accent />
             <DRow label="Tanggal Lahir" value={bd.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} />
-            <DRow label="Usia" value={`${m.age} tahun`} />
+            <DRow label="Usia" value={`${liveAge(m)} tahun`} />
             <DRow label="Jenis Kelamin" value={m.gender} />
             <DRow label="Sektor" value={getSN(m.sectorId)} />
           </DSection>
@@ -465,7 +466,7 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors }:
                               </div>
                               <div className="flex items-center gap-2" style={{ fontSize: '11.5px', color: '#64748b' }}>
                                 <span className="flex items-center gap-1"><Cake className="w-3 h-3" />{bd.toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })}</span>
-                                <span>·</span><span>{m.age} tahun</span><span>·</span><span>{m.gender === 'Laki-laki' ? '♂' : '♀'}</span>
+                                <span>·</span><span>{liveAge(m)} tahun</span><span>·</span><span>{m.gender === 'Laki-laki' ? '♂' : '♀'}</span>
                               </div>
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
@@ -575,7 +576,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
     const pindah     = members.filter(m => m.membershipStatus === 'Pindah');
     const meninggal  = members.filter(m => m.membershipStatus === 'Meninggal');
     const tidakAktif = members.filter(m => m.membershipStatus === 'Tidak Aktif');
-    const ageGroups  = members.reduce((acc, m) => { const g = getAgeGroup(m.age); acc[g] = (acc[g] || 0) + 1; return acc; }, {} as Record<AgeGroup, number>);
+    const ageGroups  = members.reduce((acc, m) => { const g = getAgeGroup(liveAge(m)); acc[g] = (acc[g] || 0) + 1; return acc; }, {} as Record<AgeGroup, number>);
     const genderL    = members.filter(m => m.gender === 'Laki-laki').length;
     const genderP    = members.filter(m => m.gender === 'Perempuan').length;
     const membersBySector = sectors.map((sec, i) => ({

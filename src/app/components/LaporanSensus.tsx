@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { useSortable } from '../../hooks/useSortable';
 import { useResizableColumns } from '../../hooks/useResizableColumns';
 import { ColResizeHandle } from './ui/resizable-th';
+import { liveAge } from '../../lib/age';
 
 const COLORS = ['#144f6b', '#144f6b', '#1A77A3', '#3a7fa0', '#f0ede5', '#b8d5e8'];
 
@@ -40,12 +41,15 @@ export function LaporanSensus() {
   const maleCount = members.filter(m => m.gender === 'Laki-laki').length;
   const femaleCount = members.filter(m => m.gender === 'Perempuan').length;
 
+  // Dihitung dari liveAge() (usia real-time dari birthDate), bukan field `age` yang
+  // tersimpan statis sejak data terakhir diedit — supaya kelompok usia di sensus ini
+  // selalu akurat, tidak meleset dari kenyataan seiring berjalannya waktu.
   const ageGroups = [
-    { name: 'Anak (0–12)', value: members.filter(m => m.age <= 12).length },
-    { name: 'Remaja (13–17)', value: members.filter(m => m.age >= 13 && m.age <= 17).length },
-    { name: 'Pemuda (18–35)', value: members.filter(m => m.age >= 18 && m.age <= 35).length },
-    { name: 'Dewasa (36–60)', value: members.filter(m => m.age >= 36 && m.age <= 60).length },
-    { name: 'Lansia (60+)', value: members.filter(m => m.age > 60).length },
+    { name: 'Anak (0–12)', value: members.filter(m => liveAge(m) <= 12).length },
+    { name: 'Remaja (13–17)', value: members.filter(m => liveAge(m) >= 13 && liveAge(m) <= 17).length },
+    { name: 'Pemuda (18–35)', value: members.filter(m => liveAge(m) >= 18 && liveAge(m) <= 35).length },
+    { name: 'Dewasa (36–60)', value: members.filter(m => liveAge(m) >= 36 && liveAge(m) <= 60).length },
+    { name: 'Lansia (60+)', value: members.filter(m => liveAge(m) > 60).length },
   ];
 
   const statusData = [

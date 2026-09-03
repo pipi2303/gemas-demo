@@ -16,6 +16,7 @@ import autoTable from 'jspdf-autotable';
 import { toast } from 'sonner';
 import { MemberDetail } from './MemberDatabase';
 import { roleStyle, sortByRole, isKK } from '../../lib/familyRole';
+import { liveAge } from '../../lib/age';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const initials = (name: string) => name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
@@ -373,7 +374,7 @@ function FamilyDetail({ family, members, sectors, onClose, onEdit, onDelete, onV
 
   const sorted = sortByRole(fam);
 
-  const ages = fam.map(m=>m.age);
+  const ages = fam.map(m=>liveAge(m));
   const avgAge = ages.length ? Math.round(ages.reduce((s,a)=>s+a,0)/ages.length) : 0;
   const anak = fam.filter(m=>['AN','Anak'].includes(m.familyRole||'')).length;
 
@@ -444,7 +445,7 @@ function FamilyDetail({ family, members, sectors, onClose, onEdit, onDelete, onV
                       ); })()}
                     </div>
                     <p style={{fontSize:'11.5px',color:'#64748b'}}>
-                      {m.gender} · {m.age} tahun · {m.maritalStatus||'—'}
+                      {m.gender} · {liveAge(m)} tahun · {m.maritalStatus||'—'}
                     </p>
                   </div>
                   <div className="text-right flex-shrink-0">
@@ -622,7 +623,7 @@ export function FamilyDatabase() {
   // ── Stats ──────────────────────────────────────────────────────────────────
   const stats = useMemo(()=>({
     total: families.length,
-    withKK: families.filter(f=>members.some(m=>m.id===f.headMemberId&&m.familyRole==='KK')).length,
+    withKK: families.filter(f=>members.some(m=>m.familyId===f.id&&isKK(m.familyRole))).length,
     avgSize: families.length ? (families.reduce((s,f)=>s+f.memberCount,0)/families.length).toFixed(1) : '0',
     bySector: [...sectors]
       .sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}))
@@ -699,7 +700,7 @@ export function FamilyDatabase() {
             m.memberNumber || '',
             m.fullName,
             m.gender === 'Laki-laki' ? 'L' : 'P',
-            m.age ? `${m.age} tahun` : '',
+            liveAge(m) ? `${liveAge(m)} tahun` : '',
             m.pelkatStatus || '',
           ]);
         });
@@ -941,8 +942,8 @@ export function FamilyDatabase() {
                     <p style={{fontSize:'10px',color:'#b0bec5',marginTop:1}}>
                       {[
                         fmems.filter(m=>['AN','Anak'].includes(m.familyRole||'')).length > 0 && `${fmems.filter(m=>['AN','Anak'].includes(m.familyRole||'')).length} anak`,
-                        fmems.filter(m=>m.age>=60).length > 0 && `${fmems.filter(m=>m.age>=60).length} lansia`,
-                      ].filter(Boolean).join(' · ') || `rata ${Math.round(fmems.reduce((s,m)=>s+m.age,0)/fmems.length)} th`}
+                        fmems.filter(m=>liveAge(m)>=60).length > 0 && `${fmems.filter(m=>liveAge(m)>=60).length} lansia`,
+                      ].filter(Boolean).join(' · ') || `rata ${Math.round(fmems.reduce((s,m)=>s+liveAge(m),0)/fmems.length)} th`}
                     </p>
                   )}
                 </div>

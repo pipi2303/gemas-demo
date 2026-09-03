@@ -5,6 +5,7 @@ import { Button } from './ui/button';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { toast } from 'sonner';
+import { liveAge } from '../../lib/age';
 import {
   FileText, Download, Printer, CheckSquare, Square,
   Users, DollarSign, Package, Cross, Church, HeartHandshake,
@@ -188,11 +189,14 @@ export function ReportCenter() {
   const femaleCount = filteredMembers.filter(m => m.gender === 'Perempuan').length;
   const baptisCount = filteredMembers.filter(m => m.baptismStatus === 'Sudah').length;
   const sidiCount = filteredMembers.filter(m => m.sidiStatus === 'Sudah').length;
-  const paCount = filteredMembers.filter(m => (m.age || 0) <= 12).length;
-  const ptCount = filteredMembers.filter(m => (m.age || 0) >= 13 && (m.age || 0) <= 16).length;
-  const gpCount = filteredMembers.filter(m => (m.age || 0) >= 17 && (m.age || 0) <= 35).length;
-  const pkbPkpCount = filteredMembers.filter(m => (m.age || 0) >= 36 && (m.age || 0) <= 59).length;
-  const pkluCount = filteredMembers.filter(m => (m.age || 0) >= 60).length;
+  // Pakai liveAge() (usia dihitung ulang dari birthDate), bukan field `age` yang
+  // tersimpan statis sejak data terakhir diedit — supaya laporan Pelkat per usia
+  // ini tidak meleset seiring waktu.
+  const paCount = filteredMembers.filter(m => liveAge(m) <= 12).length;
+  const ptCount = filteredMembers.filter(m => liveAge(m) >= 13 && liveAge(m) <= 16).length;
+  const gpCount = filteredMembers.filter(m => liveAge(m) >= 17 && liveAge(m) <= 35).length;
+  const pkbPkpCount = filteredMembers.filter(m => liveAge(m) >= 36 && liveAge(m) <= 59).length;
+  const pkluCount = filteredMembers.filter(m => liveAge(m) >= 60).length;
 
   // Keuangan metrics
   const totalIncome = useMemo(() => {

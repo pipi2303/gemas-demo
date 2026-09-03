@@ -11,6 +11,7 @@ import { useUnsavedChanges } from '../../lib/useUnsavedChanges';
 import { useResizableColumns } from '../../hooks/useResizableColumns';
 import { ColResizeHandle } from './ui/resizable-th';
 import { normPelkat } from '../utils/pelkatUtils';
+import { calcAge, liveAge } from '../../lib/age';
 import { toast } from 'sonner';
 import {
   Search, Plus, Eye, Pencil, Trash2, ChevronLeft, ChevronRight,
@@ -892,18 +893,6 @@ function parseDate(val: any): string {
     return d.toISOString().split('T')[0];
   }
   return '';
-}
-
-function calcAge(birthDate: string): number {
-  if (!birthDate) return 0;
-  return Math.floor((Date.now() - new Date(birthDate).getTime()) / (1000 * 60 * 60 * 24 * 365.25));
-}
-
-// Usia dihitung ulang dari birthDate setiap kali dipakai (bukan dari field `age` yang
-// tersimpan statis sejak data dibuat/diedit terakhir), supaya filter & tampilan usia
-// selalu akurat terhadap tanggal hari ini.
-function liveAge(m: { birthDate?: string; age?: number }): number {
-  return m.birthDate ? calcAge(m.birthDate) : (m.age ?? 0);
 }
 
 function normalizePhone(val: any): string {

@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { MemberDetail } from './MemberDatabase';
 import { roleStyle, sortByRole } from '../../lib/familyRole';
 import { normPelkat, PELKAT_LABELS } from '../utils/pelkatUtils';
+import { liveAge } from '../../lib/age';
 
 const SECTOR_THEMES = [
   {bg:'#1A77A3',light:'#f0fdf4',border:'#b8d5e8',accent:'#1A77A3',icon:'#f0fdf4'},
@@ -49,10 +50,10 @@ function SectorDetail({ sector, members, families, theme, onClose, onEdit }: {
   const aktif = sMembers.filter(m=>m.membershipStatus==='Aktif').length;
   const laki = sMembers.filter(m=>m.gender==='Laki-laki').length;
   const perempuan = sMembers.filter(m=>m.gender==='Perempuan').length;
-  const anak = sMembers.filter(m=>m.age<18).length;
-  const pemuda = sMembers.filter(m=>m.age>=18&&m.age<35).length;
-  const dewasa = sMembers.filter(m=>m.age>=35&&m.age<60).length;
-  const lansia = sMembers.filter(m=>m.age>=60).length;
+  const anak = sMembers.filter(m=>liveAge(m)<18).length;
+  const pemuda = sMembers.filter(m=>liveAge(m)>=18&&liveAge(m)<35).length;
+  const dewasa = sMembers.filter(m=>liveAge(m)>=35&&liveAge(m)<60).length;
+  const lansia = sMembers.filter(m=>liveAge(m)>=60).length;
   const sudahBaptis = sMembers.filter(m=>m.baptismStatus==='Sudah').length;
   const sudahSidi = sMembers.filter(m=>m.sidiStatus==='Sudah').length;
   // Dikelompokkan pakai normPelkat() (bukan string mentah) supaya variasi
@@ -188,7 +189,7 @@ function SectorDetail({ sector, members, families, theme, onClose, onEdit }: {
                         {m.familyRole && (() => { const rs=roleStyle(m.familyRole); return (
                           <span className="px-1.5 py-0.5 rounded text-xs font-semibold" style={{background:rs.bg,color:rs.text,border:`1px solid ${rs.border}`}}>{m.familyRole}</span>
                         );})()}
-                        <span style={{fontSize:'11px',color:'#94a3b8'}}>{m.age} th · {m.gender}</span>
+                        <span style={{fontSize:'11px',color:'#94a3b8'}}>{liveAge(m)} th · {m.gender}</span>
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
@@ -432,7 +433,7 @@ export function SectorDatabase() {
       const aktif = sm.filter(m=>m.membershipStatus==='Aktif').length;
       const laki = sm.filter(m=>m.gender==='Laki-laki').length;
       const perempuan = sm.filter(m=>m.gender==='Perempuan').length;
-      const avgAge = sm.length ? Math.round(sm.reduce((a,m)=>a+m.age,0)/sm.length) : 0;
+      const avgAge = sm.length ? Math.round(sm.reduce((a,m)=>a+liveAge(m),0)/sm.length) : 0;
       // Prioritas: leaderId/deputyLeaderId → fallback ke position-based lookup
       const ketua = (s.leaderId ? members.find(m => m.id === s.leaderId) : null)
         || sm.find(m => m.position && /ketua sektor/i.test(m.position) && !/wakil/i.test(m.position));
@@ -455,10 +456,10 @@ export function SectorDatabase() {
       const total = s.sm.length;
       const pct = (n: number) => total ? `${Math.round(n / total * 100)}%` : '0%';
 
-      const anak   = s.sm.filter(m => m.age < 18).length;
-      const pemuda = s.sm.filter(m => m.age >= 18 && m.age <= 34).length;
-      const dewasa = s.sm.filter(m => m.age >= 35 && m.age <= 59).length;
-      const lansia = s.sm.filter(m => m.age >= 60).length;
+      const anak   = s.sm.filter(m => liveAge(m) < 18).length;
+      const pemuda = s.sm.filter(m => liveAge(m) >= 18 && liveAge(m) <= 34).length;
+      const dewasa = s.sm.filter(m => liveAge(m) >= 35 && liveAge(m) <= 59).length;
+      const lansia = s.sm.filter(m => liveAge(m) >= 60).length;
 
       // Sort members: by family (headOfFamily), then KK first within each family
       const sectorFamilies = families
@@ -506,7 +507,7 @@ export function SectorDatabase() {
           m.memberNumber || '',
           m.fullName,
           m.gender === 'Laki-laki' ? 'L' : 'P',
-          m.age ? `${m.age} tahun` : '',
+          liveAge(m) ? `${liveAge(m)} tahun` : '',
           m.pelkatStatus || '',
         ]);
       });
@@ -626,10 +627,10 @@ export function SectorDatabase() {
                 <p style={{fontSize:'11.5px',color:'#64748b',marginBottom:6}}>Kelompok Usia</p>
                 <div className="flex gap-1 h-3 rounded-full overflow-hidden">
                   {[
-                    {v:s.sm.filter(m=>m.age<18).length,c:'#F59E0B'},
-                    {v:s.sm.filter(m=>m.age>=18&&m.age<35).length,c:'#2563EB'},
-                    {v:s.sm.filter(m=>m.age>=35&&m.age<60).length,c:'#059669'},
-                    {v:s.sm.filter(m=>m.age>=60).length,c:'#7C3AED'},
+                    {v:s.sm.filter(m=>liveAge(m)<18).length,c:'#F59E0B'},
+                    {v:s.sm.filter(m=>liveAge(m)>=18&&liveAge(m)<35).length,c:'#2563EB'},
+                    {v:s.sm.filter(m=>liveAge(m)>=35&&liveAge(m)<60).length,c:'#059669'},
+                    {v:s.sm.filter(m=>liveAge(m)>=60).length,c:'#7C3AED'},
                   ].filter(x=>x.v>0).map((x,i)=>(
                     <div key={i} style={{flex:x.v,background:x.c}}/>
                   ))}
@@ -759,7 +760,7 @@ export function SectorDatabase() {
                           <p style={{fontSize:'13px',fontWeight:600,color:'#334155'}}>{m.fullName}</p>
                           <span style={{fontSize:'10.5px',color:'#94a3b8',fontWeight:500,flexShrink:0}}>No. {m.memberNumber||'—'}</span>
                         </div>
-                        <p style={{fontSize:'11.5px',color:'#64748b'}}>{sec?.name||'—'} · {m.gender||'—'} · {m.age||'?'} thn</p>
+                        <p style={{fontSize:'11.5px',color:'#64748b'}}>{sec?.name||'—'} · {m.gender||'—'} · {liveAge(m)||'?'} thn</p>
                         <p style={{fontSize:'11px',color:'#94a3b8',marginTop:1}}>KK: {fam?.headOfFamily||'—'}</p>
                       </div>
                       <div className="flex-shrink-0 flex flex-col items-end gap-1">

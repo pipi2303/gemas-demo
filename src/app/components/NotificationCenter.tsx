@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { format, isToday, isTomorrow, differenceInDays } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
+import { liveAge } from '../../lib/age';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function relativeTime(dateStr: string): string {
@@ -54,7 +55,7 @@ export function NotificationCenter({ isOpen, onClose }: { isOpen: boolean; onClo
       if (!exists) {
         addNotification({
           type: 'birthday', title: 'Ulang Tahun Hari Ini',
-          message: `${member.fullName} berulang tahun hari ini (${member.age} tahun)`,
+          message: `${member.fullName} berulang tahun hari ini (${liveAge(member)} tahun)`,
           read: false, priority: 'medium',
         });
       }

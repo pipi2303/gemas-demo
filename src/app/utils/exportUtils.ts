@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { liveAge } from '../../lib/age';
 
 // Extend jsPDF type
 declare module 'jspdf' {
@@ -49,7 +50,7 @@ export const exportMembersToExcel = (members: any[], sectors: any[]) => {
     'Nama Lengkap': member.fullName,
     'Jenis Kelamin': member.gender,
     'Tanggal Lahir': member.birthDate,
-    'Umur': member.age,
+    'Umur': liveAge(member),
     'Sektor': sectors.find(s => s.id === member.sectorId)?.name || '-',
     'Alamat': member.address,
     'Telepon': member.phone || '-',
@@ -66,7 +67,7 @@ export const exportMembersToPDF = (members: any[], sectors: any[]) => {
     (index + 1).toString(),
     member.fullName,
     member.gender,
-    member.age.toString(),
+    liveAge(member).toString(),
     sectors.find(s => s.id === member.sectorId)?.name || '-',
     member.phone || '-'
   ]);
