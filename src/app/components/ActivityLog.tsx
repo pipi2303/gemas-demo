@@ -365,6 +365,8 @@ export function ActivityLog() {
                 <SelectItem value="Member">Sensus / Database Jemaat</SelectItem>
                 <SelectItem value="Financial">Keuangan & Perbendaharaan</SelectItem>
                 <SelectItem value="Asset">Aset & Inventaris Gereja</SelectItem>
+                <SelectItem value="Worship">Ibadah & Pelayanan</SelectItem>
+                <SelectItem value="Service">Diakonia & Komunikasi</SelectItem>
                 <SelectItem value="System">Pengguna & Konfigurasi</SelectItem>
               </SelectContent>
             </Select>

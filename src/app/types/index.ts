@@ -228,6 +228,7 @@ export interface ActivityLog {
   details?: string;
   ipAddress?: string;
   severity?: 'normal' | 'sensitive' | 'critical';
+  amount?: number; // nominal transaksi, dipakai getAuditSeverity() untuk klasifikasi kritis otomatis
   diff?: AuditDiffField[];
   beforeState?: Record<string, any>;
   afterState?: Record<string, any>;

@@ -906,7 +906,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const logActivity = (log: Omit<ActivityLog, 'id' | 'timestamp'>) => {
     const domain = log.domain || getDomainForEntityType(log.entityType);
-    const severity = log.severity || getAuditSeverity(log.action, log.entityType);
+    const severity = log.severity || getAuditSeverity(log.action, log.entityType, log.amount);
     const userRole = log.userRole || currentUser?.role;
 
     const newLog: ActivityLog = {
@@ -1446,7 +1446,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setFinancialRecords([...financialRecords, newRecord]);
     apiSave('financialRecords', newRecord.id, newRecord);
     if (currentUser) {
-      logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menambahkan', entityType: 'FinancialRecord', entityId: newRecord.id, entityName: newRecord.description || newRecord.category, details: `${newRecord.type === 'income' ? 'Pemasukan' : 'Pengeluaran'} — ${newRecord.category} Rp${newRecord.amount.toLocaleString('id-ID')}` });
+      logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menambahkan', entityType: 'FinancialRecord', entityId: newRecord.id, amount: newRecord.amount, entityName: newRecord.description || newRecord.category, details: `${newRecord.type === 'income' ? 'Pemasukan' : 'Pengeluaran'} — ${newRecord.category} Rp${newRecord.amount.toLocaleString('id-ID')}` });
     }
   };
 
@@ -1455,7 +1455,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setFinancialRecords(financialRecords.map(r => r.id === id ? { ...r, ...recordData } : r));
     if (rec) apiSave('financialRecords', id, { ...rec, ...recordData });
     if (currentUser && rec) {
-      logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Mengubah', entityType: 'FinancialRecord', entityId: id, entityName: rec.description || rec.category, details: `Data keuangan diperbarui — ${rec.category}` });
+      logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Mengubah', entityType: 'FinancialRecord', entityId: id, amount: recordData.amount ?? rec.amount, entityName: rec.description || rec.category, details: `Data keuangan diperbarui — ${rec.category}` });
     }
   };
 
@@ -1464,7 +1464,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setFinancialRecords(financialRecords.filter(r => r.id !== id));
     apiRemove('financialRecords', id);
     if (currentUser && rec) {
-      logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menghapus', entityType: 'FinancialRecord', entityId: id, entityName: rec.description || rec.category, details: `${rec.type === 'income' ? 'Pemasukan' : 'Pengeluaran'} dihapus — Rp${rec.amount.toLocaleString('id-ID')}` });
+      logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menghapus', entityType: 'FinancialRecord', entityId: id, amount: rec.amount, entityName: rec.description || rec.category, details: `${rec.type === 'income' ? 'Pemasukan' : 'Pengeluaran'} dihapus — Rp${rec.amount.toLocaleString('id-ID')}` });
     }
   };
 
@@ -1699,7 +1699,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const newAid: AidDistribution = { ...data, id: `aid${Date.now()}`, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
     setAidDistributions(prev => [...prev, newAid]);
     apiSave('aidDistributions', newAid.id, newAid);
-    if (currentUser) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menambahkan', entityType: 'AidDistribution', entityId: newAid.id, entityName: newAid.recipientName, details: `Pengajuan bantuan baru — ${newAid.type}` });
+    if (currentUser) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menambahkan', entityType: 'AidDistribution', entityId: newAid.id, amount: newAid.amount, entityName: newAid.recipientName, details: `Pengajuan bantuan baru — ${newAid.type}` });
   };
 
   const updateAidDistribution = (id: string, data: Partial<AidDistribution>) => {
@@ -1707,14 +1707,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const updated = existing ? { ...existing, ...data, updatedAt: new Date().toISOString() } : null;
     setAidDistributions(prev => prev.map(a => a.id === id ? { ...a, ...data, updatedAt: new Date().toISOString() } : a));
     if (updated) apiSave('aidDistributions', id, updated);
-    if (currentUser && existing) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Mengubah', entityType: 'AidDistribution', entityId: id, entityName: existing.recipientName, details: `Bantuan diperbarui — status: ${data.status ?? existing.status}` });
+    if (currentUser && existing) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Mengubah', entityType: 'AidDistribution', entityId: id, amount: data.amount ?? existing.amount, entityName: existing.recipientName, details: `Bantuan diperbarui — status: ${data.status ?? existing.status}` });
   };
 
   const deleteAidDistribution = (id: string) => {
     const existing = aidDistributions.find(a => a.id === id);
     setAidDistributions(prev => prev.filter(a => a.id !== id));
     apiRemove('aidDistributions', id);
-    if (currentUser && existing) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menghapus', entityType: 'AidDistribution', entityId: id, entityName: existing.recipientName, details: `Bantuan ${existing.type} dihapus` });
+    if (currentUser && existing) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menghapus', entityType: 'AidDistribution', entityId: id, amount: existing.amount, entityName: existing.recipientName, details: `Bantuan ${existing.type} dihapus` });
   };
 
   // ── Resource CRUD ────────────────────────────────────────────────────────────
@@ -1836,7 +1836,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const newPC: PettyCash = { ...data, id: `pc${Date.now()}`, createdAt: new Date().toISOString() };
     setPettyCash(prev => [newPC, ...prev]);
     apiSave('pettyCash', newPC.id, newPC);
-    if (currentUser) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menambahkan', entityType: 'PettyCash', entityId: newPC.id, entityName: newPC.description, details: `Kas kecil ${newPC.category} — Rp${newPC.amount.toLocaleString('id-ID')}` });
+    if (currentUser) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menambahkan', entityType: 'PettyCash', entityId: newPC.id, amount: newPC.amount, entityName: newPC.description, details: `Kas kecil ${newPC.category} — Rp${newPC.amount.toLocaleString('id-ID')}` });
   };
 
   const updatePettyCash = (id: string, data: Partial<PettyCash>) => {
@@ -1844,28 +1844,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const updated = existing ? { ...existing, ...data } : null;
     setPettyCash(prev => prev.map(r => r.id === id ? { ...r, ...data } : r));
     if (updated) apiSave('pettyCash', id, updated);
-    if (currentUser && existing) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Mengubah', entityType: 'PettyCash', entityId: id, entityName: existing.description, details: `Kas kecil diperbarui — status: ${data.status ?? existing.status}` });
+    if (currentUser && existing) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Mengubah', entityType: 'PettyCash', entityId: id, amount: data.amount ?? existing.amount, entityName: existing.description, details: `Kas kecil diperbarui — status: ${data.status ?? existing.status}` });
   };
 
   const deletePettyCash = (id: string) => {
     const existing = pettyCash.find(r => r.id === id);
     setPettyCash(prev => prev.filter(r => r.id !== id));
     apiRemove('pettyCash', id);
-    if (currentUser && existing) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menghapus', entityType: 'PettyCash', entityId: id, entityName: existing.description, details: `Kas kecil ${existing.category} dihapus` });
+    if (currentUser && existing) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menghapus', entityType: 'PettyCash', entityId: id, amount: existing.amount, entityName: existing.description, details: `Kas kecil ${existing.category} dihapus` });
   };
 
   const addPcTopUp = (data: Omit<PcTopUp, 'id' | 'createdAt'>) => {
     const newTopUp: PcTopUp = { ...data, id: `tu${Date.now()}`, createdAt: new Date().toISOString() };
     setPcTopUps(prev => [newTopUp, ...prev]);
     apiSave('pettyCashTopUps', newTopUp.id, newTopUp);
-    if (currentUser) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menambahkan', entityType: 'PcTopUp', entityId: newTopUp.id, entityName: newTopUp.description, details: `Top up kas kecil Rp${newTopUp.amount.toLocaleString('id-ID')} dari ${newTopUp.source}` });
+    if (currentUser) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menambahkan', entityType: 'PcTopUp', entityId: newTopUp.id, amount: newTopUp.amount, entityName: newTopUp.description, details: `Top up kas kecil Rp${newTopUp.amount.toLocaleString('id-ID')} dari ${newTopUp.source}` });
   };
 
   const deletePcTopUp = (id: string) => {
     const existing = pcTopUps.find(t => t.id === id);
     setPcTopUps(prev => prev.filter(t => t.id !== id));
     apiRemove('pettyCashTopUps', id);
-    if (currentUser && existing) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menghapus', entityType: 'PcTopUp', entityId: id, entityName: existing.description, details: `Top up kas kecil ${existing.date} dihapus` });
+    if (currentUser && existing) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menghapus', entityType: 'PcTopUp', entityId: id, amount: existing.amount, entityName: existing.description, details: `Top up kas kecil ${existing.date} dihapus` });
   };
 
   // ── ChurchAsset CRUD ──────────────────────────────────────────────────────────
@@ -1927,7 +1927,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const newAcc: BankAccount = { ...data, id: `ba${Date.now()}` };
     setBankAccounts(prev => [...prev, newAcc]);
     apiSave('bankAccounts', newAcc.id, newAcc);
-    if (currentUser) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menambahkan', entityType: 'FinancialRecord', entityId: newAcc.id, entityName: `Rekening ${newAcc.bankName}` });
+    if (currentUser) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menambahkan', entityType: 'BankAccount', entityId: newAcc.id, amount: newAcc.balance, entityName: `Rekening ${newAcc.bankName}` });
   };
 
   const updateBankAccount = (id: string, data: Partial<BankAccount>) => {
@@ -1938,14 +1938,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       apiSave('bankAccounts', id, updated);
       return updated;
     }));
-    if (currentUser && acc) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Mengubah', entityType: 'BankAccount', entityId: id, entityName: `Rekening ${acc.bankName}`, details: `Data rekening bank diperbarui` });
+    if (currentUser && acc) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Mengubah', entityType: 'BankAccount', entityId: id, amount: data.balance ?? acc.balance, entityName: `Rekening ${acc.bankName}`, details: `Data rekening bank diperbarui` });
   };
 
   const deleteBankAccount = (id: string) => {
     const acc = bankAccounts.find(a => a.id === id);
     setBankAccounts(prev => prev.filter(a => a.id !== id));
     apiRemove('bankAccounts', id);
-    if (currentUser && acc) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menghapus', entityType: 'BankAccount', entityId: id, entityName: `Rekening ${acc.bankName}`, details: `Rekening bank dihapus` });
+    if (currentUser && acc) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menghapus', entityType: 'BankAccount', entityId: id, amount: acc.balance, entityName: `Rekening ${acc.bankName}`, details: `Rekening bank dihapus` });
   };
 
   // ── Budget CRUD ──────────────────────────────────────────────────────────────
@@ -1953,7 +1953,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const newBudget: Budget = { ...data, id: `b${Date.now()}` };
     setBudgets(prev => [...prev, newBudget]);
     apiSave('budgets', newBudget.id, newBudget);
-    if (currentUser) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menambahkan', entityType: 'Budget', entityId: newBudget.id, entityName: newBudget.category, details: `Anggaran ${newBudget.category} Rp${newBudget.allocated.toLocaleString('id-ID')}` });
+    if (currentUser) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menambahkan', entityType: 'Budget', entityId: newBudget.id, amount: newBudget.budgeted, entityName: newBudget.category, details: `Anggaran ${newBudget.category} Rp${newBudget.budgeted.toLocaleString('id-ID')}` });
   };
 
   const updateBudget = (id: string, data: Partial<Budget>) => {
@@ -1964,14 +1964,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       apiSave('budgets', id, updated);
       return updated;
     }));
-    if (currentUser && bgt) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Mengubah', entityType: 'Budget', entityId: id, entityName: bgt.category, details: `Anggaran diperbarui` });
+    if (currentUser && bgt) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Mengubah', entityType: 'Budget', entityId: id, amount: data.budgeted ?? bgt.budgeted, entityName: bgt.category, details: `Anggaran diperbarui` });
   };
 
   const deleteBudget = (id: string) => {
     const bgt = budgets.find(b => b.id === id);
     setBudgets(prev => prev.filter(b => b.id !== id));
     apiRemove('budgets', id);
-    if (currentUser && bgt) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menghapus', entityType: 'Budget', entityId: id, entityName: bgt.category, details: `Anggaran dihapus` });
+    if (currentUser && bgt) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menghapus', entityType: 'Budget', entityId: id, amount: bgt.budgeted, entityName: bgt.category, details: `Anggaran dihapus` });
   };
 
   // ── LivestreamLink CRUD ───────────────────────────────────────────────────────
@@ -2021,7 +2021,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const newL: Liability = { ...data, id: `lib${Date.now()}` };
     setLiabilities(prev => [...prev, newL]);
     apiSave('liabilities', newL.id, newL);
-    if (currentUser) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menambahkan', entityType: 'Liability', entityId: newL.id, entityName: newL.description, details: `Kewajiban/Hutang ${newL.type} Rp${newL.amount.toLocaleString('id-ID')} kepada ${newL.creditor}` });
+    if (currentUser) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menambahkan', entityType: 'Liability', entityId: newL.id, amount: newL.nilai, entityName: newL.nama, details: `Kewajiban/Hutang ${newL.kategori} Rp${newL.nilai.toLocaleString('id-ID')}` });
   };
 
   const updateLiability = (id: string, data: Partial<Liability>) => {
@@ -2032,14 +2032,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       apiSave('liabilities', id, updated);
       return updated;
     }));
-    if (currentUser && lib) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Mengubah', entityType: 'Liability', entityId: id, entityName: lib.description, details: `Data kewajiban diperbarui (Status: ${data.status ?? lib.status})` });
+    if (currentUser && lib) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Mengubah', entityType: 'Liability', entityId: id, amount: data.nilai ?? lib.nilai, entityName: lib.nama, details: `Data kewajiban diperbarui` });
   };
 
   const deleteLiability = (id: string) => {
     const lib = liabilities.find(l => l.id === id);
     setLiabilities(prev => prev.filter(l => l.id !== id));
     apiRemove('liabilities', id);
-    if (currentUser && lib) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menghapus', entityType: 'Liability', entityId: id, entityName: lib.description, details: `Kewajiban/Hutang dihapus` });
+    if (currentUser && lib) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menghapus', entityType: 'Liability', entityId: id, amount: lib.nilai, entityName: lib.nama, details: `Kewajiban/Hutang dihapus` });
   };
 
   // ── FiscalYearSetting CRUD ────────────────────────────────────────────────────
@@ -2120,7 +2120,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setOfferings([...offerings, newOffering]);
     apiSave('offerings', newOffering.id, newOffering);
     if (currentUser) {
-      logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menambahkan', entityType: 'Offering', entityId: newOffering.id, entityName: newOffering.donorName || 'Anonim', details: `Persembahan ${newOffering.type} Rp${newOffering.amount.toLocaleString('id-ID')} via ${newOffering.paymentMethod}` });
+      logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menambahkan', entityType: 'Offering', entityId: newOffering.id, amount: newOffering.amount, entityName: newOffering.donorName || 'Anonim', details: `Persembahan ${newOffering.type} Rp${newOffering.amount.toLocaleString('id-ID')} via ${newOffering.paymentMethod}` });
     }
   };
 
@@ -2129,7 +2129,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setOfferings(offerings.map(o => o.id === id ? { ...o, ...offeringData } : o));
     if (off) apiSave('offerings', id, { ...off, ...offeringData });
     if (currentUser && off) {
-      logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Mengubah', entityType: 'Offering', entityId: id, entityName: off.donorName || 'Anonim', details: `Data persembahan diperbarui — ${off.type}` });
+      logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Mengubah', entityType: 'Offering', entityId: id, amount: offeringData.amount ?? off.amount, entityName: off.donorName || 'Anonim', details: `Data persembahan diperbarui — ${off.type}` });
     }
   };
 
@@ -2138,7 +2138,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setOfferings(offerings.filter(o => o.id !== id));
     apiRemove('offerings', id);
     if (currentUser && off) {
-      logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menghapus', entityType: 'Offering', entityId: id, entityName: off.donorName || 'Anonim', details: `Persembahan ${off.type} Rp${off.amount.toLocaleString('id-ID')} dihapus` });
+      logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menghapus', entityType: 'Offering', entityId: id, amount: off.amount, entityName: off.donorName || 'Anonim', details: `Persembahan ${off.type} Rp${off.amount.toLocaleString('id-ID')} dihapus` });
     }
   };
 

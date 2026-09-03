@@ -9,6 +9,19 @@ import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 
+// Master Data 'prioritas_pengumuman' selalu diseed dengan value 'normal'/'important'/'urgent',
+// TAPI mengedit label item Master Data di menu admin ikut menimpa value-nya (value = label).
+// Jadi kalau admin pernah mengedit label kategori ini, value tersimpan bisa berubah jadi
+// teks Indonesia ('Mendesak', dst) dan perbandingan literal di bawah tidak akan cocok lagi.
+// Fungsi ini menambah jalur cadangan lewat kata kunci supaya badge & warna tidak diam-diam
+// berhenti muncul kalau itu terjadi.
+function priorityRank(priority: string): 'urgent' | 'important' | 'normal' {
+  const p = (priority || '').toLowerCase();
+  if (p === 'urgent' || p.includes('mendesak') || p.includes('darurat') || p.includes('urgent')) return 'urgent';
+  if (p === 'important' || p.includes('penting') || p.includes('important')) return 'important';
+  return 'normal';
+}
+
 export function AnnouncementManagement() {
   const { announcements, sectors, addAnnouncement, updateAnnouncement, deleteAnnouncement, currentUser, can, getMasterDataByCategory } = useApp();
   const prioritasOpts = getMasterDataByCategory('prioritas_pengumuman').map((m: any) => m.value);
@@ -88,7 +101,7 @@ export function AnnouncementManagement() {
   };
 
   const getPriorityBadge = (priority: string) => {
-    switch (priority) {
+    switch (priorityRank(priority)) {
       case 'urgent':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded">
@@ -145,9 +158,9 @@ export function AnnouncementManagement() {
             <div
               key={announcement.id}
               className={`bg-white rounded-lg shadow p-6 border-l-4 ${
-                announcement.priority === 'urgent'
+                priorityRank(announcement.priority) === 'urgent'
                   ? 'border-red-500'
-                  : announcement.priority === 'important'
+                  : priorityRank(announcement.priority) === 'important'
                   ? 'border-orange-500'
                   : 'border-blue-500'
               }`}
