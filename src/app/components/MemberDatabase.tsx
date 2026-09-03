@@ -913,6 +913,16 @@ function normalizePhone(val: any): string {
   return s;
 }
 
+// Normalisasi nilai Pelkat supaya perbandingan filter tidak gagal hanya karena
+// beda format penulisan antar sumber data — data hasil import Excel disimpan
+// apa adanya (mis. "GP", "Pelkat GP", "PELKAT-GP"), sedangkan pilihan di
+// dropdown filter berasal dari Master Data (mis. "PELKAT GP"). Dibandingkan
+// setelah dibuang prefix "PELKAT" dan semua karakter non-alfanumerik, jadi
+// "PELKAT-GP" / "PELKAT GP" / "Pelkat GP" / "GP" semuanya dianggap sama.
+function normPelkat(val: any): string {
+  return String(val || '').toUpperCase().replace(/PELKAT/g, '').replace(/[^A-Z0-9]/g, '');
+}
+
 function mapGemasFmt(row: Record<string, any>, sectors: any[]): Omit<Member, 'id' | 'createdAt' | 'updatedAt'> | null {
   // GEMAS export format: "No.Induk", "Nama Lengkap", "Gender", "Usia", "Tgl Lahir", "Sektor", "Status", "Pelkat", "HP", "Email", "Alamat"
   const fullName = String(row['Nama Lengkap'] || '').trim();
@@ -1480,7 +1490,7 @@ export function MemberDatabase() {
     if(sectorF!=='all') r=r.filter(m=>m.sectorId===sectorF);
     if(statusF!=='all') r=r.filter(m=>m.membershipStatus===statusF);
     if(genderF!=='all') r=r.filter(m=>m.gender===genderF);
-    if(pelkatF!=='all') r=r.filter(m=>m.pelkatStatus===pelkatF);
+    if(pelkatF!=='all') r=r.filter(m=>normPelkat(m.pelkatStatus)===normPelkat(pelkatF));
     if(ageF!=='all') {
       r=r.filter(m=>{
         const a=liveAge(m);
