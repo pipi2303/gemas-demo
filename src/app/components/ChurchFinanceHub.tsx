@@ -711,7 +711,14 @@ export function ChurchFinanceHub() {
   // Dynamic top-up balance (sum of all top-ups for current month)
   const pcTopUpsThisMonth=pcTopUps.filter(t=>new Date(t.date).getMonth()===curMonth&&new Date(t.date).getFullYear()===curYear);
   const pcTotalTopUp=pcTopUpsThisMonth.reduce((s,t)=>s+t.amount,0);
-  const pcBalance=pcTotalTopUp-pcTotalSpent;
+  // "Sisa Saldo" adalah uang tunai kas kecil yang benar-benar tersisa SEKARANG, jadi
+  // harus akumulasi semua top up dikurangi semua pengeluaran Lunas SEPANJANG WAKTU —
+  // bukan cuma bulan berjalan. Kalau dihitung per-bulan saja, saldo akan "reset" ke 0
+  // tiap awal bulan dan bisa salah tampil "Overbudget!" padahal kas fisiknya masih ada
+  // sisa dari top up bulan-bulan sebelumnya.
+  const pcTotalSpentAllTime=pettyCash.reduce((s,r)=>s+(r.status==='Lunas'?r.amount:0),0);
+  const pcTotalTopUpAllTime=pcTopUps.reduce((s,t)=>s+t.amount,0);
+  const pcBalance=pcTotalTopUpAllTime-pcTotalSpentAllTime;
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleSave=(d:TxFormData)=>{
