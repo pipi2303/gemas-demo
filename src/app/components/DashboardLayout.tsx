@@ -537,28 +537,6 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
               );
             })}
           </nav>
-
-          {/* Bottom Sidebar Footer Card */}
-          {!sidebarCollapsed ? (
-            <div className="p-3 m-2.5 rounded-2xl border" style={{ background: '#07111e', borderColor: 'rgba(255,255,255,0.08)' }}>
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center p-0.5 flex-shrink-0">
-                  <img src="/logo-gpib.jpg" alt="GPIB" className="w-full h-full object-contain rounded-full" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold font-serif-church truncate" style={{ color: '#dfb774' }}>
-                    Gereja Manajemen System
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="p-2 flex justify-center">
-              <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center p-0.5">
-                <img src="/logo-gpib.jpg" alt="GPIB" className="w-full h-full object-contain rounded-full" />
-              </div>
-            </div>
-          )}
         </aside>
 
         {/* Floating Tooltip in Collapsed Mode */}
