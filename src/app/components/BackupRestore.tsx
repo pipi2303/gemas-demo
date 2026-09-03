@@ -155,8 +155,9 @@ export function BackupRestore() {
   const orphanFamilies = families.filter(f => !f.sectorId || !sectorIds.has(f.sectorId));
   const familyIds     = new Set(families.map(f => f.id));
   const orphanMembers = members.filter(m => m.familyCode && !familyIds.has(m.familyCode));
+  const orphanMembersByFamilyId = members.filter(m => m.familyId && !familyIds.has(m.familyId));
   const inactiveUsers = users.filter(u => !u.isActive);
-  const integrityOk   = orphanFamilies.length === 0 && orphanMembers.length === 0;
+  const integrityOk   = orphanFamilies.length === 0 && orphanMembers.length === 0 && orphanMembersByFamilyId.length === 0;
 
   return (
     <div className="space-y-6">
@@ -462,8 +463,9 @@ export function BackupRestore() {
             <p className="text-xs text-gray-500">Deteksi record yang tidak konsisten</p>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
+            { label: 'Jemaat dengan Keluarga Tidak Valid', count: orphanMembersByFamilyId.length, desc: 'Jemaat dengan familyId yang tidak ditemukan di data keluarga' },
             { label: 'Jemaat tanpa Kode Keluarga', count: orphanMembers.length, desc: 'Jemaat dengan familyCode yang tidak ditemukan di data keluarga' },
             { label: 'Keluarga tanpa Sektor Valid', count: orphanFamilies.length, desc: 'Keluarga yang sectorId-nya tidak cocok dengan sektor yang ada' },
             { label: 'Pengguna Nonaktif', count: inactiveUsers.length, desc: 'Akun yang statusnya dinonaktifkan di sistem' },
