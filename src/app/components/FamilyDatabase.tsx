@@ -859,10 +859,10 @@ export function FamilyDatabase() {
       {/* List View */}
       <div className="rounded-2xl border bg-white overflow-hidden" style={{borderColor:'#e2e8f0',boxShadow:'0 1px 4px rgba(0,0,0,0.04)'}}>
         {/* List header */}
-        <div className="grid px-4 py-2.5 border-b" style={{gridTemplateColumns:'2fr 1fr 1.6fr 1fr 80px',borderColor:'#f1f5f9',background:'#f8fafc'}}>
+        <div className="grid px-4 py-2.5 border-b" style={{gridTemplateColumns:'2fr 1fr 1.6fr 1fr 148px',borderColor:'#f1f5f9',background:'#f8fafc'}}>
           {[{label:'Keluarga',col:'headOfFamily'},{label:'Sektor',col:'sectorId'},{label:'Anggota',col:''},{label:'Alamat',col:'address'},{label:'Aksi',col:''}].map(h=>(
             <button key={h.col||h.label} onClick={()=>h.col&&setSort(s=>({col:h.col,dir:s.col===h.col&&s.dir==='asc'?'desc':'asc'}))}
-              className={`text-left flex items-center gap-1 ${h.col?'cursor-pointer hover:text-[#1A77A3]':''}`}
+              className={`flex items-center gap-1 ${h.label==='Aksi'?'justify-end text-right':'text-left'} ${h.col?'cursor-pointer hover:text-[#1A77A3]':''}`}
               style={{fontSize:'11px',fontWeight:700,letterSpacing:'0.05em',textTransform:'uppercase',color:sort.col===h.col?'#1A77A3':'#94a3b8'}}>
               {h.label}
               {h.col && (sort.col===h.col ? (sort.dir==='asc'?<ArrowUp className="w-3 h-3"/>:<ArrowDown className="w-3 h-3"/>):<ArrowUpDown className="w-3 h-3 opacity-40"/>)}
@@ -884,7 +884,7 @@ export function FamilyDatabase() {
           return (
             <div key={f.id}
               className="grid px-4 py-3 hover:bg-[#f6f4f0]/60 transition-colors cursor-pointer group"
-              style={{gridTemplateColumns:'2fr 1fr 1.6fr 1fr 80px', borderBottom: isLast?'none':'1px solid #f1f5f9', alignItems:'center'}}
+              style={{gridTemplateColumns:'2fr 1fr 1.6fr 1fr 148px', borderBottom: isLast?'none':'1px solid #f1f5f9', alignItems:'center'}}
               onClick={()=>{setSelected(f);setShowDetail(true);}}>
 
               {/* Col 1: Keluarga */}
