@@ -650,7 +650,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
     const srPending   = srList.filter(r => r.status === 'Pending').length;
     const srScheduled = srList.filter(r => r.status === 'Scheduled').length;
     const srDone      = srList.filter(r => r.status === 'Completed').length;
-    const aidPending  = aidList.filter(a => a.status === 'Pengajuan' || a.status === 'Verifikasi').length;
+    const aidPending  = aidList.filter(a => a.status === 'Pengajuan' || a.status === 'Verifikasi' || a.status === 'Disetujui').length;
     const aidDone     = aidList.filter(a => a.status === 'Disalurkan').length;
     const srByType    = srList.reduce((acc, r) => { acc[r.type] = (acc[r.type] || 0) + 1; return acc; }, {} as Record<string, number>);
     const recentSR    = [...srList].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 4);

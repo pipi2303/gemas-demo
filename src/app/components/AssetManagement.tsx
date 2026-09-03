@@ -3,6 +3,7 @@ import { PieChart, Pie, Tooltip, ResponsiveContainer } from 'recharts';
 import { toast } from 'sonner';
 import { useApp } from '../context/AppContext';
 import { useDraggable } from '../../lib/useDraggable';
+import { calcDep } from '../../lib/assetDepreciation';
 import {
   Building2, Package, Truck, Monitor, Church, MapPin, Layers,
   Plus, X, Pencil, Trash2, Search, Eye, Wrench,
@@ -32,17 +33,6 @@ const compactRp = (n: number) => {
   if (n >= 1e9) return `Rp ${(n / 1e9).toFixed(2)}M`;
   if (n >= 1e6) return `Rp ${(n / 1e6).toFixed(1)}Jt`;
   return `Rp ${n.toLocaleString('id-ID')}`;
-};
-const TODAY_MS = Date.now();
-const calcDep = (asset: ChurchAsset) => {
-  if (!asset.usefulLifeYears) return { annual: 0, accumulated: 0, bookValue: asset.acquisitionValue, rate: 0, remaining: 0 };
-  const annual = asset.acquisitionValue / asset.usefulLifeYears;
-  const years = (TODAY_MS - new Date(asset.acquisitionDate).getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-  const accumulated = Math.min(asset.acquisitionValue, annual * years);
-  const bookValue = Math.max(0, asset.acquisitionValue - accumulated);
-  const rate = (1 / asset.usefulLifeYears) * 100;
-  const remaining = Math.max(0, asset.usefulLifeYears - years);
-  return { annual, accumulated, bookValue, rate, remaining };
 };
 
 const isOverdue = (a: ChurchAsset): boolean => {

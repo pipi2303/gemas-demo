@@ -6,6 +6,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { toast } from 'sonner';
 import { liveAge } from '../../lib/age';
+import { calcDep } from '../../lib/assetDepreciation';
 import {
   FileText, Download, Printer, CheckSquare, Square,
   Users, DollarSign, Package, Cross, Church, HeartHandshake,
@@ -220,14 +221,15 @@ export function ReportCenter() {
   // Inventaris metrics
   const totalAssetsCount = churchAssets.length;
   const totalAssetAcquisitionValue = useMemo(() => {
-    return churchAssets.reduce((s, a) => s + (a.purchasePrice || a.price || 0), 0);
+    return churchAssets.reduce((s, a) => s + (a.acquisitionValue || 0), 0);
   }, [churchAssets]);
   const totalAssetBookValue = useMemo(() => {
-    return churchAssets.reduce((s, a) => s + (a.currentValue || a.bookValue || a.purchasePrice || a.price || 0), 0);
+    return churchAssets.reduce((s, a) => s + calcDep(a).bookValue, 0);
   }, [churchAssets]);
-  const goodConditionAssets = churchAssets.filter(a => a.condition === 'Baik' || a.condition === 'Sangat Baik').length;
-  const fairConditionAssets = churchAssets.filter(a => a.condition === 'Cukup' || a.condition === 'Perlu Perbaikan').length;
-  const badConditionAssets = churchAssets.filter(a => a.condition === 'Rusak' || a.condition === 'Afkir').length;
+  // Nilai kondisi aset asli (lihat AssetCondition di types/index.ts): 'Baik' | 'Cukup Baik' | 'Rusak Ringan' | 'Rusak Berat' | 'Tidak Layak'
+  const goodConditionAssets = churchAssets.filter(a => a.condition === 'Baik').length;
+  const fairConditionAssets = churchAssets.filter(a => a.condition === 'Cukup Baik').length;
+  const badConditionAssets = churchAssets.filter(a => a.condition === 'Rusak Ringan' || a.condition === 'Rusak Berat' || a.condition === 'Tidak Layak').length;
 
   // Sakramen metrics
   const baptisEvents = baptisms.length;
