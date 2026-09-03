@@ -128,15 +128,6 @@ export function WorshipSchedules() {
     return schedulesForCalendarMonth.filter(s => new Date(s.date).getDate() === day);
   };
 
-  // ─── Stats ────────────────────────────────────────────────────────────────
-  const stats = useMemo(() => ({
-    total: currentMonthSchedules.length,
-    minggu: currentMonthSchedules.filter(s => s.type === 'Minggu').length,
-    kategorial: currentMonthSchedules.filter(s => s.type === 'Kategorial').length,
-    khusus: currentMonthSchedules.filter(s => s.type === 'Khusus').length,
-    upcoming: worshipSchedules.filter(s => s.status === 'Terjadwal').length,
-  }), [currentMonthSchedules, worshipSchedules]);
-
   // ─── Handlers ─────────────────────────────────────────────────────────────
   const openAdd = () => {
     setEditingId(null);
