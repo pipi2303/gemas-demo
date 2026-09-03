@@ -22,6 +22,21 @@ const AID_TABLE_DEFAULT_WIDTHS: Record<string, number> = {
   recipientName: 200, type: 120, amount: 140, reason: 220, requestedDate: 130, status: 130, aksi: 90,
 };
 
+// Master Data 'status_distribusi_bantuan' menyediakan opsi dropdown status, tapi mengedit
+// label item Master Data di menu admin ikut menimpa value-nya (value = label). Fungsi ini
+// menambah jalur cadangan lewat kata kunci supaya warna badge, KPI, dan tombol Verifikasi/
+// Setujui/Tolak/Tandai Disalurkan tidak diam-diam berhenti mengenali status kalau label
+// salah satu dari 5 status ini pernah diedit.
+function normStatusBantuan(status: string): AidStatus {
+  const s = (status || '').toLowerCase();
+  if (s === 'pengajuan' || s.includes('ajuan')) return 'Pengajuan';
+  if (s === 'verifikasi' || s.includes('verifikasi')) return 'Verifikasi';
+  if (s === 'disetujui' || s.includes('setuju')) return 'Disetujui';
+  if (s === 'ditolak' || s.includes('tolak')) return 'Ditolak';
+  if (s === 'disalurkan' || s.includes('salur')) return 'Disalurkan';
+  return 'Pengajuan';
+}
+
 export function AidDistributionComponent() {
   const { aidDistributions, members, getMasterDataByCategory, addAidDistribution, updateAidDistribution, deleteAidDistribution } = useApp();
   const statusBantuanList = getMasterDataByCategory('status_distribusi_bantuan').map((m: any) => m.value);
@@ -169,16 +184,16 @@ export function AidDistributionComponent() {
       'Ditolak': 'bg-red-100 text-red-800 border-red-200',
       'Disalurkan': 'bg-[#f0ede5] text-purple-800 border-[#b8d5e8]'
     };
-    return colors[status] || 'bg-gray-100 text-gray-800 border-gray-200';
+    return colors[normStatusBantuan(status)];
   };
 
   // Calculate statistics
   const stats = {
     total: aidDistributions.length,
-    pengajuan: aidDistributions.filter(a => a.status === 'Pengajuan').length,
-    verifikasi: aidDistributions.filter(a => a.status === 'Verifikasi').length,
-    disetujui: aidDistributions.filter(a => a.status === 'Disetujui').length,
-    disalurkan: aidDistributions.filter(a => a.status === 'Disalurkan').length,
+    pengajuan: aidDistributions.filter(a => normStatusBantuan(a.status) === 'Pengajuan').length,
+    verifikasi: aidDistributions.filter(a => normStatusBantuan(a.status) === 'Verifikasi').length,
+    disetujui: aidDistributions.filter(a => normStatusBantuan(a.status) === 'Disetujui').length,
+    disalurkan: aidDistributions.filter(a => normStatusBantuan(a.status) === 'Disalurkan').length,
     totalAmount: aidDistributions.reduce((sum, a) => sum + (a.amount || 0), 0)
   };
 
@@ -699,11 +714,11 @@ export function AidDistributionComponent() {
               )}
 
               {/* Status Actions */}
-              {selectedAid && selectedAid.status !== 'Disalurkan' && selectedAid.status !== 'Ditolak' && (
+              {selectedAid && normStatusBantuan(selectedAid.status) !== 'Disalurkan' && normStatusBantuan(selectedAid.status) !== 'Ditolak' && (
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                   <h3 className="font-semibold text-gray-900 mb-3">Ubah Status</h3>
                   <div className="flex gap-2">
-                    {selectedAid.status === 'Pengajuan' && (
+                    {normStatusBantuan(selectedAid.status) === 'Pengajuan' && (
                       <>
                         <Button 
                           onClick={() => handleStatusChange(selectedAid, 'Verifikasi')}
@@ -723,7 +738,7 @@ export function AidDistributionComponent() {
                         </Button>
                       </>
                     )}
-                    {selectedAid.status === 'Verifikasi' && (
+                    {normStatusBantuan(selectedAid.status) === 'Verifikasi' && (
                       <>
                         <Button 
                           onClick={() => handleStatusChange(selectedAid, 'Disetujui')}
@@ -742,7 +757,7 @@ export function AidDistributionComponent() {
                         </Button>
                       </>
                     )}
-                    {selectedAid.status === 'Disetujui' && (
+                    {normStatusBantuan(selectedAid.status) === 'Disetujui' && (
                       <Button 
                         onClick={() => handleStatusChange(selectedAid, 'Disalurkan')}
                         size="sm"

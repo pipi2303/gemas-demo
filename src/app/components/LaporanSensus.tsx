@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -31,9 +30,11 @@ const SENSUS_TABLE_DEFAULT_WIDTHS: Record<string, number> = {
 export function LaporanSensus() {
   const { members, sectors, families } = useApp();
   const [activeTab, setActiveTab] = useState('sensus');
+  // Laporan ini selalu menampilkan data per hari ini (bukan snapshot historis per tahun -
+  // dropdown pilih tahun yang sebelumnya ada di sini cuma mengubah teks judul/nama file,
+  // tidak benar-benar memfilter data, jadi berpotensi menyesatkan kalau dipakai sebagai arsip
+  // resmi. Dihapus atas keputusan pemilik aplikasi.)
   const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear] = useState(String(currentYear));
-  const availableYears = Array.from({ length: 5 }, (_, i) => String(currentYear - i));
 
   // ---- Sensus Calculations ----
   const totalMembers = members.length;
@@ -160,7 +161,7 @@ export function LaporanSensus() {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
       doc.setTextColor(15, 23, 42);
-      doc.text(`LAPORAN SENSUS & DEMOGRAFI JEMAAT TAHUN ${selectedYear}`, 14, y);
+      doc.text(`LAPORAN SENSUS & DEMOGRAFI JEMAAT TAHUN ${currentYear}`, 14, y);
       
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8.5);
@@ -362,15 +363,15 @@ export function LaporanSensus() {
         doc.setFontSize(7.5);
         doc.setTextColor(148, 163, 184);
         doc.text(
-          `GPIB Trinitas · Laporan Sensus & Demografi Tahun ${selectedYear} · Halaman ${p} dari ${totalPages}`,
+          `GPIB Trinitas · Laporan Sensus & Demografi Tahun ${currentYear} · Halaman ${p} dari ${totalPages}`,
           pageWidth / 2,
           doc.internal.pageSize.getHeight() - 7,
           { align: 'center' }
         );
       }
 
-      doc.save(`Laporan-Sensus-Jemaat-GPIB-Trinitas-${selectedYear}.pdf`);
-      toast.success(`Laporan Sensus Jemaat Tahun ${selectedYear} berhasil diekspor ke PDF!`);
+      doc.save(`Laporan-Sensus-Jemaat-GPIB-Trinitas-${currentYear}.pdf`);
+      toast.success(`Laporan Sensus Jemaat Tahun ${currentYear} berhasil diekspor ke PDF!`);
     } catch (err) {
       console.error('Error generating Sensus PDF:', err);
       toast.error('Gagal mengekspor laporan sensus ke PDF.');
@@ -383,7 +384,7 @@ export function LaporanSensus() {
     const printWin = window.open('', '_blank', 'width=900,height=700');
     if (!printWin) return;
     printWin.document.write(`
-      <html><head><title>Laporan Jemaat ${selectedYear}</title>
+      <html><head><title>Laporan Jemaat ${currentYear}</title>
       <style>body{font-family:Arial;padding:20px;font-size:12px}
       table{width:100%;border-collapse:collapse;margin:10px 0}
       th,td{border:1px solid #ccc;padding:6px}th{background:#144f6b;color:white}
@@ -392,7 +393,7 @@ export function LaporanSensus() {
         <div style="text-align:center;margin-bottom:20px">
           <h2>GEREJA PROTESTAN INDONESIA DI BAGIAN BARAT</h2>
           <h2>GPIB TRINITAS</h2>
-          <h3>LAPORAN SENSUS JEMAAT TAHUN ${selectedYear}</h3>
+          <h3>LAPORAN SENSUS JEMAAT TAHUN ${currentYear}</h3>
         </div>
         
         <div class="section"><h3>A. REKAP UMUM JEMAAT</h3>
@@ -436,15 +437,6 @@ export function LaporanSensus() {
           <p className="text-gray-500 mt-1">Laporan demografi & statistik kependudukan warga gereja GPIB Trinitas</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger className="w-28">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-            </SelectContent>
-          </Select>
-
           <Button
             onClick={handleExportPdf}
             disabled={isExportingPdf}
@@ -547,7 +539,7 @@ export function LaporanSensus() {
           {/* Detailed Table */}
           <Card className="p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-900">Tabel Sensus Lengkap per Sektor - {selectedYear}</h3>
+              <h3 className="font-semibold text-gray-900">Tabel Sensus Lengkap per Sektor - {currentYear}</h3>
               <Button variant="outline" size="sm" className="gap-1" onClick={handlePrintSensus}>
                 <Download className="w-3.5 h-3.5" />
                 Export

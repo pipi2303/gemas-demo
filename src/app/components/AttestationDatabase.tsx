@@ -30,8 +30,22 @@ const STATUS_CFG: Record<string, { bg:string; color:string; label:string; icon: 
   'Ditolak':   { bg:'#fef2f2', color:'#dc2626', label:'Ditolak',   icon:<Ban className="w-3 h-3"/> },
 };
 
+// Master Data 'status_permohonan_surat' menyediakan opsi dropdown status, tapi mengedit
+// label item Master Data di menu admin ikut menimpa value-nya (value = label). Fungsi ini
+// menambah jalur cadangan lewat kata kunci supaya badge, stepper, KPI, dan tombol proses
+// tidak diam-diam berhenti mengenali status kalau label salah satu dari 4 status ini
+// pernah diedit.
+function normStatusSurat(status: string): 'Diajukan' | 'Diproses' | 'Selesai' | 'Ditolak' {
+  const s = (status || '').toLowerCase();
+  if (s === 'diajukan' || s.includes('ajuan')) return 'Diajukan';
+  if (s === 'diproses' || s.includes('proses')) return 'Diproses';
+  if (s === 'selesai' || s.includes('selesai') || s.includes('terbit')) return 'Selesai';
+  if (s === 'ditolak' || s.includes('tolak')) return 'Ditolak';
+  return 'Diajukan';
+}
+
 function StatusBadge({ status }: { status: string }) {
-  const c = STATUS_CFG[status] || { bg:'#f1f5f9', color:'#64748b', icon:null, label:status };
+  const c = STATUS_CFG[normStatusSurat(status)];
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold" style={{background:c.bg,color:c.color}}>
       {c.icon}{c.label}
@@ -42,7 +56,7 @@ function StatusBadge({ status }: { status: string }) {
 // ── STATUS STEPPER ─────────────────────────────────────────────────────────────
 function StatusStepper({ status }: { status: string }) {
   const STEPS = ['Diajukan','Diproses','Selesai'];
-  const curr = STEPS.indexOf(status);
+  const curr = STEPS.indexOf(normStatusSurat(status));
   return (
     <div className="flex items-center gap-0">
       {STEPS.map((s,i)=>(
@@ -93,7 +107,7 @@ function AttestationDetail({ att, onClose, onEdit, onUpdateStatus }: {
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {/* Status stepper */}
           <div className="flex justify-center py-2">
-            {att.status!=='Ditolak' ? <StatusStepper status={att.status}/> : (
+            {normStatusSurat(att.status)!=='Ditolak' ? <StatusStepper status={att.status}/> : (
               <span className="flex items-center gap-2 px-4 py-2 rounded-xl" style={{background:'#fef2f2',color:'#dc2626'}}>
                 <Ban className="w-4 h-4"/> Permohonan Ditolak
               </span>
@@ -123,16 +137,16 @@ function AttestationDetail({ att, onClose, onEdit, onUpdateStatus }: {
           </div>
 
           {/* Quick status update */}
-          {att.status!=='Selesai' && att.status!=='Ditolak' && (
+          {normStatusSurat(att.status)!=='Selesai' && normStatusSurat(att.status)!=='Ditolak' && (
             <div className="p-4 rounded-xl border" style={{borderColor:'#f1f5f9',background:'#fafbfc'}}>
               <p style={{fontSize:'12px',color:'#64748b',fontWeight:600,marginBottom:8}}>Perbarui Status Cepat</p>
               <div className="flex gap-2 flex-wrap">
-                {att.status==='Diajukan' && (
+                {normStatusSurat(att.status)==='Diajukan' && (
                   <button onClick={()=>onUpdateStatus(att.id,'Diproses')} className="px-3 py-1.5 rounded-lg text-xs font-medium text-white" style={{background:'#2563eb'}}>
                     → Tandai Diproses
                   </button>
                 )}
-                {att.status==='Diproses' && (
+                {normStatusSurat(att.status)==='Diproses' && (
                   <button onClick={()=>onUpdateStatus(att.id,'Selesai')} className="px-3 py-1.5 rounded-lg text-xs font-medium text-white" style={{background:'#1A77A3'}}>
                     ✓ Tandai Selesai
                   </button>
@@ -408,10 +422,10 @@ export function AttestationDatabase() {
     total: items.length,
     masuk: items.filter(a=>a.type==='Pindah Masuk').length,
     keluar: items.filter(a=>a.type==='Pindah Keluar').length,
-    diajukan: items.filter(a=>a.status==='Diajukan').length,
-    diproses: items.filter(a=>a.status==='Diproses').length,
-    selesai: items.filter(a=>a.status==='Selesai').length,
-    ditolak: items.filter(a=>a.status==='Ditolak').length,
+    diajukan: items.filter(a=>normStatusSurat(a.status)==='Diajukan').length,
+    diproses: items.filter(a=>normStatusSurat(a.status)==='Diproses').length,
+    selesai: items.filter(a=>normStatusSurat(a.status)==='Selesai').length,
+    ditolak: items.filter(a=>normStatusSurat(a.status)==='Ditolak').length,
   };
 
   const handleSave = (d:any) => {
