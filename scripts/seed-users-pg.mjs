@@ -11,6 +11,7 @@ const { Pool } = pg;
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 const USERS = [
+  { name: 'Pipi Administrator', username: 'pipi', password: 'pipi123' },
   { name: 'Polii',  username: 'polii',  password: 'Poli123'   },
   { name: 'Hendri', username: 'hendri', password: 'Hendri123' },
   { name: 'Edo',    username: 'edo',    password: 'Edo123'     },
