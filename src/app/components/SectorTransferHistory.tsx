@@ -24,7 +24,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
 };
 
 export function SectorTransferHistory() {
-  const { members, sectors, attestations, sectorTransfers, addSectorTransfer, updateSectorTransfer, deleteSectorTransfer, updateMember, currentUser, can } = useApp();
+  const { members, sectors, families, attestations, sectorTransfers, addSectorTransfer, addSectorTransferBatch, updateSectorTransfer, deleteSectorTransfer, updateMember, currentUser, can } = useApp();
   const { offset, onMouseDown } = useDraggable();
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -41,6 +41,14 @@ export function SectorTransferHistory() {
   const [form, setForm] = useState({
     memberId: '', fromSectorId: '', toSectorId: '', reason: '', notes: ''
   });
+
+  // Mode "keluarga": ajukan mutasi sektor untuk 1 keluarga sekaligus. Setiap anggota tetap
+  // punya record SectorTransfer sendiri (fromSectorId ikut sektor asal masing-masing orang),
+  // tapi semua ditandai familyId yang sama sehingga tampil sebagai satu pengajuan batch.
+  const [transferMode, setTransferMode] = useState<'individu'|'keluarga'>('individu');
+  const [selectedFamily, setSelectedFamily] = useState<any|null>(null);
+  const [familyQuery, setFamilyQuery] = useState('');
+  const familyMembers = selectedFamily ? members.filter(m => m.familyId === selectedFamily.id) : [];
 
   const filtered = useMemo(() => transfers.filter(t => {
     const matchSearch = t.memberName.toLowerCase().includes(search.toLowerCase());
@@ -293,34 +301,79 @@ export function SectorTransferHistory() {
       </Tabs>
 
       {/* Form Dialog */}
-      <Dialog open={showForm} onOpenChange={v => { setShowForm(v); if (!v) { setMemberSearch(''); setForm({ memberId: '', fromSectorId: '', toSectorId: '', reason: '', notes: '' }); } }}>
+      <Dialog open={showForm} onOpenChange={v => { setShowForm(v); if (!v) { setMemberSearch(''); setForm({ memberId: '', fromSectorId: '', toSectorId: '', reason: '', notes: '' }); setTransferMode('individu'); setSelectedFamily(null); setFamilyQuery(''); } }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Ajukan Perpindahan Sektor</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div>
-              <Label>Nama Jemaat</Label>
-              <SearchDropdown<any>
-                value={memberSearch}
-                onChange={v => { setMemberSearch(v); if(!v) setForm(f=>({...f, memberId:'', fromSectorId:''})); }}
-                placeholder="Cari nama jemaat..."
-                items={members}
-                filterFn={(m, q) => m.fullName.toLowerCase().includes(q.toLowerCase()) || m.memberNumber?.toLowerCase().includes(q.toLowerCase())}
-                renderResult={m => (
-                  <div>
-                    <p style={{fontSize:'13px',fontWeight:600,color:'#0f172a',margin:0}}>{m.fullName}</p>
-                    <p style={{fontSize:'11px',color:'#64748b',margin:0}}>{sectors.find(s=>s.id===m.sectorId)?.name||'-'} · {m.memberNumber||'-'}</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setTransferMode('individu')} className="py-2 rounded-xl border-2 transition-all text-xs font-semibold flex items-center justify-center gap-2"
+                style={{borderColor: transferMode==='individu' ? '#144f6b' : '#e2e8f0', background: transferMode==='individu' ? '#eff6ff' : '#fff', color: transferMode==='individu' ? '#144f6b' : '#64748b'}}>
+                <User className="w-3.5 h-3.5"/>Per Anggota
+              </button>
+              <button type="button" onClick={() => setTransferMode('keluarga')} className="py-2 rounded-xl border-2 transition-all text-xs font-semibold flex items-center justify-center gap-2"
+                style={{borderColor: transferMode==='keluarga' ? '#144f6b' : '#e2e8f0', background: transferMode==='keluarga' ? '#eff6ff' : '#fff', color: transferMode==='keluarga' ? '#144f6b' : '#64748b'}}>
+                <Users className="w-3.5 h-3.5"/>1 Keluarga
+              </button>
+            </div>
+            {transferMode==='keluarga' ? (
+              <div>
+                <Label>Cari Keluarga (Kepala Keluarga)</Label>
+                <SearchDropdown<any>
+                  value={familyQuery}
+                  onChange={v => { setFamilyQuery(v); if(!v) setSelectedFamily(null); }}
+                  placeholder="Ketik nama kepala keluarga..."
+                  items={families || []}
+                  filterFn={(fam, q) => (fam.headOfFamily||'').toLowerCase().includes(q.toLowerCase())}
+                  renderResult={fam => (
+                    <div>
+                      <p style={{fontSize:'13px',fontWeight:600,color:'#0f172a',margin:0}}>{fam.headOfFamily}</p>
+                      <p style={{fontSize:'11px',color:'#64748b',margin:0}}>{members.filter(m=>m.familyId===fam.id).length} anggota terdaftar</p>
+                    </div>
+                  )}
+                  onSelect={fam => { setSelectedFamily(fam); setFamilyQuery(fam.headOfFamily||''); }}
+                  onClear={() => setSelectedFamily(null)}
+                />
+                {selectedFamily && (
+                  <div className="mt-2 px-3 py-2.5 rounded-xl border" style={{background:'#f0fdf4', borderColor:'#86efac'}}>
+                    <p style={{fontSize:12,fontWeight:700,color:'#144f6b'}}>Keluarga {selectedFamily.headOfFamily}</p>
+                    {familyMembers.length===0 ? (
+                      <p style={{fontSize:11,color:'#dc2626'}} className="mt-1">Belum ada anggota dengan familyId keluarga ini.</p>
+                    ) : (
+                      <ul className="mt-1 space-y-0.5">
+                        {familyMembers.map(m => <li key={m.id} style={{fontSize:11.5,color:'#16a34a'}}>• {m.fullName} ({sectors.find(s=>s.id===m.sectorId)?.name||'-'})</li>)}
+                      </ul>
+                    )}
+                    <p style={{fontSize:10.5,color:'#64748b'}} className="mt-1.5">Mutasi akan diajukan untuk {familyMembers.length} anggota di atas sekaligus, masing-masing dari sektor asalnya sendiri.</p>
                   </div>
                 )}
-                onSelect={m => {
-                  setMemberSearch(m.fullName);
-                  setForm(f => ({...f, memberId: m.id, fromSectorId: m.sectorId||''}));
-                }}
-                onClear={() => { setMemberSearch(''); setForm(f=>({...f, memberId:'', fromSectorId:''})); }}
-              />
-            </div>
+              </div>
+            ) : (
+              <div>
+                <Label>Nama Jemaat</Label>
+                <SearchDropdown<any>
+                  value={memberSearch}
+                  onChange={v => { setMemberSearch(v); if(!v) setForm(f=>({...f, memberId:'', fromSectorId:''})); }}
+                  placeholder="Cari nama jemaat..."
+                  items={members}
+                  filterFn={(m, q) => m.fullName.toLowerCase().includes(q.toLowerCase()) || m.memberNumber?.toLowerCase().includes(q.toLowerCase())}
+                  renderResult={m => (
+                    <div>
+                      <p style={{fontSize:'13px',fontWeight:600,color:'#0f172a',margin:0}}>{m.fullName}</p>
+                      <p style={{fontSize:'11px',color:'#64748b',margin:0}}>{sectors.find(s=>s.id===m.sectorId)?.name||'-'} · {m.memberNumber||'-'}</p>
+                    </div>
+                  )}
+                  onSelect={m => {
+                    setMemberSearch(m.fullName);
+                    setForm(f => ({...f, memberId: m.id, fromSectorId: m.sectorId||''}));
+                  }}
+                  onClear={() => { setMemberSearch(''); setForm(f=>({...f, memberId:'', fromSectorId:''})); }}
+                />
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
+              {transferMode!=='keluarga' && (
               <div>
                 <Label>Sektor Asal</Label>
                 <Select value={form.fromSectorId} onValueChange={v => setForm(f => ({ ...f, fromSectorId: v }))}>
@@ -332,6 +385,7 @@ export function SectorTransferHistory() {
                   </SelectContent>
                 </Select>
               </div>
+              )}
               <div>
                 <Label>Sektor Tujuan</Label>
                 <Select value={form.toSectorId} onValueChange={v => setForm(f => ({ ...f, toSectorId: v }))}>
@@ -366,30 +420,58 @@ export function SectorTransferHistory() {
             <div className="flex gap-2 pt-2">
               <Button variant="outline" className="flex-1" onClick={() => setShowForm(false)}>Batal</Button>
               <Button className="flex-1 bg-[#144f6b] hover:bg-[#0f2d41]" onClick={() => {
-                if (!form.memberId || !form.fromSectorId || !form.toSectorId || !form.reason) return;
-                const member = members.find(m => m.id === form.memberId);
-                const fromSec = sectors.find(s => s.id === form.fromSectorId);
                 const toSec = sectors.find(s => s.id === form.toSectorId);
-                if (!member || !fromSec || !toSec) return;
-                addSectorTransfer({
-                  memberId: member.id,
-                  memberName: member.fullName,
-                  fromSectorId: fromSec.id,
-                  fromSectorName: fromSec.name,
-                  toSectorId: toSec.id,
-                  toSectorName: toSec.name,
-                  reason: form.reason,
-                  requestDate: new Date().toISOString().split('T')[0],
-                  status: 'Pending',
-                  notes: form.notes || '',
-                  processedBy: null,
-                  processedDate: null,
-                });
+                if (!toSec || !form.reason) return;
+                if (transferMode === 'keluarga') {
+                  if (!selectedFamily || familyMembers.length === 0) return;
+                  const familyId = 'fam-st-' + Date.now();
+                  const rows = familyMembers.map(m => {
+                    const fromSec = sectors.find(s => s.id === m.sectorId);
+                    return {
+                      memberId: m.id,
+                      memberName: m.fullName,
+                      fromSectorId: fromSec?.id || '',
+                      fromSectorName: fromSec?.name || '-',
+                      toSectorId: toSec.id,
+                      toSectorName: toSec.name,
+                      reason: form.reason,
+                      requestDate: new Date().toISOString().split('T')[0],
+                      status: 'Pending' as const,
+                      notes: form.notes || '',
+                      processedBy: null,
+                      processedDate: null,
+                      familyId,
+                    };
+                  });
+                  addSectorTransferBatch(rows);
+                } else {
+                  if (!form.memberId || !form.fromSectorId) return;
+                  const member = members.find(m => m.id === form.memberId);
+                  const fromSec = sectors.find(s => s.id === form.fromSectorId);
+                  if (!member || !fromSec) return;
+                  addSectorTransfer({
+                    memberId: member.id,
+                    memberName: member.fullName,
+                    fromSectorId: fromSec.id,
+                    fromSectorName: fromSec.name,
+                    toSectorId: toSec.id,
+                    toSectorName: toSec.name,
+                    reason: form.reason,
+                    requestDate: new Date().toISOString().split('T')[0],
+                    status: 'Pending',
+                    notes: form.notes || '',
+                    processedBy: null,
+                    processedDate: null,
+                  });
+                }
                 setShowForm(false);
                 setMemberSearch('');
                 setForm({ memberId: '', fromSectorId: '', toSectorId: '', reason: '', notes: '' });
+                setTransferMode('individu');
+                setSelectedFamily(null);
+                setFamilyQuery('');
               }}>
-                Ajukan Perpindahan
+                {transferMode==='keluarga' ? `Ajukan untuk ${familyMembers.length || 0} Anggota` : 'Ajukan Perpindahan'}
               </Button>
             </div>
           </div>

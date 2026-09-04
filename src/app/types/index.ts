@@ -548,6 +548,7 @@ export interface Attestation {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  familyId?: string; // diisi kalau atestasi ini diajukan sekaligus untuk 1 keluarga (batch) - setiap anggota tetap punya record sendiri, familyId menandai mereka sebagai satu pengajuan
 }
 
 // ========================================
@@ -796,6 +797,7 @@ export interface SectorTransfer {
   status: 'Pending' | 'Diproses' | 'Selesai';
   processedBy?: string | null;
   notes?: string;
+  familyId?: string; // diisi kalau mutasi ini diajukan sekaligus untuk 1 keluarga (batch) - setiap anggota tetap punya record sendiri, familyId menandai mereka sebagai satu pengajuan
 }
 
 export interface Room {

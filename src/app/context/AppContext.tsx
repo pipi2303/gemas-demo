@@ -253,6 +253,7 @@ interface AppContextType {
 
   sectorTransfers: SectorTransfer[];
   addSectorTransfer: (transfer: Omit<SectorTransfer, 'id'>) => void;
+  addSectorTransferBatch: (transfers: Omit<SectorTransfer, 'id'>[]) => void;
   updateSectorTransfer: (id: string, transfer: Partial<SectorTransfer>) => void;
   deleteSectorTransfer: (id: string) => void;
 
@@ -1308,6 +1309,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     apiSave('sectorTransfers', newT.id, newT);
     if (currentUser) {
       logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menambahkan', entityType: 'SectorTransfer', entityId: newT.id, entityName: data.memberName, details: `Permohonan pindah sektor: ${data.fromSectorName} → ${data.toSectorName}` });
+    }
+  };
+
+  // Dipakai fitur "1 Keluarga": ajukan mutasi sektor untuk beberapa anggota sekaligus.
+  // Id per baris dibuat unik (bukan cuma Date.now()) supaya tidak bentrok saat dibuat
+  // dalam satu batch yang sama.
+  const addSectorTransferBatch = (rows: Omit<SectorTransfer, 'id'>[]) => {
+    const newRows: SectorTransfer[] = rows.map((data, i) => ({ ...data, id: `st${Date.now()}-${i}` }));
+    setSectorTransfers(prev => [...prev, ...newRows]);
+    newRows.forEach(newT => apiSave('sectorTransfers', newT.id, newT));
+    if (currentUser) {
+      newRows.forEach(newT => {
+        logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menambahkan', entityType: 'SectorTransfer', entityId: newT.id, entityName: newT.memberName, details: `Permohonan pindah sektor (1 keluarga): ${newT.fromSectorName} → ${newT.toSectorName}` });
+      });
     }
   };
 
@@ -2565,6 +2580,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       deleteMinistry,
       sectorTransfers,
       addSectorTransfer,
+      addSectorTransferBatch,
       updateSectorTransfer,
       deleteSectorTransfer,
       addEvent,

@@ -8,7 +8,7 @@ import { SearchDropdown } from './ui/SearchDropdown';
 import {
   FileText, Plus, Pencil, Trash2, Eye, X, Search, Download,
   AlertCircle, ChevronLeft, ChevronRight, CheckCircle2, Clock,
-  ArrowRight, ArrowLeft, Ban, User, Calendar, Church, MapPin,
+  ArrowRight, ArrowLeft, Ban, User, Users, Calendar, Church, MapPin,
   Printer, FileCheck, RefreshCw, Filter, Lock
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
@@ -171,9 +171,9 @@ function AttestationDetail({ att, onClose, onEdit, onUpdateStatus }: {
 }
 
 // ── FORM ──────────────────────────────────────────────────────────────────────
-export function AttestationForm({ initial, members, onSave, onClose }: {
-  initial?: Partial<Attestation>; members: any[];
-  onSave:(d:any)=>void; onClose:()=>void;
+export function AttestationForm({ initial, members, families, onSave, onSaveBatch, onClose }: {
+  initial?: Partial<Attestation>; members: any[]; families?: any[];
+  onSave:(d:any)=>void; onSaveBatch?:(rows:any[])=>void; onClose:()=>void;
 }) {
   const { offset, onMouseDown } = useDraggable();
   const { getMasterDataByCategory, attestations: allAttestations } = useApp();
@@ -183,6 +183,16 @@ export function AttestationForm({ initial, members, onSave, onClose }: {
   const TIPE_ATESTASI = tipeAtestasi.length ? tipeAtestasi : ['Pindah Masuk','Pindah Keluar'];
   // Detect if the form is opened in "locked-member" mode (from a member's detail popup)
   const lockedMember = !!(initial?.memberId && initial?.memberName && !initial?.id);
+
+  // Mode "keluarga": ajukan Atestasi untuk 1 keluarga sekaligus. Setiap anggota keluarga
+  // tetap mendapat record Attestation sendiri (agar status/riwayat per orang tetap jalan),
+  // tapi semua record itu ditandai familyId yang sama sehingga tampil sebagai satu batch.
+  // Hanya tersedia untuk permohonan baru yang tidak dikunci ke satu anggota tertentu.
+  const canBatchFamily = !lockedMember && !initial?.id && !!onSaveBatch;
+  const [mode, setMode] = useState<'individu'|'keluarga'>('individu');
+  const [selectedFamily, setSelectedFamily] = useState<any|null>(null);
+  const [familyQuery, setFamilyQuery] = useState('');
+  const familyMembers = selectedFamily ? members.filter((m:any)=>m.familyId===selectedFamily.id) : [];
 
   const defaultType = initial?.type || 'Pindah Masuk';
 
@@ -225,6 +235,15 @@ export function AttestationForm({ initial, members, onSave, onClose }: {
   };
 
   const submit=()=>{
+    if(mode==='keluarga'){
+      if(!selectedFamily){setErr('Pilih keluarga terlebih dahulu');return;}
+      if(familyMembers.length===0){setErr('Keluarga ini belum punya anggota terdaftar (cek familyId anggota)');return;}
+      if(!f.requestDate||!f.toChurch){setErr('Tanggal permohonan dan gereja tujuan wajib diisi');return;}
+      const familyId = 'fam-att-'+Date.now();
+      const rows = familyMembers.map((m:any)=>({ ...f, memberId:m.id, memberName:m.fullName, familyId }));
+      if(onSaveBatch) onSaveBatch(rows); else onSave(rows[0]);
+      return;
+    }
     if(!f.memberName||!f.requestDate||!f.toChurch){setErr('Nama, tanggal permohonan, dan gereja tujuan wajib diisi');return;}
     onSave(f);
   };
@@ -243,7 +262,7 @@ export function AttestationForm({ initial, members, onSave, onClose }: {
             <div>
               <h3 className="text-white font-semibold flex items-center gap-2" style={{fontSize:'15px'}}>
                 {isIn?<ArrowRight className="w-4 h-4"/>:<ArrowLeft className="w-4 h-4"/>}
-                {initial?.id ? 'Edit Atestasi' : lockedMember ? 'Ajukan Atestasi Baru' : 'Tambah Permohonan Atestasi'}
+                {initial?.id ? 'Edit Atestasi' : lockedMember ? 'Ajukan Atestasi Baru' : mode==='keluarga' ? 'Ajukan Atestasi 1 Keluarga' : 'Tambah Permohonan Atestasi'}
               </h3>
               {lockedMember && (
                 <p className="mt-0.5" style={{fontSize:'11.5px',color:'rgba(255,255,255,0.65)'}}>
@@ -265,8 +284,21 @@ export function AttestationForm({ initial, members, onSave, onClose }: {
             ))}
           </div>
 
+          {canBatchFamily && (
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <button onClick={()=>setMode('individu')} className="py-2 rounded-xl border-2 transition-all text-xs font-semibold flex items-center justify-center gap-2"
+                style={{borderColor:mode==='individu'?'#1A77A3':'#e2e8f0',background:mode==='individu'?'#eff6ff':'#fff',color:mode==='individu'?'#1A77A3':'#64748b'}}>
+                <User className="w-3.5 h-3.5"/>Per Anggota
+              </button>
+              <button onClick={()=>setMode('keluarga')} className="py-2 rounded-xl border-2 transition-all text-xs font-semibold flex items-center justify-center gap-2"
+                style={{borderColor:mode==='keluarga'?'#1A77A3':'#e2e8f0',background:mode==='keluarga'?'#eff6ff':'#fff',color:mode==='keluarga'?'#1A77A3':'#64748b'}}>
+                <Users className="w-3.5 h-3.5"/>1 Keluarga
+              </button>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3">
-            {/* ── Member section: locked vs free ── */}
+            {/* ── Member section: locked vs free vs keluarga ── */}
             {lockedMember ? (
               <div className="col-span-2">
                 <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Anggota Jemaat</label>
@@ -282,6 +314,38 @@ export function AttestationForm({ initial, members, onSave, onClose }: {
                   </div>
                   <Lock className="w-3.5 h-3.5 flex-shrink-0" style={{color:'#16a34a'}}/>
                 </div>
+              </div>
+            ) : mode==='keluarga' ? (
+              <div className="col-span-2">
+                <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Cari Keluarga (Kepala Keluarga) <span className="text-red-400">*</span></label>
+                <SearchDropdown
+                  value={familyQuery}
+                  onChange={setFamilyQuery}
+                  placeholder="Ketik nama kepala keluarga..."
+                  items={families||[]}
+                  filterFn={(fam:any,q:string)=>(fam.headOfFamily||'').toLowerCase().includes(q.toLowerCase())}
+                  renderResult={(fam:any)=>(
+                    <div>
+                      <p style={{fontSize:13,fontWeight:600,color:'#1e293b'}}>{fam.headOfFamily}</p>
+                      <p style={{fontSize:11,color:'#94a3b8'}}>{members.filter((m:any)=>m.familyId===fam.id).length} anggota terdaftar</p>
+                    </div>
+                  )}
+                  onSelect={(fam:any)=>{setSelectedFamily(fam);setFamilyQuery(fam.headOfFamily||'');}}
+                  onClear={()=>setSelectedFamily(null)}
+                />
+                {selectedFamily && (
+                  <div className="mt-2 px-3 py-2.5 rounded-xl border" style={{background:'#f0fdf4',borderColor:'#86efac'}}>
+                    <p style={{fontSize:12,fontWeight:700,color:'#1A77A3'}}>Keluarga {selectedFamily.headOfFamily}</p>
+                    {familyMembers.length===0 ? (
+                      <p style={{fontSize:11,color:'#dc2626'}} className="mt-1">Belum ada anggota dengan familyId keluarga ini.</p>
+                    ) : (
+                      <ul className="mt-1 space-y-0.5">
+                        {familyMembers.map((m:any)=><li key={m.id} style={{fontSize:11.5,color:'#16a34a'}}>• {m.fullName}</li>)}
+                      </ul>
+                    )}
+                    <p style={{fontSize:10.5,color:'#64748b'}} className="mt-1.5">Atestasi akan dibuat untuk {familyMembers.length} anggota di atas sekaligus, dengan data gereja/tanggal/status yang sama.</p>
+                  </div>
+                )}
               </div>
             ) : (
               <>
@@ -373,7 +437,7 @@ export function AttestationForm({ initial, members, onSave, onClose }: {
 // ── MAIN ──────────────────────────────────────────────────────────────────────
 export function AttestationDatabase() {
   const { offset, onMouseDown } = useDraggable();
-  const { attestations, members, currentUser, addAttestation: _addAttestation, updateAttestation: _updateAttestation, getMasterDataByCategory } = useApp();
+  const { attestations, members, families, currentUser, addAttestation: _addAttestation, updateAttestation: _updateAttestation, getMasterDataByCategory } = useApp();
 
   // Use context attestations as source of truth; sync via API
   const [items, setItems] = useState<Attestation[]>(attestations||[]);
@@ -438,6 +502,16 @@ export function AttestationDatabase() {
       setItems(p=>[newItem,...p]);
       apiSave('attestations', newItem.id, newItem);
     }
+    setShowForm(false); setEditItem(null);
+  };
+
+  // Simpan sekaligus untuk beberapa anggota (fitur "1 Keluarga") - satu record Attestation
+  // per anggota, memakai id unik per baris agar tidak bentrok dengan Date.now() yang sama.
+  const handleSaveBatch = (rows:any[]) => {
+    const now = new Date().toISOString();
+    const newItems: Attestation[] = rows.map((d,i)=>({ ...d, id:'at'+Date.now()+'-'+i, createdAt:now, updatedAt:now }));
+    setItems(p=>[...newItems,...p]);
+    newItems.forEach(it=>apiSave('attestations', it.id, it));
     setShowForm(false); setEditItem(null);
   };
 
@@ -674,8 +748,8 @@ export function AttestationDatabase() {
           onUpdateStatus={handleUpdateStatus}/>
       )}
       {showForm && (
-        <AttestationForm initial={editItem||undefined} members={members}
-          onSave={handleSave} onClose={()=>{setShowForm(false);setEditItem(null);}}/>
+        <AttestationForm initial={editItem||undefined} members={members} families={families}
+          onSave={handleSave} onSaveBatch={handleSaveBatch} onClose={()=>{setShowForm(false);setEditItem(null);}}/>
       )}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={()=>setDeleteTarget(null)}>
