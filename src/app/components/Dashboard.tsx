@@ -312,16 +312,20 @@ function EmptyState({ message }: { message: string }) {
 // ── KPI Detail Drawer ──────────────────────────────────────────────────────────
 type KPIType = 'birthdays' | 'attestations';
 
-function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors }: {
+function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, currentDate }: {
   activeKPI: KPIType | null; onClose: () => void;
   members: any[]; attestations: any[]; sectors: any[];
+  currentDate: Date;
 }) {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   useEffect(() => { setSelectedItem(null); }, [activeKPI]);
   if (!activeKPI) return null;
 
-  const curM = new Date().getMonth();
-  const birthdayMembers = members.filter(m => new Date(m.birthDate).getMonth() === curM)
+  const curM = currentDate.getMonth();
+  const birthdayMembers = members.filter(m => {
+    const birthDate = new Date(m.birthDate);
+    return !Number.isNaN(birthDate.getTime()) && birthDate.getMonth() === curM;
+  })
     .sort((a, b) => new Date(a.birthDate).getDate() - new Date(b.birthDate).getDate());
   const pendingAtts = attestations.filter(a => a.status === 'Diajukan');
   const getSN = (id: string) => sectors.find(s => s.id === id)?.name || '–';
@@ -453,8 +457,9 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors }:
                 <div className="p-4 space-y-2.5">
                   {birthdayMembers.length === 0 ? <EmptyState message="Tidak ada jemaat berulang tahun bulan ini" /> :
                     birthdayMembers.map((m, i) => {
-                      const bd = new Date(m.birthDate), today = new Date();
-                      const isT = bd.getDate() === today.getDate(), isP = bd.getDate() < today.getDate();
+                      const bd = new Date(m.birthDate);
+                      const isT = bd.getDate() === currentDate.getDate();
+                      const isP = bd.getDate() < currentDate.getDate();
                       return (
                         <div key={m.id || i} onClick={() => setSelectedItem(m)} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md hover:border-[#b8d5e8] active:scale-[0.99] transition-all duration-150">
                           <div className="flex items-center gap-3">
@@ -559,6 +564,13 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
   } = useApp();
 
   const [activeKPI, setActiveKPI] = useState<KPIType | null>(null);
+  const [currentDate, setCurrentDate] = useState(() => new Date());
+
+  useEffect(() => {
+    const updateDate = () => setCurrentDate(new Date());
+    const timer = window.setInterval(updateDate, 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const s = useMemo(() => {
     const getAgeGroup = (age: number): AgeGroup => {
@@ -567,7 +579,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
       if (age < 60) return 'Dewasa';
       return 'Lansia';
     };
-    const now = new Date(), curM = now.getMonth(), curY = now.getFullYear();
+    const now = currentDate, curM = now.getMonth(), curY = now.getFullYear();
     const todayMidnight = new Date(now); todayMidnight.setHours(0,0,0,0);
     const nextWeek = new Date(todayMidnight); nextWeek.setDate(todayMidnight.getDate() + 7);
 
@@ -694,7 +706,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
       srByType, recentSR,
       worshipByType,
     };
-  }, [members, families, sectors, offerings, financialRecords, activityLogs, attestations,
+  }, [currentDate, members, families, sectors, offerings, financialRecords, activityLogs, attestations,
       baptisms, sidis, marriages, worshipSchedules, events, prayerRequests, announcements, attendance,
       serviceRequests, aidDistributions]);
 
@@ -759,12 +771,12 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
               <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)' }}>
                 {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
               </p>
-              {s.birthdayToday > 0 && (
+              {s.birthdaysThisMonth > 0 && (
                 <div onClick={() => setActiveKPI('birthdays')}
                   className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full cursor-pointer transition-all hover:scale-105"
                   style={{ background: 'rgba(255,239,178,0.2)', border: '1px solid rgba(255,239,178,0.3)' }}>
                   <span>🎂</span>
-                  <span style={{ fontSize: '11.5px', color: '#f0ede5', fontWeight: 600 }}>{s.birthdayToday} jemaat berulang tahun hari ini!</span>
+                  <span style={{ fontSize: '11.5px', color: '#f0ede5', fontWeight: 600 }}>{s.birthdaysThisMonth} jemaat berulang tahun bulan ini</span>
                 </div>
               )}
             </div>
@@ -1434,7 +1446,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
       {/* KPI Detail Drawer */}
       <KPIDetailDrawer
         activeKPI={activeKPI} onClose={() => setActiveKPI(null)}
-        members={members} attestations={attestations} sectors={sectors}
+        members={members} attestations={attestations} sectors={sectors} currentDate={currentDate}
       />
     </div>
   );
