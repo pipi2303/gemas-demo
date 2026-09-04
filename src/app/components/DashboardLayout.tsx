@@ -368,15 +368,34 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
           }}
         >
           {/* Header section inside sidebar */}
-          <div className="px-3.5 pt-3.5 pb-2.5 min-h-[46px]">
-            <span
-              className={`text-[10.5px] font-bold tracking-widest uppercase font-serif-church truncate ${
-                sidebarCollapsed ? 'sr-only' : 'block'
-              }`}
-              style={{ color: '#dfb774' }}
-            >
-              MENU NAVIGASI SISTEM
-            </span>
+          <div className="relative px-3.5 pt-3.5 pb-2.5 flex items-center justify-between min-h-[46px]">
+            {!sidebarCollapsed ? (
+              <>
+                <span
+                  className="text-[10.5px] font-bold tracking-widest uppercase font-serif-church truncate pr-6"
+                  style={{ color: '#dfb774' }}
+                >
+                  MENU NAVIGASI SISTEM
+                </span>
+                <button
+                  onClick={() => setSidebarCollapsed(true)}
+                  title="Ciutkan Sidebar (Hide)"
+                  className="absolute -right-3 top-1/2 -translate-y-1/2 z-50 w-6 h-6 rounded-full flex items-center justify-center text-amber-300 hover:text-slate-950 bg-[#0d1a2d] hover:bg-amber-400 border border-amber-400/50 shadow-md transition-all duration-150"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+              </>
+            ) : (
+              <div className="w-full flex justify-center">
+                <button
+                  onClick={() => setSidebarCollapsed(false)}
+                  title="Perluas Sidebar (Unhide)"
+                  className="absolute -right-3 top-1/2 -translate-y-1/2 z-50 w-6 h-6 rounded-full flex items-center justify-center text-amber-300 hover:text-slate-950 bg-[#0d1a2d] hover:bg-amber-400 border border-amber-400/50 shadow-md transition-all duration-150"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Navigation Menu List */}
@@ -535,18 +554,6 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
             >
               <LogOut className="h-4 w-4 flex-shrink-0" />
               {!sidebarCollapsed && <span className="truncate text-xs font-semibold">Keluar</span>}
-            </button>
-            <button
-              onClick={() => setSidebarCollapsed(prev => !prev)}
-              title={sidebarCollapsed ? 'Perluas Sidebar (Unhide)' : 'Ciutkan Sidebar (Hide)'}
-              aria-label={sidebarCollapsed ? 'Perluas Sidebar (Unhide)' : 'Ciutkan Sidebar (Hide)'}
-              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-amber-400/30 bg-amber-400/10 text-amber-300 shadow-md transition-all duration-150 hover:border-amber-400/60 hover:bg-amber-400 hover:text-slate-950"
-            >
-              {sidebarCollapsed ? (
-                <ChevronRight className="h-4 w-4" />
-              ) : (
-                <ChevronLeft className="h-4 w-4" />
-              )}
             </button>
           </div>
         </aside>

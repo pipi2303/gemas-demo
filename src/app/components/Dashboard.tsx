@@ -326,7 +326,15 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
     const birthDate = new Date(m.birthDate);
     return !Number.isNaN(birthDate.getTime()) && birthDate.getMonth() === curM;
   })
-    .sort((a, b) => new Date(a.birthDate).getDate() - new Date(b.birthDate).getDate());
+    .sort((a, b) => {
+      const aDate = new Date(a.birthDate);
+      const bDate = new Date(b.birthDate);
+      const aIsToday = aDate.getDate() === currentDate.getDate();
+      const bIsToday = bDate.getDate() === currentDate.getDate();
+
+      if (aIsToday !== bIsToday) return aIsToday ? -1 : 1;
+      return aDate.getDate() - bDate.getDate();
+    });
   const pendingAtts = attestations.filter(a => a.status === 'Diajukan');
   const getSN = (id: string) => sectors.find(s => s.id === id)?.name || '–';
 
