@@ -69,13 +69,22 @@ export function SectorTransferHistory() {
     isActive: !m.membershipStatus || m.membershipStatus === 'Aktif',
   })), [members, sectorTransfers]);
 
+  const openAddForm = () => {
+    setMemberSearch('');
+    setForm({ memberId: '', fromSectorId: '', toSectorId: '', reason: '', notes: '' });
+    setTransferMode('individu');
+    setSelectedFamily(null);
+    setFamilyQuery('');
+    setShowForm(true);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
         </div>
-        <Button className="gap-2 bg-[#144f6b] hover:bg-[#0f2d41]" onMouseDown={(e: React.MouseEvent) => e.preventDefault()} onClick={() => setShowForm(true)}>
+        <Button className="gap-2 bg-[#144f6b] hover:bg-[#0f2d41]" onMouseDown={(e: React.MouseEvent) => e.preventDefault()} onClick={openAddForm}>
           <Plus className="w-4 h-4" />
           Ajukan Perpindahan
         </Button>

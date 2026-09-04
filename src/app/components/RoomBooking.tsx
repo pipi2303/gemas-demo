@@ -224,7 +224,12 @@ export function RoomBookingComponent() {
           <p className="text-gray-600">Sistem peminjaman gedung dan sarana gereja</p>
         </div>
         <button 
-          onClick={() => setIsCreateDialogOpen(true)}
+          onClick={() => {
+            resetForm();
+            setIsEditMode(false);
+            setSelectedBooking(null);
+            setIsCreateDialogOpen(true);
+          }}
           className="px-4 py-2 bg-[#1A77A3] text-white rounded-lg hover:bg-[#144f6b] transition-colors flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />

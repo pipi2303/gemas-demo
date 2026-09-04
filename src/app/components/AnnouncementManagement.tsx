@@ -79,6 +79,20 @@ export function AnnouncementManagement() {
     setShowModal(false);
   };
 
+  const openAddForm = () => {
+    setFormData({
+      title: '',
+      content: '',
+      priority: 'normal',
+      targetRole: [],
+      targetSectors: [],
+      expiresAt: '',
+      isActive: true
+    });
+    setEditingId(null);
+    setShowModal(true);
+  };
+
   const handleEdit = (announcement: any) => {
     setFormData({
       title: announcement.title,
@@ -138,7 +152,7 @@ export function AnnouncementManagement() {
         </div>
         <button
           onMouseDown={e=>e.preventDefault()}
-          onClick={() => setShowModal(true)}
+          onClick={openAddForm}
           className="flex items-center gap-2 px-4 py-2 bg-[#1A77A3] text-white rounded-lg hover:bg-[#144f6b]"
         >
           <Plus className="w-4 h-4" />

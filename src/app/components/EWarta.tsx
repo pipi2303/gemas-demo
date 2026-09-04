@@ -109,6 +109,11 @@ export function EWarta() {
     setShowForm(true);
   };
 
+  const openGenerateModal = () => {
+    setSelectedGenerateDate('');
+    setShowGenerateModal(true);
+  };
+
   const openEdit = (warta: Warta) => {
     setEditingId(warta.id);
     setFormData({
@@ -289,7 +294,7 @@ export function EWarta() {
         {canCreate && (
           <div className="flex gap-2">
             <button
-              onClick={() => setShowGenerateModal(true)}
+              onClick={openGenerateModal}
               className="flex items-center gap-2 px-4 py-2 bg-[#3a7fa0] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm"
             >
               <Zap className="w-4 h-4" />
@@ -328,7 +333,7 @@ export function EWarta() {
               <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
               <p className="text-gray-500">Belum ada warta jemaat</p>
               {canCreate && (
-                <button onClick={() => setShowGenerateModal(true)} className="mt-4 px-4 py-2 bg-[#f0ede5] text-[#3a7fa0] rounded-lg text-sm hover:bg-purple-200 transition-colors">
+                <button onClick={openGenerateModal} className="mt-4 px-4 py-2 bg-[#f0ede5] text-[#3a7fa0] rounded-lg text-sm hover:bg-purple-200 transition-colors">
                   Generate dari Jadwal Ibadah
                 </button>
               )}
