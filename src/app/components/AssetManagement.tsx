@@ -480,7 +480,6 @@ export function AssetManagement() {
     { id:'ringkasan',   label:'Ringkasan', icon:BarChart3 },
     { id:'daftar',      label:'Daftar Aset', icon:Package },
     { id:'pemeliharaan',label:'Pemeliharaan', icon:Wrench },
-    { id:'penyusutan',  label:'Penyusutan', icon:TrendingDown },
     { id:'laporan',     label:'Laporan', icon:FileText },
   ];
 

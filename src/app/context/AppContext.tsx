@@ -431,6 +431,100 @@ export function AppProvider({ children }: { children: ReactNode }) {
       api.get<SectorTransfer[]>('/api/data/sectorTransfers').catch(() => [] as SectorTransfer[]),
     ]);
 
+    // Data demo modul Peribadahan & Kegiatan: hanya isi koleksi yang benar-benar kosong.
+    const seedDemoCollection = async <T extends { id: string }>(collection: string, items: T[]) => {
+      const existing = await api.get<T[]>(`/api/data/${collection}`).catch(() => [] as T[]);
+      if (existing.length > 0) return existing;
+      await Promise.all(items.map(item => apiSave(collection, item.id, item)));
+      return items;
+    };
+    const demoNow = new Date().toISOString();
+    const demoWorshipSchedules: WorshipSchedule[] = [
+      { id: 'demo-ws-01', type: 'Ibadah Minggu', category: 'Minggu', title: 'Ibadah Minggu Pagi', date: '2026-09-06', time: '09:00', location: 'Gereja Utama', preacher: 'Pdt. Budi Santoso', liturgist: 'Pnt. Maria Wijaya', worship_leader: 'Sdr. Daniel Tan', pianist: 'Sdri. Ester Lestari', sermon_theme: 'Hidup dalam Pengharapan', bible_verse: 'Roma 15:13', description: 'Ibadah umum jemaat.', status: 'Terjadwal', createdAt: demoNow },
+      { id: 'demo-ws-02', type: 'Ibadah Minggu', category: 'Minggu', title: 'Ibadah Minggu Sore', date: '2026-09-06', time: '17:00', location: 'Gereja Utama', preacher: 'Pdt. Yohanes Simanjuntak', liturgist: 'Diak. Sari Hutabarat', worship_leader: 'Sdr. Kevin Manurung', pianist: 'Sdri. Ruth Siregar', sermon_theme: 'Menjadi Terang Dunia', bible_verse: 'Matius 5:14', description: 'Ibadah sore jemaat.', status: 'Terjadwal', createdAt: demoNow },
+      { id: 'demo-ws-03', type: 'Ibadah Keluarga', category: 'Sektor', title: 'Ibadah Keluarga Sektor 1', date: '2026-09-09', time: '19:00', location: 'Rumah Keluarga Tumewu', preacher: 'Pdt. Budi Santoso', liturgist: 'Pnt. Lukas Tumewu', worship_leader: 'Ibu Hana Tumewu', pianist: 'Sdr. Andre Tumewu', sermon_theme: 'Keluarga yang Saling Menguatkan', bible_verse: 'Yosua 24:15', description: 'Ibadah keluarga bersama warga Sektor 1.', status: 'Terjadwal', createdAt: demoNow },
+      { id: 'demo-ws-04', type: 'Ibadah Pemuda', category: 'Pelkat', title: 'Ibadah Pemuda & Remaja', date: '2026-09-12', time: '18:30', location: 'Aula Gereja', preacher: 'Pdt. Clara Wenas', liturgist: 'Sdr. Samuel Kurniawan', worship_leader: 'Sdri. Grace Natalia', pianist: 'Sdr. Michael Tumiwa', sermon_theme: 'Berani Menjadi Berkat', bible_verse: '1 Timotius 4:12', description: 'Ibadah pemuda dan remaja.', status: 'Terjadwal', createdAt: demoNow },
+      { id: 'demo-ws-05', type: 'Persekutuan Doa', category: 'Doa', title: 'Persekutuan Doa Jemaat', date: '2026-09-16', time: '19:00', location: 'Ruang Doa', preacher: 'Pdt. Yohanes Simanjuntak', liturgist: 'Diak. Maria Magdalena', worship_leader: 'Pnt. Robert Sihombing', pianist: 'Sdri. Debora Nainggolan', sermon_theme: 'Tekun dalam Doa', bible_verse: '1 Tesalonika 5:17', description: 'Persekutuan doa mingguan.', status: 'Terjadwal', createdAt: demoNow },
+    ];
+    const demoEvents: Event[] = [
+      { id: 'demo-event-01', title: 'Bakti Sosial Jemaat', description: 'Pembagian sembako untuk warga sekitar gereja.', date: '2026-09-13', time: '08:00', location: 'Halaman Gereja', type: 'Pelayanan', organizer: 'Komisi Diakonia', status: 'Akan Datang' },
+      { id: 'demo-event-02', title: 'Seminar Keluarga Kristen', description: 'Seminar membangun komunikasi sehat dalam keluarga.', date: '2026-09-19', time: '09:00', location: 'Aula Gereja', type: 'Seminar', organizer: 'Pelkat PKP', status: 'Akan Datang' },
+      { id: 'demo-event-03', title: 'Retreat Pemuda', description: 'Retreat pembinaan iman dan kepemimpinan pemuda.', date: '2026-09-25', time: '15:00', location: 'Villa Bukit Doa', type: 'Retreat', organizer: 'Pelkat GP', status: 'Akan Datang' },
+      { id: 'demo-event-04', title: 'Persekutuan Lansia', description: 'Ibadah dan ramah tamah warga senior jemaat.', date: '2026-10-03', time: '10:00', location: 'Ruang Serbaguna', type: 'Persekutuan', organizer: 'Pelkat PKLU', status: 'Akan Datang' },
+      { id: 'demo-event-05', title: 'Pelatihan Multimedia Ibadah', description: 'Pelatihan operator audio, visual, dan livestream.', date: '2026-10-10', time: '13:00', location: 'Ruang Multimedia', type: 'Seminar', organizer: 'Tim Multimedia', status: 'Akan Datang' },
+    ];
+    const demoMinistries: Ministry[] = [
+      { id: 'demo-min-01', name: 'Pelkat PA', description: 'Pelayanan anak dan pembinaan iman usia dini.', leader: 'Ibu Sari Hutabarat', leaderMemberId: '', memberIds: [], isActive: true },
+      { id: 'demo-min-02', name: 'Pelkat PT', description: 'Pendampingan dan kegiatan pembinaan remaja.', leader: 'Sdr. Kevin Manurung', leaderMemberId: '', memberIds: [], isActive: true },
+      { id: 'demo-min-03', name: 'Pelkat GP', description: 'Persekutuan dan pengembangan potensi pemuda.', leader: 'Sdri. Grace Natalia', leaderMemberId: '', memberIds: [], isActive: true },
+      { id: 'demo-min-04', name: 'Komisi Musik & Pujian', description: 'Mendukung pelayanan musik dan pujian gereja.', leader: 'Sdr. Michael Tumiwa', leaderMemberId: '', memberIds: [], isActive: true },
+      { id: 'demo-min-05', name: 'Komisi Diakonia', description: 'Pelayanan kasih dan kepedulian sosial jemaat.', leader: 'Diak. Maria Magdalena', leaderMemberId: '', memberIds: [], isActive: true },
+    ];
+    const demoResources: Resource[] = [
+      { id: 'demo-sermon-01', title: 'Hidup dalam Pengharapan', type: 'Khotbah', category: 'Pembinaan', description: 'Renungan tentang pengharapan di dalam Kristus.', author: 'Pdt. Budi Santoso', tags: ['Pengharapan', 'Minggu'], downloads: 12, views: 45, publishedDate: '2026-09-06', createdAt: demoNow, bibleVerse: 'Roma 15:13', fullTranscript: 'Marilah kita hidup dalam pengharapan yang diberikan oleh Allah.' },
+      { id: 'demo-sermon-02', title: 'Menjadi Terang Dunia', type: 'Khotbah', category: 'Pembinaan', description: 'Panggilan jemaat untuk menjadi terang bagi sesama.', author: 'Pdt. Yohanes Simanjuntak', tags: ['Pelayanan', 'Iman'], downloads: 9, views: 38, publishedDate: '2026-09-13', createdAt: demoNow, bibleVerse: 'Matius 5:14', fullTranscript: 'Terang Kristus terpancar melalui kehidupan kita sehari-hari.' },
+      { id: 'demo-sermon-03', title: 'Keluarga yang Saling Menguatkan', type: 'Khotbah', category: 'Pembinaan', description: 'Membangun keluarga yang berakar dalam firman Tuhan.', author: 'Pdt. Clara Wenas', tags: ['Keluarga'], downloads: 15, views: 51, publishedDate: '2026-09-20', createdAt: demoNow, bibleVerse: 'Yosua 24:15', fullTranscript: 'Keluarga adalah tempat pertama untuk bertumbuh dalam kasih.' },
+      { id: 'demo-sermon-04', title: 'Berani Menjadi Berkat', type: 'Khotbah', category: 'Pembinaan', description: 'Pembinaan iman bagi generasi muda.', author: 'Pdt. Budi Santoso', tags: ['Pemuda', 'Pelayanan'], downloads: 7, views: 29, publishedDate: '2026-09-27', createdAt: demoNow, bibleVerse: '1 Timotius 4:12', fullTranscript: 'Jadilah teladan bagi orang-orang percaya dalam perkataan dan perbuatan.' },
+      { id: 'demo-sermon-05', title: 'Tekun dalam Doa', type: 'Khotbah', category: 'Pembinaan', description: 'Menghidupi doa sebagai dasar persekutuan dengan Tuhan.', author: 'Pdt. Yohanes Simanjuntak', tags: ['Doa', 'Iman'], downloads: 11, views: 42, publishedDate: '2026-10-04', createdAt: demoNow, bibleVerse: '1 Tesalonika 5:17', fullTranscript: 'Doa menolong kita untuk tetap dekat dan berharap kepada Tuhan.' },
+    ];
+    const demoLiturgies: Liturgy[] = demoWorshipSchedules.map((schedule, i) => ({
+      id: `demo-liturgy-0${i + 1}`, date: schedule.date, worshipType: schedule.type, theme: schedule.sermon_theme || schedule.title,
+      scripture: [{ book: schedule.bible_verse?.split(' ')[0] || 'Mazmur', chapter: 1, verse: schedule.bible_verse || '1-3' }],
+      hymns: [{ type: 'opening', book: 'Kidung Jemaat', number: `${1 + i}`, title: 'Nyanyikanlah Kidung Baru' }, { type: 'closing', book: 'Gita Bakti', number: `${10 + i}`, title: 'Kasih Tuhan Menyertai' }],
+      liturgyOrder: [{ order: 1, title: 'Votum dan Salam' }, { order: 2, title: 'Pembacaan Firman' }, { order: 3, title: 'Khotbah' }, { order: 4, title: 'Doa Syafaat' }],
+      sermon: { title: schedule.sermon_theme || schedule.title, preacher: schedule.preacher || 'Pelayan Firman' }, createdAt: demoNow,
+    }));
+    const demoWartas: Warta[] = demoWorshipSchedules.map((schedule, i) => ({
+      id: `demo-warta-0${i + 1}`, week: i + 1, month: 9, year: 2026, title: `Warta Jemaat Edisi ${i + 1}`,
+      date: schedule.date, sections: [{ id: `demo-warta-section-${i + 1}`, title: 'Renungan Minggu', content: schedule.sermon_theme || schedule.title, order: 1 }],
+      announcements: ['Mohon dukungan doa seluruh jemaat.', 'Rapat koordinasi pelayanan dilaksanakan setelah ibadah.'],
+      worshipSchedules: [schedule.id], published: true, createdAt: demoNow, updatedAt: demoNow,
+    }));
+    const demoLivestreams: LivestreamLink[] = demoWorshipSchedules.map((schedule, i) => ({
+      id: `demo-live-0${i + 1}`, scheduleId: schedule.id, title: `Live ${schedule.title}`, date: schedule.date, time: schedule.time,
+      platform: i % 2 === 0 ? 'YouTube' : 'Zoom', url: i % 2 === 0 ? 'https://youtube.com/@gpibtrinitas' : 'https://zoom.us/j/demo-gemas',
+      isActive: true, views: 100 + i * 27,
+    }));
+    const demoReminders: ReminderSetting[] = demoWorshipSchedules.map((schedule, i) => ({
+      id: `demo-reminder-0${i + 1}`, name: `Pengingat ${schedule.title}`, enabled: true, timing: `${24 - i * 2} jam sebelum`,
+      channel: i % 2 === 0 ? 'Notifikasi App' : 'WhatsApp', serviceType: schedule.type,
+    }));
+    const demoAnnouncements: Announcement[] = demoWorshipSchedules.map((schedule, i) => ({
+      id: `demo-announcement-0${i + 1}`, title: `Informasi ${schedule.title}`, content: `${schedule.title} akan dilaksanakan pada ${schedule.date} pukul ${schedule.time} di ${schedule.location}.`,
+      authorId: currentUser?.id || 'demo-admin', authorName: currentUser?.name || 'Administrator', priority: i === 0 ? 'important' : 'normal',
+      isActive: true, createdAt: demoNow,
+    }));
+    const [
+      seededWorshipSchedules,
+      seededWartas,
+      seededResources,
+      seededLiturgies,
+      seededEvents,
+      seededMinistries,
+      seededLivestreams,
+      seededReminders,
+      seededAnnouncements,
+    ] = await Promise.all([
+      seedDemoCollection('worshipSchedules', demoWorshipSchedules),
+      seedDemoCollection('wartas', demoWartas),
+      seedDemoCollection('resources', demoResources),
+      seedDemoCollection('liturgies', demoLiturgies),
+      seedDemoCollection('events', demoEvents),
+      seedDemoCollection('ministries', demoMinistries),
+      seedDemoCollection('livestreamLinks', demoLivestreams),
+      seedDemoCollection('reminderSettings', demoReminders),
+      seedDemoCollection('announcements', demoAnnouncements),
+    ]);
+    setWorshipSchedules(seededWorshipSchedules);
+    setWartas(seededWartas);
+    setResources(seededResources);
+    setLiturgies(seededLiturgies);
+    setEvents(seededEvents);
+    setMinistries(seededMinistries);
+    setLivestreamLinks(seededLivestreams);
+    setReminderSettings(seededReminders);
+    setAnnouncements(seededAnnouncements);
+
     // FinancialCategories: seed jika kosong
     {
       const loaded = financialCategoriesLoaded;
