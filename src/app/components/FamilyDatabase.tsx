@@ -319,7 +319,7 @@ function generateFamilyCardPDF(family: any, members: any[], sectors: any[]) {
 }
 
 // ── KARTU KELUARGA MODAL ───────────────────────────────────────────────────────
-function FamilyCardModal({ family, members, sectors, onClose }: {
+export function FamilyCardModal({ family, members, sectors, onClose }: {
   family: Family; members: Member[]; sectors: any[]; onClose: () => void;
 }) {
   const { offset, onMouseDown } = useDraggable();

@@ -5,6 +5,7 @@ import { roleStyle } from '../../lib/familyRole';
 import { Member, Attestation } from '../types';
 import { ChurchAsset } from './AssetManagement';
 import { AttestationForm } from './AttestationDatabase';
+import { FamilyCardModal } from './FamilyDatabase';
 import { SearchDropdown } from './ui/SearchDropdown';
 import { useDraggable } from '../../lib/useDraggable';
 import { useUnsavedChanges } from '../../lib/useUnsavedChanges';
@@ -14,7 +15,7 @@ import { normPelkat } from '../utils/pelkatUtils';
 import { calcAge, liveAge } from '../../lib/age';
 import { toast } from 'sonner';
 import {
-  Search, Plus, Eye, Pencil, Trash2, ChevronLeft, ChevronRight,
+  Search, Plus, Eye, Pencil, Trash2, ChevronLeft, ChevronRight, IdCard,
   Users, MapPin, Filter, Download, X, AlertCircle, CheckCircle2,
   User, Calendar, Phone, Mail, Home, Droplets, Briefcase, Church,
   Heart, Baby, GraduationCap, LayoutGrid, List, ArrowUpDown,
@@ -1440,9 +1441,19 @@ export function MemberDatabase() {
   const [showForm, setShowForm] = useState(false);
   const [formMode, setFormMode] = useState<'add'|'edit'>('add');
   const [deleteTarget, setDeleteTarget] = useState<Member|null>(null);
+  const [cardFamily, setCardFamily] = useState<any>(null);
   const [showImport, setShowImport] = useState(false);
   const [pageSize, setPageSize] = useState<number|'all'>(25);
   const { widths: colW, startResize } = useResizableColumns('member-database-main', MEMBER_TABLE_DEFAULT_WIDTHS);
+
+  const handleViewFamilyCard = (member: Member) => {
+    const family = families.find(f => f.id === member.familyId);
+    if (!family) {
+      toast.warning('Kartu keluarga untuk jemaat ini belum tersedia.');
+      return;
+    }
+    setCardFamily(family);
+  };
 
   // ── KPI Detail Modal ───────────────────────────────────────────────────────
   const [kpiDetail, setKpiDetail] = useState<{label:string;list:Member[]}|null>(null);
@@ -1924,6 +1935,7 @@ export function MemberDatabase() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1" onClick={e=>e.stopPropagation()}>
                           <button data-tooltip="Lihat Detail" onClick={()=>{setSelected(m);setShowDetail(true);}} className="p-1.5 rounded-lg hover:bg-[#f0ede5] transition-colors"><Eye className="w-3.5 h-3.5 text-[#1A77A3]"/></button>
+                          <button data-tooltip="Lihat Kartu Keluarga" onClick={()=>handleViewFamilyCard(m)} className="p-1.5 rounded-lg hover:bg-[#f0f7fb] transition-colors"><IdCard className="w-3.5 h-3.5 text-[#1A77A3]"/></button>
                           {canEdit && <button data-tooltip="Edit" onClick={()=>{setSelected(m);setFormMode('edit');setShowForm(true);}} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><Pencil className="w-3.5 h-3.5 text-gray-400"/></button>}
                           {canDelete && <button data-tooltip="Hapus" onClick={()=>setDeleteTarget(m)} className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5 text-red-400"/></button>}
                         </div>
@@ -1988,6 +2000,7 @@ export function MemberDatabase() {
                     <StatusBadge status={m.membershipStatus}/>
                     <div className="flex gap-1">
                       <button data-tooltip="Lihat Detail" onClick={()=>{setSelected(m);setShowDetail(true);}} className="p-1.5 rounded-lg hover:bg-[#f0f7fb] transition-colors"><Eye className="w-3.5 h-3.5 text-[#1A77A3]"/></button>
+                      <button data-tooltip="Lihat Kartu Keluarga" onClick={()=>handleViewFamilyCard(m)} className="p-1.5 rounded-lg hover:bg-[#f0f7fb] transition-colors"><IdCard className="w-3.5 h-3.5 text-[#1A77A3]"/></button>
                       {canEdit && <button data-tooltip="Edit" onClick={()=>{setSelected(m);setFormMode('edit');setShowForm(true);}} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><Pencil className="w-3.5 h-3.5 text-gray-400"/></button>}
                       {canDelete && <button data-tooltip="Hapus" onClick={()=>setDeleteTarget(m)} className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5 text-red-400"/></button>}
                     </div>
@@ -2112,6 +2125,9 @@ export function MemberDatabase() {
           initial={formMode==='edit'&&selected ? { ...selected } as any : undefined}
           sectors={sectors} families={families}
           onSave={handleSave} onClose={()=>{setShowForm(false);setSelected(null);}}/>
+      )}
+      {cardFamily && (
+        <FamilyCardModal family={cardFamily} members={members} sectors={sectors} onClose={()=>setCardFamily(null)} />
       )}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={()=>setDeleteTarget(null)}>
