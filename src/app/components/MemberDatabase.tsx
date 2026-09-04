@@ -111,7 +111,7 @@ export function AttBadge({ status }: { status: string }) {
 export function MemberDetail({ member, sectors, attestations, members, onClose, onEdit, onDelete }: {
   member: Member; sectors: any[]; attestations: Attestation[];
   members: any[];
-  onClose: ()=>void; onEdit: ()=>void; onDelete: ()=>void;
+  onClose: ()=>void; onEdit: ()=>void; onDelete: ()=>void; onViewFamily: ()=>void;
 }) {
   const { offset, onMouseDown } = useDraggable();
   const { can: canFn, families } = useApp();
@@ -226,6 +226,7 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
               </div>
             </div>
             <div className="flex gap-2 flex-shrink-0">
+              <button data-tooltip="Lihat Data Keluarga" onClick={onViewFamily} className="p-2 rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors"><IdCard className="w-4 h-4"/></button>
               {detailCanEdit && <button data-tooltip="Edit" onClick={onEdit} className="p-2 rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors"><Pencil className="w-4 h-4"/></button>}
               {detailCanDelete && <button data-tooltip="Hapus" onClick={onDelete} className="p-2 rounded-xl hover:bg-red-500/20 text-white/60 hover:text-red-300 transition-colors"><Trash2 className="w-4 h-4"/></button>}
               <button data-tooltip="Tutup" onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors"><X className="w-4 h-4"/></button>
@@ -2118,7 +2119,8 @@ export function MemberDatabase() {
       {showDetail && selected && (
         <MemberDetail member={selected} sectors={sectors} attestations={attestations} members={members} onClose={()=>setShowDetail(false)}
           onEdit={()=>{setFormMode('edit');setShowDetail(false);setShowForm(true);}}
-          onDelete={()=>{setDeleteTarget(selected);setShowDetail(false);}}/>
+          onDelete={()=>{setDeleteTarget(selected);setShowDetail(false);}}
+          onViewFamily={()=>{setShowDetail(false);handleViewFamilyCard(selected);}}/>
       )}
       {showForm && (
         <MemberForm mode={formMode}
