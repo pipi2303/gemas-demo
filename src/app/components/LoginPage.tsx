@@ -159,16 +159,6 @@ export function LoginPage() {
                 Sistem informasi lengkap untuk administrasi, peribadahan, dan keuangan jemaat secara terintegrasi, aman, dan profesional.
               </p>
 
-              {/* Tagline */}
-              <div className="fade-up mt-7 inline-flex items-center gap-3 py-1">
-                <span className="flex-shrink-0" style={{ width: '22px', height: '1.5px', background: 'linear-gradient(90deg, #f0ede5, rgba(240,237,229,0))' }} />
-                <p style={{
-                  fontSize: '13.5px', fontStyle: 'italic', fontWeight: 600,
-                  color: '#f0ede5', letterSpacing: '0.015em', lineHeight: 1.4,
-                }}>
-                  Melayani dengan Data Bertumbuh dengan Iman
-                </p>
-              </div>
             </div>
 
             {/* Bottom: trust row + copyright */}
@@ -224,9 +214,6 @@ export function LoginPage() {
               </h2>
               <p style={{ fontSize: '14px', color: '#64748b' }}>
                 Silakan Login ke Aplikasi <span style={{ color: '#1A77A3', fontWeight: 600 }}>GEMAS</span>
-              </p>
-              <p className="mt-2" style={{ fontSize: '12px', fontStyle: 'italic', fontWeight: 500, color: '#1A77A3', opacity: 0.75 }}>
-                Melayani dengan Data Bertumbuh dengan Iman
               </p>
             </div>
 
