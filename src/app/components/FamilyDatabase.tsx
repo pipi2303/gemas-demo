@@ -8,7 +8,7 @@ import {
   Home, Users, MapPin, Search, Plus, Eye, Pencil, Trash2,
   ChevronLeft, ChevronRight, X, AlertCircle, Phone, Mail,
   User, Baby, Heart, LayoutGrid, List, Download, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw,
-  IdCard, Printer
+  IdCard, Printer, UserX
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
@@ -366,11 +366,17 @@ function FamilyDetail({ family, members, sectors, onClose, onEdit, onDelete, onV
   const detailCanEdit   = canFn('Data Keluarga', 'edit');
   const detailCanDelete = canFn('Data Keluarga', 'delete');
   const detailCanExport = canFn('Data Keluarga', 'export');
+  const canEditMembers  = canFn('Database Warga', 'edit');
   const fam = members.filter(m=>m.familyId===family.id);
   const sector = sectors.find(s=>s.id===family.sectorId);
   const head = members.find(m=>m.id===family.headMemberId);
 
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  // Fitur "Nonaktifkan Semua Anggota": hanya anggota yang masih "Aktif" (atau belum
+  // punya status) yang disentuh - status Pindah/Meninggal/Tidak Aktif tidak ditimpa
+  // supaya riwayat status yang sudah benar tidak hilang.
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
+  const toDeactivate = fam.filter(m => !m.membershipStatus || m.membershipStatus === 'Aktif');
 
   const sorted = sortByRole(fam);
 
@@ -462,6 +468,11 @@ function FamilyDetail({ family, members, sectors, onClose, onEdit, onDelete, onV
 
         <div className="px-6 py-4 border-t flex justify-end gap-3 flex-shrink-0" style={{borderColor:'#f1f5f9'}}>
           <button onClick={onClose} className="px-4 py-2 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors" style={{borderColor:'#e2e8f0'}}>Tutup</button>
+          {canEditMembers && toDeactivate.length > 0 && (
+            <button onClick={()=>setConfirmDeactivate(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors" style={{borderColor:'#fecaca'}}>
+              <UserX className="w-3.5 h-3.5"/> Nonaktifkan Semua Anggota ({toDeactivate.length})
+            </button>
+          )}
           {detailCanEdit && (
             <button onClick={onEdit} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold" style={{background:'linear-gradient(135deg,#3a7fa0,#1A77A3)'}}>
               <Pencil className="w-3.5 h-3.5"/> Edit Keluarga
@@ -469,6 +480,33 @@ function FamilyDetail({ family, members, sectors, onClose, onEdit, onDelete, onV
           )}
         </div>
       </div>
+
+      {/* Confirm: Nonaktifkan Semua Anggota */}
+      {confirmDeactivate && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.55)'}} onClick={()=>setConfirmDeactivate(false)}>
+          <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 text-center" onClick={e=>e.stopPropagation()}>
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{background:'#fef2f2'}}><UserX className="w-6 h-6 text-red-500"/></div>
+            <h3 style={{fontSize:'16px',fontWeight:700,color:'#0f172a',marginBottom:8}}>Nonaktifkan Semua Anggota?</h3>
+            <p style={{fontSize:'13px',color:'#64748b',marginBottom:12}}>Status keanggotaan akan diubah menjadi <strong>Tidak Aktif</strong> untuk {toDeactivate.length} anggota keluarga <strong>{family.headOfFamily}</strong>:</p>
+            <ul className="text-left mb-4 space-y-1" style={{fontSize:'12.5px',color:'#334155',maxHeight:160,overflowY:'auto'}}>
+              {toDeactivate.map(m => (
+                <li key={m.id} className="py-1 border-b flex items-center justify-between" style={{borderColor:'#f1f5f9'}}>
+                  <span>{m.fullName}</span>
+                  <span style={{color:'#94a3b8',fontSize:11}}>{m.membershipStatus || 'Aktif'}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="flex gap-3">
+              <button onClick={()=>setConfirmDeactivate(false)} className="flex-1 py-2.5 rounded-xl border font-medium text-gray-600 hover:bg-gray-50 text-sm" style={{borderColor:'#e2e8f0'}}>Batal</button>
+              <button onClick={()=>{
+                toDeactivate.forEach(m => updateMember(m.id, { membershipStatus: 'Tidak Aktif' }));
+                toast.success(`${toDeactivate.length} anggota keluarga ${family.headOfFamily} diubah menjadi Tidak Aktif`);
+                setConfirmDeactivate(false);
+              }} className="flex-1 py-2.5 rounded-xl text-white font-semibold text-sm hover:opacity-90" style={{background:'#ef4444'}}>Nonaktifkan</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Nested Member Detail Modal */}
       {selectedMember && (
