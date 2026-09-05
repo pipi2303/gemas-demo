@@ -144,7 +144,7 @@ export function LoginPage() {
                 style={{ background: 'rgba(223,183,116,0.1)', border: '1px solid rgba(223,183,116,0.28)' }}>
                 <Sparkles className="w-3 h-3" style={{ color: GOLD }} />
                 <span style={{ fontSize: '11.5px', color: GOLD, fontWeight: 600, letterSpacing: '0.03em' }}>
-                  PLATFORM MANAJEMEN GEREJA TERPADU
+                  Melayani dengan Data Bertumbuh dengan Iman
                 </span>
               </div>
 
