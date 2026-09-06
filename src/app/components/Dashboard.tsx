@@ -310,7 +310,7 @@ function EmptyState({ message }: { message: string }) {
 }
 
 // ── KPI Detail Drawer ──────────────────────────────────────────────────────────
-type KPIType = 'birthdays' | 'attestations';
+type KPIType = 'birthdays' | 'attestations' | 'inactiveMembers';
 
 function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, currentDate }: {
   activeKPI: KPIType | null; onClose: () => void;
@@ -336,11 +336,13 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
       return aDate.getDate() - bDate.getDate();
     });
   const pendingAtts = attestations.filter(a => a.status === 'Diajukan');
+  const inactiveMembers = members.filter(m => m.membershipStatus === 'Tidak Aktif');
   const getSN = (id: string) => sectors.find(s => s.id === id)?.name || '–';
 
   const cfgMap: Record<KPIType, { title: string; subtitle: string; gradient: string; count: number; icon: any }> = {
-    birthdays:    { title: 'Ulang Tahun Bulan Ini', subtitle: 'Jemaat yang berulang tahun bulan ini', gradient: '#9c9486', count: birthdayMembers.length, icon: Cake },
-    attestations: { title: 'Atestasi Pending', subtitle: 'Atestasi yang menunggu proses', gradient: '#1A77A3', count: pendingAtts.length, icon: FileText },
+    birthdays:       { title: 'Ulang Tahun Bulan Ini', subtitle: 'Jemaat yang berulang tahun bulan ini', gradient: '#9c9486', count: birthdayMembers.length, icon: Cake },
+    attestations:    { title: 'Atestasi Pending', subtitle: 'Atestasi yang menunggu proses', gradient: '#1A77A3', count: pendingAtts.length, icon: FileText },
+    inactiveMembers: { title: 'Jemaat Tidak Aktif', subtitle: 'Jemaat dengan status keanggotaan tidak aktif', gradient: '#f59e0b', count: inactiveMembers.length, icon: AlertCircle },
   };
 
   const cfg = cfgMap[activeKPI];
@@ -350,7 +352,7 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
   const renderHeader = () => {
     if (!selectedItem) return null;
     const isAtt = activeKPI === 'attestations';
-    const headerGrad = isAtt ? '#1A77A3' : '#9c9486';
+    const headerGrad = cfg.gradient;
     const title = isAtt ? selectedItem.memberName : (selectedItem.fullName || `${selectedItem.firstName} ${selectedItem.lastName}`);
     return (
       <div className="flex-shrink-0 px-6 pt-5 pb-4" style={{ background: headerGrad }}>
@@ -380,6 +382,27 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
             <DRow label="Usia" value={`${liveAge(m)} tahun`} />
             <DRow label="Jenis Kelamin" value={m.gender} />
             <DRow label="Sektor" value={getSN(m.sectorId)} />
+          </DSection>
+        </div>
+      );
+    }
+    if (activeKPI === 'inactiveMembers') {
+      const m = selectedItem;
+      return (
+        <div className="p-4" style={{ background: '#f8fafc' }}>
+          <div className="rounded-2xl p-3 mb-3 flex items-center gap-2.5" style={{ background: '#fef3c7', border: '1px solid #f59e0b30' }}>
+            <div className="w-9 h-9 rounded-2xl flex-shrink-0 flex items-center justify-center" style={{ background: '#f59e0b20' }}><AlertCircle className="w-4.5 h-4.5" style={{ color: '#9c9486' }} /></div>
+            <div>
+              <p style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9c9486' }}>Status Keanggotaan</p>
+              <p style={{ fontSize: '13px', fontWeight: 800, color: '#9c9486', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Tidak Aktif</p>
+            </div>
+          </div>
+          <DSection title="Informasi Pribadi" icon={Users}>
+            <DRow label="Nama Lengkap" value={m.fullName || `${m.firstName} ${m.lastName}`} accent />
+            <DRow label="Jenis Kelamin" value={m.gender} />
+            <DRow label="Sektor" value={getSN(m.sectorId)} />
+            <DRow label="No. Telepon" value={m.phone} />
+            <DRow label="Alamat" value={m.address} />
           </DSection>
         </div>
       );
@@ -495,6 +518,26 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
                         </div>
                       );
                     })}
+                </div>
+              )}
+              {activeKPI === 'inactiveMembers' && (
+                <div className="p-4 space-y-2.5">
+                  {inactiveMembers.length === 0 ? <EmptyState message="Tidak ada jemaat berstatus tidak aktif" /> :
+                    inactiveMembers.map((m, i) => (
+                      <div key={m.id || i} onClick={() => setSelectedItem(m)} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md hover:border-amber-200 active:scale-[0.99] transition-all duration-150">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style={{ background: '#c2baaa' }}>{m.fullName?.charAt(0) || '?'}</div>
+                          <div className="flex-1 min-w-0">
+                            <p style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a' }} className="truncate">{m.fullName || `${m.firstName} ${m.lastName}`}</p>
+                            <div className="flex items-center gap-2" style={{ fontSize: '11.5px', color: '#64748b' }}>
+                              <span>{getSN(m.sectorId)}</span><span>·</span><span>{m.gender}</span>
+                              {m.phone && (<><span>·</span><span>{m.phone}</span></>)}
+                            </div>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                        </div>
+                      </div>
+                    ))}
                 </div>
               )}
               {activeKPI === 'attestations' && (
@@ -831,7 +874,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard label="Tidak Aktif" value={s.tidakAktif} sub="jemaat tidak aktif"
           icon={AlertCircle} gradient="#f59e0b" trend={{ value: `${s.totalMembers > 0 ? ((s.tidakAktif/s.totalMembers)*100).toFixed(0) : 0}% dari total`, up: false }}
-          onClick={() => nav('members')} />
+          onClick={() => setActiveKPI('inactiveMembers')} />
         <KPICard label="Atestasi Pending" value={s.pendingAttestations} sub="menunggu proses"
           icon={FileText} gradient="#1A77A3" trend={{ value: `${s.totalAttestations} total`, up: false }}
           onClick={() => setActiveKPI('attestations')} />
