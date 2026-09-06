@@ -123,6 +123,12 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
     const raf = requestAnimationFrame(() => setDrawerOpen(true));
     return () => cancelAnimationFrame(raf);
   }, []);
+  // Lock page scroll behind the drawer while it's open, restore on close/unmount.
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prevOverflow; };
+  }, []);
   const sector = sectors.find(s=>s.id===member.sectorId);
   const family = families.find(f=>f.id===member.familyId);
   const familyHead = family ? members.find((m:any)=>m.id===family.headMemberId) : undefined;
@@ -197,9 +203,9 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
 
   return (
     <>
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-50 flex justify-end overflow-hidden">
       <div className="absolute inset-0" style={{background:'rgba(15,23,42,0.45)',backdropFilter:'blur(4px)'}} onClick={onClose} />
-      <div className="relative w-full shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxWidth:'520px', height:'100vh', transform: drawerOpen ? 'translateX(0)' : 'translateX(100%)', transition:'transform 240ms ease-out'}} onClick={e=>e.stopPropagation()}>
+      <div className="relative w-full shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxWidth:'520px', height:'100vh', maxHeight:'100dvh', transform: drawerOpen ? 'translateX(0)' : 'translateX(100%)', transition:'transform 240ms ease-out'}} onClick={e=>e.stopPropagation()}>
         {/* Header */}
         <div className="px-6 py-5 flex-shrink-0" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)'}}>
           <div className="flex items-start justify-between gap-4">
