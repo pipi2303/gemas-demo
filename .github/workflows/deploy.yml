@@ -40,6 +40,20 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
+      - name: Test Portainer authentication
+        run: |
+          code=$(curl -sk -o /tmp/portainer_auth.json -w "%{http_code}" \
+            -H "X-API-Key: ${{ secrets.PORTAINER_TOKEN }}" \
+            "${{ secrets.PORTAINER_URL }}/api/status")
+
+          echo "Portainer API HTTP status: $code"
+          cat /tmp/portainer_auth.json
+
+          if [ "$code" -ne 200 ]; then
+            echo "::error::Portainer authentication failed"
+            exit 1
+          fi
+
       - name: Trigger Portainer redeploy
         run: |
           code=$(curl -sk -o /tmp/portainer_response.json -w "%{http_code}" \
@@ -65,7 +79,11 @@ jobs:
           # Jangan cetak response mentah — Portainer bisa meng-echo balik payload
           # (termasuk POSTGRES_PASSWORD/JWT_SECRET/GH_PAT) yang akan tercetak
           # sebagai teks biasa di log Actions. Cukup ambil field non-sensitif.
-          jq -c '{Status: .Status, Id: .Id, Message: .Message}' /tmp/portainer_response.json 2>/dev/null || echo "(response tidak dalam format JSON yang diharapkan)"
+          echo "Portainer response:"
+          jq -c 'del(.env, .repositoryPassword, .password, .token)' \
+            /tmp/portainer_response.json 2>/dev/null || \
+            echo "(response bukan JSON)"
+
           if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
             echo "::error::Portainer redeploy failed with HTTP $code"
             exit 1
