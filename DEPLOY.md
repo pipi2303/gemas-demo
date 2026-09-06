@@ -81,3 +81,4 @@ Tidak perlu langkah manual di VPS. Pastikan sekali di awal:
 docker logs -f gemas   # lihat logs real-time
 docker ps              # status container
 ```
+
