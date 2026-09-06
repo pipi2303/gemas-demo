@@ -113,11 +113,16 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
   members: any[];
   onClose: ()=>void; onEdit: ()=>void; onDelete: ()=>void; onViewFamily?: ()=>void;
 }) {
-  const { offset, onMouseDown } = useDraggable();
   const { can: canFn, families } = useApp();
   const detailCanEdit   = canFn('Database Warga', 'edit');
   const detailCanDelete = canFn('Database Warga', 'delete');
   const [tab, setTab] = useState<'personal'|'gereja'|'kontak'|'kerja'|'atestasi'|'aset'>('personal');
+  // Drawer slide-in animation: mount closed (off-screen right), then flip open next frame.
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setDrawerOpen(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
   const sector = sectors.find(s=>s.id===member.sectorId);
   const family = families.find(f=>f.id===member.familyId);
   const familyHead = family ? members.find((m:any)=>m.id===family.headMemberId) : undefined;
@@ -192,10 +197,11 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
 
   return (
     <>
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
-      <div className="w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'92vh', transform:`translate(${offset.x}px,${offset.y}px)`}} onClick={e=>e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="absolute inset-0" style={{background:'rgba(15,23,42,0.45)',backdropFilter:'blur(4px)'}} onClick={onClose} />
+      <div className="relative w-full shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxWidth:'520px', height:'100vh', transform: drawerOpen ? 'translateX(0)' : 'translateX(100%)', transition:'transform 240ms ease-out'}} onClick={e=>e.stopPropagation()}>
         {/* Header */}
-        <div className="px-6 py-5 flex-shrink-0" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',cursor:'move'}} onMouseDown={onMouseDown}>
+        <div className="px-6 py-5 flex-shrink-0" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)'}}>
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-4">
               <AvatarMember name={member.fullName} role={member.familyRole} size={56}/>
