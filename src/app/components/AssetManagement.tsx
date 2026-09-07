@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { PieChart, Pie, Tooltip, ResponsiveContainer } from 'recharts';
 import { toast } from 'sonner';
 import { useApp } from '../context/AppContext';
 import { useDraggable } from '../../lib/useDraggable';
+import { api } from '../../lib/apiClient';
 import { calcDep } from '../../lib/assetDepreciation';
 import {
   Building2, Package, Truck, Monitor, Church, MapPin, Layers,
@@ -11,7 +12,7 @@ import {
   FileText, FileSpreadsheet, ChevronDown, BarChart3, Calendar,
   DollarSign, Tag, Users, AlertTriangle, ChevronLeft, ChevronRight,
   Filter, Shield, ArrowUpRight, History, RefreshCw,
-  ArrowUp, ArrowDown, ArrowUpDown
+  ArrowUp, ArrowDown, ArrowUpDown, Upload, Loader2
 } from 'lucide-react';
 import { useSortable } from '../../hooks/useSortable';
 import { useResizableColumns } from '../../hooks/useResizableColumns';
@@ -43,6 +44,24 @@ const isOverdue = (a: ChurchAsset): boolean => {
 
 const fmtDateShort = (d?: string) =>
   d ? new Date(d).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' }) : '—';
+
+const formatBytes = (bytes: number) => {
+  if (!bytes) return '0 KB';
+  const kb = bytes / 1024;
+  return kb < 1024 ? `${kb.toFixed(0)} KB` : `${(kb/1024).toFixed(2)} MB`;
+};
+const MAX_DOCUMENT_BYTES = 2 * 1024 * 1024; // 2MB
+
+interface AssetDocument {
+  id: string;
+  assetId: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  fileData: string; // base64
+  uploadedAt: string;
+  uploadedBy: string;
+}
 
 // ── Colors & Constants ────────────────────────────────────────────────────────
 const CAT_COLOR: Record<AssetCategory, string> = {
@@ -213,6 +232,19 @@ export function AssetManagement() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string|null>(null);
   const [maintPage, setMaintPage] = useState(1);
   const [maintFilter, setMaintFilter] = useState('');
+
+  // Dokumen pendukung: PDF dilampirkan ke aset ini (maks 2MB per file)
+  const [assetDocs, setAssetDocs] = useState<AssetDocument[]>([]);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const docFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!selectedAsset) { setAssetDocs([]); return; }
+    api.get<AssetDocument[]>('/api/data/assetDocuments').then(all => {
+      setAssetDocs((all || []).filter(d => d.assetId === selectedAsset.id));
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAsset?.id]);
   const [laporanModal, setLaporanModal] = useState<
     | { type: 'kategori'; cat: string }
     | { type: 'kondisi'; cond: string }
@@ -409,6 +441,71 @@ export function AssetManagement() {
 
   const getAssetLoanHistory = (assetId: string) =>
     loanHistories.filter(h => h.assetId === assetId).sort((a,b) => b.loanDate.localeCompare(a.loanDate));
+
+  const handleUploadDocClick = () => docFileInputRef.current?.click();
+
+  const handleDocFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedAsset) return;
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      toast.error('Hanya file PDF yang diperbolehkan');
+      return;
+    }
+    if (file.size > MAX_DOCUMENT_BYTES) {
+      toast.error(`Ukuran file melebihi batas 2MB (file ini ${formatBytes(file.size)})`);
+      return;
+    }
+    setUploadingDoc(true);
+    try {
+      const base64: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+        reader.onerror = () => reject(new Error('Gagal membaca file'));
+        reader.readAsDataURL(file);
+      });
+      const id = 'assetdoc' + Date.now();
+      const doc: AssetDocument = {
+        id, assetId: selectedAsset.id, fileName: file.name, fileSize: file.size,
+        mimeType: 'application/pdf', fileData: base64,
+        uploadedAt: new Date().toISOString(), uploadedBy: currentUser?.name || 'Administrator',
+      };
+      await api.put(`/api/data/assetDocuments/${id}`, doc);
+      setAssetDocs(prev => [doc, ...prev]);
+      toast.success(`Dokumen "${file.name}" berhasil diunggah`);
+    } catch (err) {
+      toast.error('Gagal mengunggah dokumen. Silakan coba lagi');
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
+  const handleViewDocument = (doc: AssetDocument) => {
+    try {
+      const byteChars = atob(doc.fileData);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+      const blob = new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      toast.error('Gagal membuka dokumen');
+    }
+  };
+
+  const handleDeleteDocument = async (doc: AssetDocument) => {
+    if (!window.confirm(`Hapus dokumen "${doc.fileName}"?`)) return;
+    try {
+      await api.delete(`/api/data/assetDocuments/${doc.id}`);
+      setAssetDocs(prev => prev.filter(d => d.id !== doc.id));
+      toast.success(`Dokumen "${doc.fileName}" dihapus`);
+    } catch {
+      toast.error('Gagal menghapus dokumen');
+    }
+  };
 
   // ── EXPORT ────────────────────────────────────────────────────────────────
   const exportPDF = () => {
@@ -2507,6 +2604,44 @@ export function AssetManagement() {
                   <p style={{ fontSize:12,color:'#4b5563' }}>{selectedAsset.description}</p>
                 </div>
               )}
+
+              {/* Dokumen Pendukung */}
+              <div className="rounded-xl p-3 border" style={{ borderColor:'#f1f5f9',background:'#fafbfc' }}>
+                <p style={{ fontSize:12,color:'#64748b',fontWeight:700,marginBottom:10 }}>Dokumen Pendukung ({assetDocs.length})</p>
+                <input ref={docFileInputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={handleDocFileSelected}/>
+                {canEdit && (
+                  <button onClick={handleUploadDocClick} disabled={uploadingDoc}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed text-sm font-semibold transition-colors disabled:opacity-60 mb-3"
+                    style={{ borderColor:'#b8d5e8',color:'#1A77A3',background:'#f0fdf4' }}>
+                    {uploadingDoc ? <Loader2 style={{ width:14,height:14 }} className="animate-spin"/> : <Upload style={{ width:14,height:14 }}/>}
+                    {uploadingDoc ? 'Mengunggah...' : 'Unggah Dokumen PDF'}
+                  </button>
+                )}
+                {assetDocs.length === 0 ? (
+                  <p style={{ fontSize:12,color:'#94a3b8',textAlign:'center',padding:'8px 0' }}>Belum ada dokumen pendukung</p>
+                ) : (
+                  <div className="space-y-2">
+                    {assetDocs.map(doc => (
+                      <div key={doc.id} className="flex items-center gap-3 p-2.5 rounded-lg border bg-white" style={{ borderColor:'#f1f5f9' }}>
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background:'#fef2f2' }}>
+                          <FileText style={{ width:16,height:16 }} className="text-[#dc2626]"/>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="truncate" style={{ fontSize:12.5,fontWeight:600,color:'#334155' }}>{doc.fileName}</p>
+                          <p style={{ fontSize:11,color:'#94a3b8' }}>{formatBytes(doc.fileSize)} · {fmtDateShort(doc.uploadedAt)} · {doc.uploadedBy}</p>
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <button data-tooltip="Lihat" onClick={()=>handleViewDocument(doc)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#1A77A3] transition-colors"><Eye style={{ width:14,height:14 }}/></button>
+                          {canDelete && (
+                            <button data-tooltip="Hapus" onClick={()=>handleDeleteDocument(doc)} className="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"><Trash2 style={{ width:14,height:14 }}/></button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Maintenance history */}
               <div>
                 <h3 style={{ fontSize:13,fontWeight:700,color:'#0f172a',marginBottom:8 }}>Riwayat Pemeliharaan ({getAssetMaints(selectedAsset.id).length})</h3>
