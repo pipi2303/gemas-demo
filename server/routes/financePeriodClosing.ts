@@ -225,6 +225,26 @@ router.put('/:periodId/reopen', requireFinancePermission('approve'), async (req:
       res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Hanya periode berstatus Ditutup yang bisa dibuka kembali (periode Terkunci tidak bisa)' } });
       return;
     }
+    // Cegah membuka kembali periode ini kalau ada periode SETELAHNYA (di tahun fiskal yang
+    // sama) yang sudah Ditutup/Terkunci — laporan/neraca saldo periode-periode itu bisa jadi
+    // tidak valid lagi kalau periode yang lebih awal ini dibuka & diubah setelah mereka ditutup.
+    const laterClosedRes = await client.query(
+      `SELECT id, code, name FROM finance.periods
+       WHERE fiscal_year_id = $1 AND period_number > $2 AND status IN ('CLOSED','LOCKED')
+       ORDER BY period_number ASC LIMIT 1`,
+      [period.fiscal_year_id, period.period_number]
+    );
+    if (laterClosedRes.rows.length > 0) {
+      await client.query('ROLLBACK');
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'LATER_PERIOD_CLOSED',
+          message: `Periode ${laterClosedRes.rows[0].name} (setelah periode ini) sudah ditutup — buka periode tersebut dulu sebelum membuka kembali periode ini`,
+        },
+      });
+      return;
+    }
     await client.query(`UPDATE finance.periods SET status = 'OPEN' WHERE id = $1`, [period.id]);
     await client.query(
       `UPDATE finance.period_closings SET status = 'OPEN', reopened_at = NOW(), reopened_by = $2, reopen_reason = $3 WHERE period_id = $1`,
