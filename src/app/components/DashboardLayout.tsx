@@ -210,7 +210,8 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
       label: 'Finance Add-on',
       icon: Landmark,
       items: [
-        { id: 'finance-addon', label: 'Finance Add-on', page: 'finance-addon', icon: Landmark },
+        { id: 'finance-addon',      label: 'Ringkasan',                page: 'finance-addon',      icon: Landmark },
+        { id: 'finance-master-data', label: 'Master Data & Fiskal',    page: 'finance-master-data', icon: Layers },
       ],
     },
     {

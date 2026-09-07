@@ -39,6 +39,7 @@ import { ResourceLibrary } from './components/ResourceLibrary';
 import { SermonArchive } from './components/SermonArchive';
 import { MasterData } from './components/MasterData';
 import { FinanceAddonHome } from './components/finance/FinanceAddonHome';
+import { FinanceMasterData } from './components/finance/FinanceMasterData';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { TooltipRoot } from './components/ui/tooltip';
 import { PAGE_MODULE } from '../lib/permissions';
@@ -144,7 +145,9 @@ function AppContent() {
       case 'financial':
         return <FinancialManagement />;
       case 'finance-addon':
-        return <FinanceAddonHome />;
+        return <FinanceAddonHome onNavigate={navigate} />;
+      case 'finance-master-data':
+        return <FinanceMasterData onNavigate={navigate} />;
         
       // Modul 4: Fasilitas & Inventaris
       case 'assets':
