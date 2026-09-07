@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Attestation } from '../types';
 import { useDraggable } from '../../lib/useDraggable';
@@ -9,8 +9,9 @@ import {
   FileText, Plus, Pencil, Trash2, Eye, X, Search, Download,
   AlertCircle, ChevronLeft, ChevronRight, CheckCircle2, Clock,
   ArrowRight, ArrowLeft, Ban, User, Users, Calendar, Church, MapPin,
-  Printer, FileCheck, RefreshCw, Filter, Lock
+  Printer, FileCheck, RefreshCw, Filter, Lock, Upload, Loader2
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useResizableColumns } from '../../hooks/useResizableColumns';
@@ -21,6 +22,23 @@ const ATTESTATION_TABLE_DEFAULT_WIDTHS: Record<string, number> = {
 };
 
 const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }) : '—';
+const formatBytes = (bytes: number) => {
+  if (!bytes) return '0 KB';
+  const kb = bytes / 1024;
+  return kb < 1024 ? `${kb.toFixed(0)} KB` : `${(kb/1024).toFixed(2)} MB`;
+};
+const MAX_DOCUMENT_BYTES = 2 * 1024 * 1024; // 2MB
+
+interface AttestationDocument {
+  id: string;
+  attestationId: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  fileData: string; // base64
+  uploadedAt: string;
+  uploadedBy: string;
+}
 
 // ── Status & type configs ──────────────────────────────────────────────────────
 const STATUS_CFG: Record<string, { bg:string; color:string; label:string; icon: React.ReactNode }> = {
@@ -81,7 +99,87 @@ function AttestationDetail({ att, onClose, onEdit, onUpdateStatus }: {
   onUpdateStatus:(id:string,status:Attestation['status'])=>void;
 }) {
   const { offset, onMouseDown } = useDraggable();
+  const { can: canFn, currentUser } = useApp();
+  const canEditDocs   = canFn('Sakramen & Atestasi', 'edit');
+  const canDeleteDocs = canFn('Sakramen & Atestasi', 'delete');
   const isIn = att.type === 'Pindah Masuk';
+
+  // Dokumen pendukung: PDF dilampirkan ke atestasi ini (maks 2MB per file)
+  const [attDocuments, setAttDocuments] = useState<AttestationDocument[]>([]);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const docFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    api.get<AttestationDocument[]>('/api/data/attestationDocuments').then(all => {
+      setAttDocuments((all || []).filter(d => d.attestationId === att.id));
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [att.id]);
+
+  const handleUploadDocClick = () => docFileInputRef.current?.click();
+
+  const handleDocFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      toast.error('Hanya file PDF yang diperbolehkan');
+      return;
+    }
+    if (file.size > MAX_DOCUMENT_BYTES) {
+      toast.error(`Ukuran file melebihi batas 2MB (file ini ${formatBytes(file.size)})`);
+      return;
+    }
+    setUploadingDoc(true);
+    try {
+      const base64: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+        reader.onerror = () => reject(new Error('Gagal membaca file'));
+        reader.readAsDataURL(file);
+      });
+      const id = 'attdoc' + Date.now();
+      const doc: AttestationDocument = {
+        id, attestationId: att.id, fileName: file.name, fileSize: file.size,
+        mimeType: 'application/pdf', fileData: base64,
+        uploadedAt: new Date().toISOString(), uploadedBy: currentUser?.name || 'Administrator',
+      };
+      await api.put(`/api/data/attestationDocuments/${id}`, doc);
+      setAttDocuments(prev => [doc, ...prev]);
+      toast.success(`Dokumen "${file.name}" berhasil diunggah`);
+    } catch (err) {
+      toast.error('Gagal mengunggah dokumen. Silakan coba lagi');
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
+  const handleViewDocument = (doc: AttestationDocument) => {
+    try {
+      const byteChars = atob(doc.fileData);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+      const blob = new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      toast.error('Gagal membuka dokumen');
+    }
+  };
+
+  const handleDeleteDocument = async (doc: AttestationDocument) => {
+    if (!window.confirm(`Hapus dokumen "${doc.fileName}"?`)) return;
+    try {
+      await api.delete(`/api/data/attestationDocuments/${doc.id}`);
+      setAttDocuments(prev => prev.filter(d => d.id !== doc.id));
+      toast.success(`Dokumen "${doc.fileName}" dihapus`);
+    } catch {
+      toast.error('Gagal menghapus dokumen');
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
       <div className="w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'90vh', transform:`translate(${offset.x}px,${offset.y}px)`}} onClick={e=>e.stopPropagation()}>
@@ -134,6 +232,43 @@ function AttestationDetail({ att, onClose, onEdit, onUpdateStatus }: {
                 <span className="flex-1" style={{fontSize:'12.5px',color:'#334155',fontWeight:500}}>{value}</span>
               </div>
             ))}
+          </div>
+
+          {/* Dokumen Pendukung */}
+          <div className="p-4 rounded-xl border" style={{borderColor:'#f1f5f9',background:'#fafbfc'}}>
+            <p style={{fontSize:'12px',color:'#64748b',fontWeight:600,marginBottom:10}}>Dokumen Pendukung ({attDocuments.length})</p>
+            <input ref={docFileInputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={handleDocFileSelected}/>
+            {canEditDocs && (
+              <button onClick={handleUploadDocClick} disabled={uploadingDoc}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed text-sm font-semibold transition-colors disabled:opacity-60 mb-3"
+                style={{borderColor:'#b8d5e8',color:'#1A77A3',background:'#f0fdf4'}}>
+                {uploadingDoc ? <Loader2 className="w-4 h-4 animate-spin"/> : <Upload className="w-4 h-4"/>}
+                {uploadingDoc ? 'Mengunggah...' : 'Unggah Dokumen PDF'}
+              </button>
+            )}
+            {attDocuments.length === 0 ? (
+              <p style={{fontSize:'12px',color:'#94a3b8',textAlign:'center',padding:'8px 0'}}>Belum ada dokumen pendukung</p>
+            ) : (
+              <div className="space-y-2">
+                {attDocuments.map(doc => (
+                  <div key={doc.id} className="flex items-center gap-3 p-2.5 rounded-lg border bg-white" style={{borderColor:'#f1f5f9'}}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{background:'#fef2f2'}}>
+                      <FileText className="w-4 h-4 text-[#dc2626]"/>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate" style={{fontSize:'12.5px',fontWeight:600,color:'#334155'}}>{doc.fileName}</p>
+                      <p style={{fontSize:'11px',color:'#94a3b8'}}>{formatBytes(doc.fileSize)} · {fmtDate(doc.uploadedAt)} · {doc.uploadedBy}</p>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button data-tooltip="Lihat" onClick={()=>handleViewDocument(doc)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#1A77A3] transition-colors"><Eye className="w-4 h-4"/></button>
+                      {canDeleteDocs && (
+                        <button data-tooltip="Hapus" onClick={()=>handleDeleteDocument(doc)} className="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4"/></button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Quick status update */}
