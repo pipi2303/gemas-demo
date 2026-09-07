@@ -73,7 +73,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
-        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MB limit
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024, // 6 MB limit (dinaikkan seiring pertumbuhan modul Finance Add-on — bundle utama sudah melewati 3 MB)
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

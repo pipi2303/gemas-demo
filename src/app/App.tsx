@@ -45,6 +45,7 @@ import { FinanceTransaction } from './components/finance/FinanceTransaction';
 import { FinanceLedger } from './components/finance/FinanceLedger';
 import { FinanceApproval } from './components/finance/FinanceApproval';
 import { FinanceReconciliation } from './components/finance/FinanceReconciliation';
+import { FinancePeriodClosing } from './components/finance/FinancePeriodClosing';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { TooltipRoot } from './components/ui/tooltip';
 import { PAGE_MODULE } from '../lib/permissions';
@@ -163,6 +164,8 @@ function AppContent() {
         return <FinanceApproval onNavigate={navigate} />;
       case 'finance-reconciliation':
         return <FinanceReconciliation onNavigate={navigate} />;
+      case 'finance-period-closing':
+        return <FinancePeriodClosing onNavigate={navigate} />;
         
       // Modul 4: Fasilitas & Inventaris
       case 'assets':

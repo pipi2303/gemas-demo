@@ -74,6 +74,7 @@ export const PAGE_MODULE: Record<string, string> = {
   'finance-ledger':      'Keuangan (Finance Add-on)',
   'finance-approval':    'Keuangan (Finance Add-on)',
   'finance-reconciliation': 'Keuangan (Finance Add-on)',
+  'finance-period-closing': 'Keuangan (Finance Add-on)',
 };
 
 export function buildCan(matrix: ModulePermission[], role: UserRole) {
