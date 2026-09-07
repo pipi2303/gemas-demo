@@ -1,5 +1,6 @@
 import pg from 'pg';
 import bcrypt from 'bcryptjs';
+import { initFinanceSchema } from './financeSchema.js';
 
 const { Pool } = pg;
 
@@ -205,6 +206,10 @@ const mockPool = {
   end: async () => {},
 } as unknown as pg.Pool;
 
+export function isUsingInMemoryStore(): boolean {
+  return isUsingInMemory;
+}
+
 export function getPool(): pg.Pool {
   if (isUsingInMemory) {
     return mockPool;
@@ -259,6 +264,13 @@ export async function initSchema() {
       )
     `);
     console.log('[DB] PostgreSQL schema initialized successfully');
+
+    try {
+      await initFinanceSchema(p);
+      console.log('[DB] Finance Add-on schema initialized successfully');
+    } catch (financeErr: any) {
+      console.warn('[DB] Finance Add-on schema initialization failed: ' + financeErr.message);
+    }
   } catch (err: any) {
     console.warn('[DB] Could not connect to PostgreSQL database (' + err.message + ') — falling back to in-memory store');
     isUsingInMemory = true;

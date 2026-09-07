@@ -10,6 +10,7 @@ import dataRoutes from './routes/data.js';
 import backupRoutes from './routes/backup.js';
 import permissionsRoutes from './routes/permissions.js';
 import adminRoutes from './routes/admin.js';
+import financeRoutes from './routes/finance.js';
 
 /** Express app tanpa app.listen()/cron — dipakai baik oleh server lokal/VPS (server/index.ts) maupun serverless function Vercel (api/server.ts). */
 export function createApp() {
@@ -72,6 +73,7 @@ export function createApp() {
   app.use('/api/backup', backupRoutes);
   app.use('/api/permissions', permissionsRoutes);
   app.use('/api/admin', adminRoutes);
+  app.use('/api/v1/finance', financeRoutes);
 
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     logger.error('Unhandled error', { message: err.message });

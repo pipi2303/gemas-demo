@@ -28,6 +28,7 @@ export const DEFAULT_MATRIX: MatrixEntry[] = [
   { module: 'Pelayanan Kasih & Komunikasi', admin: A, majelis: CRD,   ketuaSektor: R,    operator: NONE },
   { module: 'Manajemen Aset',               admin: A, majelis: CRD,   ketuaSektor: NONE, operator: NONE },
   { module: 'Admin Sistem',                 admin: A, majelis: NONE,  ketuaSektor: NONE, operator: NONE },
+  { module: 'Keuangan (Finance Add-on)',    admin: A, majelis: CRDAX, ketuaSektor: NONE, operator: NONE },
 ];
 
 // Collection → module mapping
@@ -112,16 +113,12 @@ function getRoleKey(role: string): keyof Omit<MatrixEntry, 'module'> {
   return 'operator';
 }
 
-export async function checkPermission(
-  role: string, collection: string, method: string,
+export async function checkModulePermission(
+  role: string, module: string, action: string,
   customRoles?: any[]
 ): Promise<boolean> {
   if (role === 'Admin') return true;
 
-  const module = COLLECTION_MODULE[collection];
-  if (!module) return role === 'Admin'; // unknown collection: Admin only
-
-  const action = METHOD_ACTION[method] ?? 'view';
   const matrix = await getMatrix();
   const entry = matrix.find(m => m.module === module);
   if (!entry) return false;
@@ -141,4 +138,17 @@ export async function checkPermission(
   }
 
   return false;
+}
+
+export async function checkPermission(
+  role: string, collection: string, method: string,
+  customRoles?: any[]
+): Promise<boolean> {
+  if (role === 'Admin') return true;
+
+  const module = COLLECTION_MODULE[collection];
+  if (!module) return role === 'Admin'; // unknown collection: Admin only
+
+  const action = METHOD_ACTION[method] ?? 'view';
+  return checkModulePermission(role, module, action, customRoles);
 }

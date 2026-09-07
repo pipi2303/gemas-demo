@@ -31,6 +31,7 @@ export const DEFAULT_PERMISSIONS: ModulePermission[] = [
   { module: 'Pelayanan Kasih & Komunikasi', emoji: '❤️', admin: A, majelis: CRD,   ketuaSektor: R,    operator: NONE },
   { module: 'Manajemen Aset',               emoji: '📦', admin: A, majelis: CRD,   ketuaSektor: NONE, operator: NONE },
   { module: 'Admin Sistem',                 emoji: '🔐', admin: A, majelis: NONE,  ketuaSektor: NONE, operator: NONE },
+  { module: 'Keuangan (Finance Add-on)',    emoji: '🏛️', admin: A, majelis: CRDAX, ketuaSektor: NONE, operator: NONE },
 ];
 
 export const PAGE_MODULE: Record<string, string> = {
@@ -66,6 +67,7 @@ export const PAGE_MODULE: Record<string, string> = {
   data:                  'Admin Sistem',
   'master-data':         'Admin Sistem',
   activity:              'Admin Sistem',
+  'finance-addon':       'Keuangan (Finance Add-on)',
 };
 
 export function buildCan(matrix: ModulePermission[], role: UserRole) {

@@ -14,7 +14,7 @@ import {
   BookOpen, FileText, HeartHandshake, Heart,
   MessageSquareHeart, BarChart3, Sliders,
   QrCode, Book, Home, MapPin, Cross, Library, DoorOpen, Gift,
-  Bell, ChevronRight as BreadcrumbArrow, Printer, FileSpreadsheet
+  Bell, ChevronRight as BreadcrumbArrow, Printer, FileSpreadsheet, Landmark
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -203,6 +203,14 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
         { id: 'church-finance', label: 'Kas & Rekening Gereja', page: 'church-finance', icon: DollarSign },
         { id: 'offerings',      label: 'Persembahan Digital',   page: 'offerings',      icon: Heart },
         { id: 'financial',      label: 'Jurnal & Neraca Kas',   page: 'financial',      icon: BarChart3 },
+      ],
+    },
+    {
+      id: 'finance-addon',
+      label: 'Finance Add-on',
+      icon: Landmark,
+      items: [
+        { id: 'finance-addon', label: 'Finance Add-on', page: 'finance-addon', icon: Landmark },
       ],
     },
     {
