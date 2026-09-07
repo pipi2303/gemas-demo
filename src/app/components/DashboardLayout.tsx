@@ -219,6 +219,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
         { id: 'finance-reconciliation', label: 'Rekonsiliasi Bank',  page: 'finance-reconciliation', icon: ArrowLeftRight },
         { id: 'finance-period-closing', label: 'Penutupan Periode',  page: 'finance-period-closing', icon: CalendarCheck },
         { id: 'finance-reports',     label: 'Laporan Keuangan',      page: 'finance-reports',     icon: FileBarChart },
+        { id: 'finance-dashboard',   label: 'Dashboard & Analitik',  page: 'finance-dashboard',   icon: LayoutDashboard },
       ],
     },
     {
