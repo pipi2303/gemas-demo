@@ -15,6 +15,7 @@ import financeMasterDataRoutes from './routes/financeMasterData.js';
 import financeBudgetRoutes from './routes/financeBudget.js';
 import financeTransactionRoutes from './routes/financeTransaction.js';
 import financeLedgerRoutes from './routes/financeLedger.js';
+import financeReconciliationRoutes from './routes/financeReconciliation.js';
 
 /** Express app tanpa app.listen()/cron — dipakai baik oleh server lokal/VPS (server/index.ts) maupun serverless function Vercel (api/server.ts). */
 export function createApp() {
@@ -82,6 +83,7 @@ export function createApp() {
   app.use('/api/v1/finance/budgets', financeBudgetRoutes);
   app.use('/api/v1/finance/transactions', financeTransactionRoutes);
   app.use('/api/v1/finance/gl', financeLedgerRoutes);
+  app.use('/api/v1/finance/reconciliation', financeReconciliationRoutes);
 
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     logger.error('Unhandled error', { message: err.message });
