@@ -14,7 +14,7 @@ import {
   BookOpen, FileText, HeartHandshake, Heart,
   MessageSquareHeart, BarChart3, Sliders,
   QrCode, Book, Home, MapPin, Cross, Library, DoorOpen, Gift,
-  Bell, ChevronRight as BreadcrumbArrow, Printer, FileSpreadsheet, Landmark, ClipboardList, Receipt
+  Bell, ChevronRight as BreadcrumbArrow, Printer, FileSpreadsheet, Landmark, ClipboardList, Receipt, Inbox
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -214,6 +214,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
         { id: 'finance-master-data', label: 'Master Data & Fiskal',  page: 'finance-master-data', icon: Layers },
         { id: 'finance-budget',      label: 'Budget / RKA',          page: 'finance-budget',      icon: ClipboardList },
         { id: 'finance-transaction', label: 'Transaksi & Voucher',   page: 'finance-transaction', icon: Receipt },
+        { id: 'finance-approval',    label: 'Verifikasi & Persetujuan', page: 'finance-approval', icon: Inbox },
         { id: 'finance-ledger',      label: 'Buku Besar (GL)',       page: 'finance-ledger',      icon: BookOpen },
       ],
     },

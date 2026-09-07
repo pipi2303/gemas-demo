@@ -49,7 +49,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-interface Lookups {
+export interface Lookups {
   fiscalYears: any[];
   voucherTypes: any[];
   accounts: any[];
@@ -64,7 +64,7 @@ interface Lookups {
 type WorkflowAction = 'submit' | 'cancel' | 'verify' | 'approve' | 'reject' | 'revise' | 'post' | 'reverse';
 
 // ── Detail transaksi: baris jurnal + aksi ─────────────────────────────────────
-function TransactionDetail({ tx, canEdit, canApprove, currentUserId, lookups, onBack, onChanged }: {
+export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, lookups, onBack, onChanged }: {
   tx: any; canEdit: boolean; canApprove: boolean; currentUserId: string | undefined; lookups: Lookups; onBack: () => void; onChanged: (updated?: any) => void;
 }) {
   const [current, setCurrent] = useState(tx);

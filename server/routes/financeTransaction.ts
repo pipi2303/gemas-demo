@@ -85,6 +85,30 @@ router.get('/', requireFinancePermission('view'), async (req: AuthRequest, res: 
   }
 });
 
+// ── Antrian Verifikasi & Persetujuan (Fase 5) ───────────────────────────────────
+// Menampilkan transaksi yang BISA diproses oleh pengguna yang sedang login,
+// dengan aturan segregation of duties yang sama seperti endpoint aksi (lihat
+// /:id/verify, /:id/approve, /:id/post): pembuat transaksi tidak muncul di
+// antriannya sendiri, dan verifikator tidak muncul lagi di antrian approve
+// untuk transaksi yang sudah dia verifikasi sendiri.
+router.get('/queue', requireFinancePermission('approve'), async (req: AuthRequest, res: Response) => {
+  try {
+    const pool = getPool();
+    const result = await pool.query(
+      `${TX_WITH_VOUCHER_SELECT} WHERE t.organization_id = $1 AND (
+         (t.status = 'SUBMITTED' AND t.created_by != $2) OR
+         (t.status = 'VERIFIED' AND t.created_by != $2 AND t.verified_by != $2) OR
+         (t.status = 'APPROVED' AND t.created_by != $2)
+       ) ORDER BY COALESCE(t.submitted_at, t.created_at) ASC`,
+      [FINANCE_ORG, req.user!.userId]
+    );
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    logger.error('GET transactions/queue', { message: String(err) });
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal mengambil antrian verifikasi/persetujuan' } });
+  }
+});
+
 router.get('/:id', requireFinancePermission('view'), async (req: AuthRequest, res: Response) => {
   try {
     const pool = getPool();
