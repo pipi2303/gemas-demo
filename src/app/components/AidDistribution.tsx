@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { toast } from 'sonner';
+import { api } from '../../lib/apiClient';
 import { AidDistribution, AidType, AidStatus } from '../types';
 import {
   HandHeart, Plus, X, Calendar, DollarSign, User,
   Phone, MapPin, FileText, Pencil, Trash2, Eye,
   CheckCircle, XCircle, Clock, AlertCircle, Gift,
-  ArrowUp, ArrowDown, ArrowUpDown
+  ArrowUp, ArrowDown, ArrowUpDown, Upload, Loader2
 } from 'lucide-react';
 import { useSortable } from '../../hooks/useSortable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
@@ -37,8 +38,28 @@ function normStatusBantuan(status: string): AidStatus {
   return 'Pengajuan';
 }
 
+const formatBytes = (bytes: number) => {
+  if (!bytes) return '0 KB';
+  const kb = bytes / 1024;
+  return kb < 1024 ? `${kb.toFixed(0)} KB` : `${(kb/1024).toFixed(2)} MB`;
+};
+const MAX_DOCUMENT_BYTES = 2 * 1024 * 1024; // 2MB
+
+interface AidDocument {
+  id: string;
+  aidId: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  fileData: string; // base64
+  uploadedAt: string;
+  uploadedBy: string;
+}
+
 export function AidDistributionComponent() {
-  const { aidDistributions, members, getMasterDataByCategory, addAidDistribution, updateAidDistribution, deleteAidDistribution } = useApp();
+  const { aidDistributions, members, getMasterDataByCategory, addAidDistribution, updateAidDistribution, deleteAidDistribution, can: canFn, currentUser } = useApp();
+  const canEditDocs = canFn('Pelayanan Kasih & Komunikasi', 'edit');
+  const canDeleteDocs = canFn('Pelayanan Kasih & Komunikasi', 'delete');
   const statusBantuanList = getMasterDataByCategory('status_distribusi_bantuan').map((m: any) => m.value);
   const STATUS_BANTUAN_OPTS = statusBantuanList.length ? statusBantuanList : ['Pengajuan', 'Verifikasi', 'Disetujui', 'Ditolak', 'Disalurkan'];
   const aidTypeList = getMasterDataByCategory('kategori_bantuan').map(m => m.value) as AidType[];
@@ -50,6 +71,19 @@ export function AidDistributionComponent() {
 
   // memberSearch state for SearchDropdown display
   const [memberSearch, setMemberSearch] = useState('');
+
+  // Dokumen pendukung: bukti serah terima (PDF, maks 2MB per file)
+  const [aidDocs, setAidDocs] = useState<AidDocument[]>([]);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const docFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!selectedAid) { setAidDocs([]); return; }
+    api.get<AidDocument[]>('/api/data/aidDistributionDocuments').then(all => {
+      setAidDocs((all || []).filter(d => d.aidId === selectedAid.id));
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAid?.id]);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -174,6 +208,71 @@ export function AidDistributionComponent() {
   const handleStatusChange = (aid: AidDistribution, newStatus: AidStatus) => {
     updateAidDistribution(aid.id, { status: newStatus });
     setSelectedAid(prev => prev ? { ...prev, status: newStatus } : prev);
+  };
+
+  const handleUploadDocClick = () => docFileInputRef.current?.click();
+
+  const handleDocFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedAid) return;
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      toast.error('Hanya file PDF yang diperbolehkan');
+      return;
+    }
+    if (file.size > MAX_DOCUMENT_BYTES) {
+      toast.error(`Ukuran file melebihi batas 2MB (file ini ${formatBytes(file.size)})`);
+      return;
+    }
+    setUploadingDoc(true);
+    try {
+      const base64: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+        reader.onerror = () => reject(new Error('Gagal membaca file'));
+        reader.readAsDataURL(file);
+      });
+      const id = 'aiddoc' + Date.now();
+      const doc: AidDocument = {
+        id, aidId: selectedAid.id, fileName: file.name, fileSize: file.size,
+        mimeType: 'application/pdf', fileData: base64,
+        uploadedAt: new Date().toISOString(), uploadedBy: currentUser?.name || 'Administrator',
+      };
+      await api.put(`/api/data/aidDistributionDocuments/${id}`, doc);
+      setAidDocs(prev => [doc, ...prev]);
+      toast.success(`Dokumen "${file.name}" berhasil diunggah`);
+    } catch (err) {
+      toast.error('Gagal mengunggah dokumen. Silakan coba lagi');
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
+  const handleViewDocument = (doc: AidDocument) => {
+    try {
+      const byteChars = atob(doc.fileData);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+      const blob = new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      toast.error('Gagal membuka dokumen');
+    }
+  };
+
+  const handleDeleteDocument = async (doc: AidDocument) => {
+    if (!window.confirm(`Hapus dokumen "${doc.fileName}"?`)) return;
+    try {
+      await api.delete(`/api/data/aidDistributionDocuments/${doc.id}`);
+      setAidDocs(prev => prev.filter(d => d.id !== doc.id));
+      toast.success(`Dokumen "${doc.fileName}" dihapus`);
+    } catch {
+      toast.error('Gagal menghapus dokumen');
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -717,6 +816,46 @@ export function AidDistributionComponent() {
                   <p className="text-sm text-blue-800 whitespace-pre-wrap">{selectedAid.notes}</p>
                 </div>
               )}
+
+              {/* Dokumen Pendukung */}
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText className="w-5 h-5 text-gray-600" />
+                  <h3 className="font-semibold text-gray-900">Dokumen Pendukung ({aidDocs.length})</h3>
+                </div>
+                <input ref={docFileInputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={handleDocFileSelected}/>
+                {canEditDocs && (
+                  <button onClick={handleUploadDocClick} disabled={uploadingDoc}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed text-sm font-semibold transition-colors disabled:opacity-60 mb-3"
+                    style={{ borderColor:'#b8d5e8',color:'#1A77A3',background:'#f0fdf4' }}>
+                    {uploadingDoc ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <Upload className="w-3.5 h-3.5"/>}
+                    {uploadingDoc ? 'Mengunggah...' : 'Unggah Bukti Serah Terima (PDF)'}
+                  </button>
+                )}
+                {aidDocs.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-2">Belum ada dokumen pendukung</p>
+                ) : (
+                  <div className="space-y-2">
+                    {aidDocs.map(doc => (
+                      <div key={doc.id} className="flex items-center gap-3 p-2.5 rounded-lg border border-gray-100 bg-[#fafbfc]">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-red-50">
+                          <FileText className="w-4 h-4 text-red-600"/>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="truncate text-xs font-semibold text-gray-700">{doc.fileName}</p>
+                          <p className="text-[11px] text-gray-400">{formatBytes(doc.fileSize)} · {new Date(doc.uploadedAt).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})} · {doc.uploadedBy}</p>
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <button title="Lihat" onClick={()=>handleViewDocument(doc)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#1A77A3] transition-colors"><Eye className="w-3.5 h-3.5"/></button>
+                          {canDeleteDocs && (
+                            <button title="Hapus" onClick={()=>handleDeleteDocument(doc)} className="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"><Trash2 className="w-3.5 h-3.5"/></button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Status Actions */}
               {selectedAid && normStatusBantuan(selectedAid.status) !== 'Disalurkan' && normStatusBantuan(selectedAid.status) !== 'Ditolak' && (
