@@ -485,7 +485,7 @@ CREATE INDEX IF NOT EXISTS idx_transaction_lines_budget ON finance.transaction_l
 CREATE TABLE IF NOT EXISTS finance.journals (
   id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id          TEXT NOT NULL DEFAULT 'gpib-trinitas',
-  transaction_id           UUID NOT NULL UNIQUE REFERENCES finance.transactions(id) ON DELETE RESTRICT,
+  transaction_id           UUID NOT NULL REFERENCES finance.transactions(id) ON DELETE RESTRICT,
   voucher_id               UUID NOT NULL REFERENCES finance.vouchers(id) ON DELETE RESTRICT,
   fiscal_year_id           UUID NOT NULL REFERENCES finance.fiscal_years(id) ON DELETE RESTRICT,
   period_id                UUID NOT NULL REFERENCES finance.periods(id) ON DELETE RESTRICT,
@@ -504,6 +504,15 @@ CREATE TABLE IF NOT EXISTS finance.journals (
 );
 CREATE INDEX IF NOT EXISTS idx_journals_org_date ON finance.journals (organization_id, journal_date);
 CREATE INDEX IF NOT EXISTS idx_journals_period ON finance.journals (period_id);
+-- Migrasi untuk instalasi lama: konstrain UNIQUE polos di transaction_id (dari versi
+-- schema sebelumnya) membuat /:id/reverse SELALU gagal dengan duplicate-key, karena
+-- jurnal pembalik sengaja memakai transaction_id yang SAMA dengan jurnal asal. Diganti
+-- dengan unique index parsial: hanya jurnal ASLI (reversal_of_journal_id IS NULL) yang
+-- wajib unik per transaksi, jurnal pembalik (reversal_of_journal_id IS NOT NULL)
+-- dikecualikan.
+ALTER TABLE finance.journals DROP CONSTRAINT IF EXISTS journals_transaction_id_key;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_journal_transaction_original
+  ON finance.journals (transaction_id) WHERE reversal_of_journal_id IS NULL;
 
 CREATE TABLE IF NOT EXISTS finance.journal_lines (
   id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
