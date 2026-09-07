@@ -21,6 +21,18 @@
 // bagaimana ADJUSTMENT/REVERSAL memengaruhinya) butuh keputusan produk
 // tersendiri, jadi ditunda ke fase Pelaporan/Anggaran berikutnya daripada
 // ditebak di sini.
+// Status enum finance.transaction_status juga punya nilai REVISION_REQUIRED
+// yang SENGAJA tidak dipakai kode manapun di sini (hanya REJECTED yang aktif
+// dipakai) — alur REJECTED -> (revisi via PUT /:id/revise) -> DRAFT yang
+// sudah ada sekarang sudah mencakup kebutuhan "kembalikan untuk diperbaiki".
+// Membuat REVISION_REQUIRED jadi status terpisah dari REJECTED butuh
+// keputusan produk dulu soal apa bedanya secara alur kerja (mis. apakah ia
+// skip balik ke DRAFT dan langsung SUBMITTED lagi setelah diperbaiki) — jadi
+// nilai enum ini dibiarkan ada (tidak dihapus lewat ALTER TYPE, yang punya
+// risiko lebih besar daripada manfaatnya untuk kolom yang memang belum
+// dipakai) tapi tidak diaktifkan sampai ada keputusan itu. UI
+// (FinanceTransaction.tsx STATUS_META) sudah punya label siap pakai kalau
+// nanti diaktifkan.
 // ============================================================
 
 import { Router, Response } from 'express';

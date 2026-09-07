@@ -53,6 +53,12 @@ DO $$ BEGIN
     ('DRAFT','SUBMITTED','REVIEWED','APPROVED','ACTIVE','REVISED','CANCELLED');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- Catatan: REVISION_REQUIRED sengaja BELUM dipakai oleh kode manapun (lihat
+-- komentar di server/routes/financeTransaction.ts) — alur REJECTED -> revisi
+-- -> DRAFT yang sudah ada sekarang sudah mencakup kasus "kembalikan untuk
+-- diperbaiki". Nilai enum ini tetap dipertahankan (bukan dihapus) supaya
+-- siap dipakai kalau suatu saat ada keputusan produk yang membedakannya
+-- secara jelas dari REJECTED.
 DO $$ BEGIN
   CREATE TYPE finance.transaction_status AS ENUM
     ('DRAFT','SUBMITTED','VERIFIED','REJECTED','REVISION_REQUIRED',
