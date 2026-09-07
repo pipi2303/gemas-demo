@@ -8,9 +8,12 @@ function formatRp(n: unknown) {
   return `Rp ${v.toLocaleString('id-ID')}`;
 }
 
+interface PageMeta { total: number; page: number; pageSize: number; totalPages: number; totalDebit?: number; totalCredit?: number }
+
 interface ApiResponse<T> {
   success: boolean;
   data?: T;
+  meta?: PageMeta;
   error?: { code: string; message: string };
 }
 
@@ -18,6 +21,12 @@ async function callApi<T = any>(url: string): Promise<T> {
   const res = await (api as any).get<ApiResponse<T>>(url);
   if (!res.success) throw new Error(res.error?.message || 'Terjadi kesalahan');
   return res.data as T;
+}
+
+async function callApiPaged<T = any>(url: string): Promise<{ data: T; meta?: PageMeta }> {
+  const res = await (api as any).get<ApiResponse<T>>(url);
+  if (!res.success) throw new Error(res.error?.message || 'Terjadi kesalahan');
+  return { data: res.data as T, meta: res.meta };
 }
 
 type Tab = 'entries' | 'trial-balance';
@@ -30,25 +39,49 @@ function LedgerEntriesTab({ fiscalYearId, accounts }: { fiscalYearId: string; ac
   const [to, setTo] = useState('');
   const [entries, setEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [entriesMeta, setEntriesMeta] = useState<PageMeta | null>(null);
+
+  const buildParams = useCallback((page: number) => {
+    const params = new URLSearchParams({ fiscalYearId, page: String(page) });
+    if (accountId) params.set('accountId', accountId);
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    return params;
+  }, [fiscalYearId, accountId, from, to]);
 
   const load = useCallback(async () => {
     if (!fiscalYearId) return;
     setLoading(true);
     try {
-      const params = new URLSearchParams({ fiscalYearId });
-      if (accountId) params.set('accountId', accountId);
-      if (from) params.set('from', from);
-      if (to) params.set('to', to);
-      const data = await callApi<any[]>(`/api/v1/finance/gl/entries?${params.toString()}`);
+      const { data, meta } = await callApiPaged<any[]>(`/api/v1/finance/gl/entries?${buildParams(1).toString()}`);
       setEntries(data);
+      setEntriesMeta(meta ?? null);
     } catch (err: any) {
       toast.error(err?.message || 'Gagal memuat mutasi buku besar');
     } finally {
       setLoading(false);
     }
-  }, [fiscalYearId, accountId, from, to]);
+  }, [fiscalYearId, buildParams]);
 
   useEffect(() => { load(); }, [load]);
+
+  const loadMore = async () => {
+    if (!entriesMeta || entriesMeta.page >= entriesMeta.totalPages) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = entriesMeta.page + 1;
+      const { data, meta } = await callApiPaged<any[]>(`/api/v1/finance/gl/entries?${buildParams(nextPage).toString()}`);
+      // Entries diurutkan tanggal ASC oleh backend dan halaman berikutnya di-append berurutan,
+      // jadi perhitungan saldo berjalan (_running, di bawah) tetap benar walau dimuat bertahap.
+      setEntries(prev => [...prev, ...data]);
+      setEntriesMeta(meta ?? null);
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal memuat mutasi selanjutnya');
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const account = accounts.find(a => a.id === accountId);
   const rows = useMemo(() => {
@@ -65,8 +98,10 @@ function LedgerEntriesTab({ fiscalYearId, accounts }: { fiscalYearId: string; ac
     });
   }, [entries, accountId]);
 
-  const totalDebit = entries.reduce((s, e) => s + Number(e.debit), 0);
-  const totalCredit = entries.reduce((s, e) => s + Number(e.credit), 0);
+  // Total diambil dari meta (dihitung backend atas SELURUH data yang lolos filter),
+  // bukan dijumlah dari `entries` yang bisa jadi baru sebagian termuat (pagination).
+  const totalDebit = entriesMeta?.totalDebit ?? entries.reduce((s, e) => s + Number(e.debit), 0);
+  const totalCredit = entriesMeta?.totalCredit ?? entries.reduce((s, e) => s + Number(e.credit), 0);
 
   return (
     <div className="space-y-3">
@@ -128,6 +163,15 @@ function LedgerEntriesTab({ fiscalYearId, accounts }: { fiscalYearId: string; ac
             </tfoot>
           )}
         </table>
+        {entriesMeta && entriesMeta.page < entriesMeta.totalPages && (
+          <div className="flex items-center justify-center py-3 border-t border-slate-100">
+            <button onClick={loadMore} disabled={loadingMore}
+              className="text-xs font-medium text-[#1A77A3] hover:underline disabled:opacity-50 flex items-center gap-1.5">
+              {loadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Muat Lebih Banyak ({entries.length} dari {entriesMeta.total})
+            </button>
+          </div>
+        )}
       </div>
       {account && (
         <p className="text-xs text-slate-400">Saldo normal akun {account.code} — {account.name}: {account.normal_balance === 'DEBIT' ? 'Debit' : 'Kredit'}</p>

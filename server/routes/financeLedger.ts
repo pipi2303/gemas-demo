@@ -16,7 +16,7 @@
 
 import { Router, Response } from 'express';
 import { getPool } from '../lib/db.js';
-import { requireRealDb, FINANCE_ORG } from '../lib/financeCrud.js';
+import { requireRealDb, FINANCE_ORG, parsePagination, paginationMeta } from '../lib/financeCrud.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { requireFinancePermission } from '../middleware/checkFinancePermission.js';
 import { logger } from '../lib/logger.js';
@@ -36,6 +36,17 @@ router.get('/entries', async (req: AuthRequest, res: Response) => {
     if (req.query.from) { params.push(req.query.from); conditions.push(`j.journal_date >= $${params.length}`); }
     if (req.query.to) { params.push(req.query.to); conditions.push(`j.journal_date <= $${params.length}`); }
 
+    const { page, pageSize, offset } = parsePagination(req);
+    // Dihitung terpisah dari LIMIT/OFFSET di bawah supaya total debit/kredit yang ditampilkan
+    // di frontend selalu mencerminkan SELURUH data yang lolos filter, bukan cuma satu halaman.
+    const countRes = await pool.query(
+      `SELECT COUNT(*)::int AS total, COALESCE(SUM(jl.debit),0) AS total_debit, COALESCE(SUM(jl.credit),0) AS total_credit
+       FROM finance.journal_lines jl
+       JOIN finance.journals j ON j.id = jl.journal_id
+       WHERE ${conditions.join(' AND ')}`,
+      params
+    );
+    const dataParams = [...params, pageSize, offset];
     const result = await pool.query(
       `SELECT
          jl.id AS journal_line_id, jl.line_number, jl.debit, jl.credit, jl.description AS line_description,
@@ -49,10 +60,19 @@ router.get('/entries', async (req: AuthRequest, res: Response) => {
        JOIN finance.transactions t ON t.id = j.transaction_id
        JOIN finance.vouchers v ON v.id = j.voucher_id
        WHERE ${conditions.join(' AND ')}
-       ORDER BY j.journal_date ASC, j.journal_number ASC, jl.line_number ASC`,
-      params
+       ORDER BY j.journal_date ASC, j.journal_number ASC, jl.line_number ASC
+       LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`,
+      dataParams
     );
-    res.json({ success: true, data: result.rows });
+    res.json({
+      success: true,
+      data: result.rows,
+      meta: {
+        ...paginationMeta(countRes.rows[0].total, page, pageSize),
+        totalDebit: Number(countRes.rows[0].total_debit),
+        totalCredit: Number(countRes.rows[0].total_credit),
+      },
+    });
   } catch (err) {
     logger.error('GET gl/entries', { message: String(err) });
     res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal mengambil mutasi buku besar' } });

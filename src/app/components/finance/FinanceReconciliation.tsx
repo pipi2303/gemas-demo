@@ -24,9 +24,12 @@ function formatRp(n: unknown) {
   return `Rp ${v.toLocaleString('id-ID')}`;
 }
 
+interface PageMeta { total: number; page: number; pageSize: number; totalPages: number }
+
 interface ApiResponse<T> {
   success: boolean;
   data?: T;
+  meta?: PageMeta;
   error?: { code: string; message: string };
 }
 
@@ -36,6 +39,12 @@ async function callApi<T = any>(method: 'get' | 'post' | 'put' | 'delete', url: 
     : await (api as any)[method]<ApiResponse<T>>(url, body ?? {});
   if (!res.success) throw new Error(res.error?.message || 'Terjadi kesalahan');
   return res.data as T;
+}
+
+async function callApiPaged<T = any>(url: string): Promise<{ data: T; meta?: PageMeta }> {
+  const res = await (api as any).get<ApiResponse<T>>(url);
+  if (!res.success) throw new Error(res.error?.message || 'Terjadi kesalahan');
+  return { data: res.data as T, meta: res.meta };
 }
 
 const btnPrimary = 'flex items-center gap-1.5 text-sm font-medium text-white px-3 py-1.5 rounded-lg disabled:opacity-50';
@@ -505,6 +514,10 @@ export function FinanceReconciliation({ onNavigate }: { onNavigate?: (page: stri
   const [fiscalYearId, setFiscalYearId] = useState('');
   const [statements, setStatements] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
+  const [statementsMeta, setStatementsMeta] = useState<PageMeta | null>(null);
+  const [sessionsMeta, setSessionsMeta] = useState<PageMeta | null>(null);
+  const [loadingMoreStatements, setLoadingMoreStatements] = useState(false);
+  const [loadingMoreSessions, setLoadingMoreSessions] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingList, setLoadingList] = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
@@ -546,11 +559,13 @@ export function FinanceReconciliation({ onNavigate }: { onNavigate?: (page: stri
     setLoadingList(true);
     try {
       const [stmts, sess] = await Promise.all([
-        callApi<any[]>('get', `/api/v1/finance/reconciliation/bank-statements?bankAccountId=${bankAccountId}`),
-        callApi<any[]>('get', `/api/v1/finance/reconciliation?bankAccountId=${bankAccountId}`),
+        callApiPaged<any[]>(`/api/v1/finance/reconciliation/bank-statements?bankAccountId=${bankAccountId}&page=1`),
+        callApiPaged<any[]>(`/api/v1/finance/reconciliation?bankAccountId=${bankAccountId}&page=1`),
       ]);
-      setStatements(stmts);
-      setSessions(sess);
+      setStatements(stmts.data);
+      setStatementsMeta(stmts.meta ?? null);
+      setSessions(sess.data);
+      setSessionsMeta(sess.meta ?? null);
     } catch (err: any) {
       toast.error(err?.message || 'Gagal memuat rekening koran / sesi rekonsiliasi');
     } finally {
@@ -559,6 +574,36 @@ export function FinanceReconciliation({ onNavigate }: { onNavigate?: (page: stri
   }, [bankAccountId]);
 
   useEffect(() => { loadLists(); }, [loadLists]);
+
+  const loadMoreSessions = async () => {
+    if (!sessionsMeta || sessionsMeta.page >= sessionsMeta.totalPages) return;
+    setLoadingMoreSessions(true);
+    try {
+      const nextPage = sessionsMeta.page + 1;
+      const { data, meta } = await callApiPaged<any[]>(`/api/v1/finance/reconciliation?bankAccountId=${bankAccountId}&page=${nextPage}`);
+      setSessions(prev => [...prev, ...data]);
+      setSessionsMeta(meta ?? null);
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal memuat sesi selanjutnya');
+    } finally {
+      setLoadingMoreSessions(false);
+    }
+  };
+
+  const loadMoreStatements = async () => {
+    if (!statementsMeta || statementsMeta.page >= statementsMeta.totalPages) return;
+    setLoadingMoreStatements(true);
+    try {
+      const nextPage = statementsMeta.page + 1;
+      const { data, meta } = await callApiPaged<any[]>(`/api/v1/finance/reconciliation/bank-statements?bankAccountId=${bankAccountId}&page=${nextPage}`);
+      setStatements(prev => [...prev, ...data]);
+      setStatementsMeta(meta ?? null);
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal memuat rekening koran selanjutnya');
+    } finally {
+      setLoadingMoreStatements(false);
+    }
+  };
 
   if (loading) {
     return <div className="max-w-6xl mx-auto p-6 flex items-center justify-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mr-2" /> Memuat…</div>;
@@ -656,10 +701,19 @@ export function FinanceReconciliation({ onNavigate }: { onNavigate?: (page: stri
             ))}
           </tbody>
         </table>
+        {sessionsMeta && sessionsMeta.page < sessionsMeta.totalPages && (
+          <div className="flex items-center justify-center py-3 border-t border-slate-100">
+            <button onClick={loadMoreSessions} disabled={loadingMoreSessions}
+              className="text-xs font-medium text-[#1A77A3] hover:underline disabled:opacity-50 flex items-center gap-1.5">
+              {loadingMoreSessions && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Muat Lebih Banyak ({sessions.length} dari {sessionsMeta.total})
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
-        <div className="px-4 py-2.5 border-b border-slate-100 text-xs font-medium text-slate-500">Rekening Koran Tersimpan ({statements.length})</div>
+        <div className="px-4 py-2.5 border-b border-slate-100 text-xs font-medium text-slate-500">Rekening Koran Tersimpan ({statementsMeta?.total ?? statements.length})</div>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-100 text-left text-xs text-slate-500 uppercase tracking-wide">
@@ -685,6 +739,15 @@ export function FinanceReconciliation({ onNavigate }: { onNavigate?: (page: stri
             ))}
           </tbody>
         </table>
+        {statementsMeta && statementsMeta.page < statementsMeta.totalPages && (
+          <div className="flex items-center justify-center py-3 border-t border-slate-100">
+            <button onClick={loadMoreStatements} disabled={loadingMoreStatements}
+              className="text-xs font-medium text-[#1A77A3] hover:underline disabled:opacity-50 flex items-center gap-1.5">
+              {loadingMoreStatements && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Muat Lebih Banyak ({statements.length} dari {statementsMeta.total})
+            </button>
+          </div>
+        )}
       </div>
 
       {showNewStatement && (

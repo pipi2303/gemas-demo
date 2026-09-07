@@ -25,7 +25,7 @@
 
 import { Router, Response } from 'express';
 import { getPool } from '../lib/db.js';
-import { requireRealDb, FINANCE_ORG } from '../lib/financeCrud.js';
+import { requireRealDb, FINANCE_ORG, parsePagination, paginationMeta } from '../lib/financeCrud.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { requireFinancePermission } from '../middleware/checkFinancePermission.js';
 import { logger } from '../lib/logger.js';
@@ -74,11 +74,14 @@ router.get('/', requireFinancePermission('view'), async (req: AuthRequest, res: 
     const params: any[] = [FINANCE_ORG];
     if (req.query.fiscalYearId) { params.push(req.query.fiscalYearId); conditions.push(`t.fiscal_year_id = $${params.length}`); }
     if (req.query.status) { params.push(req.query.status); conditions.push(`t.status = $${params.length}`); }
+    const { page, pageSize, offset } = parsePagination(req);
+    const countRes = await pool.query(`SELECT COUNT(*)::int AS total FROM finance.transactions t WHERE ${conditions.join(' AND ')}`, params);
+    const dataParams = [...params, pageSize, offset];
     const result = await pool.query(
-      `${TX_WITH_VOUCHER_SELECT} WHERE ${conditions.join(' AND ')} ORDER BY t.transaction_date DESC, t.created_at DESC`,
-      params
+      `${TX_WITH_VOUCHER_SELECT} WHERE ${conditions.join(' AND ')} ORDER BY t.transaction_date DESC, t.created_at DESC LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`,
+      dataParams
     );
-    res.json({ success: true, data: result.rows });
+    res.json({ success: true, data: result.rows, meta: paginationMeta(countRes.rows[0].total, page, pageSize) });
   } catch (err) {
     logger.error('GET transactions', { message: String(err) });
     res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal mengambil data transaksi' } });

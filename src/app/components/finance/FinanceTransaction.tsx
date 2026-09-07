@@ -14,9 +14,12 @@ function formatRp(n: unknown) {
   return `Rp ${v.toLocaleString('id-ID')}`;
 }
 
+interface PageMeta { total: number; page: number; pageSize: number; totalPages: number }
+
 interface ApiResponse<T> {
   success: boolean;
   data?: T;
+  meta?: PageMeta;
   error?: { code: string; message: string };
 }
 
@@ -26,6 +29,13 @@ async function callApi<T = any>(method: 'get' | 'post' | 'put' | 'delete', url: 
     : await (api as any)[method]<ApiResponse<T>>(url, body ?? {});
   if (!res.success) throw new Error(res.error?.message || 'Terjadi kesalahan');
   return res.data as T;
+}
+
+// Sama seperti callApi('get', ...) tapi juga mengembalikan meta pagination (total/page/totalPages)
+async function callApiPaged<T = any>(url: string): Promise<{ data: T; meta?: PageMeta }> {
+  const res = await (api as any).get<ApiResponse<T>>(url);
+  if (!res.success) throw new Error(res.error?.message || 'Terjadi kesalahan');
+  return { data: res.data as T, meta: res.meta };
 }
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string; border: string }> = {
@@ -518,6 +528,8 @@ export function FinanceTransaction({ onNavigate }: { onNavigate?: (page: string)
   const [selectedFiscalYearId, setSelectedFiscalYearId] = useState('');
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loadingTx, setLoadingTx] = useState(true);
+  const [loadingMoreTx, setLoadingMoreTx] = useState(false);
+  const [txMeta, setTxMeta] = useState<PageMeta | null>(null);
   const [selectedTx, setSelectedTx] = useState<any | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -550,11 +562,12 @@ export function FinanceTransaction({ onNavigate }: { onNavigate?: (page: string)
   useEffect(() => { loadLookups(); }, [loadLookups]);
 
   const loadTransactions = useCallback(async () => {
-    if (!selectedFiscalYearId) { setTransactions([]); setLoadingTx(false); return; }
+    if (!selectedFiscalYearId) { setTransactions([]); setTxMeta(null); setLoadingTx(false); return; }
     setLoadingTx(true);
     try {
-      const data = await callApi<any[]>('get', `/api/v1/finance/transactions?fiscalYearId=${selectedFiscalYearId}`);
+      const { data, meta } = await callApiPaged<any[]>(`/api/v1/finance/transactions?fiscalYearId=${selectedFiscalYearId}&page=1`);
       setTransactions(data);
+      setTxMeta(meta ?? null);
     } catch (err: any) {
       toast.error(err?.message || 'Gagal memuat daftar transaksi');
     } finally {
@@ -563,6 +576,21 @@ export function FinanceTransaction({ onNavigate }: { onNavigate?: (page: string)
   }, [selectedFiscalYearId]);
 
   useEffect(() => { loadTransactions(); }, [loadTransactions]);
+
+  const loadMoreTransactions = async () => {
+    if (!txMeta || txMeta.page >= txMeta.totalPages) return;
+    setLoadingMoreTx(true);
+    try {
+      const nextPage = txMeta.page + 1;
+      const { data, meta } = await callApiPaged<any[]>(`/api/v1/finance/transactions?fiscalYearId=${selectedFiscalYearId}&page=${nextPage}`);
+      setTransactions(prev => [...prev, ...data]);
+      setTxMeta(meta ?? null);
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal memuat transaksi selanjutnya');
+    } finally {
+      setLoadingMoreTx(false);
+    }
+  };
 
   const handleCreate = async () => {
     if (!createForm.voucher_type_id || !createForm.transaction_date || !createForm.description.trim()) {
@@ -666,6 +694,15 @@ export function FinanceTransaction({ onNavigate }: { onNavigate?: (page: string)
                 ))}
               </tbody>
             </table>
+            {txMeta && txMeta.page < txMeta.totalPages && (
+              <div className="flex items-center justify-center py-3 border-t border-slate-100">
+                <button onClick={loadMoreTransactions} disabled={loadingMoreTx}
+                  className="text-xs font-medium text-[#1A77A3] hover:underline disabled:opacity-50 flex items-center gap-1.5">
+                  {loadingMoreTx && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Muat Lebih Banyak ({transactions.length} dari {txMeta.total})
+                </button>
+              </div>
+            )}
           </div>
         </>
       )}

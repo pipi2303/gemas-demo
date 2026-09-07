@@ -35,7 +35,7 @@
 
 import { Router, Response } from 'express';
 import { getPool } from '../lib/db.js';
-import { requireRealDb, FINANCE_ORG } from '../lib/financeCrud.js';
+import { requireRealDb, FINANCE_ORG, parsePagination, paginationMeta } from '../lib/financeCrud.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { requireFinancePermission } from '../middleware/checkFinancePermission.js';
 import { logger } from '../lib/logger.js';
@@ -53,6 +53,9 @@ router.get('/bank-statements', requireFinancePermission('view'), async (req: Aut
     const conditions = ['bs.organization_id = $1'];
     const params: any[] = [FINANCE_ORG];
     if (req.query.bankAccountId) { params.push(req.query.bankAccountId); conditions.push(`bs.bank_account_id = $${params.length}`); }
+    const { page, pageSize, offset } = parsePagination(req);
+    const countRes = await pool.query(`SELECT COUNT(*)::int AS total FROM finance.bank_statements bs WHERE ${conditions.join(' AND ')}`, params);
+    const dataParams = [...params, pageSize, offset];
     const result = await pool.query(
       `SELECT bs.*,
          (SELECT COUNT(*) FROM finance.bank_statement_lines bsl WHERE bsl.statement_id = bs.id) AS line_count,
@@ -61,10 +64,11 @@ router.get('/bank-statements', requireFinancePermission('view'), async (req: Aut
          (SELECT r.status FROM finance.reconciliations r WHERE r.statement_id = bs.id AND r.status <> 'CANCELLED' LIMIT 1) AS reconciliation_status
        FROM finance.bank_statements bs
        WHERE ${conditions.join(' AND ')}
-       ORDER BY bs.statement_date DESC`,
-      params
+       ORDER BY bs.statement_date DESC
+       LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`,
+      dataParams
     );
-    res.json({ success: true, data: result.rows });
+    res.json({ success: true, data: result.rows, meta: paginationMeta(countRes.rows[0].total, page, pageSize) });
   } catch (err) {
     logger.error('GET reconciliation/bank-statements', { message: String(err) });
     res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal mengambil daftar rekening koran' } });
@@ -161,6 +165,9 @@ router.get('/', requireFinancePermission('view'), async (req: AuthRequest, res: 
     const params: any[] = [FINANCE_ORG];
     if (req.query.bankAccountId) { params.push(req.query.bankAccountId); conditions.push(`r.bank_account_id = $${params.length}`); }
     if (req.query.periodId) { params.push(req.query.periodId); conditions.push(`r.period_id = $${params.length}`); }
+    const { page, pageSize, offset } = parsePagination(req);
+    const countRes = await pool.query(`SELECT COUNT(*)::int AS total FROM finance.reconciliations r WHERE ${conditions.join(' AND ')}`, params);
+    const dataParams = [...params, pageSize, offset];
     const result = await pool.query(
       `SELECT r.*, ba.bank_name, ba.account_name, ba.account_number,
          p.code AS period_code, p.name AS period_name,
@@ -170,10 +177,11 @@ router.get('/', requireFinancePermission('view'), async (req: AuthRequest, res: 
        JOIN finance.periods p ON p.id = r.period_id
        LEFT JOIN finance.bank_statements bs ON bs.id = r.statement_id
        WHERE ${conditions.join(' AND ')}
-       ORDER BY bs.statement_date DESC NULLS LAST, r.created_at DESC`,
-      params
+       ORDER BY bs.statement_date DESC NULLS LAST, r.created_at DESC
+       LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`,
+      dataParams
     );
-    res.json({ success: true, data: result.rows });
+    res.json({ success: true, data: result.rows, meta: paginationMeta(countRes.rows[0].total, page, pageSize) });
   } catch (err) {
     logger.error('GET reconciliation/', { message: String(err) });
     res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal mengambil daftar sesi rekonsiliasi' } });

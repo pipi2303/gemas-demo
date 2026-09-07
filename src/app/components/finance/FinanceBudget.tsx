@@ -14,9 +14,12 @@ function formatRp(n: unknown) {
   return `Rp ${v.toLocaleString('id-ID')}`;
 }
 
+interface PageMeta { total: number; page: number; pageSize: number; totalPages: number }
+
 interface ApiResponse<T> {
   success: boolean;
   data?: T;
+  meta?: PageMeta;
   error?: { code: string; message: string };
 }
 
@@ -26,6 +29,12 @@ async function callApi<T = any>(method: 'get' | 'post' | 'put' | 'delete', url: 
     : await (api as any)[method]<ApiResponse<T>>(url, body ?? {});
   if (!res.success) throw new Error(res.error?.message || 'Terjadi kesalahan');
   return res.data as T;
+}
+
+async function callApiPaged<T = any>(url: string): Promise<{ data: T; meta?: PageMeta }> {
+  const res = await (api as any).get<ApiResponse<T>>(url);
+  if (!res.success) throw new Error(res.error?.message || 'Terjadi kesalahan');
+  return { data: res.data as T, meta: res.meta };
 }
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string; border: string }> = {
@@ -456,6 +465,8 @@ export function FinanceBudget({ onNavigate }: { onNavigate?: (page: string) => v
   const [selectedFiscalYearId, setSelectedFiscalYearId] = useState<string>('');
   const [budgets, setBudgets] = useState<any[]>([]);
   const [loadingBudgets, setLoadingBudgets] = useState(true);
+  const [loadingMoreBudgets, setLoadingMoreBudgets] = useState(false);
+  const [budgetsMeta, setBudgetsMeta] = useState<PageMeta | null>(null);
   const [selectedBudget, setSelectedBudget] = useState<any | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState({ code: '', name: '' });
@@ -485,11 +496,12 @@ export function FinanceBudget({ onNavigate }: { onNavigate?: (page: string) => v
   useEffect(() => { loadLookups(); }, [loadLookups]);
 
   const loadBudgets = useCallback(async () => {
-    if (!selectedFiscalYearId) { setBudgets([]); setLoadingBudgets(false); return; }
+    if (!selectedFiscalYearId) { setBudgets([]); setBudgetsMeta(null); setLoadingBudgets(false); return; }
     setLoadingBudgets(true);
     try {
-      const data = await callApi<any[]>('get', `/api/v1/finance/budgets?fiscalYearId=${selectedFiscalYearId}`);
+      const { data, meta } = await callApiPaged<any[]>(`/api/v1/finance/budgets?fiscalYearId=${selectedFiscalYearId}&page=1`);
       setBudgets(data);
+      setBudgetsMeta(meta ?? null);
     } catch (err: any) {
       toast.error(err?.message || 'Gagal memuat daftar RKA');
     } finally {
@@ -498,6 +510,21 @@ export function FinanceBudget({ onNavigate }: { onNavigate?: (page: string) => v
   }, [selectedFiscalYearId]);
 
   useEffect(() => { loadBudgets(); }, [loadBudgets]);
+
+  const loadMoreBudgets = async () => {
+    if (!budgetsMeta || budgetsMeta.page >= budgetsMeta.totalPages) return;
+    setLoadingMoreBudgets(true);
+    try {
+      const nextPage = budgetsMeta.page + 1;
+      const { data, meta } = await callApiPaged<any[]>(`/api/v1/finance/budgets?fiscalYearId=${selectedFiscalYearId}&page=${nextPage}`);
+      setBudgets(prev => [...prev, ...data]);
+      setBudgetsMeta(meta ?? null);
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal memuat RKA selanjutnya');
+    } finally {
+      setLoadingMoreBudgets(false);
+    }
+  };
 
   const handleCreate = async () => {
     if (!createForm.code.trim() || !createForm.name.trim()) {
@@ -630,6 +657,15 @@ export function FinanceBudget({ onNavigate }: { onNavigate?: (page: string) => v
                 ))}
               </tbody>
             </table>
+            {budgetsMeta && budgetsMeta.page < budgetsMeta.totalPages && (
+              <div className="flex items-center justify-center py-3 border-t border-slate-100">
+                <button onClick={loadMoreBudgets} disabled={loadingMoreBudgets}
+                  className="text-xs font-medium text-[#1A77A3] hover:underline disabled:opacity-50 flex items-center gap-1.5">
+                  {loadingMoreBudgets && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Muat Lebih Banyak ({budgets.length} dari {budgetsMeta.total})
+                </button>
+              </div>
+            )}
           </div>
         </>
       )}

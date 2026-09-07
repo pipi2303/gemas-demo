@@ -12,7 +12,7 @@
 
 import { Router, Response } from 'express';
 import { getPool } from '../lib/db.js';
-import { requireRealDb, FINANCE_ORG } from '../lib/financeCrud.js';
+import { requireRealDb, FINANCE_ORG, parsePagination, paginationMeta } from '../lib/financeCrud.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { requireFinancePermission } from '../middleware/checkFinancePermission.js';
 import { logger } from '../lib/logger.js';
@@ -38,11 +38,14 @@ router.get('/', requireFinancePermission('view'), async (req: AuthRequest, res: 
       ? 'organization_id = $1 AND fiscal_year_id = $2'
       : 'organization_id = $1';
     const params = fiscalYearId ? [FINANCE_ORG, fiscalYearId] : [FINANCE_ORG];
+    const { page, pageSize, offset } = parsePagination(req);
+    const countRes = await pool.query(`SELECT COUNT(*)::int AS total FROM finance.budgets WHERE ${where}`, params);
+    const dataParams = [...params, pageSize, offset];
     const result = await pool.query(
-      `SELECT * FROM finance.budgets WHERE ${where} ORDER BY fiscal_year_id DESC, version DESC`,
-      params
+      `SELECT * FROM finance.budgets WHERE ${where} ORDER BY fiscal_year_id DESC, version DESC LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`,
+      dataParams
     );
-    res.json({ success: true, data: result.rows });
+    res.json({ success: true, data: result.rows, meta: paginationMeta(countRes.rows[0].total, page, pageSize) });
   } catch (err) {
     logger.error('GET budgets', { message: String(err) });
     res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal mengambil data RKA' } });
