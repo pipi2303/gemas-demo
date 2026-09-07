@@ -318,11 +318,11 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
                   <span style={{fontSize:'12px',color:'rgba(255,255,255,0.55)'}}>
                     No. Induk: {member.memberNumber||'—'} · {sector?.name||'—'}
                   </span>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap mt-2">
                   {member.familyRole && (() => { const rs=roleStyle(member.familyRole); return (
                     <span className="px-1.5 py-0.5 rounded text-xs font-semibold" style={{background:rs.bg,color:rs.text,border:`1px solid ${rs.border}`}}>{member.familyRole}</span>
                   );})()}
-                </div>
-                <div className="flex items-center gap-2 mt-2">
                   <StatusBadge status={member.membershipStatus}/>
                   <span className="px-2 py-0.5 rounded-full text-xs" style={{background:'rgba(255,255,255,0.1)',color:'rgba(255,255,255,0.7)'}}>
                     {member.gender}
