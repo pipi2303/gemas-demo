@@ -38,6 +38,7 @@ import { getPool } from '../lib/db.js';
 import { requireRealDb, FINANCE_ORG, parsePagination, paginationMeta } from '../lib/financeCrud.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { requireFinancePermission } from '../middleware/checkFinancePermission.js';
+import { recordFinanceAudit } from '../lib/financeAudit.js';
 import { logger } from '../lib/logger.js';
 
 const router = Router();
@@ -504,6 +505,7 @@ router.put('/:id/complete', requireFinancePermission('approve'), async (req: Aut
       [session.id, req.user!.userId]
     );
     logger.info('Reconciliation completed', { user: req.user?.username, reconciliationId: session.id });
+    await recordFinanceAudit(req, 'Diselesaikan', 'FinanceReconciliation', session.id, `Sesi ${session.id.slice(0, 8)}`, `Sesi rekonsiliasi ${session.id.slice(0, 8)} diselesaikan (saldo cocok)`, 'sensitive');
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
     logger.error('PUT reconciliation/:id/complete', { message: String(err) });
@@ -531,6 +533,7 @@ router.put('/:id/approve', requireFinancePermission('approve'), async (req: Auth
       [session.id, req.user!.userId]
     );
     logger.info('Reconciliation approved', { user: req.user?.username, reconciliationId: session.id });
+    await recordFinanceAudit(req, 'Disetujui', 'FinanceReconciliation', session.id, `Sesi ${session.id.slice(0, 8)}`, `Sesi rekonsiliasi ${session.id.slice(0, 8)} disetujui`, 'sensitive');
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
     logger.error('PUT reconciliation/:id/approve', { message: String(err) });
@@ -553,6 +556,7 @@ router.put('/:id/cancel', requireFinancePermission('edit'), async (req: AuthRequ
       [session.id, req.body?.reason || null]
     );
     logger.info('Reconciliation cancelled', { user: req.user?.username, reconciliationId: session.id });
+    await recordFinanceAudit(req, 'Dibatalkan', 'FinanceReconciliation', session.id, `Sesi ${session.id.slice(0, 8)}`, `Sesi rekonsiliasi ${session.id.slice(0, 8)} dibatalkan`, 'normal');
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
     logger.error('PUT reconciliation/:id/cancel', { message: String(err) });

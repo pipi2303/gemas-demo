@@ -40,6 +40,7 @@ import { getPool } from '../lib/db.js';
 import { requireRealDb, FINANCE_ORG, parsePagination, paginationMeta } from '../lib/financeCrud.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { requireFinancePermission } from '../middleware/checkFinancePermission.js';
+import { recordFinanceAudit } from '../lib/financeAudit.js';
 import { logger } from '../lib/logger.js';
 
 const router = Router();
@@ -309,6 +310,7 @@ router.put('/:id/submit', requireFinancePermission('edit'), async (req: AuthRequ
       [tx.voucher_id, req.user!.userId]
     );
     logger.info('Transaction submitted', { user: req.user?.username, transactionId: req.params.id });
+    await recordFinanceAudit(req, 'Diajukan', 'FinanceTransaction', tx.id, tx.voucher_number, `Transaksi ${tx.voucher_number} diajukan untuk verifikasi`, 'sensitive');
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
     logger.error('PUT transactions/:id/submit', { message: String(err) });
@@ -336,6 +338,7 @@ router.put('/:id/verify', requireFinancePermission('approve'), async (req: AuthR
       [req.params.id, FINANCE_ORG, req.user!.userId]
     );
     logger.info('Transaction verified', { user: req.user?.username, transactionId: req.params.id });
+    await recordFinanceAudit(req, 'Diverifikasi', 'FinanceTransaction', tx.id, tx.voucher_number, `Transaksi ${tx.voucher_number} diverifikasi`, 'sensitive');
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
     logger.error('PUT transactions/:id/verify', { message: String(err) });
@@ -367,6 +370,7 @@ router.put('/:id/approve', requireFinancePermission('approve'), async (req: Auth
       [req.params.id, FINANCE_ORG, req.user!.userId]
     );
     logger.info('Transaction approved', { user: req.user?.username, transactionId: req.params.id });
+    await recordFinanceAudit(req, 'Disetujui', 'FinanceTransaction', tx.id, tx.voucher_number, `Transaksi ${tx.voucher_number} disetujui`, 'sensitive');
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
     logger.error('PUT transactions/:id/approve', { message: String(err) });
@@ -395,6 +399,7 @@ router.put('/:id/reject', requireFinancePermission('approve'), async (req: AuthR
       [req.params.id, FINANCE_ORG, reason, req.user!.userId]
     );
     logger.info('Transaction rejected', { user: req.user?.username, transactionId: req.params.id, reason });
+    await recordFinanceAudit(req, 'Ditolak', 'FinanceTransaction', tx.id, tx.voucher_number, `Transaksi ${tx.voucher_number} ditolak — alasan: ${reason}`, 'sensitive');
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
     logger.error('PUT transactions/:id/reject', { message: String(err) });
@@ -418,6 +423,7 @@ router.put('/:id/revise', requireFinancePermission('edit'), async (req: AuthRequ
       [req.params.id, FINANCE_ORG, req.user!.userId]
     );
     logger.info('Transaction sent back to draft for revision', { user: req.user?.username, transactionId: req.params.id });
+    await recordFinanceAudit(req, 'Direvisi', 'FinanceTransaction', tx.id, tx.voucher_number, `Transaksi ${tx.voucher_number} dikembalikan ke Draft untuk direvisi`, 'normal');
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
     logger.error('PUT transactions/:id/revise', { message: String(err) });
@@ -498,6 +504,7 @@ router.put('/:id/post', requireFinancePermission('approve'), async (req: AuthReq
 
     await client.query('COMMIT');
     logger.info('Transaction posted to GL', { user: req.user?.username, transactionId: tx.id, journalNumber });
+    await recordFinanceAudit(req, 'Diposting', 'FinanceTransaction', tx.id, journalNumber, `Transaksi ${tx.id} diposting ke General Ledger sebagai jurnal ${journalNumber}`, 'critical');
     res.json({ success: true, data: { ...updated.rows[0], journal_number: journalNumber } });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
@@ -585,6 +592,7 @@ router.put('/:id/reverse', requireFinancePermission('approve'), async (req: Auth
 
     await client.query('COMMIT');
     logger.info('Transaction reversed', { user: req.user?.username, transactionId: tx.id, reversalJournalNumber: journalNumber });
+    await recordFinanceAudit(req, 'Dibalik', 'FinanceTransaction', tx.id, journalNumber, `Jurnal ${origJournal.journal_number} dibalik melalui jurnal pembalik ${journalNumber}`, 'critical');
     res.json({ success: true, data: { ...updated.rows[0], reversal_journal_number: journalNumber } });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});

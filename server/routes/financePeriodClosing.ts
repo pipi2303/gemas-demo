@@ -35,6 +35,7 @@ import { getPool } from '../lib/db.js';
 import { requireRealDb, FINANCE_ORG } from '../lib/financeCrud.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { requireFinancePermission } from '../middleware/checkFinancePermission.js';
+import { recordFinanceAudit } from '../lib/financeAudit.js';
 import { logger } from '../lib/logger.js';
 
 const router = Router();
@@ -197,6 +198,7 @@ router.put('/:periodId/close', requireFinancePermission('approve'), async (req: 
     );
     await client.query('COMMIT');
     logger.info('Period closed', { user: req.user?.username, periodId: period.id });
+    await recordFinanceAudit(req, 'Ditutup', 'FinancePeriod', period.id, period.name, `Periode ${period.name} ditutup`, 'critical');
     res.json({ success: true, data: null });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
@@ -252,6 +254,7 @@ router.put('/:periodId/reopen', requireFinancePermission('approve'), async (req:
     );
     await client.query('COMMIT');
     logger.info('Period reopened', { user: req.user?.username, periodId: period.id, reason });
+    await recordFinanceAudit(req, 'Dibuka Kembali', 'FinancePeriod', period.id, period.name, `Periode ${period.name} dibuka kembali — alasan: ${reason}`, 'critical');
     res.json({ success: true, data: null });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});

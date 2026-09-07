@@ -15,6 +15,7 @@ import { getPool } from '../lib/db.js';
 import { requireRealDb, FINANCE_ORG, parsePagination, paginationMeta } from '../lib/financeCrud.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { requireFinancePermission } from '../middleware/checkFinancePermission.js';
+import { recordFinanceAudit } from '../lib/financeAudit.js';
 import { logger } from '../lib/logger.js';
 
 const router = Router();
@@ -165,6 +166,7 @@ router.put('/:id/submit', requireFinancePermission('edit'), async (req: AuthRequ
       [req.params.id, FINANCE_ORG, req.user!.userId]
     );
     logger.info('Budget submitted', { user: req.user?.username, budgetId: req.params.id });
+    await recordFinanceAudit(req, 'Diajukan', 'FinanceBudget', budget.id, `${budget.code} — ${budget.name}`, `RKA ${budget.code} diajukan untuk persetujuan`, 'sensitive');
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
     logger.error('PUT budgets/:id/submit', { message: String(err) });
@@ -191,6 +193,7 @@ router.put('/:id/approve', requireFinancePermission('approve'), async (req: Auth
       [req.params.id, FINANCE_ORG, req.user!.userId]
     );
     logger.info('Budget approved', { user: req.user?.username, budgetId: req.params.id });
+    await recordFinanceAudit(req, 'Disetujui', 'FinanceBudget', budget.id, `${budget.code} — ${budget.name}`, `RKA ${budget.code} disetujui`, 'sensitive');
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
     logger.error('PUT budgets/:id/approve', { message: String(err) });
@@ -222,6 +225,7 @@ router.put('/:id/reject', requireFinancePermission('approve'), async (req: AuthR
       [req.params.id, FINANCE_ORG, reason, req.user!.userId]
     );
     logger.info('Budget rejected', { user: req.user?.username, budgetId: req.params.id, reason });
+    await recordFinanceAudit(req, 'Ditolak', 'FinanceBudget', budget.id, `${budget.code} — ${budget.name}`, `RKA ${budget.code} dikembalikan ke Draft — alasan: ${reason}`, 'sensitive');
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
     logger.error('PUT budgets/:id/reject', { message: String(err) });
@@ -258,6 +262,7 @@ router.put('/:id/activate', requireFinancePermission('approve'), async (req: Aut
     );
     await client.query('COMMIT');
     logger.info('Budget activated', { user: req.user?.username, budgetId: req.params.id });
+    await recordFinanceAudit(req, 'Diaktifkan', 'FinanceBudget', budget.id, `${budget.code} — ${budget.name}`, `RKA ${budget.code} diaktifkan sebagai anggaran berlaku untuk tahun fiskal ini`, 'critical');
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
