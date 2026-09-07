@@ -14,7 +14,7 @@ import {
   BookOpen, FileText, HeartHandshake, Heart,
   MessageSquareHeart, BarChart3, Sliders,
   QrCode, Book, Home, MapPin, Cross, Library, DoorOpen, Gift,
-  Bell, ChevronRight as BreadcrumbArrow, Printer, FileSpreadsheet, Landmark, ClipboardList, Receipt, Inbox, ArrowLeftRight, CalendarCheck
+  Bell, ChevronRight as BreadcrumbArrow, Printer, FileSpreadsheet, Landmark, ClipboardList, Receipt, Inbox, ArrowLeftRight, CalendarCheck, FileBarChart
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -218,6 +218,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
         { id: 'finance-ledger',      label: 'Buku Besar (GL)',       page: 'finance-ledger',      icon: BookOpen },
         { id: 'finance-reconciliation', label: 'Rekonsiliasi Bank',  page: 'finance-reconciliation', icon: ArrowLeftRight },
         { id: 'finance-period-closing', label: 'Penutupan Periode',  page: 'finance-period-closing', icon: CalendarCheck },
+        { id: 'finance-reports',     label: 'Laporan Keuangan',      page: 'finance-reports',     icon: FileBarChart },
       ],
     },
     {
