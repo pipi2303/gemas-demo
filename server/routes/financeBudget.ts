@@ -178,6 +178,10 @@ router.put('/:id/approve', requireFinancePermission('approve'), async (req: Auth
       res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Hanya RKA berstatus Diajukan yang bisa disetujui' } });
       return;
     }
+    if (budget.created_by === req.user!.userId || budget.submitted_by === req.user!.userId) {
+      res.status(403).json({ success: false, error: { code: 'SEGREGATION_OF_DUTIES', message: 'Pembuat/pengaju RKA tidak bisa menyetujui RKA-nya sendiri — perlu orang lain (segregation of duties)' } });
+      return;
+    }
     const result = await pool.query(
       `UPDATE finance.budgets SET status = 'APPROVED', approved_at = NOW(), approved_by = $3, updated_at = NOW(), updated_by = $3
        WHERE id = $1 AND organization_id = $2 RETURNING *`,
@@ -203,6 +207,10 @@ router.put('/:id/reject', requireFinancePermission('approve'), async (req: AuthR
     if (!budget) return;
     if (budget.status !== 'SUBMITTED') {
       res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Hanya RKA berstatus Diajukan yang bisa dikembalikan' } });
+      return;
+    }
+    if (budget.created_by === req.user!.userId || budget.submitted_by === req.user!.userId) {
+      res.status(403).json({ success: false, error: { code: 'SEGREGATION_OF_DUTIES', message: 'Pembuat/pengaju RKA tidak bisa menolak/mengembalikan RKA-nya sendiri — perlu orang lain (segregation of duties)' } });
       return;
     }
     const result = await pool.query(
