@@ -471,7 +471,47 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
           )}
 
           {/* ── TAB ATESTASI ───────────────────────────────────────────── */}
-          {tab==='atestasi' && (
+          {tab==='atestasi' && <AttestationsTabContent member={member} memberAttestations={memberAttestations} onShowAttForm={()=>setShowAttForm(true)}/>}
+
+          {/* ── TAB ASET ──────────────────────────────────────────────── */}
+          {tab==='aset' && <AssetsTabContent memberAssets={memberAssets} borrowedAssets={borrowedAssets}/>}
+
+          {/* ── TAB DOKUMENTASI ──────────────────────────────────────── */}
+          {tab==='dokumen' && (
+            <DocumentsTabContent
+              memberDocuments={memberDocuments} canEdit={detailCanEdit} canDelete={detailCanDelete}
+              uploadingDoc={uploadingDoc} docFileInputRef={docFileInputRef}
+              onUploadClick={handleUploadDocClick} onFileSelected={handleDocFileSelected}
+              onViewDocument={handleViewDocument} onDeleteDocument={handleDeleteDocument}
+            />
+          )}
+        </div>
+        <div className="px-6 py-4 border-t flex justify-end gap-3 flex-shrink-0" style={{borderColor:'#f1f5f9'}}>
+          {detailCanEdit && (
+            <button onClick={onEdit} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90" style={{background:'#1A77A3'}}>
+              <Pencil className="w-3.5 h-3.5"/> Edit Data
+            </button>
+          )}
+          <button onClick={onClose} className="px-4 py-2 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors" style={{borderColor:'#e2e8f0'}}>Tutup</button>
+        </div>
+      </div>
+    </div>
+    {showAttForm && (
+      <AttestationForm
+        initial={{ memberId: member.id, memberName: member.fullName }}
+        members={members}
+        onSave={handleSaveAttestation}
+        onClose={() => setShowAttForm(false)}
+      />
+    )}
+    </>
+  );
+}
+// ── Shared tab panels (dipakai di MemberDetail & MemberForm agar tampilan konsisten) ──
+function AttestationsTabContent({ member, memberAttestations, onShowAttForm }: {
+  member: Member; memberAttestations: Attestation[]; onShowAttForm: () => void;
+}) {
+  return (
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
@@ -485,7 +525,7 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
                     {memberAttestations.length} catatan
                   </span>
                   <button
-                    onClick={() => setShowAttForm(true)}
+                    onClick={() => onShowAttForm()}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-90 active:scale-95"
                     style={{background:'#9c9486',color:'#fff',boxShadow:'0 1px 4px rgba(217,119,6,0.3)'}}>
                     <Plus className="w-3 h-3"/> Ajukan Atestasi
@@ -501,7 +541,7 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
                   <p style={{fontSize:'13px',fontWeight:600,color:'#94a3b8'}}>Belum ada data atestasi</p>
                   <p style={{fontSize:'12px',color:'#cbd5e1',marginTop:4,marginBottom:12}}>Riwayat atestasi anggota ini akan muncul di sini</p>
                   <button
-                    onClick={() => setShowAttForm(true)}
+                    onClick={() => onShowAttForm()}
                     className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-90 active:scale-95"
                     style={{background:'#9c9486',color:'#fff'}}>
                     <Plus className="w-3.5 h-3.5"/> Ajukan Atestasi Baru
@@ -564,10 +604,12 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
                 </div>
               )}
             </div>
-          )}
+  );
+}
 
-          {/* ── TAB ASET ──────────────────────────────────────────────── */}
-          {tab==='aset' && (() => {
+function AssetsTabContent({ memberAssets, borrowedAssets }: {
+  memberAssets: ChurchAsset[]; borrowedAssets: ChurchAsset[];
+}) {
             const condCfg: Record<string,{text:string;bg:string;border:string}> = {
               'Baik':         {text:'#1A77A3',bg:'#f0fdf4',border:'#b8d5e8'},
               'Cukup Baik':   {text:'#2563eb',bg:'#eff6ff',border:'#bfdbfe'},
@@ -754,14 +796,19 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
                 )}
               </div>
             );
-          })()}
+}
 
-          {/* ── TAB DOKUMENTASI ──────────────────────────────────────── */}
-          {tab==='dokumen' && (
+function DocumentsTabContent({ memberDocuments, canEdit, canDelete, uploadingDoc, docFileInputRef, onUploadClick, onFileSelected, onViewDocument, onDeleteDocument }: {
+  memberDocuments: MemberDocument[]; canEdit: boolean; canDelete: boolean; uploadingDoc: boolean;
+  docFileInputRef: React.RefObject<HTMLInputElement>; onUploadClick: () => void;
+  onFileSelected: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onViewDocument: (doc: MemberDocument) => void; onDeleteDocument: (doc: MemberDocument) => void;
+}) {
+  return (
             <div className="space-y-4">
-              <input ref={docFileInputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={handleDocFileSelected}/>
-              {detailCanEdit && (
-                <button onClick={handleUploadDocClick} disabled={uploadingDoc}
+              <input ref={docFileInputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={onFileSelected}/>
+              {canEdit && (
+                <button onClick={onUploadClick} disabled={uploadingDoc}
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed text-sm font-semibold transition-colors disabled:opacity-60"
                   style={{borderColor:'#b8d5e8',color:'#1A77A3',background:'#f0fdf4'}}>
                   {uploadingDoc ? <Loader2 className="w-4 h-4 animate-spin"/> : <Upload className="w-4 h-4"/>}
@@ -790,9 +837,9 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
                         <p style={{fontSize:'11px',color:'#94a3b8'}}>{formatBytes(doc.fileSize)} · {fmtDate(doc.uploadedAt)} · {doc.uploadedBy}</p>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        <button data-tooltip="Lihat" onClick={()=>handleViewDocument(doc)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#1A77A3] transition-colors"><Eye className="w-4 h-4"/></button>
-                        {detailCanDelete && (
-                          <button data-tooltip="Hapus" onClick={()=>handleDeleteDocument(doc)} className="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4"/></button>
+                        <button data-tooltip="Lihat" onClick={()=>onViewDocument(doc)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#1A77A3] transition-colors"><Eye className="w-4 h-4"/></button>
+                        {canDelete && (
+                          <button data-tooltip="Hapus" onClick={()=>onDeleteDocument(doc)} className="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4"/></button>
                         )}
                       </div>
                     </div>
@@ -800,29 +847,9 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
                 </div>
               )}
             </div>
-          )}
-        </div>
-        <div className="px-6 py-4 border-t flex justify-end gap-3 flex-shrink-0" style={{borderColor:'#f1f5f9'}}>
-          {detailCanEdit && (
-            <button onClick={onEdit} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90" style={{background:'#1A77A3'}}>
-              <Pencil className="w-3.5 h-3.5"/> Edit Data
-            </button>
-          )}
-          <button onClick={onClose} className="px-4 py-2 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors" style={{borderColor:'#e2e8f0'}}>Tutup</button>
-        </div>
-      </div>
-    </div>
-    {showAttForm && (
-      <AttestationForm
-        initial={{ memberId: member.id, memberName: member.fullName }}
-        members={members}
-        onSave={handleSaveAttestation}
-        onClose={() => setShowAttForm(false)}
-      />
-    )}
-    </>
   );
 }
+
 
 // ── MEMBER FORM ───────────────────────────────────────────────────────────────
 const EMPTY_FORM = {
@@ -865,13 +892,16 @@ function MemberField({ label, value, onChange, type='text', opts, required, auto
   );
 }
 
-function MemberForm({ mode, initial, sectors, families, onSave, onClose }: {
+function MemberForm({ mode, initial, sectors, families, attestations, members, onSave, onClose }: {
   mode:'add'|'edit'; initial?: Partial<typeof EMPTY_FORM>;
-  sectors:any[]; families:any[];
+  sectors:any[]; families:any[]; attestations:Attestation[]; members:any[];
   onSave:(data:typeof EMPTY_FORM)=>void; onClose:()=>void;
 }) {
   const { offset, onMouseDown } = useDraggable();
-  const { getMasterDataByCategory } = useApp();
+  const { getMasterDataByCategory, can: canFn, currentUser } = useApp();
+  const editCanEdit   = canFn('Database Warga', 'edit');
+  const editCanDelete = canFn('Database Warga', 'delete');
+  const editMember = mode === 'edit' ? (initial as any as Member) : undefined;
   const jabatanOpts    = getMasterDataByCategory('jabatan_pelayanan').map(m => m.value);
   const pelkatOpts     = getMasterDataByCategory('pelkat').map(m => m.value);
   const pendidikanOpts = getMasterDataByCategory('pendidikan').map(m => m.value);
@@ -879,12 +909,147 @@ function MemberForm({ mode, initial, sectors, families, onSave, onClose }: {
   const tipeKeanggotaanOpts  = getMasterDataByCategory('tipe_keanggotaan').map(m => m.value);
   const golonganDarahOpts    = getMasterDataByCategory('golongan_darah').map(m => m.value);
   const [form, setForm] = useState<typeof EMPTY_FORM>({ ...EMPTY_FORM, ...initial });
-  const [tab, setTab] = useState<'identitas'|'gereja'|'kontak'|'kerja'>('identitas');
+  const [tab, setTab] = useState<'identitas'|'gereja'|'kontak'|'kerja'|'atestasi'|'aset'|'dokumen'>('identitas');
   const [err, setErr] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const h = (k:string,v:any)=>{ setForm(p=>({...p,[k]:v})); setIsDirty(true); };
   useUnsavedChanges(isDirty);
+
+  // ── Atestasi / Aset / Dokumentasi (mode edit) — sama seperti MemberDetail agar tampilan konsisten ──
+  const memberAttestations = useMemo(() =>
+    editMember ? (attestations || []).filter(a =>
+      (a.memberId && a.memberId === editMember.id) ||
+      (!a.memberId && a.memberName === editMember.fullName)
+    ) : [],
+  [attestations, editMember]);
+
+  const [showAttForm, setShowAttForm] = useState(false);
+
+  const handleSaveAttestation = (data: any) => {
+    if (!editMember) return;
+    const newAtt: Attestation = {
+      ...data,
+      id: 'at' + Date.now(),
+      memberId: editMember.id,
+      memberName: editMember.fullName,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    api.put(`/api/data/attestations/${newAtt.id}`, newAtt)
+      .catch(err => console.error('[MemberForm] attestation save:', err));
+    window.dispatchEvent(new CustomEvent('gpib:attestations:updated'));
+    toast.success(`Atestasi "${data.type}" untuk ${editMember.fullName} berhasil diajukan`, {
+      description: `Gereja Tujuan: ${data.toChurch || '—'} · Status: ${data.status}`,
+      duration: 4000,
+    });
+    setShowAttForm(false);
+  };
+
+  const [memberAssets, setMemberAssets] = useState<ChurchAsset[]>([]);
+  const [borrowedAssets, setBorrowedAssets] = useState<ChurchAsset[]>([]);
+  useMemo(() => {
+    if (!editMember) return;
+    api.get<ChurchAsset[]>('/api/data/churchAssets').then(all => {
+      if (!all) return;
+      const managed: ChurchAsset[] = [];
+      const borrowed: ChurchAsset[] = [];
+      all.forEach(a => {
+        const isManaged = a.memberId
+          ? a.memberId === editMember.id
+          : (() => { const rp = (a.responsiblePerson||'').toLowerCase(); const nm = editMember.fullName.toLowerCase(); return rp && (rp.includes(nm)||nm.includes(rp)); })();
+        const isBorrowed = (a.loanStatus||'Tersedia') === 'Dipinjam' && (
+          (a.borrowedById && a.borrowedById === editMember.id) ||
+          (!a.borrowedById && a.borrowedByName && a.borrowedByName.toLowerCase().includes(editMember.fullName.toLowerCase()))
+        );
+        if (isBorrowed) borrowed.push(a);
+        else if (isManaged) managed.push(a);
+      });
+      setMemberAssets(managed);
+      setBorrowedAssets(borrowed);
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editMember?.id, editMember?.fullName]);
+
+  const [memberDocuments, setMemberDocuments] = useState<MemberDocument[]>([]);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const docFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const loadMemberDocuments = () => {
+    if (!editMember) return;
+    api.get<MemberDocument[]>('/api/data/memberDocuments').then(all => {
+      setMemberDocuments((all || []).filter(d => d.memberId === editMember.id));
+    }).catch(() => {});
+  };
+  useEffect(() => {
+    loadMemberDocuments();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editMember?.id]);
+
+  const handleUploadDocClick = () => docFileInputRef.current?.click();
+
+  const handleDocFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!editMember) return;
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      toast.error('Hanya file PDF yang diperbolehkan');
+      return;
+    }
+    if (file.size > MAX_DOCUMENT_BYTES) {
+      toast.error(`Ukuran file melebihi batas 2MB (file ini ${formatBytes(file.size)})`);
+      return;
+    }
+    setUploadingDoc(true);
+    try {
+      const base64: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+        reader.onerror = () => reject(new Error('Gagal membaca file'));
+        reader.readAsDataURL(file);
+      });
+      const id = 'doc' + Date.now();
+      const doc: MemberDocument = {
+        id, memberId: editMember.id, fileName: file.name, fileSize: file.size,
+        mimeType: 'application/pdf', fileData: base64,
+        uploadedAt: new Date().toISOString(), uploadedBy: currentUser?.name || 'Administrator',
+      };
+      await api.put(`/api/data/memberDocuments/${id}`, doc);
+      setMemberDocuments(prev => [doc, ...prev]);
+      toast.success(`Dokumen "${file.name}" berhasil diunggah`);
+    } catch (err) {
+      toast.error('Gagal mengunggah dokumen. Silakan coba lagi');
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
+  const handleViewDocument = (doc: MemberDocument) => {
+    try {
+      const byteChars = atob(doc.fileData);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+      const blob = new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      toast.error('Gagal membuka dokumen');
+    }
+  };
+
+  const handleDeleteDocument = async (doc: MemberDocument) => {
+    if (!window.confirm(`Hapus dokumen "${doc.fileName}"?`)) return;
+    try {
+      await api.delete(`/api/data/memberDocuments/${doc.id}`);
+      setMemberDocuments(prev => prev.filter(d => d.id !== doc.id));
+      toast.success(`Dokumen "${doc.fileName}" dihapus`);
+    } catch {
+      toast.error('Gagal menghapus dokumen');
+    }
+  };
 
   const validate = () => {
     if(!form.firstName) return 'Nama depan wajib diisi';
@@ -914,9 +1079,12 @@ function MemberForm({ mode, initial, sectors, families, onSave, onClose }: {
 
 
 
-  const TABS = [{id:'identitas',label:'Identitas'},{id:'gereja',label:'Gereja'},{id:'kontak',label:'Kontak'},{id:'kerja',label:'Kerja'}] as const;
+  const TABS: {id: typeof tab; label: string}[] = editMember
+    ? [{id:'identitas',label:'Identitas'},{id:'gereja',label:'Gereja'},{id:'kontak',label:'Kontak'},{id:'kerja',label:'Kerja'},{id:'atestasi',label:'Atestasi'},{id:'aset',label:'Aset'},{id:'dokumen',label:'Dokumentasi'}]
+    : [{id:'identitas',label:'Identitas'},{id:'gereja',label:'Gereja'},{id:'kontak',label:'Kontak'},{id:'kerja',label:'Kerja'}];
 
   return (
+    <>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
       <div className="w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'92vh', transform:`translate(${offset.x}px,${offset.y}px)`}} onClick={e=>e.stopPropagation()}>
         <div className="px-6 py-4 flex-shrink-0 border-b" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',borderColor:'#1e3a2a',cursor:'move'}} onMouseDown={onMouseDown}>
@@ -1013,6 +1181,16 @@ function MemberForm({ mode, initial, sectors, families, onSave, onClose }: {
               </div>
             </div>
           )}
+          {editMember && tab==='atestasi' && <AttestationsTabContent member={editMember} memberAttestations={memberAttestations} onShowAttForm={()=>setShowAttForm(true)}/>}
+          {editMember && tab==='aset' && <AssetsTabContent memberAssets={memberAssets} borrowedAssets={borrowedAssets}/>}
+          {editMember && tab==='dokumen' && (
+            <DocumentsTabContent
+              memberDocuments={memberDocuments} canEdit={editCanEdit} canDelete={editCanDelete}
+              uploadingDoc={uploadingDoc} docFileInputRef={docFileInputRef}
+              onUploadClick={handleUploadDocClick} onFileSelected={handleDocFileSelected}
+              onViewDocument={handleViewDocument} onDeleteDocument={handleDeleteDocument}
+            />
+          )}
           {err && <div className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg text-sm" style={{background:'#fef2f2',color:'#dc2626'}}><AlertCircle className="w-4 h-4"/>{err}</div>}
         </div>
 
@@ -1024,6 +1202,15 @@ function MemberForm({ mode, initial, sectors, families, onSave, onClose }: {
         </div>
       </div>
     </div>
+    {showAttForm && editMember && (
+      <AttestationForm
+        initial={{ memberId: editMember.id, memberName: editMember.fullName }}
+        members={members}
+        onSave={handleSaveAttestation}
+        onClose={() => setShowAttForm(false)}
+      />
+    )}
+    </>
   );
 }
 
@@ -2281,7 +2468,7 @@ export function MemberDatabase() {
       {showForm && (
         <MemberForm mode={formMode}
           initial={formMode==='edit'&&selected ? { ...selected } as any : undefined}
-          sectors={sectors} families={families}
+          sectors={sectors} families={families} attestations={attestations} members={members}
           onSave={handleSave} onClose={()=>{setShowForm(false);setSelected(null);}}/>
       )}
       {cardFamily && (
