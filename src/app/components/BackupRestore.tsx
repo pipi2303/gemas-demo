@@ -30,7 +30,7 @@ const COLLECTION_LABELS: Record<string, string> = {
   financialCategories:'Kategori Keuangan',
   worshipSchedules:   'Jadwal Ibadah',
   wartas:             'E-Warta',
-  liturgies:          'Liturgi Digital',
+  liturgies:          'Tata Ibadah',
   offerings:          'Persembahan',
   attestations:       'Atestasi',
   baptisms:           'Baptisan',

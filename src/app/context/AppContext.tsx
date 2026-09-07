@@ -2407,7 +2407,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       { id: 'attestations', label: 'Surat Atestasi', keywords: ['atestasi', 'surat pindah', 'pindah gereja'], icon: 'file-text', page: 'attestations' },
       { id: 'worship-schedules', label: 'Jadwal Ibadah', keywords: ['jadwal ibadah', 'kebaktian', 'ibadah minggu'], icon: 'calendar', page: 'worship-schedules' },
       { id: 'e-warta', label: 'E-Warta', keywords: ['warta', 'bulletin', 'berita gereja', 'ewarta'], icon: 'book-open', page: 'e-warta' },
-      { id: 'liturgy', label: 'Liturgi Digital', keywords: ['liturgi', 'tata ibadah', 'liturgy'], icon: 'scroll', page: 'liturgy' },
+      { id: 'liturgy', label: 'Tata Ibadah', keywords: ['liturgi', 'tata ibadah', 'liturgy', 'liturgi digital'], icon: 'scroll', page: 'liturgy' },
       { id: 'events', label: 'Kalender Acara', keywords: ['acara', 'event', 'kalender', 'kegiatan'], icon: 'calendar-days', page: 'events' },
       { id: 'ministries', label: 'Komisi & Pelayanan', keywords: ['komisi', 'pelayanan', 'ministry', 'panitia'], icon: 'users-2', page: 'ministries' },
       { id: 'livestream', label: 'Livestream Reminder', keywords: ['livestream', 'siaran langsung', 'youtube', 'live'], icon: 'video', page: 'livestream' },

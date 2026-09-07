@@ -1146,7 +1146,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
         <div className="flex gap-2 mt-4 pt-4 border-t border-gray-50 flex-wrap">
           {[
             { label: 'Jadwal Ibadah', page: 'worship-schedules' }, { label: 'E-Warta', page: 'e-warta' },
-            { label: 'Liturgi Digital', page: 'liturgy' }, { label: 'Kalender Gerejawi', page: 'events' },
+            { label: 'Tata Ibadah', page: 'liturgy' }, { label: 'Kalender Gerejawi', page: 'events' },
             { label: 'Absensi', page: 'attendance' },
             ].map((item, i) => (
             <button key={item.page} onClick={() => nav(item.page)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors" style={{ fontSize: '12px', fontWeight: 500, color: '#7c3aed', background: 'rgba(124,58,237,0.08)' }}>

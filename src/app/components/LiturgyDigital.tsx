@@ -415,7 +415,7 @@ export function LiturgyDigital() {
             <BookOpen className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Liturgi Digital</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">Tata Ibadah</h1>
             <p className="text-sm text-gray-500">Tata Ibadah terstruktur & Nyanyian Jemaat</p>
           </div>
         </div>
