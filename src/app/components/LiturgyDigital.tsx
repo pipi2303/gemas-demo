@@ -209,6 +209,11 @@ const TYPE_CONFIG: Record<WorshipType, { gradient: string; bg: string; text: str
   Khusus:    { gradient: 'from-red-600 to-rose-600',      bg: 'bg-red-50',    text: 'text-red-700',    border: 'border-red-200' },
 };
 
+// Data lama/tidak dikenal (worshipType kosong atau di luar 5 tipe di atas) jatuh ke sini
+// supaya halaman tidak crash — sebelumnya TYPE_CONFIG[l.worshipType] bisa undefined dan
+// akses .gradient di baliknya melempar TypeError yang merusak seluruh halaman Tata Ibadah.
+const DEFAULT_TYPE_CONFIG = { gradient: 'from-gray-500 to-gray-600', bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200' };
+
 const HYMN_TYPE_LABEL: Record<string, { label: string; color: string; bg: string }> = {
   opening:   { label: 'Pembukaan', color: 'text-[#144f6b]', bg: 'bg-[#f0f7fb]' },
   offering:  { label: 'Persembahan', color: 'text-[#1A77A3]', bg: 'bg-[#f6f4f0]' },
@@ -483,7 +488,7 @@ export function LiturgyDigital() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filteredLiturgies.map(l => {
-              const cfg = TYPE_CONFIG[l.worshipType];
+              const cfg = TYPE_CONFIG[l.worshipType] ?? DEFAULT_TYPE_CONFIG;
               return (
                 <div 
                   key={l.id} 
@@ -571,7 +576,7 @@ export function LiturgyDigital() {
       {/* ── Detail View ──────────────────────────────────────────────────── */}
       {view === 'detail' && selectedLiturgy && (() => {
         const l = selectedLiturgy;
-        const cfg = TYPE_CONFIG[l.worshipType];
+        const cfg = TYPE_CONFIG[l.worshipType] ?? DEFAULT_TYPE_CONFIG;
         return (
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             {/* Header */}
@@ -754,7 +759,7 @@ export function LiturgyDigital() {
             </div>
             <div className="overflow-y-auto flex-1 p-4 space-y-2">
               {liturgies.map(l => {
-                const cfg = TYPE_CONFIG[l.worshipType];
+                const cfg = TYPE_CONFIG[l.worshipType] ?? DEFAULT_TYPE_CONFIG;
                 return (
                   <button key={l.id} onClick={() => useAsTemplate(l)}
                     className="w-full text-left p-3 rounded-xl border border-gray-200 hover:border-purple-300 hover:bg-[#f0f7fb] transition-all group">
