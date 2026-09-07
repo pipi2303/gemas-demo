@@ -21,13 +21,31 @@ import {
   Heart, Baby, GraduationCap, LayoutGrid, List, ArrowUpDown,
   ArrowUp, ArrowDown, Gift, UserCheck, UserX, FileText,
   ArrowRight, ArrowLeft, Clock, RefreshCw, Ban,
-  Building2, Truck, Package, Monitor, Layers, Tag, Shield
+  Building2, Truck, Package, Monitor, Layers, Tag, Shield,
+  Upload, FolderOpen, Loader2
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }) : '—';
 const initials = (name: string) => name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+const formatBytes = (bytes: number) => {
+  if (!bytes) return '0 KB';
+  const kb = bytes / 1024;
+  return kb < 1024 ? `${kb.toFixed(0)} KB` : `${(kb/1024).toFixed(2)} MB`;
+};
+const MAX_DOCUMENT_BYTES = 2 * 1024 * 1024; // 2MB
+
+interface MemberDocument {
+  id: string;
+  memberId: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  fileData: string; // base64
+  uploadedAt: string;
+  uploadedBy: string;
+}
 
 // ── Status Badge ──────────────────────────────────────────────────────────────
 export function StatusBadge({ status }: { status?: string }) {
@@ -113,10 +131,10 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
   members: any[];
   onClose: ()=>void; onEdit: ()=>void; onDelete: ()=>void; onViewFamily?: ()=>void;
 }) {
-  const { can: canFn, families } = useApp();
+  const { can: canFn, families, currentUser } = useApp();
   const detailCanEdit   = canFn('Database Warga', 'edit');
   const detailCanDelete = canFn('Database Warga', 'delete');
-  const [tab, setTab] = useState<'personal'|'gereja'|'kontak'|'kerja'|'atestasi'|'aset'>('personal');
+  const [tab, setTab] = useState<'personal'|'gereja'|'kontak'|'kerja'|'atestasi'|'aset'|'dokumen'>('personal');
   // Drawer slide-in animation: mount closed (off-screen right), then flip open next frame.
   const [drawerOpen, setDrawerOpen] = useState(false);
   useEffect(() => {
@@ -192,6 +210,85 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [member.id, member.fullName]);
 
+  // Dokumentasi: PDF documents attached to this member (max 2MB each)
+  const [memberDocuments, setMemberDocuments] = useState<MemberDocument[]>([]);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const docFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const loadMemberDocuments = () => {
+    api.get<MemberDocument[]>('/api/data/memberDocuments').then(all => {
+      setMemberDocuments((all || []).filter(d => d.memberId === member.id));
+    }).catch(() => {});
+  };
+  useEffect(() => {
+    loadMemberDocuments();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [member.id]);
+
+  const handleUploadDocClick = () => docFileInputRef.current?.click();
+
+  const handleDocFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      toast.error('Hanya file PDF yang diperbolehkan');
+      return;
+    }
+    if (file.size > MAX_DOCUMENT_BYTES) {
+      toast.error(`Ukuran file melebihi batas 2MB (file ini ${formatBytes(file.size)})`);
+      return;
+    }
+    setUploadingDoc(true);
+    try {
+      const base64: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+        reader.onerror = () => reject(new Error('Gagal membaca file'));
+        reader.readAsDataURL(file);
+      });
+      const id = 'doc' + Date.now();
+      const doc: MemberDocument = {
+        id, memberId: member.id, fileName: file.name, fileSize: file.size,
+        mimeType: 'application/pdf', fileData: base64,
+        uploadedAt: new Date().toISOString(), uploadedBy: currentUser?.name || 'Administrator',
+      };
+      await api.put(`/api/data/memberDocuments/${id}`, doc);
+      setMemberDocuments(prev => [doc, ...prev]);
+      toast.success(`Dokumen "${file.name}" berhasil diunggah`);
+    } catch (err) {
+      toast.error('Gagal mengunggah dokumen. Silakan coba lagi');
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
+  const handleViewDocument = (doc: MemberDocument) => {
+    try {
+      const byteChars = atob(doc.fileData);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+      const blob = new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      toast.error('Gagal membuka dokumen');
+    }
+  };
+
+  const handleDeleteDocument = async (doc: MemberDocument) => {
+    if (!window.confirm(`Hapus dokumen "${doc.fileName}"?`)) return;
+    try {
+      await api.delete(`/api/data/memberDocuments/${doc.id}`);
+      setMemberDocuments(prev => prev.filter(d => d.id !== doc.id));
+      toast.success(`Dokumen "${doc.fileName}" dihapus`);
+    } catch {
+      toast.error('Gagal menghapus dokumen');
+    }
+  };
+
   const TABS = [
     { id:'personal', label:'Data Pribadi',           count: null },
     { id:'gereja',   label:'Gereja & Sakramen',       count: null },
@@ -199,6 +296,7 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
     { id:'kerja',    label:'Pekerjaan & Kompetensi',  count: null },
     { id:'atestasi', label:'Atestasi',                count: memberAttestations.length },
     { id:'aset',     label:'Aset',                    count: memberAssets.length + borrowedAssets.length },
+    { id:'dokumen',  label:'Dokumentasi',              count: memberDocuments.length },
   ] as const;
 
   return (
@@ -657,6 +755,52 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
               </div>
             );
           })()}
+
+          {/* ── TAB DOKUMENTASI ──────────────────────────────────────── */}
+          {tab==='dokumen' && (
+            <div className="space-y-4">
+              <input ref={docFileInputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={handleDocFileSelected}/>
+              {detailCanEdit && (
+                <button onClick={handleUploadDocClick} disabled={uploadingDoc}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed text-sm font-semibold transition-colors disabled:opacity-60"
+                  style={{borderColor:'#b8d5e8',color:'#1A77A3',background:'#f0fdf4'}}>
+                  {uploadingDoc ? <Loader2 className="w-4 h-4 animate-spin"/> : <Upload className="w-4 h-4"/>}
+                  {uploadingDoc ? 'Mengunggah...' : 'Unggah Dokumen PDF'}
+                </button>
+              )}
+              <p style={{fontSize:'11px',color:'#94a3b8'}}>Format PDF, maksimal 2MB per file.</p>
+
+              {memberDocuments.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 rounded-2xl" style={{background:'#f8fafc',border:'1.5px dashed #e2e8f0'}}>
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3" style={{background:'#f1f5f9'}}>
+                    <FolderOpen className="w-6 h-6" style={{color:'#cbd5e1'}}/>
+                  </div>
+                  <p style={{fontSize:'13px',fontWeight:600,color:'#94a3b8'}}>Belum ada dokumen</p>
+                  <p style={{fontSize:'12px',color:'#cbd5e1',marginTop:4}}>Dokumen PDF jemaat ini akan muncul di sini</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {memberDocuments.map(doc => (
+                    <div key={doc.id} className="rounded-xl border px-4 py-3 flex items-center gap-3" style={{borderColor:'#e2e8f0'}}>
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{background:'#fef2f2',color:'#dc2626'}}>
+                        <FileText className="w-4 h-4"/>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p data-tooltip={doc.fileName} data-tooltip-truncate style={{fontSize:'12.5px',fontWeight:700,color:'#334155'}} className="truncate">{doc.fileName}</p>
+                        <p style={{fontSize:'11px',color:'#94a3b8'}}>{formatBytes(doc.fileSize)} · {fmtDate(doc.uploadedAt)} · {doc.uploadedBy}</p>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button data-tooltip="Lihat" onClick={()=>handleViewDocument(doc)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#1A77A3] transition-colors"><Eye className="w-4 h-4"/></button>
+                        {detailCanDelete && (
+                          <button data-tooltip="Hapus" onClick={()=>handleDeleteDocument(doc)} className="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4"/></button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className="px-6 py-4 border-t flex justify-end gap-3 flex-shrink-0" style={{borderColor:'#f1f5f9'}}>
           {detailCanEdit && (

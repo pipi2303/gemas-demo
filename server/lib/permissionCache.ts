@@ -33,6 +33,7 @@ export const DEFAULT_MATRIX: MatrixEntry[] = [
 // Collection → module mapping
 export const COLLECTION_MODULE: Record<string, string> = {
   members:               'Database Warga',
+  memberDocuments:       'Database Warga',
   marriages:             'Database Warga',
   sectorTransfers:       'Database Warga',
   families:              'Data Keluarga',

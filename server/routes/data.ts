@@ -136,6 +136,26 @@ function validateMemberData(data: Record<string, any>): string | null {
   return null;
 }
 
+const MAX_DOCUMENT_BYTES = 2 * 1024 * 1024; // 2MB
+
+function validateMemberDocumentData(data: Record<string, any>): string | null {
+  if (!data.memberId || typeof data.memberId !== 'string') return 'memberId wajib diisi';
+  if (!data.fileName || typeof data.fileName !== 'string') return 'Nama file wajib diisi';
+  if (data.mimeType !== 'application/pdf') return 'Hanya file PDF yang diperbolehkan';
+  if (!data.fileData || typeof data.fileData !== 'string') return 'Data file tidak valid';
+
+  let buf: Buffer;
+  try {
+    buf = Buffer.from(data.fileData, 'base64');
+  } catch {
+    return 'Data file tidak valid';
+  }
+  if (buf.length === 0) return 'Data file tidak valid';
+  if (buf.length > MAX_DOCUMENT_BYTES) return 'Ukuran file melebihi batas 2MB';
+  if (buf.subarray(0, 5).toString('latin1') !== '%PDF-') return 'File bukan PDF yang valid';
+  return null;
+}
+
 function stripPassword(items: any[]): any[] {
   return items.map(({ password: _pw, ...u }) => u);
 }
@@ -181,6 +201,12 @@ router.put('/:collection/:id', requireAuth, requirePermission(), async (req: Aut
   if (collection === 'members') {
     const valErr = validateMemberData(data);
     if (valErr) { res.status(400).json({ error: valErr }); return; }
+  }
+
+  // Validasi dokumen PDF (tipe, ukuran, magic bytes) untuk collection memberDocuments
+  if (collection === 'memberDocuments') {
+    const valErr = validateMemberDocumentData(data);
+  if (valErr) { res.status(400).json({ error: valErr }); return; }
   }
 
   // Fetch previous state for diff & audit trail
