@@ -1,13 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Baptism, Sidi, Marriage } from '../types';
 import { useDraggable } from '../../lib/useDraggable';
+import { api } from '../../lib/apiClient';
+import { toast } from 'sonner';
 import { SearchDropdown } from './ui/SearchDropdown';
 import {
   Droplet, CheckCircle2, Heart, Plus, Pencil, Trash2, Eye, X,
   Search, Filter, Download, AlertCircle, ChevronLeft, ChevronRight,
   Baby, Users2, HeartHandshake, Calendar, User, FileText, Printer,
-  BadgeCheck, Clock, Ban, CheckCircle, ArrowUp, ArrowDown, ArrowUpDown
+  BadgeCheck, Clock, Ban, CheckCircle, ArrowUp, ArrowDown, ArrowUpDown,
+  Upload, Loader2
 } from 'lucide-react';
 import { useSortable } from '../../hooks/useSortable';
 import { jsPDF } from 'jspdf';
@@ -23,6 +26,23 @@ const SACRAMENT_TABLE_DEFAULT_WIDTHS: Record<string, number> = {
 };
 
 const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }) : '—';
+const formatBytes = (bytes: number) => {
+  if (!bytes) return '0 KB';
+  const kb = bytes / 1024;
+  return kb < 1024 ? `${kb.toFixed(0)} KB` : `${(kb/1024).toFixed(2)} MB`;
+};
+const MAX_DOCUMENT_BYTES = 2 * 1024 * 1024; // 2MB
+
+interface SacramentDocument {
+  id: string;
+  sacramentId: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  fileData: string; // base64
+  uploadedAt: string;
+  uploadedBy: string;
+}
 
 // Master Data 'status_sakramen' menyediakan opsi dropdown status, tapi mengedit label item
 // Master Data di menu admin ikut menimpa value-nya (value = label). Fungsi ini menambah
@@ -311,6 +331,142 @@ function MarriageForm({ initial, onSave, onClose }: { initial?: Partial<Marriage
   );
 }
 
+// ── DOKUMEN PENDUKUNG (per baris Baptis/Sidi/Nikah) ────────────────────────────
+function SacramentDocumentsModal({ item, label, onClose }: { item: any; label: string; onClose: () => void }) {
+  const { offset, onMouseDown } = useDraggable();
+  const { can: canFn, currentUser } = useApp();
+  const canEditDocs   = canFn('Sakramen & Atestasi', 'edit');
+  const canDeleteDocs = canFn('Sakramen & Atestasi', 'delete');
+
+  const [docs, setDocs] = useState<SacramentDocument[]>([]);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const docFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    api.get<SacramentDocument[]>('/api/data/sacramentDocuments').then(all => {
+      setDocs((all || []).filter(d => d.sacramentId === item.id));
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item.id]);
+
+  const handleUploadDocClick = () => docFileInputRef.current?.click();
+
+  const handleDocFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      toast.error('Hanya file PDF yang diperbolehkan');
+      return;
+    }
+    if (file.size > MAX_DOCUMENT_BYTES) {
+      toast.error(`Ukuran file melebihi batas 2MB (file ini ${formatBytes(file.size)})`);
+      return;
+    }
+    setUploadingDoc(true);
+    try {
+      const base64: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+        reader.onerror = () => reject(new Error('Gagal membaca file'));
+        reader.readAsDataURL(file);
+      });
+      const id = 'sacdoc' + Date.now();
+      const doc: SacramentDocument = {
+        id, sacramentId: item.id, fileName: file.name, fileSize: file.size,
+        mimeType: 'application/pdf', fileData: base64,
+        uploadedAt: new Date().toISOString(), uploadedBy: currentUser?.name || 'Administrator',
+      };
+      await api.put(`/api/data/sacramentDocuments/${id}`, doc);
+      setDocs(prev => [doc, ...prev]);
+      toast.success(`Dokumen "${file.name}" berhasil diunggah`);
+    } catch (err) {
+      toast.error('Gagal mengunggah dokumen. Silakan coba lagi');
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
+  const handleViewDocument = (doc: SacramentDocument) => {
+    try {
+      const byteChars = atob(doc.fileData);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+      const blob = new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      toast.error('Gagal membuka dokumen');
+    }
+  };
+
+  const handleDeleteDocument = async (doc: SacramentDocument) => {
+    if (!window.confirm(`Hapus dokumen "${doc.fileName}"?`)) return;
+    try {
+      await api.delete(`/api/data/sacramentDocuments/${doc.id}`);
+      setDocs(prev => prev.filter(d => d.id !== doc.id));
+      toast.success(`Dokumen "${doc.fileName}" dihapus`);
+    } catch {
+      toast.error('Gagal menghapus dokumen');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
+      <div className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'85vh', transform:`translate(${offset.x}px,${offset.y}px)`}} onClick={e=>e.stopPropagation()}>
+        <div className="px-6 py-4 flex-shrink-0 border-b" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',borderColor:'#1e3a2a',cursor:'move'}} onMouseDown={onMouseDown}>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-white font-semibold" style={{fontSize:'15px'}}>Dokumen Pendukung</h3>
+              <p style={{fontSize:'12px',color:'rgba(255,255,255,0.6)',marginTop:2}}>{label}</p>
+            </div>
+            <button onClick={onClose} data-tooltip="Tutup" className="text-white/50 hover:text-white transition-colors"><X className="w-4 h-4"/></button>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto p-5">
+          <input ref={docFileInputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={handleDocFileSelected}/>
+          {canEditDocs && (
+            <button onClick={handleUploadDocClick} disabled={uploadingDoc}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed text-sm font-semibold transition-colors disabled:opacity-60 mb-3"
+              style={{borderColor:'#b8d5e8',color:'#1A77A3',background:'#f0fdf4'}}>
+              {uploadingDoc ? <Loader2 className="w-4 h-4 animate-spin"/> : <Upload className="w-4 h-4"/>}
+              {uploadingDoc ? 'Mengunggah...' : 'Unggah Dokumen PDF'}
+            </button>
+          )}
+          {docs.length === 0 ? (
+            <p style={{fontSize:'12px',color:'#94a3b8',textAlign:'center',padding:'16px 0'}}>Belum ada dokumen pendukung</p>
+          ) : (
+            <div className="space-y-2">
+              {docs.map(doc => (
+                <div key={doc.id} className="flex items-center gap-3 p-2.5 rounded-lg border" style={{borderColor:'#f1f5f9'}}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{background:'#fef2f2'}}>
+                    <FileText className="w-4 h-4 text-[#dc2626]"/>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate" style={{fontSize:'12.5px',fontWeight:600,color:'#334155'}}>{doc.fileName}</p>
+                    <p style={{fontSize:'11px',color:'#94a3b8'}}>{formatBytes(doc.fileSize)} · {fmtDate(doc.uploadedAt)} · {doc.uploadedBy}</p>
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button data-tooltip="Lihat" onClick={()=>handleViewDocument(doc)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#1A77A3] transition-colors"><Eye className="w-4 h-4"/></button>
+                    {canDeleteDocs && (
+                      <button data-tooltip="Hapus" onClick={()=>handleDeleteDocument(doc)} className="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4"/></button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="px-6 py-4 border-t flex justify-end flex-shrink-0" style={{borderColor:'#f1f5f9'}}>
+          <button onClick={onClose} className="px-4 py-2 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors" style={{borderColor:'#e2e8f0'}}>Tutup</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── MAIN ──────────────────────────────────────────────────────────────────────
 export function SacramentDatabase() {
   const { offset: offset1, onMouseDown: onMouseDown1 } = useDraggable();
@@ -332,6 +488,7 @@ export function SacramentDatabase() {
   const [kpiDetail, setKpiDetail] = useState<{label:string;type:'baptism'|'sidi'|'marriage';items:any[]}|null>(null);
   const [kpiSearch, setKpiSearch] = useState('');
   const [showDetail, setShowDetail] = useState<any>(null);
+  const [showDocsFor, setShowDocsFor] = useState<any>(null);
   const ITEMS = 12;
 
   const YEARS = ['all','2026','2025','2024','2023'];
@@ -656,6 +813,7 @@ export function SacramentDatabase() {
                   </>}
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <div className="flex gap-1">
+                      <button onClick={()=>setShowDocsFor(item)} data-tooltip="Dokumen" className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><FileText className="w-3.5 h-3.5 text-gray-400"/></button>
                       {canEdit && <button onMouseDown={e=>e.preventDefault()} onClick={()=>{setEditItem(item);setShowForm(true);}} data-tooltip="Edit" className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><Pencil className="w-3.5 h-3.5 text-gray-400"/></button>}
                       {canDelete && <button onClick={()=>setDeleteTarget(item)} data-tooltip="Hapus" className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5 text-red-400"/></button>}
                     </div>
@@ -680,6 +838,13 @@ export function SacramentDatabase() {
       {showForm && tab==='baptism' && <BaptismForm initial={editItem} onSave={handleSave} onClose={()=>{setShowForm(false);setEditItem(null);}}/>}
       {showForm && tab==='sidi' && <SidiForm initial={editItem} onSave={handleSave} onClose={()=>{setShowForm(false);setEditItem(null);}}/>}
       {showForm && tab==='marriage' && <MarriageForm initial={editItem} onSave={handleSave} onClose={()=>{setShowForm(false);setEditItem(null);}}/>}
+      {showDocsFor && (
+        <SacramentDocumentsModal
+          item={showDocsFor}
+          label={showDocsFor.groomName ? `${showDocsFor.groomName} & ${showDocsFor.brideName}` : showDocsFor.memberName}
+          onClose={()=>setShowDocsFor(null)}
+        />
+      )}
 
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={()=>setDeleteTarget(null)}>
