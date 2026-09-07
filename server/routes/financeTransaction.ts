@@ -109,15 +109,21 @@ router.get('/', requireFinancePermission('view'), async (req: AuthRequest, res: 
 router.get('/queue', requireFinancePermission('approve'), async (req: AuthRequest, res: Response) => {
   try {
     const pool = getPool();
-    const result = await pool.query(
-      `${TX_WITH_VOUCHER_SELECT} WHERE t.organization_id = $1 AND (
+    const queueCondition = `t.organization_id = $1 AND (
          (t.status = 'SUBMITTED' AND t.created_by != $2) OR
          (t.status = 'VERIFIED' AND t.created_by != $2 AND t.verified_by != $2) OR
          (t.status = 'APPROVED' AND t.created_by != $2)
-       ) ORDER BY COALESCE(t.submitted_at, t.created_at) ASC`,
+       )`;
+    const { page, pageSize, offset } = parsePagination(req);
+    const countRes = await pool.query(
+      `SELECT COUNT(*)::int AS total FROM finance.transactions t WHERE ${queueCondition}`,
       [FINANCE_ORG, req.user!.userId]
     );
-    res.json({ success: true, data: result.rows });
+    const result = await pool.query(
+      `${TX_WITH_VOUCHER_SELECT} WHERE ${queueCondition} ORDER BY COALESCE(t.submitted_at, t.created_at) ASC LIMIT $3 OFFSET $4`,
+      [FINANCE_ORG, req.user!.userId, pageSize, offset]
+    );
+    res.json({ success: true, data: result.rows, meta: paginationMeta(countRes.rows[0].total, page, pageSize) });
   } catch (err) {
     logger.error('GET transactions/queue', { message: String(err) });
     res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal mengambil antrian verifikasi/persetujuan' } });

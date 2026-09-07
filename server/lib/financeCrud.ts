@@ -100,11 +100,22 @@ export function createMasterDataRouter(cfg: MasterDataConfig): Router {
         if (activeFilter === 'deleted_at') where += ' AND deleted_at IS NULL';
         else if (activeFilter === 'is_active') where += ' AND is_active = TRUE';
       }
+      // Master data (Kelompok Akun, COA, Bidang, Program, Kegiatan, Dana, Kas, Bank, Jenis
+      // Voucher) secara alami terbatas jumlahnya (bukan tabel yang bertambah tak terbatas
+      // seperti transaksi/jurnal) — default & maks pageSize sengaja dibuat besar (500) supaya
+      // dropdown/lookup di frontend yang mengandalkan daftar lengkap tidak pernah kepotong
+      // untuk ukuran data yang realistis, sambil tetap ada batas keamanan untuk kasus ekstrem.
+      const { page, pageSize, offset } = parsePagination(req, 500, 500);
+      const countRes = await pool.query(`SELECT COUNT(*)::int AS total FROM ${cfg.table} WHERE ${where}`, [FINANCE_ORG]);
       const result = await pool.query(
-        `SELECT * FROM ${cfg.table} WHERE ${where} ORDER BY ${cfg.orderBy}`,
-        [FINANCE_ORG]
+        `SELECT * FROM ${cfg.table} WHERE ${where} ORDER BY ${cfg.orderBy} LIMIT $2 OFFSET $3`,
+        [FINANCE_ORG, pageSize, offset]
       );
-      res.json({ success: true, data: result.rows, meta: { count: result.rows.length } });
+      res.json({
+        success: true,
+        data: result.rows,
+        meta: { count: result.rows.length, ...paginationMeta(countRes.rows[0].total, page, pageSize) },
+      });
     } catch (err) {
       logger.error(`GET ${cfg.table}`, { message: String(err) });
       res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: `Gagal mengambil data ${cfg.entityLabel}` } });

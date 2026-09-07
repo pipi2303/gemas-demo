@@ -26,9 +26,12 @@ function formatRp(n: unknown) {
   return `Rp ${v.toLocaleString('id-ID')}`;
 }
 
+interface PageMeta { total: number; page: number; pageSize: number; totalPages: number }
+
 interface ApiResponse<T> {
   success: boolean;
   data?: T;
+  meta?: PageMeta;
   error?: { code: string; message: string };
 }
 
@@ -36,6 +39,12 @@ async function callApi<T = any>(url: string): Promise<T> {
   const res = await (api as any).get<ApiResponse<T>>(url);
   if (!res.success) throw new Error(res.error?.message || 'Terjadi kesalahan');
   return res.data as T;
+}
+
+async function callApiPaged<T = any>(url: string): Promise<{ data: T; meta?: PageMeta }> {
+  const res = await (api as any).get<ApiResponse<T>>(url);
+  if (!res.success) throw new Error(res.error?.message || 'Terjadi kesalahan');
+  return { data: res.data as T, meta: res.meta };
 }
 
 const NEEDED_ACTION: Record<string, { label: string; icon: React.ElementType; color: string; bg: string; border: string }> = {
@@ -66,6 +75,8 @@ export function FinanceApproval({ onNavigate }: { onNavigate?: (page: string) =>
   const [lookupsLoading, setLookupsLoading] = useState(true);
   const [queue, setQueue] = useState<any[]>([]);
   const [loadingQueue, setLoadingQueue] = useState(true);
+  const [loadingMoreQueue, setLoadingMoreQueue] = useState(false);
+  const [queueMeta, setQueueMeta] = useState<PageMeta | null>(null);
   const [queueError, setQueueError] = useState<string | null>(null);
   const [selectedTx, setSelectedTx] = useState<any | null>(null);
 
@@ -73,14 +84,30 @@ export function FinanceApproval({ onNavigate }: { onNavigate?: (page: string) =>
     setLoadingQueue(true);
     setQueueError(null);
     try {
-      const data = await callApi<any[]>('/api/v1/finance/transactions/queue');
+      const { data, meta } = await callApiPaged<any[]>('/api/v1/finance/transactions/queue?page=1');
       setQueue(data);
+      setQueueMeta(meta ?? null);
     } catch (err: any) {
       setQueueError(err?.message || 'Gagal memuat antrian verifikasi/persetujuan');
     } finally {
       setLoadingQueue(false);
     }
   }, []);
+
+  const loadMoreQueue = async () => {
+    if (!queueMeta || queueMeta.page >= queueMeta.totalPages) return;
+    setLoadingMoreQueue(true);
+    try {
+      const nextPage = queueMeta.page + 1;
+      const { data, meta } = await callApiPaged<any[]>(`/api/v1/finance/transactions/queue?page=${nextPage}`);
+      setQueue(prev => [...prev, ...data]);
+      setQueueMeta(meta ?? null);
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal memuat antrian selanjutnya');
+    } finally {
+      setLoadingMoreQueue(false);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -169,6 +196,15 @@ export function FinanceApproval({ onNavigate }: { onNavigate?: (page: string) =>
               ))}
             </tbody>
           </table>
+          {queueMeta && queueMeta.page < queueMeta.totalPages && (
+            <div className="flex items-center justify-center py-3 border-t border-slate-100">
+              <button onClick={loadMoreQueue} disabled={loadingMoreQueue}
+                className="text-xs font-medium text-[#1A77A3] hover:underline disabled:opacity-50 flex items-center gap-1.5">
+                {loadingMoreQueue && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                Muat Lebih Banyak ({queue.length} dari {queueMeta.total})
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
