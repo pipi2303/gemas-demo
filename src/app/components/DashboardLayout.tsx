@@ -14,7 +14,7 @@ import {
   BookOpen, FileText, HeartHandshake, Heart,
   MessageSquareHeart, BarChart3, Sliders,
   QrCode, Book, Home, MapPin, Cross, Library, DoorOpen, Gift,
-  Bell, ChevronRight as BreadcrumbArrow, Printer, FileSpreadsheet, Landmark, ClipboardList
+  Bell, ChevronRight as BreadcrumbArrow, Printer, FileSpreadsheet, Landmark, ClipboardList, Receipt
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -213,6 +213,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
         { id: 'finance-addon',       label: 'Ringkasan',             page: 'finance-addon',       icon: Landmark },
         { id: 'finance-master-data', label: 'Master Data & Fiskal',  page: 'finance-master-data', icon: Layers },
         { id: 'finance-budget',      label: 'Budget / RKA',          page: 'finance-budget',      icon: ClipboardList },
+        { id: 'finance-transaction', label: 'Transaksi & Voucher',   page: 'finance-transaction', icon: Receipt },
       ],
     },
     {

@@ -70,6 +70,7 @@ export const PAGE_MODULE: Record<string, string> = {
   'finance-addon':       'Keuangan (Finance Add-on)',
   'finance-master-data': 'Keuangan (Finance Add-on)',
   'finance-budget':      'Keuangan (Finance Add-on)',
+  'finance-transaction': 'Keuangan (Finance Add-on)',
 };
 
 export function buildCan(matrix: ModulePermission[], role: UserRole) {

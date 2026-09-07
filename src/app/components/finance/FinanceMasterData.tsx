@@ -4,7 +4,7 @@ import { api } from '../../../lib/apiClient';
 import { toast } from 'sonner';
 import {
   Plus, Pencil, Trash2, X, Loader2, Layers, BookOpen, MapPin,
-  FolderTree, ListTree, Wallet, Building2, CalendarRange, Star, ChevronDown, ChevronRight, ArrowLeft,
+  FolderTree, ListTree, Wallet, Building2, CalendarRange, Star, ChevronDown, ChevronRight, ArrowLeft, Ticket,
 } from 'lucide-react';
 
 const FINANCE_MODULE = 'Keuangan (Finance Add-on)';
@@ -57,6 +57,18 @@ const RESTRICTION_TYPE_OPTIONS = [
   { value: 'RESTRICTED', label: 'Terikat' },
   { value: 'TEMPORARILY_RESTRICTED', label: 'Terikat Sementara' },
   { value: 'PERMANENTLY_RESTRICTED', label: 'Terikat Permanen' },
+];
+const TRANSACTION_TYPE_OPTIONS = [
+  { value: 'RECEIPT', label: 'Penerimaan' },
+  { value: 'PAYMENT', label: 'Pembayaran' },
+  { value: 'CASH_IN', label: 'Kas Masuk' },
+  { value: 'CASH_OUT', label: 'Kas Keluar' },
+  { value: 'BANK_IN', label: 'Bank Masuk' },
+  { value: 'BANK_OUT', label: 'Bank Keluar' },
+  { value: 'TRANSFER', label: 'Transfer' },
+  { value: 'MEMORIAL', label: 'Memorial' },
+  { value: 'ADJUSTMENT', label: 'Penyesuaian' },
+  { value: 'REVERSAL', label: 'Pembalikan' },
 ];
 
 // ── Generic entity CRUD types ──────────────────────────────────────────────────
@@ -272,6 +284,26 @@ function buildConfigs(lk: Lookups): EntityConfig[] {
         { key: 'account_name', label: 'Atas Nama', type: 'text', required: true, placeholder: 'GPIB Trinitas' },
         { key: 'currency', label: 'Mata Uang', type: 'text', defaultValue: 'IDR', placeholder: 'IDR' },
         { key: 'opening_balance', label: 'Saldo Awal', type: 'number', defaultValue: 0 },
+      ],
+    },
+    {
+      id: 'voucher-types',
+      label: 'Jenis Voucher',
+      endpoint: '/api/v1/finance/voucher-types',
+      emptyHint: 'Belum ada Jenis Voucher.',
+      getLabel: row => row.name,
+      columns: [
+        { key: 'code', label: 'Kode' },
+        { key: 'name', label: 'Nama' },
+        { key: 'transaction_type', label: 'Tipe Transaksi', render: row => labelFor(TRANSACTION_TYPE_OPTIONS, row.transaction_type) },
+        { key: 'prefix', label: 'Prefix Nomor' },
+        { key: 'is_active', label: 'Aktif', render: row => (row.is_active ? 'Ya' : 'Tidak') },
+      ],
+      fields: [
+        { key: 'code', label: 'Kode', type: 'text', required: true, placeholder: 'BKM' },
+        { key: 'name', label: 'Nama', type: 'text', required: true, placeholder: 'Bukti Kas Masuk' },
+        { key: 'transaction_type', label: 'Tipe Transaksi', type: 'select', required: true, options: TRANSACTION_TYPE_OPTIONS },
+        { key: 'prefix', label: 'Prefix Nomor Voucher', type: 'text', required: true, placeholder: 'BKM' },
       ],
     },
   ];
@@ -770,6 +802,7 @@ const TABS: { id: string; label: string; icon: React.ElementType }[] = [
   { id: 'funds', label: 'Dana', icon: Wallet },
   { id: 'cash-accounts', label: 'Kas', icon: Wallet },
   { id: 'bank-accounts', label: 'Bank', icon: Building2 },
+  { id: 'voucher-types', label: 'Jenis Voucher', icon: Ticket },
   { id: 'fiscal-years', label: 'Tahun Fiskal', icon: CalendarRange },
 ];
 

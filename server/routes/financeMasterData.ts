@@ -127,6 +127,16 @@ router.use('/bank-accounts', createMasterDataRouter({
   deriveDefaults: async (body) => (body.opening_balance !== undefined ? { current_balance: body.opening_balance } : {}),
 }));
 
+// ── Jenis Voucher ─────────────────────────────────────────────────────────────
+router.use('/voucher-types', createMasterDataRouter({
+  table: 'finance.voucher_types',
+  fields: ['code', 'name', 'transaction_type', 'prefix', 'sequence_scope', 'is_active'],
+  requiredFields: ['code', 'name', 'transaction_type', 'prefix'],
+  orderBy: 'code ASC',
+  deleteMode: 'is_active',
+  entityLabel: 'Jenis Voucher',
+}));
+
 // ── Tahun Fiskal & Periode (khusus — bukan generic CRUD) ─────────────────────
 const MONTHS_ID = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',

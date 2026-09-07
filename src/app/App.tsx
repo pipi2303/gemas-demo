@@ -41,6 +41,7 @@ import { MasterData } from './components/MasterData';
 import { FinanceAddonHome } from './components/finance/FinanceAddonHome';
 import { FinanceMasterData } from './components/finance/FinanceMasterData';
 import { FinanceBudget } from './components/finance/FinanceBudget';
+import { FinanceTransaction } from './components/finance/FinanceTransaction';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { TooltipRoot } from './components/ui/tooltip';
 import { PAGE_MODULE } from '../lib/permissions';
@@ -151,6 +152,8 @@ function AppContent() {
         return <FinanceMasterData onNavigate={navigate} />;
       case 'finance-budget':
         return <FinanceBudget onNavigate={navigate} />;
+      case 'finance-transaction':
+        return <FinanceTransaction onNavigate={navigate} />;
         
       // Modul 4: Fasilitas & Inventaris
       case 'assets':
