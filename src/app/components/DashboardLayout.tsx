@@ -214,6 +214,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
         { id: 'finance-master-data', label: 'Master Data & Fiskal',  page: 'finance-master-data', icon: Layers },
         { id: 'finance-budget',      label: 'Budget / RKA',          page: 'finance-budget',      icon: ClipboardList },
         { id: 'finance-transaction', label: 'Transaksi & Voucher',   page: 'finance-transaction', icon: Receipt },
+        { id: 'finance-ledger',      label: 'Buku Besar (GL)',       page: 'finance-ledger',      icon: BookOpen },
       ],
     },
     {

@@ -1,13 +1,20 @@
 // ============================================================
-// FINANCE ADD-ON MODULE — Fase 3: Transaksi & Voucher
+// FINANCE ADD-ON MODULE — Fase 3 + Fase 4: Transaksi, Voucher & Posting
 // ============================================================
-// Endpoint untuk mencatat transaksi kas/bank dengan voucher bernomor
-// otomatis (format PREFIX/KODE_TAHUN_FISKAL/URUT, mis. BKM/2026-2027/0190).
-// Lingkup Fase 3 berhenti di status SUBMITTED — alur Verifikasi/Persetujuan
-// (VERIFIED/APPROVED) dan Posting ke General Ledger (POSTED) sengaja
-// ditunda ke Fase 4 (Accounting Engine & Posting) dan Fase 5 (Verifikasi &
-// Approval) sesuai roadmap yang sudah disetujui, supaya accounting engine
-// (jurnal, saldo GL) dibangun sekali dengan matang, bukan dicicil.
+// Fase 3: mencatat transaksi kas/bank dengan voucher bernomor otomatis
+// (format PREFIX/KODE_TAHUN_FISKAL/URUT, mis. BKM/2026-2027/0190).
+// Fase 4 (Accounting Engine & Posting) menambahkan mesin alur kerja penuh:
+//   DRAFT -> SUBMITTED -> VERIFIED -> APPROVED -> POSTED
+//                      \-> REJECTED -> (revisi) -> DRAFT
+//   POSTED -> REVERSED (jurnal pembalik, tidak menghapus jurnal asli)
+// Posting menghasilkan finance.journals + finance.journal_lines (nomor urut
+// atomik JV/KODE_TAHUN_FISKAL/URUT) sebagai sumber General Ledger — lihat
+// server/routes/financeLedger.ts. Sinkronisasi actual_amount ke budget_lines
+// (kontrol RKA vs realisasi) SENGAJA belum diimplementasikan di sini —
+// aturan bisnisnya (jenis transaksi mana yang mengonsumsi anggaran, dan
+// bagaimana ADJUSTMENT/REVERSAL memengaruhinya) butuh keputusan produk
+// tersendiri, jadi ditunda ke fase Pelaporan/Anggaran berikutnya daripada
+// ditebak di sini.
 // ============================================================
 
 import { Router, Response } from 'express';
@@ -22,10 +29,12 @@ router.use(requireAuth, requireRealDb);
 
 const TX_WITH_VOUCHER_SELECT = `
   SELECT t.*, v.voucher_number, v.voucher_date, v.voucher_type_id,
-         vt.code AS voucher_type_code, vt.name AS voucher_type_name
+         vt.code AS voucher_type_code, vt.name AS voucher_type_name,
+         j.journal_number, j.journal_date AS posted_journal_date
   FROM finance.transactions t
   JOIN finance.vouchers v ON v.id = t.voucher_id
   JOIN finance.voucher_types vt ON vt.id = v.voucher_type_id
+  LEFT JOIN finance.journals j ON j.transaction_id = t.id AND j.reversal_of_journal_id IS NULL
 `;
 
 async function getTransactionOr404(pool: ReturnType<typeof getPool>, id: string, res: Response): Promise<any | null> {
@@ -253,6 +262,268 @@ router.put('/:id/submit', requireFinancePermission('edit'), async (req: AuthRequ
   } catch (err) {
     logger.error('PUT transactions/:id/submit', { message: String(err) });
     res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal mengajukan transaksi' } });
+  }
+});
+
+// ── Verifikasi (Submitted → Verified) ──────────────────────────────────────────
+router.put('/:id/verify', requireFinancePermission('approve'), async (req: AuthRequest, res: Response) => {
+  try {
+    const pool = getPool();
+    const tx = await getTransactionOr404(pool, req.params.id, res);
+    if (!tx) return;
+    if (tx.status !== 'SUBMITTED') {
+      res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Hanya transaksi berstatus Diajukan yang bisa diverifikasi' } });
+      return;
+    }
+    const result = await pool.query(
+      `UPDATE finance.transactions SET status = 'VERIFIED', verified_at = NOW(), verified_by = $3, updated_at = NOW(), updated_by = $3
+       WHERE id = $1 AND organization_id = $2 RETURNING *`,
+      [req.params.id, FINANCE_ORG, req.user!.userId]
+    );
+    logger.info('Transaction verified', { user: req.user?.username, transactionId: req.params.id });
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    logger.error('PUT transactions/:id/verify', { message: String(err) });
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal memverifikasi transaksi' } });
+  }
+});
+
+// ── Setujui (Verified → Approved) ───────────────────────────────────────────────
+router.put('/:id/approve', requireFinancePermission('approve'), async (req: AuthRequest, res: Response) => {
+  try {
+    const pool = getPool();
+    const tx = await getTransactionOr404(pool, req.params.id, res);
+    if (!tx) return;
+    if (tx.status !== 'VERIFIED') {
+      res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Hanya transaksi berstatus Diverifikasi yang bisa disetujui' } });
+      return;
+    }
+    const result = await pool.query(
+      `UPDATE finance.transactions SET status = 'APPROVED', approved_at = NOW(), approved_by = $3, updated_at = NOW(), updated_by = $3
+       WHERE id = $1 AND organization_id = $2 RETURNING *`,
+      [req.params.id, FINANCE_ORG, req.user!.userId]
+    );
+    logger.info('Transaction approved', { user: req.user?.username, transactionId: req.params.id });
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    logger.error('PUT transactions/:id/approve', { message: String(err) });
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal menyetujui transaksi' } });
+  }
+});
+
+// ── Tolak (Submitted/Verified → Rejected, wajib alasan) ─────────────────────────
+router.put('/:id/reject', requireFinancePermission('approve'), async (req: AuthRequest, res: Response) => {
+  try {
+    const pool = getPool();
+    const tx = await getTransactionOr404(pool, req.params.id, res);
+    if (!tx) return;
+    if (!['SUBMITTED', 'VERIFIED'].includes(tx.status)) {
+      res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Hanya transaksi berstatus Diajukan/Diverifikasi yang bisa ditolak' } });
+      return;
+    }
+    const reason = String(req.body?.reason ?? '').trim();
+    if (!reason) {
+      res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Alasan penolakan wajib diisi' } });
+      return;
+    }
+    const result = await pool.query(
+      `UPDATE finance.transactions SET status = 'REJECTED', rejection_reason = $3, updated_at = NOW(), updated_by = $4
+       WHERE id = $1 AND organization_id = $2 RETURNING *`,
+      [req.params.id, FINANCE_ORG, reason, req.user!.userId]
+    );
+    logger.info('Transaction rejected', { user: req.user?.username, transactionId: req.params.id, reason });
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    logger.error('PUT transactions/:id/reject', { message: String(err) });
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal menolak transaksi' } });
+  }
+});
+
+// ── Revisi (Rejected → Draft, kembali untuk diedit & diajukan ulang) ────────────
+router.put('/:id/revise', requireFinancePermission('edit'), async (req: AuthRequest, res: Response) => {
+  try {
+    const pool = getPool();
+    const tx = await getTransactionOr404(pool, req.params.id, res);
+    if (!tx) return;
+    if (tx.status !== 'REJECTED') {
+      res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Hanya transaksi berstatus Ditolak yang bisa direvisi' } });
+      return;
+    }
+    const result = await pool.query(
+      `UPDATE finance.transactions SET status = 'DRAFT', rejection_reason = NULL, updated_at = NOW(), updated_by = $3
+       WHERE id = $1 AND organization_id = $2 RETURNING *`,
+      [req.params.id, FINANCE_ORG, req.user!.userId]
+    );
+    logger.info('Transaction sent back to draft for revision', { user: req.user?.username, transactionId: req.params.id });
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    logger.error('PUT transactions/:id/revise', { message: String(err) });
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal mengembalikan transaksi ke Draft' } });
+  }
+});
+
+// ── Posting (Approved → Posted): membuat Jurnal + Baris Jurnal di GL ────────────
+router.put('/:id/post', requireFinancePermission('approve'), async (req: AuthRequest, res: Response) => {
+  const pool = getPool();
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const txRes = await client.query('SELECT * FROM finance.transactions WHERE id = $1 AND organization_id = $2 FOR UPDATE', [req.params.id, FINANCE_ORG]);
+    const tx = txRes.rows[0];
+    if (!tx) {
+      await client.query('ROLLBACK');
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Transaksi tidak ditemukan' } });
+      return;
+    }
+    if (tx.status !== 'APPROVED') {
+      await client.query('ROLLBACK');
+      res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Hanya transaksi berstatus Disetujui yang bisa diposting' } });
+      return;
+    }
+    const periodRes = await client.query('SELECT * FROM finance.periods WHERE id = $1', [tx.period_id]);
+    const period = periodRes.rows[0];
+    if (!period || period.status !== 'OPEN') {
+      await client.query('ROLLBACK');
+      res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Periode transaksi ini sudah tidak Terbuka (Open) — tidak bisa diposting' } });
+      return;
+    }
+    const fyRes = await client.query('SELECT * FROM finance.fiscal_years WHERE id = $1', [tx.fiscal_year_id]);
+    const fiscalYear = fyRes.rows[0];
+
+    const seqRes = await client.query(
+      `INSERT INTO finance.journal_sequences (organization_id, fiscal_year_id, current_number)
+       VALUES ($1,$2,1)
+       ON CONFLICT (organization_id, fiscal_year_id)
+       DO UPDATE SET current_number = finance.journal_sequences.current_number + 1
+       RETURNING current_number`,
+      [FINANCE_ORG, tx.fiscal_year_id]
+    );
+    const journalNumber = `JV/${fiscalYear.code}/${String(seqRes.rows[0].current_number).padStart(4, '0')}`;
+
+    const journalRes = await client.query(
+      `INSERT INTO finance.journals
+        (organization_id, transaction_id, voucher_id, fiscal_year_id, period_id, journal_number, journal_date, description, total_debit, total_credit, posted_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      [FINANCE_ORG, tx.id, tx.voucher_id, tx.fiscal_year_id, tx.period_id, journalNumber, tx.transaction_date, tx.description, tx.total_debit, tx.total_credit, req.user!.userId]
+    );
+    const journal = journalRes.rows[0];
+
+    const linesRes = await client.query('SELECT * FROM finance.transaction_lines WHERE transaction_id = $1 ORDER BY line_number ASC', [tx.id]);
+    for (const line of linesRes.rows) {
+      await client.query(
+        `INSERT INTO finance.journal_lines
+          (journal_id, line_number, account_id, field_id, program_id, activity_id, fund_id, debit, credit, description)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [journal.id, line.line_number, line.account_id, line.field_id, line.program_id, line.activity_id, line.fund_id, line.debit, line.credit, line.description]
+      );
+    }
+
+    const updated = await client.query(
+      `UPDATE finance.transactions SET status = 'POSTED', posted_at = NOW(), posted_by = $3, updated_at = NOW(), updated_by = $3
+       WHERE id = $1 AND organization_id = $2 RETURNING *`,
+      [tx.id, FINANCE_ORG, req.user!.userId]
+    );
+    await client.query(
+      `UPDATE finance.vouchers SET status = 'POSTED', updated_at = NOW(), updated_by = $2 WHERE id = $1`,
+      [tx.voucher_id, req.user!.userId]
+    );
+
+    await client.query('COMMIT');
+    logger.info('Transaction posted to GL', { user: req.user?.username, transactionId: tx.id, journalNumber });
+    res.json({ success: true, data: { ...updated.rows[0], journal_number: journalNumber } });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    logger.error('PUT transactions/:id/post', { message: String(err) });
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal memposting transaksi ke General Ledger' } });
+  } finally {
+    client.release();
+  }
+});
+
+// ── Balik jurnal (Posted → Reversed): jurnal pembalik, jurnal asli tetap ada ────
+router.put('/:id/reverse', requireFinancePermission('approve'), async (req: AuthRequest, res: Response) => {
+  const pool = getPool();
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const txRes = await client.query('SELECT * FROM finance.transactions WHERE id = $1 AND organization_id = $2 FOR UPDATE', [req.params.id, FINANCE_ORG]);
+    const tx = txRes.rows[0];
+    if (!tx) {
+      await client.query('ROLLBACK');
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Transaksi tidak ditemukan' } });
+      return;
+    }
+    if (tx.status !== 'POSTED') {
+      await client.query('ROLLBACK');
+      res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Hanya transaksi berstatus Terposting yang bisa dibalik' } });
+      return;
+    }
+    const periodRes = await client.query('SELECT * FROM finance.periods WHERE id = $1', [tx.period_id]);
+    const period = periodRes.rows[0];
+    if (!period || period.status !== 'OPEN') {
+      await client.query('ROLLBACK');
+      res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Periode transaksi ini sudah tidak Terbuka (Open) — tidak bisa dibalik' } });
+      return;
+    }
+    const origJournalRes = await client.query('SELECT * FROM finance.journals WHERE transaction_id = $1', [tx.id]);
+    const origJournal = origJournalRes.rows[0];
+    if (!origJournal) {
+      await client.query('ROLLBACK');
+      res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Jurnal asal tidak ditemukan' } });
+      return;
+    }
+    const fyRes = await client.query('SELECT * FROM finance.fiscal_years WHERE id = $1', [tx.fiscal_year_id]);
+    const fiscalYear = fyRes.rows[0];
+
+    const seqRes = await client.query(
+      `INSERT INTO finance.journal_sequences (organization_id, fiscal_year_id, current_number)
+       VALUES ($1,$2,1)
+       ON CONFLICT (organization_id, fiscal_year_id)
+       DO UPDATE SET current_number = finance.journal_sequences.current_number + 1
+       RETURNING current_number`,
+      [FINANCE_ORG, tx.fiscal_year_id]
+    );
+    const journalNumber = `JV/${fiscalYear.code}/${String(seqRes.rows[0].current_number).padStart(4, '0')}`;
+    const reason = String(req.body?.reason ?? '').trim();
+    const description = reason ? `Pembalikan ${origJournal.journal_number}: ${reason}` : `Pembalikan ${origJournal.journal_number}`;
+
+    const reversalRes = await client.query(
+      `INSERT INTO finance.journals
+        (organization_id, transaction_id, voucher_id, fiscal_year_id, period_id, journal_number, journal_date, description, total_debit, total_credit, posted_by, reversal_of_journal_id)
+       VALUES ($1,$2,$3,$4,$5,$6,CURRENT_DATE,$7,$8,$9,$10,$11) RETURNING *`,
+      [FINANCE_ORG, tx.id, tx.voucher_id, tx.fiscal_year_id, period.id, journalNumber, description, origJournal.total_debit, origJournal.total_credit, req.user!.userId, origJournal.id]
+    );
+    const reversalJournal = reversalRes.rows[0];
+
+    const origLinesRes = await client.query('SELECT * FROM finance.journal_lines WHERE journal_id = $1 ORDER BY line_number ASC', [origJournal.id]);
+    for (const line of origLinesRes.rows) {
+      await client.query(
+        `INSERT INTO finance.journal_lines
+          (journal_id, line_number, account_id, field_id, program_id, activity_id, fund_id, debit, credit, description)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [reversalJournal.id, line.line_number, line.account_id, line.field_id, line.program_id, line.activity_id, line.fund_id, line.credit, line.debit, line.description]
+      );
+    }
+
+    const updated = await client.query(
+      `UPDATE finance.transactions SET status = 'REVERSED', updated_at = NOW(), updated_by = $3
+       WHERE id = $1 AND organization_id = $2 RETURNING *`,
+      [tx.id, FINANCE_ORG, req.user!.userId]
+    );
+    await client.query(
+      `UPDATE finance.vouchers SET status = 'REVERSED', updated_at = NOW(), updated_by = $2 WHERE id = $1`,
+      [tx.voucher_id, req.user!.userId]
+    );
+
+    await client.query('COMMIT');
+    logger.info('Transaction reversed', { user: req.user?.username, transactionId: tx.id, reversalJournalNumber: journalNumber });
+    res.json({ success: true, data: { ...updated.rows[0], reversal_journal_number: journalNumber } });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    logger.error('PUT transactions/:id/reverse', { message: String(err) });
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal membalik jurnal transaksi' } });
+  } finally {
+    client.release();
   }
 });
 

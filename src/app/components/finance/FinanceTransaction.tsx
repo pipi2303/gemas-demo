@@ -4,6 +4,7 @@ import { api } from '../../../lib/apiClient';
 import { toast } from 'sonner';
 import {
   Plus, X, Loader2, ArrowLeft, Receipt, Send, Trash2, CheckCircle2, AlertTriangle,
+  ShieldCheck, XCircle, RotateCcw, Landmark, Undo2,
 } from 'lucide-react';
 
 const FINANCE_MODULE = 'Keuangan (Finance Add-on)';
@@ -60,9 +61,11 @@ interface Lookups {
   bankAccounts: any[];
 }
 
+type WorkflowAction = 'submit' | 'cancel' | 'verify' | 'approve' | 'reject' | 'revise' | 'post' | 'reverse';
+
 // ── Detail transaksi: baris jurnal + aksi ─────────────────────────────────────
-function TransactionDetail({ tx, canEdit, lookups, onBack, onChanged }: {
-  tx: any; canEdit: boolean; lookups: Lookups; onBack: () => void; onChanged: (updated?: any) => void;
+function TransactionDetail({ tx, canEdit, canApprove, lookups, onBack, onChanged }: {
+  tx: any; canEdit: boolean; canApprove: boolean; lookups: Lookups; onBack: () => void; onChanged: (updated?: any) => void;
 }) {
   const [current, setCurrent] = useState(tx);
   const [lines, setLines] = useState<any[]>([]);
@@ -71,6 +74,7 @@ function TransactionDetail({ tx, canEdit, lookups, onBack, onChanged }: {
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [form, setForm] = useState<Record<string, any>>({});
+  const [reasonModal, setReasonModal] = useState<{ action: 'reject' | 'reverse'; reason: string } | null>(null);
 
   const postableAccounts = lookups.accounts.filter(a => a.is_postable);
   const cashBankOptions = useMemo(() => [
@@ -142,25 +146,47 @@ function TransactionDetail({ tx, canEdit, lookups, onBack, onChanged }: {
     }
   };
 
-  const runAction = async (action: 'submit' | 'cancel') => {
+  const ACTION_ENDPOINT: Record<Exclude<WorkflowAction, 'cancel'>, string> = {
+    submit: 'submit', verify: 'verify', approve: 'approve', reject: 'reject', revise: 'revise', post: 'post', reverse: 'reverse',
+  };
+  const ACTION_SUCCESS_MESSAGE: Record<WorkflowAction, string> = {
+    submit: 'Transaksi diajukan untuk verifikasi',
+    cancel: 'Transaksi dibatalkan',
+    verify: 'Transaksi diverifikasi',
+    approve: 'Transaksi disetujui',
+    reject: 'Transaksi ditolak',
+    revise: 'Transaksi dikembalikan ke Draft untuk direvisi',
+    post: 'Transaksi berhasil diposting ke General Ledger',
+    reverse: 'Jurnal berhasil dibalik',
+  };
+
+  const runAction = async (action: WorkflowAction, body?: any) => {
     setBusy(action);
     try {
       if (action === 'cancel') {
         await callApi('delete', `/api/v1/finance/transactions/${current.id}`);
-        toast.success('Transaksi dibatalkan');
+        toast.success(ACTION_SUCCESS_MESSAGE.cancel);
         onChanged();
         onBack();
         return;
       }
-      const updated = await callApi<any>('put', `/api/v1/finance/transactions/${current.id}/submit`, {});
-      setCurrent(updated);
+      const updated = await callApi<any>('put', `/api/v1/finance/transactions/${current.id}/${ACTION_ENDPOINT[action]}`, body ?? {});
+      setCurrent((prev: any) => ({ ...prev, ...updated }));
       onChanged(updated);
-      toast.success('Transaksi diajukan untuk verifikasi');
+      toast.success(ACTION_SUCCESS_MESSAGE[action]);
+      setReasonModal(null);
     } catch (err: any) {
       toast.error(err?.message || 'Gagal memproses aksi');
     } finally {
       setBusy(null);
     }
+  };
+
+  const submitReasonModal = () => {
+    const reason = reasonModal?.reason.trim();
+    if (!reason) { toast.error('Alasan wajib diisi'); return; }
+    if (reasonModal?.action === 'reject') runAction('reject', { reason });
+    if (reasonModal?.action === 'reverse') runAction('reverse', { reason });
   };
 
   const nameOf = (list: any[], id: string) => list.find(x => x.id === id)?.name ?? '—';
@@ -172,6 +198,10 @@ function TransactionDetail({ tx, canEdit, lookups, onBack, onChanged }: {
     }
     return '—';
   };
+
+  const btnPrimary = 'flex items-center gap-1.5 text-sm font-medium text-white px-3 py-1.5 rounded-lg disabled:opacity-50';
+  const btnDanger = 'flex items-center gap-1.5 text-sm font-medium text-red-600 px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 disabled:opacity-50';
+  const btnNeutral = 'flex items-center gap-1.5 text-sm font-medium text-slate-600 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-50';
 
   return (
     <div className="space-y-4">
@@ -193,6 +223,12 @@ function TransactionDetail({ tx, canEdit, lookups, onBack, onChanged }: {
                 {current.payee_name && <>Kepada: {current.payee_name}</>}
               </p>
             )}
+            {current.status === 'REJECTED' && current.rejection_reason && (
+              <p className="text-xs text-red-600 mt-1.5 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5">Alasan ditolak: {current.rejection_reason}</p>
+            )}
+            {current.journal_number && (
+              <p className="text-xs text-emerald-700 mt-1.5">No. Jurnal: <span className="font-medium">{current.journal_number}</span></p>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
             {isDraft && canEdit && (
@@ -200,18 +236,54 @@ function TransactionDetail({ tx, canEdit, lookups, onBack, onChanged }: {
                 <button
                   onClick={() => runAction('submit')} disabled={busy !== null || !balanced}
                   title={!balanced ? 'Debit dan kredit harus seimbang dulu' : ''}
-                  className="flex items-center gap-1.5 text-sm font-medium text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
-                  style={{ background: '#1A77A3' }}
+                  className={btnPrimary} style={{ background: '#1A77A3' }}
                 >
                   {busy === 'submit' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />} Ajukan
                 </button>
-                <button
-                  onClick={() => runAction('cancel')} disabled={busy !== null}
-                  className="flex items-center gap-1.5 text-sm font-medium text-red-600 px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 disabled:opacity-50"
-                >
+                <button onClick={() => runAction('cancel')} disabled={busy !== null} className={btnDanger}>
                   <Trash2 className="w-3.5 h-3.5" /> Batalkan
                 </button>
               </>
+            )}
+
+            {current.status === 'SUBMITTED' && canApprove && (
+              <>
+                <button onClick={() => runAction('verify')} disabled={busy !== null} className={btnPrimary} style={{ background: '#1A77A3' }}>
+                  {busy === 'verify' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />} Verifikasi
+                </button>
+                <button onClick={() => setReasonModal({ action: 'reject', reason: '' })} disabled={busy !== null} className={btnDanger}>
+                  <XCircle className="w-3.5 h-3.5" /> Tolak
+                </button>
+              </>
+            )}
+
+            {current.status === 'VERIFIED' && canApprove && (
+              <>
+                <button onClick={() => runAction('approve')} disabled={busy !== null} className={btnPrimary} style={{ background: '#1A77A3' }}>
+                  {busy === 'approve' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />} Setujui
+                </button>
+                <button onClick={() => setReasonModal({ action: 'reject', reason: '' })} disabled={busy !== null} className={btnDanger}>
+                  <XCircle className="w-3.5 h-3.5" /> Tolak
+                </button>
+              </>
+            )}
+
+            {current.status === 'REJECTED' && canEdit && (
+              <button onClick={() => runAction('revise')} disabled={busy !== null} className={btnNeutral}>
+                {busy === 'revise' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />} Revisi (kembali ke Draft)
+              </button>
+            )}
+
+            {current.status === 'APPROVED' && canApprove && (
+              <button onClick={() => runAction('post')} disabled={busy !== null} className={btnPrimary} style={{ background: '#166534' }}>
+                {busy === 'post' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Landmark className="w-3.5 h-3.5" />} Posting ke GL
+              </button>
+            )}
+
+            {current.status === 'POSTED' && canApprove && (
+              <button onClick={() => setReasonModal({ action: 'reverse', reason: '' })} disabled={busy !== null} className={btnNeutral}>
+                {busy === 'reverse' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Undo2 className="w-3.5 h-3.5" />} Balik Jurnal
+              </button>
             )}
           </div>
         </div>
@@ -274,7 +346,7 @@ function TransactionDetail({ tx, canEdit, lookups, onBack, onChanged }: {
           </table>
         </div>
 
-        {!loadingLines && lines.length > 0 && (
+        {!loadingLines && lines.length > 0 && isDraft && (
           <div className={`flex items-center gap-1.5 text-xs rounded-lg px-2.5 py-1.5 ${balanced ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' : 'text-amber-700 bg-amber-50 border border-amber-200'}`}>
             {balanced ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
             {balanced ? 'Debit dan kredit sudah seimbang.' : 'Debit dan kredit belum seimbang — transaksi belum bisa diajukan.'}
@@ -380,6 +452,33 @@ function TransactionDetail({ tx, canEdit, lookups, onBack, onChanged }: {
           </div>
         </div>
       )}
+
+      {reasonModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => busy === null && setReasonModal(null)}>
+          <div className="bg-white rounded-xl w-full max-w-md p-5 space-y-3" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-slate-800">{reasonModal.action === 'reject' ? 'Tolak Transaksi' : 'Balik Jurnal'}</h3>
+              <button onClick={() => setReasonModal(null)}><X className="w-4 h-4 text-slate-400" /></button>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Alasan {reasonModal.action === 'reject' ? 'Penolakan' : 'Pembalikan'} <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={reasonModal.reason} onChange={e => setReasonModal(prev => prev && ({ ...prev, reason: e.target.value }))}
+                rows={3}
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setReasonModal(null)} disabled={busy !== null} className="px-3 py-1.5 rounded-lg text-sm text-slate-600 border border-slate-200">Batal</button>
+              <button onClick={submitReasonModal} disabled={busy !== null} className="px-3 py-1.5 rounded-lg text-sm text-white flex items-center gap-1.5 disabled:opacity-60 bg-red-600">
+                {busy !== null && <Loader2 className="w-3.5 h-3.5 animate-spin" />} {reasonModal.action === 'reject' ? 'Tolak' : 'Balik Jurnal'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -388,6 +487,7 @@ function TransactionDetail({ tx, canEdit, lookups, onBack, onChanged }: {
 export function FinanceTransaction({ onNavigate }: { onNavigate?: (page: string) => void }) {
   const { can: canFn } = useApp();
   const canEdit = canFn(FINANCE_MODULE, 'edit');
+  const canApprove = canFn(FINANCE_MODULE, 'approve');
   const canCreate = canFn(FINANCE_MODULE, 'create');
 
   const [lookups, setLookups] = useState<Lookups>({
@@ -468,7 +568,7 @@ export function FinanceTransaction({ onNavigate }: { onNavigate?: (page: string)
     return (
       <div className="max-w-6xl mx-auto p-4 md:p-6">
         <TransactionDetail
-          tx={selectedTx} canEdit={canEdit} lookups={lookups}
+          tx={selectedTx} canEdit={canEdit} canApprove={canApprove} lookups={lookups}
           onBack={() => { setSelectedTx(null); loadTransactions(); }}
           onChanged={updated => updated && setSelectedTx(updated)}
         />
@@ -487,7 +587,7 @@ export function FinanceTransaction({ onNavigate }: { onNavigate?: (page: string)
         <h1 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
           <Receipt className="w-5 h-5" style={{ color: '#1A77A3' }} /> Transaksi &amp; Voucher
         </h1>
-        <p className="text-sm text-slate-500 mt-0.5">Pencatatan transaksi kas/bank dengan nomor voucher otomatis — Draft → Ajukan (verifikasi &amp; posting di fase berikutnya)</p>
+        <p className="text-sm text-slate-500 mt-0.5">Pencatatan transaksi kas/bank dengan nomor voucher otomatis — Draft → Ajukan → Verifikasi → Setujui → Posting ke General Ledger</p>
       </div>
 
       {lookupsError && <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">{lookupsError}</div>}

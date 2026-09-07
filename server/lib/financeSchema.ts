@@ -335,6 +335,16 @@ CREATE TABLE IF NOT EXISTS finance.voucher_sequences (
   CONSTRAINT ck_voucher_sequence_number CHECK (current_number >= 0)
 );
 
+-- ── JOURNAL SEQUENCES ─────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS finance.journal_sequences (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id   TEXT NOT NULL DEFAULT 'gpib-trinitas',
+  fiscal_year_id    UUID NOT NULL REFERENCES finance.fiscal_years(id) ON DELETE RESTRICT,
+  current_number    BIGINT NOT NULL DEFAULT 0,
+  CONSTRAINT uq_journal_sequence UNIQUE (organization_id, fiscal_year_id),
+  CONSTRAINT ck_journal_sequence_number CHECK (current_number >= 0)
+);
+
 -- ── BUDGETS / RKA ─────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS finance.budgets (
   id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
