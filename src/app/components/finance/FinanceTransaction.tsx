@@ -64,8 +64,8 @@ interface Lookups {
 type WorkflowAction = 'submit' | 'cancel' | 'verify' | 'approve' | 'reject' | 'revise' | 'post' | 'reverse';
 
 // ── Detail transaksi: baris jurnal + aksi ─────────────────────────────────────
-function TransactionDetail({ tx, canEdit, canApprove, lookups, onBack, onChanged }: {
-  tx: any; canEdit: boolean; canApprove: boolean; lookups: Lookups; onBack: () => void; onChanged: (updated?: any) => void;
+function TransactionDetail({ tx, canEdit, canApprove, currentUserId, lookups, onBack, onChanged }: {
+  tx: any; canEdit: boolean; canApprove: boolean; currentUserId: string | undefined; lookups: Lookups; onBack: () => void; onChanged: (updated?: any) => void;
 }) {
   const [current, setCurrent] = useState(tx);
   const [lines, setLines] = useState<any[]>([]);
@@ -99,6 +99,11 @@ function TransactionDetail({ tx, canEdit, canApprove, lookups, onBack, onChanged
 
   const isDraft = current.status === 'DRAFT';
   const balanced = Number(current.total_debit) === Number(current.total_credit) && Number(current.total_debit) > 0;
+  // Segregation of duties: pembuat tidak bisa memverifikasi/menyetujui/memposting transaksinya
+  // sendiri, dan verifikator tidak bisa merangkap sebagai penyetuju — dicek juga di backend,
+  // ini hanya supaya tombolnya sudah nonaktif duluan dengan alasan yang jelas.
+  const isOwnTransaction = !!currentUserId && current.created_by === currentUserId;
+  const isOwnVerification = !!currentUserId && current.verified_by === currentUserId;
 
   const resetForm = () => setForm({ account_id: '', field_id: '', program_id: '', activity_id: '', fund_id: '', cashBank: '', side: 'debit', amount: '', description: '' });
   const openAddLine = () => { resetForm(); setModalOpen(true); };
@@ -229,6 +234,9 @@ function TransactionDetail({ tx, canEdit, canApprove, lookups, onBack, onChanged
             {current.journal_number && (
               <p className="text-xs text-emerald-700 mt-1.5">No. Jurnal: <span className="font-medium">{current.journal_number}</span></p>
             )}
+            {isOwnTransaction && ['SUBMITTED', 'VERIFIED', 'APPROVED'].includes(current.status) && (
+              <p className="text-xs text-slate-400 mt-1.5">Menunggu diproses orang lain — transaksi milik sendiri tidak bisa diverifikasi/disetujui/diposting sendiri.</p>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
             {isDraft && canEdit && (
@@ -248,7 +256,11 @@ function TransactionDetail({ tx, canEdit, canApprove, lookups, onBack, onChanged
 
             {current.status === 'SUBMITTED' && canApprove && (
               <>
-                <button onClick={() => runAction('verify')} disabled={busy !== null} className={btnPrimary} style={{ background: '#1A77A3' }}>
+                <button
+                  onClick={() => runAction('verify')} disabled={busy !== null || isOwnTransaction}
+                  title={isOwnTransaction ? 'Pembuat transaksi tidak bisa memverifikasi transaksinya sendiri' : ''}
+                  className={btnPrimary} style={{ background: '#1A77A3' }}
+                >
                   {busy === 'verify' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />} Verifikasi
                 </button>
                 <button onClick={() => setReasonModal({ action: 'reject', reason: '' })} disabled={busy !== null} className={btnDanger}>
@@ -259,7 +271,11 @@ function TransactionDetail({ tx, canEdit, canApprove, lookups, onBack, onChanged
 
             {current.status === 'VERIFIED' && canApprove && (
               <>
-                <button onClick={() => runAction('approve')} disabled={busy !== null} className={btnPrimary} style={{ background: '#1A77A3' }}>
+                <button
+                  onClick={() => runAction('approve')} disabled={busy !== null || isOwnTransaction || isOwnVerification}
+                  title={isOwnTransaction ? 'Pembuat transaksi tidak bisa menyetujui transaksinya sendiri' : isOwnVerification ? 'Verifikator tidak bisa merangkap sebagai penyetuju' : ''}
+                  className={btnPrimary} style={{ background: '#1A77A3' }}
+                >
                   {busy === 'approve' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />} Setujui
                 </button>
                 <button onClick={() => setReasonModal({ action: 'reject', reason: '' })} disabled={busy !== null} className={btnDanger}>
@@ -275,7 +291,11 @@ function TransactionDetail({ tx, canEdit, canApprove, lookups, onBack, onChanged
             )}
 
             {current.status === 'APPROVED' && canApprove && (
-              <button onClick={() => runAction('post')} disabled={busy !== null} className={btnPrimary} style={{ background: '#166534' }}>
+              <button
+                onClick={() => runAction('post')} disabled={busy !== null || isOwnTransaction}
+                title={isOwnTransaction ? 'Pembuat transaksi tidak bisa memposting transaksinya sendiri' : ''}
+                className={btnPrimary} style={{ background: '#166534' }}
+              >
                 {busy === 'post' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Landmark className="w-3.5 h-3.5" />} Posting ke GL
               </button>
             )}
@@ -485,7 +505,7 @@ function TransactionDetail({ tx, canEdit, canApprove, lookups, onBack, onChanged
 
 // ── Halaman utama Transaksi & Voucher ───────────────────────────────────────────
 export function FinanceTransaction({ onNavigate }: { onNavigate?: (page: string) => void }) {
-  const { can: canFn } = useApp();
+  const { can: canFn, currentUser } = useApp();
   const canEdit = canFn(FINANCE_MODULE, 'edit');
   const canApprove = canFn(FINANCE_MODULE, 'approve');
   const canCreate = canFn(FINANCE_MODULE, 'create');
@@ -568,7 +588,7 @@ export function FinanceTransaction({ onNavigate }: { onNavigate?: (page: string)
     return (
       <div className="max-w-6xl mx-auto p-4 md:p-6">
         <TransactionDetail
-          tx={selectedTx} canEdit={canEdit} canApprove={canApprove} lookups={lookups}
+          tx={selectedTx} canEdit={canEdit} canApprove={canApprove} currentUserId={currentUser?.id} lookups={lookups}
           onBack={() => { setSelectedTx(null); loadTransactions(); }}
           onChanged={updated => updated && setSelectedTx(updated)}
         />

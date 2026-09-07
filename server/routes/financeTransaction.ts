@@ -9,7 +9,13 @@
 //   POSTED -> REVERSED (jurnal pembalik, tidak menghapus jurnal asli)
 // Posting menghasilkan finance.journals + finance.journal_lines (nomor urut
 // atomik JV/KODE_TAHUN_FISKAL/URUT) sebagai sumber General Ledger — lihat
-// server/routes/financeLedger.ts. Sinkronisasi actual_amount ke budget_lines
+// server/routes/financeLedger.ts. Segregation of duties: pembuat transaksi
+// (created_by) TIDAK BOLEH memverifikasi/menyetujui/memposting transaksinya
+// sendiri, dan verifikator TIDAK BOLEH merangkap sebagai penyetuju — dicek
+// per-aksi via perbandingan user id, berlaku untuk semua role TERMASUK
+// Admin (aturan kontrol keuangan ini sengaja tidak mengikuti bypass Admin
+// yang dipakai requireFinancePermission untuk cek hak akses biasa).
+// Sinkronisasi actual_amount ke budget_lines
 // (kontrol RKA vs realisasi) SENGAJA belum diimplementasikan di sini —
 // aturan bisnisnya (jenis transaksi mana yang mengonsumsi anggaran, dan
 // bagaimana ADJUSTMENT/REVERSAL memengaruhinya) butuh keputusan produk
@@ -275,6 +281,10 @@ router.put('/:id/verify', requireFinancePermission('approve'), async (req: AuthR
       res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Hanya transaksi berstatus Diajukan yang bisa diverifikasi' } });
       return;
     }
+    if (tx.created_by === req.user!.userId) {
+      res.status(403).json({ success: false, error: { code: 'SEGREGATION_OF_DUTIES', message: 'Pembuat transaksi tidak bisa memverifikasi transaksinya sendiri — perlu orang lain (segregation of duties)' } });
+      return;
+    }
     const result = await pool.query(
       `UPDATE finance.transactions SET status = 'VERIFIED', verified_at = NOW(), verified_by = $3, updated_at = NOW(), updated_by = $3
        WHERE id = $1 AND organization_id = $2 RETURNING *`,
@@ -296,6 +306,14 @@ router.put('/:id/approve', requireFinancePermission('approve'), async (req: Auth
     if (!tx) return;
     if (tx.status !== 'VERIFIED') {
       res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Hanya transaksi berstatus Diverifikasi yang bisa disetujui' } });
+      return;
+    }
+    if (tx.created_by === req.user!.userId) {
+      res.status(403).json({ success: false, error: { code: 'SEGREGATION_OF_DUTIES', message: 'Pembuat transaksi tidak bisa menyetujui transaksinya sendiri — perlu orang lain (segregation of duties)' } });
+      return;
+    }
+    if (tx.verified_by === req.user!.userId) {
+      res.status(403).json({ success: false, error: { code: 'SEGREGATION_OF_DUTIES', message: 'Verifikator tidak bisa merangkap sebagai penyetuju — harus orang berbeda (segregation of duties)' } });
       return;
     }
     const result = await pool.query(
@@ -378,6 +396,11 @@ router.put('/:id/post', requireFinancePermission('approve'), async (req: AuthReq
     if (tx.status !== 'APPROVED') {
       await client.query('ROLLBACK');
       res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Hanya transaksi berstatus Disetujui yang bisa diposting' } });
+      return;
+    }
+    if (tx.created_by === req.user!.userId) {
+      await client.query('ROLLBACK');
+      res.status(403).json({ success: false, error: { code: 'SEGREGATION_OF_DUTIES', message: 'Pembuat transaksi tidak bisa memposting transaksinya sendiri — perlu orang lain (segregation of duties)' } });
       return;
     }
     const periodRes = await client.query('SELECT * FROM finance.periods WHERE id = $1', [tx.period_id]);
