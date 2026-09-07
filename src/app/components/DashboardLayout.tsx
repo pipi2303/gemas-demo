@@ -173,7 +173,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
         { id: 'members',       label: 'Database Warga',          page: 'members',       icon: Users,        badge: members.length > 0 ? members.length : undefined },
         { id: 'families',      label: 'Data Keluarga Jemaat',    page: 'families',      icon: Home,         badge: families.length > 0 ? families.length : undefined },
         { id: 'sectors',       label: 'Sektor Pelayanan',        page: 'sectors',       icon: MapPin },
-        { id: 'sacraments',    label: 'Sakramen & Berkat',       page: 'sacraments',    icon: Cross },
+        { id: 'sacraments',    label: 'Peribadahan',             page: 'sacraments',    icon: Cross },
         { id: 'attestations',  label: 'Atestasi & Mutasi',       page: 'attestations',  icon: FileText },
         { id: 'sensus-report', label: 'Laporan Sensus Jemaat',   page: 'sensus-report', icon: BarChart3 },
         { id: 'report-center', label: 'Pusat Laporan Konsolidasi', page: 'report-center', icon: Printer },
