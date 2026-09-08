@@ -286,6 +286,28 @@ export async function getAll<T = unknown>(collection: string): Promise<T[]> {
   return result.rows.map(r => JSON.parse(r.data) as T);
 }
 
+/**
+ * Versi terpaginasi dari getAll(). Diimplementasikan sebagai slice JS di atas
+ * hasil getAll() yang sudah ada (BUKAN query SQL baru dengan LIMIT/OFFSET) —
+ * ini penting karena mockQuery() (fallback in-memory) hanya mengenali pola SQL
+ * yang sudah didaftarkan secara eksplisit; SQL baru akan diam-diam mengembalikan
+ * rows kosong. Opsional & backward-compatible: caller lama yang masih memanggil
+ * getAll() polos sama sekali tidak terpengaruh.
+ */
+export async function getAllPaged<T = unknown>(
+  collection: string,
+  page: number,
+  pageSize: number,
+  reverse = false
+): Promise<{ items: T[]; total: number }> {
+  const all = await getAll<T>(collection);
+  if (reverse) all.reverse();
+  const total = all.length;
+  const offset = (page - 1) * pageSize;
+  const items = all.slice(offset, offset + pageSize);
+  return { items, total };
+}
+
 export async function getOne<T = unknown>(collection: string, id: string): Promise<T | null> {
   const result = await getPool().query<{ data: string }>(
     'SELECT data FROM gemas_store WHERE collection = $1 AND id = $2 LIMIT 1',

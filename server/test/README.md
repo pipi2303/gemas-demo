@@ -47,6 +47,14 @@ GitHub Actions service container, terisolasi otomatis per run, dan
   setelahnya masih tertutup — c8962da).
 - `financeReconciliation.test.ts` — segregation of duties pada
   penyelesaian/persetujuan sesi rekonsiliasi bank.
+- `dataPagination.test.ts` — pagination opsional di endpoint generik
+  `GET /api/data/:collection` (dipakai modul non-finance: Log Aktivitas, dll).
+  Termasuk regression test untuk bug nyata yang ditemukan saat menulis test
+  ini sendiri: memindahkan `parsePagination`/`paginationMeta` ke
+  `pagination.ts` sempat memakai `export { x } from './y.js'` di
+  `financeCrud.ts`, yang HANYA mengekspor ulang tanpa membuat binding lokal —
+  menyebabkan `ReferenceError` saat runtime yang tidak akan ketahuan dari
+  `npm run build` saja (lihat komentar di file test).
 
 Tidak semua endpoint tercakup (lihat memori proyek untuk gap yang belum
 diuji) — suite ini fokus pada risiko regresi yang sudah pernah nyata

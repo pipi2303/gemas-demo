@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
-import { getAll, getOne, upsert, remove } from '../lib/db.js';
+import { getAll, getAllPaged, getOne, upsert, remove } from '../lib/db.js';
+import { parsePagination, paginationMeta } from '../lib/pagination.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { requirePermission } from '../middleware/checkPermission.js';
 import { hashPassword, isHashed } from '../lib/passwordUtils.js';
@@ -178,7 +179,25 @@ router.get('/:collection', requireAuth, requirePermission(), async (req: AuthReq
     res.status(400).json({ error: 'Nama koleksi tidak valid' });
     return;
   }
+  // Pagination opsional: hanya aktif kalau caller eksplisit mengirim ?page=
+  // dan/atau ?pageSize=. Tanpa parameter itu, perilaku persis sama seperti
+  // sebelumnya (array penuh) — supaya semua consumer lama yang belum diubah
+  // tidak terpengaruh sama sekali.
+  const hasPaginationParams = req.query.page !== undefined || req.query.pageSize !== undefined;
   try {
+    if (hasPaginationParams) {
+      const { page, pageSize } = parsePagination(req, 100, 500);
+      // ?sort=desc membalik urutan sebelum diiris (masih JS-level slice di atas
+      // getAll(), bukan SQL baru) — berguna untuk widget "aktivitas terbaru" yang
+      // butuh entri terbaru dulu tanpa harus mengunduh seluruh koleksi.
+      const reverse = req.query.sort === 'desc';
+      const { items, total } = await getAllPaged(collection, page, pageSize, reverse);
+      res.json({
+        data: collection === 'users' ? stripPassword(items as any[]) : items,
+        meta: paginationMeta(total, page, pageSize),
+      });
+      return;
+    }
     const items = await getAll(collection);
     res.json(collection === 'users' ? stripPassword(items as any[]) : items);
   } catch (err) {
