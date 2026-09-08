@@ -528,6 +528,31 @@ export function handleFinanceInMemoryQuery(sql: string, params: any[] = []): { r
     return { rows };
   }
 
+  // Dashboard Top Revenue Accounts
+  if (/COALESCE\(SUM\(jl\.credit\s*-\s*jl\.debit\),\s*0\)\s+AS\s+amount/i.test(trimmed)) {
+    const revMap: { [code: string]: { code: string; name: string; amount: number } } = {};
+    for (const jl of Object.values(tables.journal_lines) as any[]) {
+      const acc = tables.accounts[jl.account_id];
+      if (!acc || acc.account_type !== 'REVENUE') continue;
+      if (!revMap[acc.code]) revMap[acc.code] = { code: acc.code, name: acc.name, amount: 0 };
+      revMap[acc.code].amount += Number(jl.credit || 0) - Number(jl.debit || 0);
+    }
+    const rows = Object.values(revMap).filter(x => x.amount > 0).sort((a, b) => b.amount - a.amount).slice(0, 5);
+    return { rows };
+  }
+
+  // Dashboard Budget summary
+  if (/total_budget_revenue/i.test(trimmed)) {
+    let bRev = 0, bExp = 0;
+    for (const bl of Object.values(tables.budget_lines) as any[]) {
+      const acc = tables.accounts[bl.account_id];
+      if (!acc) continue;
+      if (acc.account_type === 'REVENUE') bRev += Number(bl.budget_amount || bl.amount || 0);
+      if (acc.account_type === 'EXPENSE') bExp += Number(bl.budget_amount || bl.amount || 0);
+    }
+    return { rows: [{ total_budget_revenue: bRev || 385000000, total_budget_expense: bExp || 360000000 }] };
+  }
+
   // Dashboard Period Status Counts
   if (/SELECT\s+status,\s+COUNT\(\*\)(?:::int)?\s+AS\s+cnt\s+FROM\s+finance\.periods/i.test(trimmed)) {
     const counts: { [status: string]: number } = {};

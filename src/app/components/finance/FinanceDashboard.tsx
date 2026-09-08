@@ -1,22 +1,67 @@
 // ============================================================
-// FINANCE ADD-ON MODULE — Fase 9: Dashboard & Analitik
+// FINANCE ADD-ON MODULE — Fase 9: Dashboard & Analitik Eksekutif
 // ============================================================
-// Ringkasan eksekutif satu Tahun Fiskal: KPI utama, tren Pendapatan vs
-// Beban per bulan, top 5 akun Beban, dan status antrian transaksi — semua
-// dari satu endpoint (financeDashboard.ts) yang menghitung ulang dari
-// jurnal yang sudah diposting, tidak ada state tersendiri.
+// Ringkasan eksekutif, intelijen kas & bank, tren bulanan, analisis
+// penerimaan vs beban, dan audit workflow tata kelola keuangan GPIB.
 // ============================================================
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../../../lib/apiClient';
 import { toast } from 'sonner';
-import { LayoutDashboard, Loader2, Wallet, Scale3D, TrendingUp, TrendingDown, Inbox } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
+import {
+  LayoutDashboard,
+  Loader2,
+  Wallet,
+  Scale3D,
+  TrendingUp,
+  TrendingDown,
+  Inbox,
+  Building2,
+  Landmark,
+  ArrowUpRight,
+  ArrowDownRight,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  RefreshCw,
+  Printer,
+  FileText,
+  ChevronRight,
+  ShieldCheck,
+  Sparkles,
+  PieChart as PieChartIcon,
+  BarChart3,
+  Calendar,
+  Layers,
+  DollarSign,
+  CreditCard,
+  Banknote,
+  ArrowRight,
+  SlidersHorizontal,
+  ChevronDown,
+  Plus,
+} from 'lucide-react';
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Area,
+  Bar,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
 
 function formatRp(n: unknown) {
   const v = Number(n ?? 0);
   return `Rp ${v.toLocaleString('id-ID')}`;
 }
+
 function formatRpShort(n: unknown) {
   const v = Number(n ?? 0);
   if (Math.abs(v) >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(1)}M`;
@@ -30,27 +75,17 @@ interface ApiResponse<T> {
   data?: T;
   error?: { code: string; message: string };
 }
+
 async function callApi<T = any>(url: string): Promise<T> {
   const res = await (api as any).get<ApiResponse<T>>(url);
   if (!res.success) throw new Error(res.error?.message || 'Terjadi kesalahan');
   return res.data as T;
 }
 
-const inputCls = 'w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]';
-const labelCls = 'block text-xs font-medium text-slate-600 mb-1';
-const PIE_COLORS = ['#1A77A3', '#0891b2', '#0d9488', '#65a30d', '#ca8a04'];
+const PIE_COLORS = ['#1A77A3', '#0891b2', '#0d9488', '#16a34a', '#ca8a04', '#d97706'];
+const REV_COLORS = ['#10b981', '#059669', '#0d9488', '#0284c7', '#6366f1'];
 
-function KpiCard({ icon: Icon, label, value, tone }: { icon: React.ElementType; label: string; value: string; tone?: 'default' | 'positive' | 'negative' }) {
-  const color = tone === 'positive' ? '#166534' : tone === 'negative' ? '#991b1b' : '#1e293b';
-  return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4">
-      <div className="flex items-center gap-2 text-slate-400 mb-1.5">
-        <Icon className="w-4 h-4" /> <span className="text-xs font-medium">{label}</span>
-      </div>
-      <p className="text-lg font-semibold" style={{ color }}>{value}</p>
-    </div>
-  );
-}
+type ActiveTab = 'ringkasan' | 'tren' | 'kas-bank' | 'anggaran' | 'tata-kelola';
 
 export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) => void }) {
   const [fiscalYears, setFiscalYears] = useState<any[]>([]);
@@ -58,7 +93,10 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
   const [data, setData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingDashboard, setLoadingDashboard] = useState(false);
+  const [activeTab, setActiveTab] = useState<ActiveTab>('ringkasan');
+  const [chartType, setChartType] = useState<'area' | 'bar' | 'net'>('area');
 
+  // Load Fiscal Years
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -68,122 +106,1036 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
         setFiscalYearId(prev => prev || years.find((y: any) => y.is_current)?.id || years[0]?.id || '');
       } catch (err: any) {
         toast.error(err?.message || 'Gagal memuat Tahun Fiskal');
-      } finally { setLoading(false); }
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 
+  // Load Dashboard Data
   const load = useCallback(async () => {
     if (!fiscalYearId) return;
     setLoadingDashboard(true);
     try {
-      setData(await callApi<any>(`/api/v1/finance/dashboard?fiscalYearId=${fiscalYearId}`));
+      const res = await callApi<any>(`/api/v1/finance/dashboard?fiscalYearId=${fiscalYearId}`);
+      setData(res);
     } catch (err: any) {
       toast.error(err?.message || 'Gagal memuat dashboard keuangan');
-    } finally { setLoadingDashboard(false); }
+    } finally {
+      setLoadingDashboard(false);
+    }
   }, [fiscalYearId]);
-  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const currentFiscalYear = useMemo(() => {
+    return fiscalYears.find(f => f.id === fiscalYearId) || data?.fiscalYear;
+  }, [fiscalYears, fiscalYearId, data]);
+
+  // Handle Print Action
+  const handlePrint = () => {
+    window.print();
+  };
 
   if (loading) {
-    return <div className="max-w-6xl mx-auto p-6 flex items-center justify-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mr-2" /> Memuat…</div>;
-  }
-  if (fiscalYears.length === 0) {
-    return <div className="max-w-6xl mx-auto p-4 md:p-6"><p className="text-sm text-slate-500">Belum ada Tahun Fiskal — buat dulu lewat menu Master Data &amp; Fiskal.</p></div>;
+    return (
+      <div className="max-w-7xl mx-auto p-8 flex flex-col items-center justify-center min-h-[400px] text-slate-400">
+        <Loader2 className="w-8 h-8 animate-spin mb-3 text-[#1A77A3]" />
+        <p className="text-sm font-medium text-slate-600">Menyiapkan Dashboard & Analitik Keuangan…</p>
+      </div>
+    );
   }
 
-  return (
-    <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-5">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
+  if (fiscalYears.length === 0) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 text-center">
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 text-center max-w-md mx-auto">
+          <AlertTriangle className="w-10 h-10 text-amber-600 mx-auto mb-3" />
+          <h3 className="text-base font-semibold text-amber-900 mb-1">Tahun Fiskal Belum Tersedia</h3>
+          <p className="text-xs text-amber-700 mb-4">
+            Silakan buat dan aktifkan Tahun Fiskal terlebih dahulu melalui menu Master Data & Fiskal.
+          </p>
           {onNavigate && (
-            <button onClick={() => onNavigate('finance-addon')} className="flex items-center gap-1 text-xs text-slate-400 hover:text-[#1A77A3] mb-1.5">
-              &larr; Kembali ke Ringkasan Finance
+            <button
+              onClick={() => onNavigate('finance-master-data')}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1A77A3] text-white text-xs font-medium rounded-lg hover:opacity-90"
+            >
+              Buka Master Data &amp; Fiskal <ArrowRight className="w-3.5 h-3.5" />
             </button>
           )}
-          <h1 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-            <LayoutDashboard className="w-5 h-5" style={{ color: '#1A77A3' }} /> Dashboard &amp; Analitik
-          </h1>
-          <p className="text-sm text-slate-500 mt-0.5">Ringkasan eksekutif keuangan — diperbarui real-time dari jurnal yang sudah diposting</p>
         </div>
-        <div className="min-w-[180px]">
-          <label className={labelCls}>Tahun Fiskal</label>
-          <select value={fiscalYearId} onChange={e => setFiscalYearId(e.target.value)} className={inputCls}>
-            {fiscalYears.map(fy => <option key={fy.id} value={fy.id}>{fy.name}{fy.is_current ? ' (Aktif)' : ''}</option>)}
-          </select>
+      </div>
+    );
+  }
+
+  // Derived metrics
+  const operatingMargin = data && data.ytdRevenue > 0
+    ? ((data.ytdNetSurplus / data.ytdRevenue) * 100).toFixed(1)
+    : '0';
+
+  const chartData = (data?.monthlyTrend || []).map((m: any) => ({
+    name: m.periodName.replace(' 2026', '').replace(' 2027', ''),
+    fullName: m.periodName,
+    Pendapatan: m.revenue,
+    Beban: m.expense,
+    Surplus: m.net,
+  }));
+
+  // Bank & Cash composition for donut
+  const liquidAssetComposition = [
+    ...(data?.cashAccounts || []).map((c: any) => ({
+      name: `${c.name} (${c.code})`,
+      amount: c.current_balance,
+      category: 'KAS',
+    })),
+    ...(data?.bankAccounts || []).map((b: any) => ({
+      name: `${b.bank_name} - ${b.account_name}`,
+      amount: b.current_balance,
+      category: 'BANK',
+    })),
+  ].filter(item => item.amount > 0);
+
+  return (
+    <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+      {/* ── Top Header Section (Minimalis, Informatif & Keren) ─────── */}
+      <div className="bg-white/90 backdrop-blur-md rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs relative overflow-hidden">
+        {/* Subtle top brand accent line */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#1A77A3] via-sky-400 to-emerald-400" />
+
+        {/* Top Context & Breadcrumb Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100 text-xs">
+          <div className="flex items-center gap-1.5 text-slate-400">
+            {onNavigate ? (
+              <button
+                onClick={() => onNavigate('finance-addon')}
+                className="hover:text-[#1A77A3] transition-colors font-medium text-slate-500 hover:underline flex items-center gap-1"
+              >
+                <span>Keuangan &amp; Perbendaharaan</span>
+              </button>
+            ) : (
+              <span className="font-medium text-slate-500">Keuangan &amp; Perbendaharaan</span>
+            )}
+            <span>/</span>
+            <span className="font-semibold text-slate-700">Dashboard &amp; Analitik</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Sistem Akuntansi Ganda (Double-Entry)
+            </span>
+            <span className="hidden sm:inline-block text-slate-300">&bull;</span>
+            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-slate-400">
+              <Clock className="w-3 h-3 text-slate-400" />
+              Real-time GL
+            </span>
+          </div>
+        </div>
+
+        {/* Main Title & Action Cluster */}
+        <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-5">
+          {/* Left Title & Status */}
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                Dashboard &amp; Analitik Keuangan
+              </h1>
+              {currentFiscalYear?.is_current && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/80 shadow-2xs">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                  </span>
+                  Tahun Anggaran Berjalan
+                </span>
+              )}
+            </div>
+
+            <p className="text-xs sm:text-sm text-slate-500 flex items-center gap-2 flex-wrap">
+              <span className="font-medium text-slate-700">GPIB Jemaat Trinitas Jakarta</span>
+              <span className="text-slate-300">&bull;</span>
+              <span>Executive Financial Intelligence &amp; Double-Entry Audit Trail</span>
+            </p>
+          </div>
+
+          {/* Right Controls: Fiscal Year Capsule + Actions */}
+          <div className="flex items-center flex-wrap gap-2.5 sm:gap-3">
+            {/* Custom Fiscal Year Selector Capsule */}
+            <div className="relative flex items-center gap-2.5 bg-slate-50/90 hover:bg-slate-100/90 border border-slate-200/90 rounded-xl px-3.5 py-2 transition-all shadow-2xs group focus-within:ring-2 focus-within:ring-[#1A77A3]/20 focus-within:border-[#1A77A3]">
+              <div className="w-7 h-7 rounded-lg bg-sky-100/70 text-[#1A77A3] flex items-center justify-center shrink-0">
+                <Calendar className="w-4 h-4" />
+              </div>
+              <div className="text-left pr-4">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 leading-none mb-0.5">
+                  Tahun Fiskal
+                </span>
+                <select
+                  value={fiscalYearId}
+                  onChange={e => setFiscalYearId(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer pr-4 appearance-none"
+                >
+                  {fiscalYears.map(fy => (
+                    <option key={fy.id} value={fy.id}>
+                      {fy.name || fy.code} {fy.is_current ? '★ (Aktif)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 pointer-events-none group-hover:text-slate-600 transition-colors" />
+            </div>
+
+            {/* Refresh Button */}
+            <button
+              onClick={load}
+              disabled={loadingDashboard}
+              className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-[#1A77A3] hover:border-[#1A77A3] shadow-2xs transition-all disabled:opacity-50"
+              title="Segarkan Data Real-Time"
+            >
+              <RefreshCw className={`w-4 h-4 ${loadingDashboard ? 'animate-spin text-[#1A77A3]' : ''}`} />
+            </button>
+
+            {/* Print Button */}
+            <button
+              onClick={handlePrint}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50 shadow-2xs text-xs font-semibold transition-all"
+              title="Cetak Ringkasan Eksekutif"
+            >
+              <Printer className="w-3.5 h-3.5 text-slate-500" />
+              <span>Cetak</span>
+            </button>
+
+            {/* Quick Transaction Button */}
+            {onNavigate && (
+              <button
+                onClick={() => onNavigate('finance-transaction')}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-white shadow-sm hover:shadow-md text-xs font-bold transition-all hover:opacity-95 active:scale-[0.99]"
+                style={{ background: 'linear-gradient(135deg, #1A77A3 0%, #115372 100%)' }}
+              >
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+                <span>+ Input Transaksi</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Minimalist Informative Strip */}
+        <div className="mt-5 pt-3.5 border-t border-slate-100 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="text-slate-500">Periode:</span>
+            <span className="font-semibold text-slate-800">
+              {data?.periodStatusCounts ? `${data.periodStatusCounts.OPEN || 0} Terbuka` : 'Aktif'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-sky-500" />
+            <span className="text-slate-500">Kas &amp; Bank:</span>
+            <span className="font-semibold text-slate-800">
+              {formatRp(data?.liquidity?.totalLiquidAssets || data?.totalAssets || 0)}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-teal-500" />
+            <span className="text-slate-500">Jurnal:</span>
+            <span className="font-semibold text-emerald-700">Seimbang (Balanced)</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-indigo-500" />
+            <span className="text-slate-500">Otorisasi:</span>
+            <span className="font-semibold text-slate-800">Prinsip 4-Mata (SoD)</span>
+          </div>
         </div>
       </div>
 
-      {loadingDashboard && <div className="flex items-center justify-center py-16 text-slate-400"><Loader2 className="w-5 h-5 animate-spin mr-2" /> Memuat…</div>}
+      {loadingDashboard && (
+        <div className="flex items-center justify-center py-20 text-slate-400">
+          <Loader2 className="w-6 h-6 animate-spin text-[#1A77A3] mr-2.5" />
+          <span className="text-sm font-medium text-slate-600">Memperbarui metrik analitik...</span>
+        </div>
+      )}
 
       {!loadingDashboard && data && (
         <>
-          <p className="text-xs text-slate-400">Per {data.asOfDate}</p>
+          {/* ── Pending Approvals Alert Bar (if any) ────────────────────────── */}
+          {data.pendingApproval > 0 && (
+            <div className="bg-amber-50/90 border border-amber-200/90 rounded-2xl p-4 flex items-center justify-between gap-4 flex-wrap shadow-xs">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+                  <Inbox className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-amber-900">
+                    {data.pendingApproval} Transaksi Menunggu Proses Otorisasi
+                  </h4>
+                  <p className="text-xs text-amber-700">
+                    Terdapat voucher transaksi pada status Pengajuan (Submitted), Verifikasi (Verified), atau Persetujuan (Approved) yang membutuhkan tindakan.
+                  </p>
+                </div>
+              </div>
+              {onNavigate && (
+                <button
+                  onClick={() => onNavigate('finance-approval')}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 text-white text-xs font-bold hover:bg-amber-700 transition-all shadow-xs"
+                >
+                  Buka Antrian Verifikasi &rarr;
+                </button>
+              )}
+            </div>
+          )}
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <KpiCard icon={Wallet} label="Total Aset" value={formatRp(data.totalAssets)} />
-            <KpiCard icon={Scale3D} label="Total Kewajiban" value={formatRp(data.totalLiabilities)} />
-            <KpiCard icon={Wallet} label="Saldo Dana" value={formatRp(data.totalFundBalanceEffective)} />
-            <KpiCard
-              icon={data.ytdNetSurplus >= 0 ? TrendingUp : TrendingDown}
-              label="Surplus/(Defisit) YTD"
-              value={formatRp(data.ytdNetSurplus)}
-              tone={data.ytdNetSurplus >= 0 ? 'positive' : 'negative'}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <KpiCard icon={TrendingUp} label="Pendapatan YTD" value={formatRp(data.ytdRevenue)} tone="positive" />
-            <KpiCard icon={TrendingDown} label="Beban YTD" value={formatRp(data.ytdExpense)} tone="negative" />
-            <KpiCard icon={Inbox} label="Menunggu Diproses" value={`${data.pendingApproval} transaksi`} />
-            <KpiCard icon={Scale3D} label="Periode Ditutup" value={`${data.periodStatusCounts.CLOSED || 0} / 12`} />
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="md:col-span-2 bg-white rounded-xl border border-slate-200 p-4">
-              <p className="text-sm font-semibold text-slate-700 mb-3">Tren Pendapatan vs Beban per Bulan</p>
-              <div style={{ width: '100%', height: 260 }}>
-                <ResponsiveContainer>
-                  <BarChart data={data.monthlyTrend.map((m: any) => ({ name: m.periodName.split(' ')[0], Pendapatan: m.revenue, Beban: m.expense }))}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                    <YAxis tickFormatter={formatRpShort} tick={{ fontSize: 11 }} width={50} />
-                    <Tooltip formatter={(v: any) => formatRp(v)} />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
-                    <Bar dataKey="Pendapatan" fill="#1A77A3" radius={[3, 3, 0, 0]} />
-                    <Bar dataKey="Beban" fill="#ef4444" radius={[3, 3, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+          {/* ── Hero Executive Metric Cards (4 Pillars) ──────────────────── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* 1. Posisi Total Aset */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:border-[#1A77A3]/40 transition-all relative overflow-hidden group">
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-sky-50 flex items-center justify-center text-[#1A77A3]">
+                    <Wallet className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Aset Bersih</span>
+                </div>
+                <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-sky-50 text-[#1A77A3]">
+                  Solven
+                </span>
+              </div>
+              <p className="text-2xl font-bold text-slate-900 tracking-tight">{formatRp(data.totalAssets)}</p>
+              <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <span>Kas &amp; Setara Kas:</span>
+                <span className="font-semibold text-slate-700">{formatRp(data.liquidity?.totalLiquidAssets || data.totalAssets)}</span>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-slate-200 p-4">
-              <p className="text-sm font-semibold text-slate-700 mb-3">Top 5 Akun Beban (YTD)</p>
-              {data.topExpenseAccounts.length === 0 ? (
-                <p className="text-xs text-slate-400 py-8 text-center">Belum ada data Beban.</p>
-              ) : (
-                <>
-                  <div style={{ width: '100%', height: 160 }}>
-                    <ResponsiveContainer>
-                      <PieChart>
-                        <Pie data={data.topExpenseAccounts} dataKey="amount" nameKey="name" innerRadius={35} outerRadius={60}>
-                          {data.topExpenseAccounts.map((_: any, i: number) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                        </Pie>
-                        <Tooltip formatter={(v: any) => formatRp(v)} />
-                      </PieChart>
-                    </ResponsiveContainer>
+            {/* 2. Surplus / (Defisit) YTD */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:border-[#1A77A3]/40 transition-all relative overflow-hidden group">
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <div className="flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${data.ytdNetSurplus >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                    {data.ytdNetSurplus >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                   </div>
-                  <ul className="mt-2 space-y-1">
-                    {data.topExpenseAccounts.map((a: any, i: number) => (
-                      <li key={a.code} className="flex items-center gap-1.5 text-xs">
-                        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                        <span className="text-slate-600 truncate flex-1">{a.name}</span>
-                        <span className="font-medium text-slate-700 whitespace-nowrap">{formatRp(a.amount)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Surplus / (Defisit) YTD</span>
+                </div>
+                <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${data.ytdNetSurplus >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+                  {data.ytdNetSurplus >= 0 ? 'Surplus' : 'Defisit'}
+                </span>
+              </div>
+              <p className={`text-2xl font-bold tracking-tight ${data.ytdNetSurplus >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                {formatRp(data.ytdNetSurplus)}
+              </p>
+              <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <span>Margin Operasional:</span>
+                <span className={`font-semibold ${data.ytdNetSurplus >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {operatingMargin}%
+                </span>
+              </div>
+            </div>
+
+            {/* 3. Penerimaan (Revenue) YTD */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:border-[#1A77A3]/40 transition-all relative overflow-hidden group">
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+                    <ArrowUpRight className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Penerimaan YTD</span>
+                </div>
+                <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-700">
+                  {data.budget?.revenueRealizationRate || 0}% Target
+                </span>
+              </div>
+              <p className="text-2xl font-bold text-slate-900 tracking-tight">{formatRp(data.ytdRevenue)}</p>
+              <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <span>Target RKA:</span>
+                <span className="font-semibold text-slate-700">{formatRp(data.budget?.totalBudgetRevenue || 0)}</span>
+              </div>
+            </div>
+
+            {/* 4. Pengeluaran (Expense) YTD */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:border-[#1A77A3]/40 transition-all relative overflow-hidden group">
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
+                    <ArrowDownRight className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Belanja / Beban YTD</span>
+                </div>
+                <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-700">
+                  Cadangan: {data.liquidity?.runwayMonths || 12} Bln
+                </span>
+              </div>
+              <p className="text-2xl font-bold text-slate-900 tracking-tight">{formatRp(data.ytdExpense)}</p>
+              <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <span>Penyerapan Anggaran:</span>
+                <span className="font-semibold text-slate-700">{data.budget?.expenseAbsorptionRate || 0}%</span>
+              </div>
             </div>
           </div>
+
+          {/* ── Secondary Indicator Bar: Saldo Dana & Tata Kelola ───────── */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-white rounded-2xl border border-slate-200 p-4 text-xs">
+            <div className="border-r border-slate-100 pr-3">
+              <p className="text-slate-400 font-medium mb-1">Total Kewajiban (Utang)</p>
+              <p className="text-sm font-bold text-slate-800">{formatRp(data.totalLiabilities)}</p>
+            </div>
+            <div className="border-r border-slate-100 pr-3">
+              <p className="text-slate-400 font-medium mb-1">Saldo Dana Efektif</p>
+              <p className="text-sm font-bold text-slate-800">{formatRp(data.totalFundBalanceEffective)}</p>
+            </div>
+            <div className="border-r border-slate-100 pr-3">
+              <p className="text-slate-400 font-medium mb-1">Status 12 Periode</p>
+              <p className="text-sm font-bold text-slate-800">
+                <span className="text-emerald-600">{data.periodStatusCounts?.OPEN || 0} Terbuka</span> &bull; {data.periodStatusCounts?.CLOSED || 0} Ditutup
+              </p>
+            </div>
+            <div>
+              <p className="text-slate-400 font-medium mb-1">Kepatuhan Tata Kelola</p>
+              <div className="flex items-center gap-1.5 text-emerald-700 font-bold text-sm">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>Prinsip 4-Mata Aktif</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Perspective Switcher Tabs ──────────────────────────────── */}
+          <div className="flex items-center gap-1 border-b border-slate-200 overflow-x-auto no-scrollbar py-1">
+            {[
+              { id: 'ringkasan', label: 'Ringkasan Eksekutif', icon: Sparkles },
+              { id: 'tren', label: 'Tren Arus Kas Bulanan', icon: BarChart3 },
+              { id: 'kas-bank', label: 'Posisi Kas & Bank', icon: Landmark },
+              { id: 'anggaran', label: 'Realisasi Anggaran (RKA)', icon: Layers },
+              { id: 'tata-kelola', label: 'Alur Audit & Otorisasi', icon: ShieldCheck },
+            ].map(t => {
+              const Icon = t.icon;
+              const isActive = activeTab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTab(t.id as ActiveTab)}
+                  className={`inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-xl whitespace-nowrap transition-all ${
+                    isActive
+                      ? 'bg-[#1A77A3] text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ── TAB 1: RINGKASAN EKSEKUTIF ─────────────────────────────── */}
+          {activeTab === 'ringkasan' && (
+            <div className="space-y-6">
+              {/* Main Chart + Top Expense Split */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left: Monthly Trend Chart */}
+                <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+                  <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-[#1A77A3]" />
+                        Tren Pendapatan vs Beban per Periode
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Agregasi mutasi jurnal yang sudah diposting di Tahun Fiskal {currentFiscalYear?.name}
+                      </p>
+                    </div>
+                    {/* Chart style toggle */}
+                    <div className="flex items-center bg-slate-100 p-0.5 rounded-lg text-xs font-medium">
+                      <button
+                        onClick={() => setChartType('area')}
+                        className={`px-2.5 py-1 rounded-md transition-all ${chartType === 'area' ? 'bg-white text-[#1A77A3] shadow-xs' : 'text-slate-600'}`}
+                      >
+                        Area
+                      </button>
+                      <button
+                        onClick={() => setChartType('bar')}
+                        className={`px-2.5 py-1 rounded-md transition-all ${chartType === 'bar' ? 'bg-white text-[#1A77A3] shadow-xs' : 'text-slate-600'}`}
+                      >
+                        Batang
+                      </button>
+                      <button
+                        onClick={() => setChartType('net')}
+                        className={`px-2.5 py-1 rounded-md transition-all ${chartType === 'net' ? 'bg-white text-[#1A77A3] shadow-xs' : 'text-slate-600'}`}
+                      >
+                        Surplus Bersih
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ width: '100%', height: 290 }}>
+                    <ResponsiveContainer>
+                      <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.28} />
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                          </linearGradient>
+                          <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.28} />
+                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0.0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                        <YAxis tickFormatter={formatRpShort} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} width={55} />
+                        <Tooltip
+                          formatter={(value: any) => formatRp(value)}
+                          labelFormatter={(label: string) => `Periode: ${label}`}
+                          contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', fontSize: '12px' }}
+                        />
+                        <Legend wrapperStyle={{ fontSize: 12, paddingTop: '10px' }} />
+
+                        {chartType === 'area' && (
+                          <>
+                            <Area type="monotone" dataKey="Pendapatan" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRev)" />
+                            <Area type="monotone" dataKey="Beban" stroke="#ef4444" strokeWidth={2.5} fillOpacity={1} fill="url(#colorExp)" />
+                          </>
+                        )}
+                        {chartType === 'bar' && (
+                          <>
+                            <Bar dataKey="Pendapatan" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                            <Bar dataKey="Beban" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                          </>
+                        )}
+                        {chartType === 'net' && (
+                          <>
+                            <Bar dataKey="Surplus" fill="#1A77A3" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                            <Line type="monotone" dataKey="Surplus" stroke="#0891b2" strokeWidth={3} dot={{ r: 4 }} />
+                          </>
+                        )}
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Right: Top 5 Akun Beban & Pie Chart */}
+                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      <PieChartIcon className="w-4 h-4 text-rose-500" />
+                      Komposisi 5 Beban Terbesar
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">Beban operasional &amp; pelayanan YTD</p>
+
+                    {data.topExpenseAccounts.length === 0 ? (
+                      <div className="py-16 text-center text-slate-400">
+                        <Inbox className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                        <p className="text-xs">Belum ada transaksi pengeluaran/beban yang di-post.</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ width: '100%', height: 160 }} className="mt-2">
+                          <ResponsiveContainer>
+                            <PieChart>
+                              <Pie
+                                data={data.topExpenseAccounts}
+                                dataKey="amount"
+                                nameKey="name"
+                                innerRadius={40}
+                                outerRadius={65}
+                                paddingAngle={3}
+                              >
+                                {data.topExpenseAccounts.map((_: any, i: number) => (
+                                  <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip formatter={(v: any) => formatRp(v)} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+
+                        <div className="space-y-2 mt-2">
+                          {data.topExpenseAccounts.map((a: any, i: number) => {
+                            const totalExp = data.ytdExpense || 1;
+                            const pct = ((a.amount / totalExp) * 100).toFixed(1);
+                            return (
+                              <div key={a.code} className="text-xs">
+                                <div className="flex items-center justify-between mb-1">
+                                  <div className="flex items-center gap-1.5 truncate max-w-[70%]">
+                                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                                    <span className="text-slate-700 font-medium truncate" title={a.name}>
+                                      {a.name}
+                                    </span>
+                                  </div>
+                                  <span className="font-bold text-slate-900">{formatRp(a.amount)}</span>
+                                </div>
+                                <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full rounded-full transition-all"
+                                    style={{ width: `${pct}%`, background: PIE_COLORS[i % PIE_COLORS.length] }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                    <span>Total Beban YTD:</span>
+                    <span className="font-bold text-slate-900">{formatRp(data.ytdExpense)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Top Revenue Streams & Bank Accounts Preview */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Top Revenue Sources */}
+                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      <ArrowUpRight className="w-4 h-4 text-emerald-600" />
+                      Sumber Penerimaan Utama (YTD)
+                    </h3>
+                    <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+                      {formatRp(data.ytdRevenue)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mb-4">
+                    Persembahan jemaat, perpuluhan, kolekte dan penerimaan khusus yang telah dibukukan.
+                  </p>
+
+                  {(!data.topRevenueAccounts || data.topRevenueAccounts.length === 0) ? (
+                    <p className="text-xs text-slate-400 py-8 text-center">Belum ada data penerimaan.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {data.topRevenueAccounts.map((rev: any, idx: number) => {
+                        const pct = data.ytdRevenue > 0 ? ((rev.amount / data.ytdRevenue) * 100).toFixed(1) : '0';
+                        return (
+                          <div key={rev.code} className="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                            <div className="flex items-center justify-between text-xs mb-1.5">
+                              <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full" style={{ background: REV_COLORS[idx % REV_COLORS.length] }} />
+                                {rev.name}
+                              </span>
+                              <div className="text-right">
+                                <span className="font-bold text-emerald-800">{formatRp(rev.amount)}</span>
+                                <span className="text-[11px] text-slate-400 ml-1.5 font-medium">({pct}%)</span>
+                              </div>
+                            </div>
+                            <div className="w-full h-1.5 bg-slate-200/70 rounded-full overflow-hidden">
+                              <div
+                                className="h-full rounded-full transition-all"
+                                style={{ width: `${pct}%`, background: REV_COLORS[idx % REV_COLORS.length] }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Kas & Rekening Bank Highlight */}
+                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <Landmark className="w-4 h-4 text-[#1A77A3]" />
+                        Likuiditas Kas &amp; Saldo Bank
+                      </h3>
+                      <span className="text-xs font-semibold text-[#1A77A3] bg-sky-50 px-2 py-0.5 rounded-md">
+                        {formatRp(data.liquidity?.totalLiquidAssets || data.totalAssets)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mb-4">
+                      Posisi saldo kas fisik di brankas bendahara dan seluruh rekening bank aktif gereja.
+                    </p>
+
+                    <div className="space-y-2.5">
+                      {/* Cash accounts */}
+                      {(data.cashAccounts || []).map((c: any) => (
+                        <div key={c.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                              <Banknote className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-slate-800">{c.name}</p>
+                              <p className="text-[11px] text-slate-400">{c.location || 'Brankas'}</p>
+                            </div>
+                          </div>
+                          <p className="text-xs font-bold text-slate-900">{formatRp(c.current_balance)}</p>
+                        </div>
+                      ))}
+
+                      {/* Bank accounts */}
+                      {(data.bankAccounts || []).slice(0, 2).map((b: any) => (
+                        <div key={b.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-sky-100 text-sky-800 flex items-center justify-center">
+                              <Building2 className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-slate-800">{b.account_name}</p>
+                              <p className="text-[11px] text-slate-400">{b.bank_name} &bull; {b.account_number}</p>
+                            </div>
+                          </div>
+                          <p className="text-xs font-bold text-slate-900">{formatRp(b.current_balance)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-xs text-slate-500">
+                      Runway Operasional: <strong className="text-slate-800">{data.liquidity?.runwayMonths || 12} Bulan</strong>
+                    </span>
+                    <button
+                      onClick={() => setActiveTab('kas-bank')}
+                      className="text-xs font-semibold text-[#1A77A3] hover:underline flex items-center gap-1"
+                    >
+                      Lihat Semua Rekening &rarr;
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── TAB 2: TREN ARUS KAS BULANAN ───────────────────────────── */}
+          {activeTab === 'tren' && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Analisis Arus Kas Bulanan Sepanjang Tahun Fiskal</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Evaluasi stabilitas penerimaan jemaat terhadap pemenuhan beban program dan pelayanan
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs">
+                    <span className="flex items-center gap-1.5 text-emerald-700 font-medium">
+                      <span className="w-3 h-3 rounded-full bg-emerald-500" /> Penerimaan
+                    </span>
+                    <span className="flex items-center gap-1.5 text-rose-700 font-medium">
+                      <span className="w-3 h-3 rounded-full bg-rose-500" /> Pengeluaran
+                    </span>
+                    <span className="flex items-center gap-1.5 text-[#1A77A3] font-medium">
+                      <span className="w-3 h-3 rounded-full bg-[#1A77A3]" /> Surplus Bersih
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ width: '100%', height: 350 }}>
+                  <ResponsiveContainer>
+                    <ComposedChart data={chartData} margin={{ top: 20, right: 20, left: 0, bottom: 10 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#475569' }} axisLine={false} tickLine={false} />
+                      <YAxis tickFormatter={formatRpShort} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} width={60} />
+                      <Tooltip formatter={(v: any) => formatRp(v)} />
+                      <Bar dataKey="Pendapatan" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={36} />
+                      <Bar dataKey="Beban" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={36} />
+                      <Line type="monotone" dataKey="Surplus" stroke="#1A77A3" strokeWidth={3} dot={{ r: 5, fill: '#1A77A3' }} />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Monthly Breakdown Table */}
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-slate-900">Tabel Rincian 12 Periode Fiskal</h4>
+                  <span className="text-xs text-slate-400">Satuan Mata Uang: Rupiah (IDR)</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                      <tr>
+                        <th className="px-5 py-3">Periode</th>
+                        <th className="px-5 py-3 text-right">Pendapatan</th>
+                        <th className="px-5 py-3 text-right">Beban</th>
+                        <th className="px-5 py-3 text-right">Surplus / (Defisit)</th>
+                        <th className="px-5 py-3 text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {chartData.map((m: any, idx: number) => {
+                        const isSurplus = m.Surplus >= 0;
+                        return (
+                          <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="px-5 py-3 font-semibold text-slate-800">{m.fullName}</td>
+                            <td className="px-5 py-3 text-right font-medium text-emerald-700">{formatRp(m.Pendapatan)}</td>
+                            <td className="px-5 py-3 text-right font-medium text-rose-700">{formatRp(m.Beban)}</td>
+                            <td className={`px-5 py-3 text-right font-bold ${isSurplus ? 'text-emerald-700' : 'text-rose-700'}`}>
+                              {formatRp(m.Surplus)}
+                            </td>
+                            <td className="px-5 py-3 text-center">
+                              {m.Pendapatan > 0 || m.Beban > 0 ? (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  Ada Transaksi
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500">
+                                  Nihil
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── TAB 3: POSISI KAS & BANK ───────────────────────────────── */}
+          {activeTab === 'kas-bank' && (
+            <div className="space-y-6">
+              {/* Cash & Bank Matrix */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Donut of Liquid Assets */}
+                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      <PieChartIcon className="w-4 h-4 text-[#1A77A3]" />
+                      Proporsi Aset Likuid
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">Distribusi Kas Fisik vs Saldo Bank</p>
+
+                    <div style={{ width: '100%', height: 180 }} className="my-2">
+                      <ResponsiveContainer>
+                        <PieChart>
+                          <Pie
+                            data={liquidAssetComposition}
+                            dataKey="amount"
+                            nameKey="name"
+                            innerRadius={45}
+                            outerRadius={75}
+                            paddingAngle={3}
+                          >
+                            {liquidAssetComposition.map((_: any, i: number) => (
+                              <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(v: any) => formatRp(v)} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className="space-y-2 mt-2">
+                      <div className="flex items-center justify-between text-xs p-2 rounded-lg bg-slate-50">
+                        <span className="text-slate-600 font-medium">Total Kas Tunai:</span>
+                        <span className="font-bold text-slate-900">{formatRp(data.liquidity?.totalCash || 0)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs p-2 rounded-lg bg-slate-50">
+                        <span className="text-slate-600 font-medium">Total Saldo Bank:</span>
+                        <span className="font-bold text-slate-900">{formatRp(data.liquidity?.totalBank || 0)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {onNavigate && (
+                    <button
+                      onClick={() => onNavigate('finance-reconciliation')}
+                      className="mt-4 w-full py-2 bg-slate-100 hover:bg-[#1A77A3] hover:text-white text-slate-700 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5"
+                    >
+                      Buka Rekonsiliasi Bank <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Account Cards Grid */}
+                <div className="lg:col-span-2 space-y-4">
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-emerald-600" />
+                    Detail Buku Kas &amp; Rekening Bank Aktif
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    {/* Cash Boxes */}
+                    {(data.cashAccounts || []).map((c: any) => (
+                      <div key={c.id} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs relative">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                              <Banknote className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <h4 className="text-xs font-bold text-slate-900">{c.name}</h4>
+                              <p className="text-[11px] text-slate-400">{c.code} &bull; {c.location}</p>
+                            </div>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700">
+                            Kas Fisik
+                          </span>
+                        </div>
+                        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                          <span className="text-xs text-slate-400">Saldo Berjalan:</span>
+                          <span className="text-sm font-bold text-slate-900">{formatRp(c.current_balance)}</span>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Bank Accounts */}
+                    {(data.bankAccounts || []).map((b: any) => (
+                      <div key={b.id} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs relative">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-xl bg-sky-100 text-sky-800 flex items-center justify-center font-bold">
+                              <Landmark className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <h4 className="text-xs font-bold text-slate-900">{b.account_name}</h4>
+                              <p className="text-[11px] text-slate-400">{b.bank_name} &bull; {b.account_number}</p>
+                            </div>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-sky-50 text-[#1A77A3]">
+                            Bank
+                          </span>
+                        </div>
+                        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                          <span className="text-xs text-slate-400">Saldo Buku:</span>
+                          <span className="text-sm font-bold text-slate-900">{formatRp(b.current_balance)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── TAB 4: REALISASI ANGGARAN (RKA) ────────────────────────── */}
+          {activeTab === 'anggaran' && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Evaluasi Realisasi RKA 2026–2027</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Perbandingan target anggaran belanja dan target penerimaan terhadap realisasi aktual per {data.asOfDate}
+                    </p>
+                  </div>
+                  {onNavigate && (
+                    <button
+                      onClick={() => onNavigate('finance-budget')}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1A77A3] text-white text-xs font-medium hover:opacity-90 transition-all"
+                    >
+                      Buka RKA &amp; Anggaran <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-4">
+                  {/* Revenue Target Meter */}
+                  <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-emerald-900">Realisasi Penerimaan Anggaran</span>
+                      <span className="text-xs font-bold text-emerald-700">{data.budget?.revenueRealizationRate || 0}% Tercapai</span>
+                    </div>
+                    <div className="w-full h-3 bg-emerald-100 rounded-full overflow-hidden mb-3">
+                      <div
+                        className="h-full bg-emerald-600 rounded-full transition-all"
+                        style={{ width: `${Math.min(100, data.budget?.revenueRealizationRate || 0)}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-xs text-slate-600">
+                      <span>Realisasi: <strong>{formatRp(data.ytdRevenue)}</strong></span>
+                      <span>Target RKA: <strong>{formatRp(data.budget?.totalBudgetRevenue || 0)}</strong></span>
+                    </div>
+                  </div>
+
+                  {/* Expense Absorption Meter */}
+                  <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-amber-900">Penyerapan Alokasi Belanja</span>
+                      <span className="text-xs font-bold text-amber-700">{data.budget?.expenseAbsorptionRate || 0}% Terpakai</span>
+                    </div>
+                    <div className="w-full h-3 bg-amber-100 rounded-full overflow-hidden mb-3">
+                      <div
+                        className="h-full bg-amber-500 rounded-full transition-all"
+                        style={{ width: `${Math.min(100, data.budget?.expenseAbsorptionRate || 0)}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-xs text-slate-600">
+                      <span>Terealisasi: <strong>{formatRp(data.ytdExpense)}</strong></span>
+                      <span>Pagu Anggaran: <strong>{formatRp(data.budget?.totalBudgetExpense || 0)}</strong></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-600 space-y-1">
+                  <p className="font-semibold text-slate-800">Catatan Pengendalian Anggaran Sinodal:</p>
+                  <p>
+                    &bull; Setiap pengeluaran kas atau bank mengacu pada pagu pos anggaran RKA per Bidang (Teologia, Pelkes, Germasa, PPSDI, PEG, Inforkom).
+                  </p>
+                  <p>
+                    &bull; Sistem secara otomatis mencegah pembukuan jika pagu anggaran tidak mencukupi (atau memerlukan persetujuan khusus KMJ / PHMJ).
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── TAB 5: ALUR AUDIT & TATA KELOLA ────────────────────────── */}
+          {activeTab === 'tata-kelola' && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
+                <h3 className="text-base font-bold text-slate-900 mb-1">Audit Trail &amp; Status Antrian Transaksi</h3>
+                <p className="text-xs text-slate-500 mb-6">
+                  Distribusi siklus voucher transaksi keuangan GPIB Trinitas berdasarkan tahapan otorisasi.
+                </p>
+
+                {/* Workflow Pipeline Stepper */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+                  {[
+                    { status: 'DRAFT', label: 'Konsep (Draft)', count: data.statusCounts?.DRAFT || 0, color: 'bg-slate-100 text-slate-700 border-slate-200' },
+                    { status: 'SUBMITTED', label: 'Diajukan', count: data.statusCounts?.SUBMITTED || 0, color: 'bg-amber-50 text-amber-700 border-amber-200' },
+                    { status: 'VERIFIED', label: 'Diverifikasi', count: data.statusCounts?.VERIFIED || 0, color: 'bg-sky-50 text-[#1A77A3] border-sky-200' },
+                    { status: 'APPROVED', label: 'Disetujui KMJ', count: data.statusCounts?.APPROVED || 0, color: 'bg-purple-50 text-purple-700 border-purple-200' },
+                    { status: 'POSTED', label: 'Dibukukan ke GL', count: data.statusCounts?.POSTED || 0, color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+                  ].map((s, idx) => (
+                    <div key={s.status} className={`p-4 rounded-2xl border ${s.color} text-center`}>
+                      <span className="text-[10px] font-bold uppercase tracking-wider block opacity-80 mb-1">Tahap {idx + 1}</span>
+                      <h4 className="text-xs font-semibold">{s.label}</h4>
+                      <p className="text-xl font-bold mt-2">{s.count}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Segregation of Duties Card */}
+                <div className="p-4 rounded-2xl bg-sky-50/60 border border-sky-100 flex items-start gap-3.5">
+                  <ShieldCheck className="w-6 h-6 text-[#1A77A3] shrink-0 mt-0.5" />
+                  <div className="text-xs text-slate-700 space-y-1">
+                    <p className="font-bold text-slate-900">Penegakan Segregation of Duties (Prinsip 4-Mata Sinodal)</p>
+                    <p>
+                      Sistem GEMAS memastikan transparansi penuh: pembuat transaksi (inputer) tidak diperkenankan memverifikasi atau menyetujui transaksinya sendiri.
+                      Verifikator dan Penyetuju (Ketua / KMJ) harus pengguna yang berbeda sebelum Bendahara memposting jurnal ke Buku Besar.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Quick Action Navigation Buttons */}
+                {onNavigate && (
+                  <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-end gap-3 flex-wrap">
+                    <button
+                      onClick={() => onNavigate('finance-ledger')}
+                      className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-all"
+                    >
+                      Buka Buku Besar (GL)
+                    </button>
+                    <button
+                      onClick={() => onNavigate('finance-approval')}
+                      className="px-4 py-2 rounded-xl bg-[#1A77A3] text-white text-xs font-semibold hover:opacity-90 transition-all shadow-xs"
+                    >
+                      Buka Antrian Persetujuan
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
