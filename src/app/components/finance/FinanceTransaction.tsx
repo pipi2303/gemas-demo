@@ -69,6 +69,9 @@ export interface Lookups {
   funds: any[];
   cashAccounts: any[];
   bankAccounts: any[];
+  vendors: any[];
+  donors: any[];
+  costCenters: any[];
 }
 
 type WorkflowAction = 'submit' | 'cancel' | 'verify' | 'approve' | 'reject' | 'revise' | 'post' | 'reverse';
@@ -115,7 +118,7 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
   const isOwnTransaction = !!currentUserId && current.created_by === currentUserId;
   const isOwnVerification = !!currentUserId && current.verified_by === currentUserId;
 
-  const resetForm = () => setForm({ account_id: '', field_id: '', program_id: '', activity_id: '', fund_id: '', cashBank: '', side: 'debit', amount: '', description: '' });
+  const resetForm = () => setForm({ account_id: '', field_id: '', program_id: '', activity_id: '', fund_id: '', cost_center_id: '', cashBank: '', side: 'debit', amount: '', description: '' });
   const openAddLine = () => { resetForm(); setModalOpen(true); };
 
   const handleAddLine = async () => {
@@ -132,6 +135,7 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
         program_id: form.program_id || undefined,
         activity_id: form.activity_id || undefined,
         fund_id: form.fund_id || undefined,
+        cost_center_id: form.cost_center_id || undefined,
         description: form.description || undefined,
         side: form.side,
         amount: Number(form.amount),
@@ -442,6 +446,14 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
                   {lookups.funds.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Pusat Biaya</label>
+                <select value={form.cost_center_id ?? ''} onChange={e => setForm(prev => ({ ...prev, cost_center_id: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+                  <option value="">—</option>
+                  {lookups.costCenters.map(c => <option key={c.id} value={c.id}>{c.code} — {c.name}</option>)}
+                </select>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
@@ -522,6 +534,7 @@ export function FinanceTransaction({ onNavigate }: { onNavigate?: (page: string)
 
   const [lookups, setLookups] = useState<Lookups>({
     fiscalYears: [], voucherTypes: [], accounts: [], fields: [], programs: [], activities: [], funds: [], cashAccounts: [], bankAccounts: [],
+    vendors: [], donors: [], costCenters: [],
   });
   const [lookupsLoading, setLookupsLoading] = useState(true);
   const [lookupsError, setLookupsError] = useState<string | null>(null);
@@ -533,13 +546,13 @@ export function FinanceTransaction({ onNavigate }: { onNavigate?: (page: string)
   const [selectedTx, setSelectedTx] = useState<any | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [createForm, setCreateForm] = useState({ voucher_type_id: '', transaction_date: '', payer_name: '', payee_name: '', description: '', reference_number: '' });
+  const [createForm, setCreateForm] = useState({ voucher_type_id: '', transaction_date: '', payer_name: '', payee_name: '', vendor_id: '', donor_id: '', description: '', reference_number: '' });
 
   const loadLookups = useCallback(async () => {
     setLookupsLoading(true);
     setLookupsError(null);
     try {
-      const [fiscalYears, voucherTypes, accounts, fields, programs, activities, funds, cashAccounts, bankAccounts] = await Promise.all([
+      const [fiscalYears, voucherTypes, accounts, fields, programs, activities, funds, cashAccounts, bankAccounts, vendors, donors, costCenters] = await Promise.all([
         callApi<any[]>('get', '/api/v1/finance/fiscal-years'),
         callApi<any[]>('get', '/api/v1/finance/voucher-types'),
         callApi<any[]>('get', '/api/v1/finance/accounts'),
@@ -549,8 +562,11 @@ export function FinanceTransaction({ onNavigate }: { onNavigate?: (page: string)
         callApi<any[]>('get', '/api/v1/finance/funds'),
         callApi<any[]>('get', '/api/v1/finance/cash-accounts'),
         callApi<any[]>('get', '/api/v1/finance/bank-accounts'),
+        callApi<any[]>('get', '/api/v1/finance/vendors'),
+        callApi<any[]>('get', '/api/v1/finance/donors'),
+        callApi<any[]>('get', '/api/v1/finance/cost-centers'),
       ]);
-      setLookups({ fiscalYears, voucherTypes, accounts, fields, programs, activities, funds, cashAccounts, bankAccounts });
+      setLookups({ fiscalYears, voucherTypes, accounts, fields, programs, activities, funds, cashAccounts, bankAccounts, vendors, donors, costCenters });
       setSelectedFiscalYearId(prev => prev || fiscalYears.find((fy: any) => fy.is_current)?.id || fiscalYears[0]?.id || '');
     } catch (err: any) {
       setLookupsError(err?.message || 'Gagal memuat data rujukan. Pastikan Master Data & Tahun Fiskal (Fase 1) sudah diisi.');
@@ -602,7 +618,7 @@ export function FinanceTransaction({ onNavigate }: { onNavigate?: (page: string)
       const created = await callApi<any>('post', '/api/v1/finance/transactions', { ...createForm, fiscal_year_id: selectedFiscalYearId });
       toast.success(`Transaksi dibuat: ${created.voucher_number}`);
       setCreateOpen(false);
-      setCreateForm({ voucher_type_id: '', transaction_date: '', payer_name: '', payee_name: '', description: '', reference_number: '' });
+      setCreateForm({ voucher_type_id: '', transaction_date: '', payer_name: '', payee_name: '', vendor_id: '', donor_id: '', description: '', reference_number: '' });
       await loadTransactions();
       setSelectedTx(created);
     } catch (err: any) {
@@ -726,6 +742,38 @@ export function FinanceTransaction({ onNavigate }: { onNavigate?: (page: string)
               <label className="block text-xs font-medium text-slate-600 mb-1">Tanggal <span className="text-red-500">*</span></label>
               <input type="date" value={createForm.transaction_date} onChange={e => setCreateForm(prev => ({ ...prev, transaction_date: e.target.value }))}
                 className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Donatur (opsional)</label>
+                <select
+                  value={createForm.donor_id}
+                  onChange={e => {
+                    const id = e.target.value;
+                    const donor = lookups.donors.find(d => d.id === id);
+                    setCreateForm(prev => ({ ...prev, donor_id: id, payer_name: donor ? donor.name : prev.payer_name }));
+                  }}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                >
+                  <option value="">— tanpa donatur —</option>
+                  {lookups.donors.filter(d => d.is_active).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Pemasok (opsional)</label>
+                <select
+                  value={createForm.vendor_id}
+                  onChange={e => {
+                    const id = e.target.value;
+                    const vendor = lookups.vendors.find(v => v.id === id);
+                    setCreateForm(prev => ({ ...prev, vendor_id: id, payee_name: vendor ? vendor.name : prev.payee_name }));
+                  }}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                >
+                  <option value="">— tanpa pemasok —</option>
+                  {lookups.vendors.filter(v => v.is_active).map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                </select>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>

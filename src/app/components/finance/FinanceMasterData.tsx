@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import {
   Plus, Pencil, Trash2, X, Loader2, Layers, BookOpen, MapPin,
   FolderTree, ListTree, Wallet, Building2, CalendarRange, Star, ChevronDown, ChevronRight, ArrowLeft, Ticket,
+  Truck, Gift, Target,
 } from 'lucide-react';
 
 const FINANCE_MODULE = 'Keuangan (Finance Add-on)';
@@ -70,6 +71,11 @@ const TRANSACTION_TYPE_OPTIONS = [
   { value: 'ADJUSTMENT', label: 'Penyesuaian' },
   { value: 'REVERSAL', label: 'Pembalikan' },
 ];
+const DONOR_TYPE_OPTIONS = [
+  { value: 'INDIVIDUAL', label: 'Individu' },
+  { value: 'ORGANIZATION', label: 'Organisasi' },
+  { value: 'ANONYMOUS', label: 'Anonim' },
+];
 
 // ── Generic entity CRUD types ──────────────────────────────────────────────────
 type FieldType = 'text' | 'number' | 'select' | 'textarea' | 'checkbox';
@@ -106,6 +112,7 @@ interface Lookups {
   programs: any[];
   funds: any[];
   accounts: any[];
+  costCenters: any[];
 }
 
 function buildConfigs(lk: Lookups): EntityConfig[] {
@@ -115,6 +122,7 @@ function buildConfigs(lk: Lookups): EntityConfig[] {
   const fundOptions = lk.funds.map(f => ({ value: f.id, label: `${f.code} — ${f.name}` }));
   const accountOptions = lk.accounts.map(a => ({ value: a.id, label: `${a.code} — ${a.name}` }));
   const postableAccountOptions = lk.accounts.filter(a => a.is_postable).map(a => ({ value: a.id, label: `${a.code} — ${a.name}` }));
+  const costCenterOptions = lk.costCenters.map(c => ({ value: c.id, label: `${c.code} — ${c.name}` }));
 
   return [
     {
@@ -304,6 +312,77 @@ function buildConfigs(lk: Lookups): EntityConfig[] {
         { key: 'name', label: 'Nama', type: 'text', required: true, placeholder: 'Bukti Kas Masuk' },
         { key: 'transaction_type', label: 'Tipe Transaksi', type: 'select', required: true, options: TRANSACTION_TYPE_OPTIONS },
         { key: 'prefix', label: 'Prefix Nomor Voucher', type: 'text', required: true, placeholder: 'BKM' },
+      ],
+    },
+    {
+      id: 'vendors',
+      label: 'Pemasok',
+      endpoint: '/api/v1/finance/vendors',
+      emptyHint: 'Belum ada data Pemasok.',
+      getLabel: row => row.name,
+      columns: [
+        { key: 'code', label: 'Kode' },
+        { key: 'name', label: 'Nama' },
+        { key: 'contact_person', label: 'Kontak', render: row => row.contact_person || '—' },
+        { key: 'phone', label: 'Telepon', render: row => row.phone || '—' },
+        { key: 'is_active', label: 'Aktif', render: row => (row.is_active ? 'Ya' : 'Tidak') },
+      ],
+      fields: [
+        { key: 'code', label: 'Kode', type: 'text', required: true, placeholder: 'VND-01' },
+        { key: 'name', label: 'Nama Pemasok', type: 'text', required: true, placeholder: 'CV Sumber Berkat' },
+        { key: 'contact_person', label: 'Narahubung', type: 'text' },
+        { key: 'phone', label: 'Telepon', type: 'text' },
+        { key: 'email', label: 'Email', type: 'text' },
+        { key: 'address', label: 'Alamat', type: 'textarea' },
+        { key: 'npwp', label: 'NPWP', type: 'text' },
+        { key: 'bank_name', label: 'Nama Bank', type: 'text' },
+        { key: 'bank_account_number', label: 'Nomor Rekening', type: 'text' },
+        { key: 'notes', label: 'Catatan', type: 'textarea' },
+      ],
+    },
+    {
+      id: 'donors',
+      label: 'Donatur',
+      endpoint: '/api/v1/finance/donors',
+      emptyHint: 'Belum ada data Donatur.',
+      getLabel: row => row.name,
+      columns: [
+        { key: 'code', label: 'Kode' },
+        { key: 'name', label: 'Nama' },
+        { key: 'donor_type', label: 'Tipe', render: row => labelFor(DONOR_TYPE_OPTIONS, row.donor_type) },
+        { key: 'phone', label: 'Telepon', render: row => row.phone || '—' },
+        { key: 'is_active', label: 'Aktif', render: row => (row.is_active ? 'Ya' : 'Tidak') },
+      ],
+      fields: [
+        { key: 'code', label: 'Kode', type: 'text', required: true, placeholder: 'DNR-01' },
+        { key: 'name', label: 'Nama Donatur', type: 'text', required: true },
+        { key: 'donor_type', label: 'Tipe Donatur', type: 'select', required: true, options: DONOR_TYPE_OPTIONS, defaultValue: 'INDIVIDUAL' },
+        { key: 'contact_person', label: 'Narahubung', type: 'text' },
+        { key: 'phone', label: 'Telepon', type: 'text' },
+        { key: 'email', label: 'Email', type: 'text' },
+        { key: 'address', label: 'Alamat', type: 'textarea' },
+        { key: 'notes', label: 'Catatan', type: 'textarea' },
+      ],
+    },
+    {
+      id: 'cost-centers',
+      label: 'Pusat Biaya',
+      endpoint: '/api/v1/finance/cost-centers',
+      emptyHint: 'Belum ada data Pusat Biaya.',
+      getLabel: row => row.name,
+      columns: [
+        { key: 'code', label: 'Kode' },
+        { key: 'name', label: 'Nama' },
+        { key: 'parent_id', label: 'Induk', render: row => row.parent_id ? (lk.costCenters.find(c => c.id === row.parent_id)?.name ?? '—') : '—' },
+        { key: 'description', label: 'Deskripsi', render: row => row.description || '—' },
+        { key: 'is_active', label: 'Aktif', render: row => (row.is_active ? 'Ya' : 'Tidak') },
+      ],
+      fields: [
+        { key: 'parent_id', label: 'Pusat Biaya Induk (opsional)', type: 'select', options: costCenterOptions },
+        { key: 'code', label: 'Kode', type: 'text', required: true, placeholder: 'PB-01' },
+        { key: 'name', label: 'Nama Pusat Biaya', type: 'text', required: true, placeholder: 'Sekretariat' },
+        { key: 'description', label: 'Deskripsi', type: 'textarea' },
+        { key: 'manager_user_id', label: 'Penanggung Jawab', type: 'text' },
       ],
     },
   ];
@@ -803,6 +882,9 @@ const TABS: { id: string; label: string; icon: React.ElementType }[] = [
   { id: 'cash-accounts', label: 'Kas', icon: Wallet },
   { id: 'bank-accounts', label: 'Bank', icon: Building2 },
   { id: 'voucher-types', label: 'Jenis Voucher', icon: Ticket },
+  { id: 'vendors', label: 'Pemasok', icon: Truck },
+  { id: 'donors', label: 'Donatur', icon: Gift },
+  { id: 'cost-centers', label: 'Pusat Biaya', icon: Target },
   { id: 'fiscal-years', label: 'Tahun Fiskal', icon: CalendarRange },
 ];
 
@@ -810,18 +892,19 @@ export function FinanceMasterData({ onNavigate }: { onNavigate?: (page: string) 
   const { can: canFn } = useApp();
   const canEdit = canFn(FINANCE_MODULE, 'edit');
   const [activeTab, setActiveTab] = useState<string>('account-groups');
-  const [lookups, setLookups] = useState<Lookups>({ accountGroups: [], fields: [], programs: [], funds: [], accounts: [] });
+  const [lookups, setLookups] = useState<Lookups>({ accountGroups: [], fields: [], programs: [], funds: [], accounts: [], costCenters: [] });
 
   const loadLookups = useCallback(async () => {
     try {
-      const [accountGroups, fields, programs, funds, accounts] = await Promise.all([
+      const [accountGroups, fields, programs, funds, accounts, costCenters] = await Promise.all([
         fetchList<any>('/api/v1/finance/account-groups').catch(() => []),
         fetchList<any>('/api/v1/finance/fields').catch(() => []),
         fetchList<any>('/api/v1/finance/programs').catch(() => []),
         fetchList<any>('/api/v1/finance/funds').catch(() => []),
         fetchList<any>('/api/v1/finance/accounts').catch(() => []),
+        fetchList<any>('/api/v1/finance/cost-centers').catch(() => []),
       ]);
-      setLookups({ accountGroups, fields, programs, funds, accounts });
+      setLookups({ accountGroups, fields, programs, funds, accounts, costCenters });
     } catch {
       // Skema belum aktif — masing-masing tab akan menampilkan pesan errornya sendiri.
     }
