@@ -78,7 +78,7 @@ export const PAGE_LABELS: Record<string, { title: string; category: string }> = 
   'finance-reconciliation':{ title: 'Rekonsiliasi Bank', category: 'Finance' },
   'finance-period-closing':{ title: 'Penutupan Periode', category: 'Finance' },
   'finance-reports':       { title: 'Laporan Keuangan', category: 'Finance' },
-  'finance-dashboard':     { title: 'Dashboard & Analitik', category: 'Finance' },
+  'finance-dashboard':     { title: 'Dashboard Finance', category: 'Finance' },
 };
 
 function ProfileDropdown({ user, onLogout, onClose }: { user: any; onLogout: () => void; onClose: () => void }) {
@@ -217,7 +217,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
       label: 'Finance',
       icon: Landmark,
       items: [
-        { id: 'finance-addon',       label: 'Ringkasan',             page: 'finance-addon',       icon: Landmark },
+        { id: 'finance-dashboard',   label: 'Dashboard Finance',     page: 'finance-dashboard',   icon: LayoutDashboard },
         { id: 'finance-master-data', label: 'Master Data & Fiskal',  page: 'finance-master-data', icon: Layers },
         { id: 'finance-budget',      label: 'Budget / RKA',          page: 'finance-budget',      icon: ClipboardList },
         { id: 'finance-transaction', label: 'Transaksi & Voucher',   page: 'finance-transaction', icon: Receipt },
@@ -226,7 +226,6 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
         { id: 'finance-reconciliation', label: 'Rekonsiliasi Bank',  page: 'finance-reconciliation', icon: ArrowLeftRight },
         { id: 'finance-period-closing', label: 'Penutupan Periode',  page: 'finance-period-closing', icon: CalendarCheck },
         { id: 'finance-reports',     label: 'Laporan Keuangan',      page: 'finance-reports',     icon: FileBarChart },
-        { id: 'finance-dashboard',   label: 'Dashboard & Analitik',  page: 'finance-dashboard',   icon: LayoutDashboard },
       ],
     },
     {

@@ -10,6 +10,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../../../lib/apiClient';
 import { toast } from 'sonner';
 import { FileBarChart, Loader2, Scale, TrendingUp, PieChart } from 'lucide-react';
+import { FinancePageHeader } from './FinancePageHeader';
 
 function formatRp(n: unknown) {
   const v = Number(n ?? 0);
@@ -291,29 +292,56 @@ export function FinanceReports({ onNavigate }: { onNavigate?: (page: string) => 
   ];
 
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-5">
-      <div>
-        {onNavigate && (
-          <button onClick={() => onNavigate('finance-addon')} className="flex items-center gap-1 text-xs text-slate-400 hover:text-[#1A77A3] mb-1.5">
-            &larr; Kembali ke Ringkasan Finance
-          </button>
-        )}
-        <h1 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-          <FileBarChart className="w-5 h-5" style={{ color: '#1A77A3' }} /> Laporan Keuangan
-        </h1>
-        <p className="text-sm text-slate-500 mt-0.5">Neraca, Laporan Aktivitas, dan Realisasi Anggaran — dihitung langsung dari jurnal yang sudah diposting</p>
-      </div>
-
-      <div className="flex gap-1 border-b border-slate-200">
-        {TABS.map(t => (
-          <button
-            key={t.key} onClick={() => setTab(t.key)}
-            className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 -mb-px ${tab === t.key ? 'border-[#1A77A3] text-[#1A77A3]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-          >
-            <t.icon className="w-4 h-4" /> {t.label}
-          </button>
-        ))}
-      </div>
+    <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
+      <FinancePageHeader
+        title="Laporan Keuangan Sinodal"
+        subtitle="Neraca Keuangan, Laporan Aktivitas, dan Realisasi Anggaran — dihitung otomatis dari jurnal terposting"
+        currentSection="Laporan Keuangan"
+        onNavigate={onNavigate}
+        systemBadge="PSAK 45 / ISAK 35"
+        metaBadge="Real-time Financials"
+        onPrint={() => window.print()}
+        secondaryActions={
+          <div className="flex gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80">
+            {TABS.map(t => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                  tab === t.key
+                    ? 'bg-white text-[#1A77A3] shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <t.icon className="w-3.5 h-3.5" />
+                <span>{t.label}</span>
+              </button>
+            ))}
+          </div>
+        }
+        infoStrip={[
+          {
+            label: 'Format Laporan',
+            value: 'Standar Akuntansi Sinode GPIB',
+            color: 'emerald',
+          },
+          {
+            label: 'Basis Perhitungan',
+            value: 'Jurnal Terposting (Double-Entry)',
+            color: 'sky',
+          },
+          {
+            label: 'Klasifikasi Dana',
+            value: `${funds.length} Kelompok Dana`,
+            color: 'indigo',
+          },
+          {
+            label: 'Integritas Laporan',
+            value: 'Aset = Kewajiban + Aset Neto',
+            color: 'teal',
+          },
+        ]}
+      />
 
       {loading && <div className="flex items-center justify-center py-16 text-slate-400"><Loader2 className="w-5 h-5 animate-spin mr-2" /> Memuat…</div>}
       {!loading && fiscalYears.length === 0 && <p className="text-sm text-slate-500">Belum ada Tahun Fiskal — buat dulu lewat menu Master Data & Fiskal.</p>}

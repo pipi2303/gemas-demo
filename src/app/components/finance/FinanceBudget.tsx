@@ -6,6 +6,7 @@ import {
   Plus, X, Loader2, ArrowLeft, ClipboardList, Send, CheckCircle2, XCircle,
   Trash2, Copy,
 } from 'lucide-react';
+import { FinancePageHeader } from './FinancePageHeader';
 
 const FINANCE_MODULE = 'Keuangan (Finance Add-on)';
 
@@ -573,18 +574,51 @@ export function FinanceBudget({ onNavigate }: { onNavigate?: (page: string) => v
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-5">
-      <div>
-        {onNavigate && (
-          <button onClick={() => onNavigate('finance-addon')} className="flex items-center gap-1 text-xs text-slate-400 hover:text-[#1A77A3] mb-1.5">
-            <ArrowLeft className="w-3 h-3" /> Kembali ke Ringkasan Finance
-          </button>
-        )}
-        <h1 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-          <ClipboardList className="w-5 h-5" style={{ color: '#1A77A3' }} /> Budget / RKA
-        </h1>
-        <p className="text-sm text-slate-500 mt-0.5">Rencana Kerja &amp; Anggaran per Tahun Fiskal — alur Draft → Ajukan → Setujui → Aktifkan</p>
-      </div>
+    <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
+      <FinancePageHeader
+        title="Rencana Kerja & Anggaran (RKA)"
+        subtitle="Penyusunan anggaran per Bidang, Program, dan Kegiatan serta pemantauan plafon realisasi"
+        currentSection="Budget & RKA"
+        onNavigate={onNavigate}
+        fiscalYears={lookups.fiscalYears}
+        fiscalYearId={selectedFiscalYearId}
+        onFiscalYearChange={setSelectedFiscalYearId}
+        onRefresh={loadBudgets}
+        isRefreshing={loadingBudgets}
+        systemBadge="Standar RKA Sinodal"
+        metaBadge="Kontrol Plafon Anggaran"
+        primaryAction={
+          canCreate
+            ? {
+                label: '+ Buat RKA Baru',
+                icon: Plus,
+                onClick: () => setCreateOpen(true),
+              }
+            : undefined
+        }
+        infoStrip={[
+          {
+            label: 'Total Dokumen RKA',
+            value: budgetsMeta ? `${budgetsMeta.total} Dokumen` : `${budgets.length} Dokumen`,
+            color: 'emerald',
+          },
+          {
+            label: 'Cakupan Pelayanan',
+            value: `${lookups.fields.length} Bidang Sinodal`,
+            color: 'sky',
+          },
+          {
+            label: 'Alur Penetapan',
+            value: 'Draft → Ajukan → Sidang PHMJ',
+            color: 'indigo',
+          },
+          {
+            label: 'Plafon Realisasi',
+            value: 'Monitoring Real-time',
+            color: 'teal',
+          },
+        ]}
+      />
 
       {lookupsError && (
         <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">{lookupsError}</div>
@@ -598,30 +632,6 @@ export function FinanceBudget({ onNavigate }: { onNavigate?: (page: string) => v
 
       {!lookupsError && lookups.fiscalYears.length > 0 && (
         <>
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-slate-600">Tahun Fiskal:</label>
-              <select
-                value={selectedFiscalYearId}
-                onChange={e => setSelectedFiscalYearId(e.target.value)}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
-              >
-                {lookups.fiscalYears.map(fy => (
-                  <option key={fy.id} value={fy.id}>{fy.name}{fy.is_current ? ' (Aktif)' : ''}</option>
-                ))}
-              </select>
-            </div>
-            {canCreate && (
-              <button
-                onClick={() => setCreateOpen(true)}
-                className="flex items-center gap-1.5 text-sm font-medium text-white px-3 py-1.5 rounded-lg hover:opacity-90"
-                style={{ background: '#1A77A3' }}
-              >
-                <Plus className="w-3.5 h-3.5" /> Buat RKA Baru
-              </button>
-            )}
-          </div>
-
           <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

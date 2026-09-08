@@ -7,6 +7,7 @@ import {
   FolderTree, ListTree, Wallet, Building2, CalendarRange, Star, ChevronDown, ChevronRight, ArrowLeft, Ticket,
   Truck, Gift, Target,
 } from 'lucide-react';
+import { FinancePageHeader } from './FinancePageHeader';
 
 const FINANCE_MODULE = 'Keuangan (Finance Add-on)';
 
@@ -916,21 +917,38 @@ export function FinanceMasterData({ onNavigate }: { onNavigate?: (page: string) 
   const activeConfig = configs.find(c => c.id === activeTab);
 
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          {onNavigate && (
-            <button
-              onClick={() => onNavigate('finance-addon')}
-              className="flex items-center gap-1 text-xs text-slate-400 hover:text-[#1A77A3] mb-1.5"
-            >
-              <ArrowLeft className="w-3 h-3" /> Kembali ke Ringkasan Finance
-            </button>
-          )}
-          <h1 className="text-xl font-semibold text-slate-800">Master Data &amp; Periode Fiskal</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Fase 1 — data rujukan untuk Budget/RKA, Transaksi, dan Jurnal di fase berikutnya</p>
-        </div>
-      </div>
+    <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
+      <FinancePageHeader
+        title="Master Data & Periode Fiskal"
+        subtitle="Struktur Chart of Accounts, Bidang Pelayanan Sinodal, Rekening Kas/Bank, dan Kalender Fiskal"
+        currentSection="Master Data & Konfigurasi"
+        onNavigate={onNavigate}
+        systemBadge="Standar Kodefikasi Sinodal"
+        metaBadge="Enterprise COA Architecture"
+        onRefresh={loadLookups}
+        infoStrip={[
+          {
+            label: 'Kelompok Master',
+            value: '13 Entitas Rujukan',
+            color: 'emerald',
+          },
+          {
+            label: 'Chart of Accounts',
+            value: `${lookups.accounts.length} Akun Terdaftar`,
+            color: 'sky',
+          },
+          {
+            label: 'Bidang Sinodal',
+            value: `${lookups.fields.length} Bidang Pelayanan`,
+            color: 'indigo',
+          },
+          {
+            label: 'Sistem Kas & Bank',
+            value: 'Multi-Rekening Terpisah',
+            color: 'teal',
+          },
+        ]}
+      />
 
       <div className="flex flex-wrap gap-1.5 border-b border-slate-200 pb-2">
         {TABS.map(tab => {

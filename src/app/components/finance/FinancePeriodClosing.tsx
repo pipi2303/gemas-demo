@@ -14,6 +14,7 @@ import { useApp } from '../../context/AppContext';
 import { api } from '../../../lib/apiClient';
 import { toast } from 'sonner';
 import { CalendarCheck, Loader2, CheckCircle2, XCircle, Lock, LockOpen, X } from 'lucide-react';
+import { FinancePageHeader } from './FinancePageHeader';
 
 const FINANCE_MODULE = 'Keuangan (Finance Add-on)';
 
@@ -276,26 +277,46 @@ export function FinancePeriodClosing({ onNavigate }: { onNavigate?: (page: strin
     );
   }
 
-  return (
-    <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-5">
-      <div>
-        {onNavigate && (
-          <button onClick={() => onNavigate('finance-addon')} className="flex items-center gap-1 text-xs text-slate-400 hover:text-[#1A77A3] mb-1.5">
-            &larr; Kembali ke Ringkasan Finance
-          </button>
-        )}
-        <h1 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-          <CalendarCheck className="w-5 h-5" style={{ color: '#1A77A3' }} /> Penutupan Periode
-        </h1>
-        <p className="text-sm text-slate-500 mt-0.5">Tutup buku setiap periode setelah semua transaksi final, rekening bank direkonsiliasi, dan anggaran direview</p>
-      </div>
+  const openPeriodsCount = periods.filter(p => p.status === 'OPEN').length;
+  const closedPeriodsCount = periods.filter(p => p.status === 'CLOSED').length;
 
-      <div>
-        <label className={labelCls}>Tahun Fiskal</label>
-        <select value={fiscalYearId} onChange={e => setFiscalYearId(e.target.value)} className={inputCls + ' max-w-xs'}>
-          {fiscalYears.map(fy => <option key={fy.id} value={fy.id}>{fy.name}{fy.is_current ? ' (Aktif)' : ''}</option>)}
-        </select>
-      </div>
+  return (
+    <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
+      <FinancePageHeader
+        title="Penutupan Periode Fiskal (Closing)"
+        subtitle="Tutup buku bertahap per bulan — Validasi transaksi final, rekonsiliasi kas/bank, dan realisasi anggaran"
+        currentSection="Penutupan Periode"
+        onNavigate={onNavigate}
+        fiscalYears={fiscalYears}
+        fiscalYearId={fiscalYearId}
+        onFiscalYearChange={setFiscalYearId}
+        onRefresh={loadPeriods}
+        isRefreshing={loadingPeriods}
+        systemBadge="Integritas Tutup Buku"
+        metaBadge="Locking Engine"
+        infoStrip={[
+          {
+            label: 'Total Periode Bulanan',
+            value: `${periods.length} Bulan`,
+            color: 'sky',
+          },
+          {
+            label: 'Periode Berjalan (Open)',
+            value: `${openPeriodsCount} Terbuka`,
+            color: 'amber',
+          },
+          {
+            label: 'Periode Terkunci (Closed)',
+            value: `${closedPeriodsCount} Terkunci`,
+            color: 'emerald',
+          },
+          {
+            label: 'Proteksi Transaksi',
+            value: 'Anti Mutasi Pasca-Closing',
+            color: 'indigo',
+          },
+        ]}
+      />
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
         <table className="w-full text-sm">

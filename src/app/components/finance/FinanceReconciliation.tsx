@@ -16,6 +16,7 @@ import {
   ArrowLeftRight, Loader2, Plus, X, Trash2, CheckCircle2, ShieldCheck,
   Link2, Unlink, RefreshCw, Ban, FileText,
 } from 'lucide-react';
+import { FinancePageHeader } from './FinancePageHeader';
 
 const FINANCE_MODULE = 'Keuangan (Finance Add-on)';
 
@@ -605,6 +606,20 @@ export function FinanceReconciliation({ onNavigate }: { onNavigate?: (page: stri
     }
   };
 
+  const refreshData = useCallback(async () => {
+    try {
+      const [accounts, years] = await Promise.all([
+        callApi<any[]>('get', '/api/v1/finance/bank-accounts'),
+        callApi<any[]>('get', '/api/v1/finance/fiscal-years'),
+      ]);
+      setBankAccounts(accounts);
+      setFiscalYears(years);
+    } catch {
+      // ignore
+    }
+    await loadLists();
+  }, [loadLists]);
+
   if (loading) {
     return <div className="max-w-6xl mx-auto p-6 flex items-center justify-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mr-2" /> Memuat…</div>;
   }
@@ -630,44 +645,77 @@ export function FinanceReconciliation({ onNavigate }: { onNavigate?: (page: stri
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-5">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div>
-          {onNavigate && (
-            <button onClick={() => onNavigate('finance-addon')} className="flex items-center gap-1 text-xs text-slate-400 hover:text-[#1A77A3] mb-1.5">
-              &larr; Kembali ke Ringkasan Finance
+    <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
+      <FinancePageHeader
+        title="Rekonsiliasi Kas & Rekening Bank"
+        subtitle="Pencocokan mutasi rekening koran dengan saldo transaksi GL — Validasi selisih 0 & Persetujuan SoD"
+        currentSection="Rekonsiliasi Bank"
+        onNavigate={onNavigate}
+        fiscalYears={fiscalYears}
+        fiscalYearId={fiscalYearId}
+        onFiscalYearChange={setFiscalYearId}
+        onRefresh={refreshData}
+        isRefreshing={loading || loadingList}
+        systemBadge="Prinsip Audit Saldo Kas"
+        metaBadge="Bank Clearing Trail"
+        primaryAction={
+          canEdit
+            ? {
+                label: '+ Sesi Rekonsiliasi Baru',
+                icon: Plus,
+                onClick: () => setShowNewSession(true),
+              }
+            : undefined
+        }
+        secondaryActions={
+          canEdit ? (
+            <button
+              onClick={() => setShowNewStatement(true)}
+              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 bg-white transition-all shadow-xs"
+            >
+              <FileText className="w-3.5 h-3.5 text-slate-500" /> Input Rekening Koran
             </button>
-          )}
-          <h1 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-            <ArrowLeftRight className="w-5 h-5" style={{ color: '#1A77A3' }} /> Rekonsiliasi Bank
-          </h1>
-          <p className="text-sm text-slate-500 mt-0.5">Cocokkan mutasi rekening koran dengan transaksi yang sudah diposting ke Buku Besar</p>
-        </div>
-      </div>
+          ) : undefined
+        }
+        infoStrip={[
+          {
+            label: 'Rekening Bank Terdaftar',
+            value: `${bankAccounts.length} Rekening Aktif`,
+            color: 'emerald',
+          },
+          {
+            label: 'Sesi Rekonsiliasi',
+            value: `${sessions.length} Sesi Periode`,
+            color: 'sky',
+          },
+          {
+            label: 'Toleransi Selisih',
+            value: 'Rp 0 (Wajib Seimbang)',
+            color: 'teal',
+          },
+          {
+            label: 'Persetujuan Sesi',
+            value: 'Verifikasi Independen (SoD)',
+            color: 'indigo',
+          },
+        ]}
+      />
 
-      <div className="flex flex-wrap items-end gap-3">
-        <div>
-          <label className={labelCls}>Rekening Bank</label>
-          <select value={bankAccountId} onChange={e => setBankAccountId(e.target.value)} className={inputCls + ' min-w-[220px]'}>
-            {bankAccounts.map(a => <option key={a.id} value={a.id}>{a.bank_name} — {a.account_number}</option>)}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200">
+        <div className="flex items-center gap-3 flex-wrap">
+          <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Pilih Rekening Bank:</label>
+          <select
+            value={bankAccountId}
+            onChange={e => setBankAccountId(e.target.value)}
+            className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3] min-w-[240px] bg-white font-medium text-slate-700"
+          >
+            {bankAccounts.map(a => (
+              <option key={a.id} value={a.id}>
+                {a.bank_name} — {a.account_number}
+              </option>
+            ))}
           </select>
         </div>
-        <div>
-          <label className={labelCls}>Tahun Fiskal</label>
-          <select value={fiscalYearId} onChange={e => setFiscalYearId(e.target.value)} className={inputCls + ' min-w-[160px]'}>
-            {fiscalYears.map(fy => <option key={fy.id} value={fy.id}>{fy.name}{fy.is_current ? ' (Aktif)' : ''}</option>)}
-          </select>
-        </div>
-        {canEdit && (
-          <div className="flex gap-2 ml-auto">
-            <button onClick={() => setShowNewStatement(true)} className={btnSecondary}>
-              <FileText className="w-3.5 h-3.5" /> Input Rekening Koran
-            </button>
-            <button onClick={() => setShowNewSession(true)} className={btnPrimary} style={{ background: '#1A77A3' }}>
-              <Plus className="w-3.5 h-3.5" /> Sesi Rekonsiliasi Baru
-            </button>
-          </div>
-        )}
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">

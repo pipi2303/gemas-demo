@@ -67,6 +67,7 @@ export const PAGE_MODULE: Record<string, string> = {
   data:                  'Admin Sistem',
   'master-data':         'Admin Sistem',
   activity:              'Admin Sistem',
+  'finance-dashboard':   'Keuangan (Finance Add-on)',
   'finance-addon':       'Keuangan (Finance Add-on)',
   'finance-master-data': 'Keuangan (Finance Add-on)',
   'finance-budget':      'Keuangan (Finance Add-on)',
@@ -76,7 +77,6 @@ export const PAGE_MODULE: Record<string, string> = {
   'finance-reconciliation': 'Keuangan (Finance Add-on)',
   'finance-period-closing': 'Keuangan (Finance Add-on)',
   'finance-reports':     'Keuangan (Finance Add-on)',
-  'finance-dashboard':   'Keuangan (Finance Add-on)',
 };
 
 export function buildCan(matrix: ModulePermission[], role: UserRole) {
@@ -135,6 +135,7 @@ export const PAGE_LABEL: Record<string, string> = {
   data:                  'Pusat Manajemen Data',
   'master-data':         'Master Data',
   activity:              'Log Aktivitas',
+  'finance-dashboard':   'Dashboard Finance',
   'finance-addon':       'Ringkasan',
   'finance-master-data': 'Master Data & Fiskal',
   'finance-budget':      'Budget / RKA',
@@ -144,7 +145,6 @@ export const PAGE_LABEL: Record<string, string> = {
   'finance-reconciliation': 'Rekonsiliasi Bank',
   'finance-period-closing': 'Penutupan Periode',
   'finance-reports':     'Laporan Keuangan',
-  'finance-dashboard':   'Dashboard & Analitik',
 };
 
 export interface PageGroup {
