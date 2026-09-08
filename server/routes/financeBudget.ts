@@ -14,7 +14,11 @@ import { Router, Response } from 'express';
 import { getPool } from '../lib/db.js';
 import { requireRealDb, FINANCE_ORG, parsePagination, paginationMeta } from '../lib/financeCrud.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
-import { requireFinancePermission } from '../middleware/checkFinancePermission.js';
+import { requireFinancePermission as requireFinancePermissionBase } from '../middleware/checkFinancePermission.js';
+
+// Submenu Finance Add-on untuk file ini (dipakai validasi server per-submenu) —
+// lihat komentar di checkFinancePermission.ts.
+const requireFinancePermission = (action?: string) => requireFinancePermissionBase(action, 'finance-budget');
 import { recordFinanceAudit } from '../lib/financeAudit.js';
 import { logger } from '../lib/logger.js';
 

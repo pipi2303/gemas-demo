@@ -31,45 +31,102 @@ export const DEFAULT_MATRIX: MatrixEntry[] = [
   { module: 'Keuangan (Finance Add-on)',    admin: A, majelis: CRDAX, ketuaSektor: NONE, operator: NONE },
 ];
 
-// Collection → module mapping
-export const COLLECTION_MODULE: Record<string, string> = {
+// Submenu (page) → modul kasar — mirrors PAGE_MODULE di src/lib/permissions.ts.
+// Dipakai untuk role BAWAAN (Admin/Majelis/Ketua Sektor/Operator), yang tetap
+// dicek di level modul lewat DEFAULT_MATRIX di atas, dan sebagai fallback untuk
+// Custom Role yang modulePermissions-nya masih format lama (keyed by nama modul,
+// dari sebelum fitur granular submenu ini ada).
+export const PAGE_MODULE: Record<string, string> = {
+  dashboard:             'Dashboard',
   members:               'Database Warga',
-  memberDocuments:       'Database Warga',
-  marriages:             'Database Warga',
-  sectorTransfers:       'Database Warga',
   families:              'Data Keluarga',
   sectors:               'Sektor Pelayanan',
   sacraments:            'Sakramen & Atestasi',
   attestations:          'Sakramen & Atestasi',
-  sacramentDocuments:    'Sakramen & Atestasi',
-  attestationDocuments:  'Sakramen & Atestasi',
+  'sensus-report':       'Laporan & Direktori',
+  'report-center':       'Laporan & Direktori',
+  'worship-schedules':   'Peribadahan & Kegiatan',
+  'e-warta':             'Peribadahan & Kegiatan',
+  'sermon-archive':      'Peribadahan & Kegiatan',
   liturgy:               'Peribadahan & Kegiatan',
   events:                'Peribadahan & Kegiatan',
-  worshipSchedules:      'Peribadahan & Kegiatan',
   ministries:            'Peribadahan & Kegiatan',
+  livestream:            'Peribadahan & Kegiatan',
   attendance:            'Peribadahan & Kegiatan',
-  financialTransactions: 'Keuangan & Persembahan',
-  financialCategories:   'Keuangan & Persembahan',
+  'church-finance':      'Keuangan & Persembahan',
   offerings:             'Keuangan & Persembahan',
-  pettyCash:             'Keuangan & Persembahan',
-  pettyAccounts:         'Keuangan & Persembahan',
-  financeDocuments:      'Keuangan & Persembahan',
+  financial:             'Keuangan & Persembahan',
   assets:                'Manajemen Aset',
-  roomBookings:          'Manajemen Aset',
-  assetDocuments:        'Manajemen Aset',
-  resourceLibrary:       'Laporan & Direktori',
-  serviceRequests:       'Pelayanan Kasih & Komunikasi',
-  aidDistributions:      'Pelayanan Kasih & Komunikasi',
-  aidDistributionDocuments: 'Pelayanan Kasih & Komunikasi',
+  'room-booking':        'Manajemen Aset',
+  'resource-library':    'Laporan & Direktori',
+  'service-requests':    'Pelayanan Kasih & Komunikasi',
+  'aid-distribution':    'Pelayanan Kasih & Komunikasi',
   prayers:               'Pelayanan Kasih & Komunikasi',
   announcements:         'Peribadahan & Kegiatan',
   users:                 'Admin Sistem',
-  customRoles:           'Admin Sistem',
-  rbac_permissions:      'Admin Sistem',
-  builtinRoleOverrides:  'Admin Sistem',
-  masterData:            'Admin Sistem',
-  activityLogs:          'Admin Sistem',
-  audit_logs:            'Admin Sistem',
+  roles:                 'Admin Sistem',
+  backup:                'Admin Sistem',
+  data:                  'Admin Sistem',
+  'master-data':         'Admin Sistem',
+  activity:              'Admin Sistem',
+  'finance-addon':       'Keuangan (Finance Add-on)',
+  'finance-master-data': 'Keuangan (Finance Add-on)',
+  'finance-budget':      'Keuangan (Finance Add-on)',
+  'finance-transaction': 'Keuangan (Finance Add-on)',
+  'finance-approval':    'Keuangan (Finance Add-on)',
+  'finance-ledger':      'Keuangan (Finance Add-on)',
+  'finance-reconciliation': 'Keuangan (Finance Add-on)',
+  'finance-period-closing': 'Keuangan (Finance Add-on)',
+  'finance-reports':     'Keuangan (Finance Add-on)',
+  'finance-dashboard':   'Keuangan (Finance Add-on)',
+};
+
+// Collection → submenu (page). Kebanyakan collection punya SATU submenu pemilik
+// yang jelas (array 1 elemen). Pengecualian: cluster collection di bawah modul
+// "Keuangan & Persembahan" (church-finance / offerings / financial) berbagi
+// handler & state yang sama di AppContext.tsx frontend, jadi validasi server
+// untuk collection-collection itu sengaja digabung OR — cukup salah satu dari
+// ketiga submenu itu yang diizinkan. Ini bukan kelonggaran baru: persis sama
+// dengan perilaku sebelum fitur granular submenu ini ada (modul tunggal).
+export const COLLECTION_PAGE: Record<string, string[]> = {
+  members:               ['members'],
+  memberDocuments:       ['members'],
+  marriages:             ['members'],
+  sectorTransfers:       ['members'],
+  families:              ['families'],
+  sectors:               ['sectors'],
+  sacraments:            ['sacraments'],
+  sacramentDocuments:    ['sacraments'],
+  attestations:          ['attestations'],
+  attestationDocuments:  ['attestations'],
+  liturgy:               ['liturgy'],
+  events:                ['events'],
+  worshipSchedules:      ['worship-schedules'],
+  ministries:            ['ministries'],
+  attendance:            ['attendance'],
+  announcements:         ['announcements'],
+  financialTransactions: ['church-finance', 'offerings', 'financial'],
+  financialCategories:   ['church-finance', 'offerings', 'financial'],
+  offerings:             ['church-finance', 'offerings', 'financial'],
+  pettyCash:             ['church-finance', 'offerings', 'financial'],
+  pettyAccounts:         ['church-finance', 'offerings', 'financial'],
+  pettyCashTopUps:       ['church-finance', 'offerings', 'financial'],
+  financeDocuments:      ['church-finance', 'offerings', 'financial'],
+  assets:                ['assets'],
+  roomBookings:          ['room-booking'],
+  assetDocuments:        ['assets'],
+  resourceLibrary:       ['resource-library'],
+  serviceRequests:       ['service-requests'],
+  aidDistributions:      ['aid-distribution'],
+  aidDistributionDocuments: ['aid-distribution'],
+  prayers:               ['prayers'],
+  users:                 ['users'],
+  customRoles:           ['roles'],
+  rbac_permissions:      ['roles'],
+  builtinRoleOverrides:  ['roles'],
+  masterData:            ['master-data'],
+  activityLogs:          ['activity'],
+  audit_logs:            ['activity'],
 };
 
 // Method → action mapping
@@ -113,27 +170,40 @@ function getRoleKey(role: string): keyof Omit<MatrixEntry, 'module'> {
   return 'operator';
 }
 
-export async function checkModulePermission(
-  role: string, module: string, action: string,
+/** Ambil izin submenu tertentu dari modulePermissions milik sebuah Custom Role.
+ *  Kompatibel-mundur: modulePermissions lama berkunci NAMA MODUL (sebelum fitur
+ *  granular submenu ini ada) — di situ, izin submenu jatuh-balik ke izin modul
+ *  induknya, supaya role lama tidak kehilangan akses sampai disimpan ulang lewat
+ *  editor baru. Mirrors getPagePermission() di src/lib/permissions.ts (frontend). */
+function getCustomRolePagePermission(modulePermissions: Record<string, string[]> | undefined, pageKey: string): string[] {
+  const mp = modulePermissions ?? {};
+  if (mp[pageKey]) return mp[pageKey];
+  const mod = PAGE_MODULE[pageKey];
+  return (mod ? mp[mod] : undefined) ?? [];
+}
+
+/** Cek hak akses untuk satu SUBMENU (bukan modul kasar). Role bawaan tetap
+ *  dicek di level modul (lewat PAGE_MODULE → DEFAULT_MATRIX); Custom Role
+ *  dicek langsung per submenu lewat getCustomRolePagePermission(). */
+export async function checkPagePermission(
+  role: string, pageKey: string, action: string,
   customRoles?: any[]
 ): Promise<boolean> {
   if (role === 'Admin') return true;
 
-  const matrix = await getMatrix();
-  const entry = matrix.find(m => m.module === module);
-  if (!entry) return false;
-
-  // Built-in roles
   const builtIn = ['Admin', 'Majelis', 'Ketua Sektor', 'Operator'];
   if (builtIn.includes(role)) {
+    const matrix = await getMatrix();
+    const moduleName = PAGE_MODULE[pageKey] ?? pageKey;
+    const entry = matrix.find(m => m.module === moduleName);
+    if (!entry) return false;
     const key = getRoleKey(role);
     return (entry[key] as PermSet).includes(action);
   }
 
-  // Custom roles
   if (customRoles) {
     const custom = customRoles.find((r: any) => r.name === role);
-    const perms = (custom?.modulePermissions?.[module] ?? []) as string[];
+    const perms = getCustomRolePagePermission(custom?.modulePermissions, pageKey);
     return perms.includes(action);
   }
 
@@ -146,9 +216,12 @@ export async function checkPermission(
 ): Promise<boolean> {
   if (role === 'Admin') return true;
 
-  const module = COLLECTION_MODULE[collection];
-  if (!module) return role === 'Admin'; // unknown collection: Admin only
+  const pages = COLLECTION_PAGE[collection];
+  if (!pages || pages.length === 0) return role === 'Admin'; // unknown collection: Admin only
 
   const action = METHOD_ACTION[method] ?? 'view';
-  return checkModulePermission(role, module, action, customRoles);
+  for (const page of pages) {
+    if (await checkPagePermission(role, page, action, customRoles)) return true;
+  }
+  return false;
 }

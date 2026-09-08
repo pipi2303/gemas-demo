@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from './auth.js';
-import { checkPermission, COLLECTION_MODULE } from '../lib/permissionCache.js';
+import { checkPermission, COLLECTION_PAGE } from '../lib/permissionCache.js';
 import { getAll } from '../lib/db.js';
 import { logger } from '../lib/logger.js';
 
@@ -11,7 +11,7 @@ export function requirePermission() {
     if (role === 'Admin') { next(); return; }
 
     const collection = req.params.collection as string;
-    if (!collection || !(collection in COLLECTION_MODULE)) { next(); return; }
+    if (!collection || !(collection in COLLECTION_PAGE)) { next(); return; }
 
     try {
       const customRoles = await getAll<any>('customRoles').catch(() => []);

@@ -17,7 +17,11 @@ import { Router, Response, NextFunction } from 'express';
 import { getPool } from './db.js';
 import { isUsingInMemoryStore } from './db.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
-import { requireFinancePermission } from '../middleware/checkFinancePermission.js';
+import { requireFinancePermission as requireFinancePermissionBase } from '../middleware/checkFinancePermission.js';
+
+// Submenu Finance Add-on untuk file ini (dipakai validasi server per-submenu) —
+// lihat komentar di checkFinancePermission.ts.
+const requireFinancePermission = (action?: string) => requireFinancePermissionBase(action, 'finance-master-data');
 import { logger } from './logger.js';
 
 export const FINANCE_ORG = 'gpib-trinitas';

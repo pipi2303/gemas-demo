@@ -39,9 +39,17 @@ import { Router, Response } from 'express';
 import { getPool } from '../lib/db.js';
 import { requireRealDb, FINANCE_ORG, parsePagination, paginationMeta } from '../lib/financeCrud.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
-import { requireFinancePermission } from '../middleware/checkFinancePermission.js';
+import { requireFinancePermission as requireFinancePermissionBase } from '../middleware/checkFinancePermission.js';
 import { recordFinanceAudit } from '../lib/financeAudit.js';
 import { logger } from '../lib/logger.js';
+
+// Submenu Finance Add-on untuk file ini: endpoint CRUD draft transaksi sendiri
+// ada di bawah 'finance-transaction', sementara endpoint alur verifikasi/
+// persetujuan (queue, verify, approve, reject, post, reverse) ada di bawah
+// 'finance-approval' — dua submenu terpisah yang kebetulan berbagi router yang
+// sama. Lihat komentar di checkFinancePermission.ts.
+const requireFinancePermission = (action?: string) => requireFinancePermissionBase(action, 'finance-transaction');
+const requireApprovalPermission = (action?: string) => requireFinancePermissionBase(action, 'finance-approval');
 
 const router = Router();
 router.use(requireAuth, requireRealDb);
@@ -107,7 +115,7 @@ router.get('/', requireFinancePermission('view'), async (req: AuthRequest, res: 
 // /:id/verify, /:id/approve, /:id/post): pembuat transaksi tidak muncul di
 // antriannya sendiri, dan verifikator tidak muncul lagi di antrian approve
 // untuk transaksi yang sudah dia verifikasi sendiri.
-router.get('/queue', requireFinancePermission('approve'), async (req: AuthRequest, res: Response) => {
+router.get('/queue', requireApprovalPermission('approve'), async (req: AuthRequest, res: Response) => {
   try {
     const pool = getPool();
     const queueCondition = `t.organization_id = $1 AND (
@@ -325,7 +333,7 @@ router.put('/:id/submit', requireFinancePermission('edit'), async (req: AuthRequ
 });
 
 // ── Verifikasi (Submitted → Verified) ──────────────────────────────────────────
-router.put('/:id/verify', requireFinancePermission('approve'), async (req: AuthRequest, res: Response) => {
+router.put('/:id/verify', requireApprovalPermission('approve'), async (req: AuthRequest, res: Response) => {
   try {
     const pool = getPool();
     const tx = await getTransactionOr404(pool, req.params.id, res);
@@ -353,7 +361,7 @@ router.put('/:id/verify', requireFinancePermission('approve'), async (req: AuthR
 });
 
 // ── Setujui (Verified → Approved) ───────────────────────────────────────────────
-router.put('/:id/approve', requireFinancePermission('approve'), async (req: AuthRequest, res: Response) => {
+router.put('/:id/approve', requireApprovalPermission('approve'), async (req: AuthRequest, res: Response) => {
   try {
     const pool = getPool();
     const tx = await getTransactionOr404(pool, req.params.id, res);
@@ -385,7 +393,7 @@ router.put('/:id/approve', requireFinancePermission('approve'), async (req: Auth
 });
 
 // ── Tolak (Submitted/Verified → Rejected, wajib alasan) ─────────────────────────
-router.put('/:id/reject', requireFinancePermission('approve'), async (req: AuthRequest, res: Response) => {
+router.put('/:id/reject', requireApprovalPermission('approve'), async (req: AuthRequest, res: Response) => {
   try {
     const pool = getPool();
     const tx = await getTransactionOr404(pool, req.params.id, res);
@@ -438,7 +446,7 @@ router.put('/:id/revise', requireFinancePermission('edit'), async (req: AuthRequ
 });
 
 // ── Posting (Approved → Posted): membuat Jurnal + Baris Jurnal di GL ────────────
-router.put('/:id/post', requireFinancePermission('approve'), async (req: AuthRequest, res: Response) => {
+router.put('/:id/post', requireApprovalPermission('approve'), async (req: AuthRequest, res: Response) => {
   const pool = getPool();
   const client = await pool.connect();
   try {
@@ -525,7 +533,7 @@ router.put('/:id/post', requireFinancePermission('approve'), async (req: AuthReq
 });
 
 // ── Balik jurnal (Posted → Reversed): jurnal pembalik, jurnal asli tetap ada ────
-router.put('/:id/reverse', requireFinancePermission('approve'), async (req: AuthRequest, res: Response) => {
+router.put('/:id/reverse', requireApprovalPermission('approve'), async (req: AuthRequest, res: Response) => {
   const pool = getPool();
   const client = await pool.connect();
   try {
