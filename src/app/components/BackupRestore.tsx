@@ -63,6 +63,7 @@ export function BackupRestore() {
     financialRecords, financialCategories, ministrySchedules,
     worshipSchedules, wartas, liturgies, offerings,
     attestations, baptisms, sidis, marriages,
+    activityLogsLoaded, ensureActivityLogsLoaded,
   } = useApp();
 
   const { widths: colW, startResize } = useResizableColumns('backup-restore-main', BACKUP_TABLE_DEFAULT_WIDTHS);
@@ -100,6 +101,10 @@ export function BackupRestore() {
   }, []);
 
   useEffect(() => { fetchServerCounts(); }, [fetchServerCounts]);
+  // activityLogs tidak lagi dimuat otomatis saat boot aplikasi (lihat AppContext) —
+  // halaman ini butuh histori lengkap untuk hitung jumlah & export JSON, jadi
+  // muat sekali saat dibuka.
+  useEffect(() => { ensureActivityLogsLoaded(); }, [ensureActivityLogsLoaded]);
 
   const handleBackupJSON = () => {
     const now = new Date().toISOString().split('T')[0];
@@ -295,6 +300,11 @@ export function BackupRestore() {
             </thead>
             <tbody>
               {ORDERED_COLLECTIONS.map((col, i) => {
+                // activityLogs tidak lagi dimuat otomatis saat boot (lihat AppContext) —
+                // selama ensureActivityLogsLoaded() belum selesai, tampilkan sebagai
+                // "memuat" alih-alih membandingkan 0 lokal vs server (yang akan salah
+                // terlihat sebagai "Beda" padahal cuma belum sempat diambil).
+                const activityLogsPending = col === 'activityLogs' && !activityLogsLoaded;
                 const local  = localCounts[col] ?? 0;
                 const server = serverCounts[col] ?? 0;
                 const synced = local === server;
@@ -303,7 +313,9 @@ export function BackupRestore() {
                     style={{ background: i % 2 === 0 ? '#fff' : '#fafbfc', borderBottom: '1px solid #f1f5f9' }}
                   >
                     <td className="px-5 py-2.5 text-sm text-gray-700">{COLLECTION_LABELS[col]}</td>
-                    <td className="px-4 py-2.5 text-sm text-right font-mono text-gray-600">{local.toLocaleString()}</td>
+                    <td className="px-4 py-2.5 text-sm text-right font-mono text-gray-600">
+                      {activityLogsPending ? <span className="text-gray-300">...</span> : local.toLocaleString()}
+                    </td>
                     <td className="px-4 py-2.5 text-sm text-right font-mono text-gray-600">
                       {syncStatus === 'loading' ? (
                         <span className="text-gray-300">...</span>
@@ -314,7 +326,9 @@ export function BackupRestore() {
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-center">
-                      {syncStatus === 'ok' ? (
+                      {activityLogsPending ? (
+                        <span className="text-xs text-gray-300">—</span>
+                      ) : syncStatus === 'ok' ? (
                         synced
                           ? <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(22,163,74,0.1)', color: '#16a34a' }}>✓ Sinkron</span>
                           : <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(245,158,11,0.1)', color: '#1A77A3' }}>⚠ Beda</span>
@@ -362,7 +376,9 @@ export function BackupRestore() {
           <div className="flex gap-3">
             <button
               onClick={handleBackupJSON}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+              disabled={!activityLogsLoaded}
+              title={!activityLogsLoaded ? 'Menunggu riwayat aktivitas selesai dimuat...' : undefined}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: '#f0f7fb', color: '#1A77A3', border: '1px solid #b8d5e8' }}
               onMouseOver={e => (e.currentTarget.style.background = '#f0ede5')}
               onMouseOut={e => (e.currentTarget.style.background = '#f0f7fb')}
@@ -372,7 +388,9 @@ export function BackupRestore() {
             </button>
             <button
               onClick={handleBackupExcel}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+              disabled={!activityLogsLoaded}
+              title={!activityLogsLoaded ? 'Menunggu riwayat aktivitas selesai dimuat...' : undefined}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: 'rgba(22,163,74,0.08)', color: '#16a34a', border: '1px solid rgba(22,163,74,0.2)' }}
               onMouseOver={e => (e.currentTarget.style.background = 'rgba(22,163,74,0.15)')}
               onMouseOut={e => (e.currentTarget.style.background = 'rgba(22,163,74,0.08)')}

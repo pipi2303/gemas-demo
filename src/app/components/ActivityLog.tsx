@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
@@ -47,13 +47,19 @@ import autoTable from 'jspdf-autotable';
 import { toast } from 'sonner';
 
 export function ActivityLog() {
-  const { activityLogs } = useApp();
+  const { activityLogs, activityLogsLoaded, ensureActivityLogsLoaded } = useApp();
   const [filterDomain, setFilterDomain] = useState<string>('all');
   const [filterAction, setFilterAction] = useState<string>('all');
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedUser, setSelectedUser] = useState<string>('all');
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+
+  // activityLogs tidak lagi dimuat otomatis saat boot aplikasi (lihat AppContext) —
+  // ambil seluruh histori sekali saat halaman ini dibuka.
+  useEffect(() => {
+    ensureActivityLogsLoaded();
+  }, [ensureActivityLogsLoaded]);
 
   // Extract unique users
   const uniqueUsers = useMemo(() => {
@@ -256,6 +262,12 @@ export function ActivityLog() {
 
   return (
     <div className="space-y-6">
+      {!activityLogsLoaded && (
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500">
+          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+          Memuat seluruh riwayat aktivitas...
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

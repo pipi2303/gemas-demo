@@ -10,8 +10,9 @@ import {
   Megaphone, CheckCircle2, UserPlus, Pencil, Trash2,
   HandHeart, Stethoscope, Printer, Layers,
 } from 'lucide-react';
-import { AgeGroup } from '../types';
+import { AgeGroup, ActivityLog } from '../types';
 import { liveAge } from '../../lib/age';
+import { api } from '../../lib/apiClient';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatRp(n: number) {
@@ -606,7 +607,7 @@ const ANNOUNCEMENT_PRIORITY: Record<string, { bg: string; color: string; label: 
 export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void }) {
   const {
     members, families, sectors, offerings,
-    activityLogs, attestations,
+    attestations,
     financialRecords,
     baptisms, sidis, marriages,
     currentUser,
@@ -616,11 +617,23 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
 
   const [activeKPI, setActiveKPI] = useState<KPIType | null>(null);
   const [currentDate, setCurrentDate] = useState(() => new Date());
+  // Dashboard adalah halaman default yang dibuka semua orang saat login, jadi
+  // TIDAK memakai ensureActivityLogsLoaded() (yang mengunduh seluruh histori
+  // log) — cukup ambil 6 aktivitas terbaru sendiri lewat endpoint paginasi.
+  const [recentActivitiesData, setRecentActivitiesData] = useState<ActivityLog[]>([]);
 
   useEffect(() => {
     const updateDate = () => setCurrentDate(new Date());
     const timer = window.setInterval(updateDate, 60_000);
     return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get<{ data: ActivityLog[] }>('/api/data/activityLogs?page=1&pageSize=6&sort=desc')
+      .then(res => { if (!cancelled) setRecentActivitiesData(res.data || []); })
+      .catch(() => { if (!cancelled) setRecentActivitiesData([]); });
+    return () => { cancelled = true; };
   }, []);
 
   const s = useMemo(() => {
@@ -734,9 +747,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
 
     // ── Admin ──
     const pendingAttestations = attestations.filter(a => a.status === 'Diajukan').length;
-    const recentActivities    = [...activityLogs]
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 6);
+    const recentActivities    = recentActivitiesData;
 
     return {
       totalMembers: members.length, totalFamilies: families.length, totalSectors: sectors.length,
@@ -757,7 +768,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
       srByType, recentSR,
       worshipByType,
     };
-  }, [currentDate, members, families, sectors, offerings, financialRecords, activityLogs, attestations,
+  }, [currentDate, members, families, sectors, offerings, financialRecords, recentActivitiesData, attestations,
       baptisms, sidis, marriages, worshipSchedules, events, prayerRequests, announcements, attendance,
       serviceRequests, aidDistributions]);
 

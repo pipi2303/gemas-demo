@@ -36,6 +36,15 @@ interface AppContextType {
   prayerRequests: PrayerRequest[];
   attendance: Attendance[];
   activityLogs: ActivityLog[];
+  // activityLogs BUKAN di-eager-load lagi saat boot aplikasi (koleksi ini bertambah tanpa
+  // batas — dulu di-load penuh untuk SETIAP user di SETIAP sesi walau mayoritas tidak pernah
+  // membuka halaman Log Aktivitas). activityLogsLoaded=false berarti activityLogs masih
+  // kosong; panggil ensureActivityLogsLoaded() sebelum membaca activityLogs secara penuh
+  // (dipakai oleh ActivityLog.tsx & BackupRestore.tsx). Dashboard.tsx TIDAK memakai mekanisme
+  // ini — ia mengambil 6 entri terbaru sendiri lewat endpoint paginated, supaya halaman utama
+  // yang dibuka semua orang tidak ikut menarik seluruh riwayat log.
+  activityLogsLoaded: boolean;
+  ensureActivityLogsLoaded: () => Promise<void>;
   notifications: Notification[];
   announcements: Announcement[];
   financialRecords: FinancialRecord[];
@@ -280,6 +289,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [prayerRequests, setPrayerRequests] = useState<PrayerRequest[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
+  const [activityLogsLoaded, setActivityLogsLoaded] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [financialRecords, setFinancialRecords] = useState<FinancialRecord[]>([]);
@@ -370,7 +380,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       load<Event>('events', setEvents),
       load<PrayerRequest>('prayerRequests', setPrayerRequests),
       load<Attendance>('attendance', setAttendance),
-      load<ActivityLog>('activityLogs', setActivityLogs),
       load<Announcement>('announcements', setAnnouncements),
       load<FinancialRecord>('financialRecords', setFinancialRecords),
       load<FinancialCategory>('financialCategories', setFinancialCategories),
@@ -1015,6 +1024,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setActivityLogs(prev => [newLog, ...prev]);
     apiSave('activityLogs', newLog.id, newLog);
   };
+
+  const ensureActivityLogsLoaded = useCallback(async () => {
+    if (activityLogsLoaded) return;
+    try {
+      const items = await api.get<ActivityLog[]>('/api/data/activityLogs');
+      setActivityLogs(items);
+    } catch {
+      setActivityLogs([]);
+    } finally {
+      setActivityLogsLoaded(true);
+    }
+  }, [activityLogsLoaded]);
 
   const BUILT_IN_ROLES = ['Admin', 'Majelis', 'Ketua Sektor', 'Operator'];
 
@@ -2651,6 +2672,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       prayerRequests,
       attendance,
       activityLogs,
+      activityLogsLoaded,
+      ensureActivityLogsLoaded,
       notifications,
       announcements,
       financialRecords,
