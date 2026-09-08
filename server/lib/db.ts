@@ -1,6 +1,7 @@
 import pg from 'pg';
 import bcrypt from 'bcryptjs';
 import { initFinanceSchema } from './financeSchema.js';
+import { handleFinanceInMemoryQuery, initFinanceInMemorySeed } from './financeInMemory.js';
 
 const { Pool } = pg;
 
@@ -90,6 +91,11 @@ async function mockQuery<T = any>(sql: string, params: any[] = []): Promise<{ ro
   // CREATE TABLE IF NOT EXISTS
   if (/^CREATE\s+TABLE/i.test(trimmed)) {
     return { rows: [] };
+  }
+
+  // Intercept finance schema operations for in-memory mode
+  if (/finance\./i.test(trimmed)) {
+    return handleFinanceInMemoryQuery(trimmed, params) as { rows: T[] };
   }
 
   // SELECT data FROM gemas_store WHERE collection = $1 AND id = $2
@@ -249,6 +255,7 @@ export async function initSchema() {
     console.log('[DB] Running with in-memory database store (fallback)');
     isUsingInMemory = true;
     seedDefaultUsersInMemory();
+    initFinanceInMemorySeed();
     return;
   }
 

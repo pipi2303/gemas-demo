@@ -37,10 +37,13 @@ import {
   SlidersHorizontal,
   Info,
   CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  ShieldAlert,
+  ArrowRight
 } from 'lucide-react';
 import { ActivityLog as ActivityLogType, AuditDiffField } from '../types';
 import { AUDIT_FIELD_LABELS } from '../lib/auditUtils';
+import { AuditLog, isCriticalAuditEntry } from './AuditLog';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -48,6 +51,7 @@ import { toast } from 'sonner';
 
 export function ActivityLog() {
   const { activityLogs, activityLogsLoaded, ensureActivityLogsLoaded } = useApp();
+  const [activeSection, setActiveSection] = useState<'all' | 'audit_log'>('all');
   const [filterDomain, setFilterDomain] = useState<string>('all');
   const [filterAction, setFilterAction] = useState<string>('all');
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
@@ -81,6 +85,10 @@ export function ActivityLog() {
     const assetOps = activityLogs.filter(l => l.domain === 'Asset' || ['ChurchAsset', 'AssetMaintenance', 'AssetLoan', 'RoomBooking', 'BuildingProject'].includes(l.entityType)).length;
 
     return { total, sensitiveCount, memberOps, financialOps, assetOps };
+  }, [activityLogs]);
+
+  const criticalLogsCount = useMemo(() => {
+    return activityLogs.filter(isCriticalAuditEntry).length;
   }, [activityLogs]);
 
   const filteredLogs = useMemo(() => {
@@ -268,8 +276,73 @@ export function ActivityLog() {
           Memuat seluruh riwayat aktivitas...
         </div>
       )}
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+
+      {/* Navigation Section Tabs */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
+        <button
+          onClick={() => setActiveSection('all')}
+          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl transition-all ${
+            activeSection === 'all'
+              ? 'bg-[#0f2d41] text-white shadow-xs'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <Activity className="w-3.5 h-3.5" />
+          <span>Log Aktivitas Sistem</span>
+          <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeSection === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+            {stats.total}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveSection('audit_log')}
+          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl transition-all ${
+            activeSection === 'audit_log'
+              ? 'bg-rose-950 text-white shadow-xs'
+              : 'bg-white text-rose-800 hover:bg-rose-50 border border-rose-200'
+          }`}
+        >
+          <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+          <span>Audit Log Perubahan Kritis</span>
+          <span className={`px-2 py-0.2 rounded-full text-[10px] font-bold ${activeSection === 'audit_log' ? 'bg-rose-800 text-rose-100' : 'bg-rose-100 text-rose-800 border border-rose-200'}`}>
+            {criticalLogsCount}
+          </span>
+        </button>
+      </div>
+
+      {activeSection === 'audit_log' ? (
+        <AuditLog onViewAll={() => setActiveSection('all')} />
+      ) : (
+        <>
+          {/* Critical Audit Notification Banner inside General Log */}
+          <div className="p-4 rounded-xl bg-gradient-to-r from-rose-950 via-rose-900 to-slate-900 text-white shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 text-rose-300">
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-white">Bagian Audit Log Kritis Terintegrasi</h4>
+                  <span className="px-2 py-0.2 rounded-full text-[10px] font-bold bg-rose-500/30 text-rose-200 border border-rose-400/30">
+                    {criticalLogsCount} Peristiwa Kritis
+                  </span>
+                </div>
+                <p className="text-xs text-rose-200/80 mt-0.5">
+                  Memantau khusus perubahan peran pengguna (user role updates), hak akses modul, dan penghapusan data (data deletions).
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setActiveSection('audit_log')}
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-bold text-rose-950 bg-white hover:bg-rose-50 rounded-xl transition-all shadow-xs flex-shrink-0"
+            >
+              <span>Lihat Audit Log Kritis</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#0f2d41' }}>
@@ -599,6 +672,8 @@ export function ActivityLog() {
           </div>
         )}
       </Card>
+      </>
+      )}
     </div>
   );
 }

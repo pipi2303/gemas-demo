@@ -20,20 +20,6 @@ const router = Router();
 router.get('/status', requireAuth, requireFinancePermission('view'), async (req: AuthRequest, res: Response) => {
   const inMemory = isUsingInMemoryStore();
 
-  if (inMemory) {
-    res.json({
-      success: true,
-      data: {
-        schemaReady: false,
-        mode: 'in-memory',
-        accountGroups: 0,
-        voucherTypes: 0,
-      },
-      meta: { timestamp: new Date().toISOString() },
-    });
-    return;
-  }
-
   try {
     const pool = getPool();
     const [groupsResult, typesResult] = await Promise.all([
@@ -44,7 +30,7 @@ router.get('/status', requireAuth, requireFinancePermission('view'), async (req:
       success: true,
       data: {
         schemaReady: true,
-        mode: 'postgresql',
+        mode: inMemory ? 'in-memory' : 'postgresql',
         accountGroups: groupsResult.rows[0]?.count ?? 0,
         voucherTypes: typesResult.rows[0]?.count ?? 0,
       },

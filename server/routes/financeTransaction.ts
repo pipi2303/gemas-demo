@@ -218,8 +218,8 @@ router.post('/', requireFinancePermission('create'), async (req: AuthRequest, re
     res.status(201).json({ success: true, data: { ...txRes.rows[0], voucher_number: voucherNumber, voucher_date: voucher.voucher_date, voucher_type_code: voucherType.code, voucher_type_name: voucherType.name } });
   } catch (err: any) {
     await client.query('ROLLBACK').catch(() => {});
-    logger.error('POST transactions', { message: String(err) });
-    res.status(err.status ?? 500).json({ success: false, error: { code: 'VALIDATION_ERROR', message: err.status ? err.message : 'Gagal membuat transaksi' } });
+    logger.error('POST transactions', { message: String(err), stack: err?.stack });
+    res.status(err.status ?? 500).json({ success: false, error: { code: err.code || 'VALIDATION_ERROR', message: err.message || 'Gagal membuat transaksi' } });
   } finally {
     client.release();
   }

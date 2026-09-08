@@ -924,7 +924,7 @@ export function FinanceMasterData({ onNavigate }: { onNavigate?: (page: string) 
               onClick={() => onNavigate('finance-addon')}
               className="flex items-center gap-1 text-xs text-slate-400 hover:text-[#1A77A3] mb-1.5"
             >
-              <ArrowLeft className="w-3 h-3" /> Kembali ke Ringkasan Finance Add-on
+              <ArrowLeft className="w-3 h-3" /> Kembali ke Ringkasan Finance
             </button>
           )}
           <h1 className="text-xl font-semibold text-slate-800">Master Data &amp; Periode Fiskal</h1>

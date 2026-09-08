@@ -2,7 +2,6 @@ import React, { ReactNode, useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { NotificationBell } from './NotificationCenter';
 import { GlobalSearch } from './GlobalSearch';
-import { AccessibilityModal } from './AccessibilityModal';
 import {
   LayoutDashboard, Users, UserCog, User,
   LogOut, Church, Calendar, Activity, DollarSign,
@@ -11,7 +10,7 @@ import {
   Menu, X, Package, Clock, Layers,
   PanelLeftClose, PanelLeftOpen,
   BookOpen, FileText, HeartHandshake, Heart,
-  MessageSquareHeart, BarChart3, Sliders,
+  MessageSquareHeart, BarChart3,
   QrCode, Book, Home, MapPin, Cross, Library, DoorOpen, Gift,
   Bell, ChevronRight as BreadcrumbArrow, Printer, FileSpreadsheet, Landmark, ClipboardList, Receipt, Inbox, ArrowLeftRight, CalendarCheck, FileBarChart
 } from 'lucide-react';
@@ -70,6 +69,16 @@ export const PAGE_LABELS: Record<string, { title: string; category: string }> = 
   data:                  { title: 'Pusat Manajemen Data', category: 'Admin Sistem' },
   'master-data':         { title: 'Pengaturan Master Data', category: 'Admin Sistem' },
   activity:              { title: 'Log Aktivitas Sistem', category: 'Admin Sistem' },
+  'finance-addon':         { title: 'Ringkasan Finance', category: 'Finance' },
+  'finance-master-data':   { title: 'Master Data & Fiskal', category: 'Finance' },
+  'finance-budget':        { title: 'Budget / RKA', category: 'Finance' },
+  'finance-transaction':   { title: 'Transaksi & Voucher', category: 'Finance' },
+  'finance-approval':      { title: 'Verifikasi & Persetujuan', category: 'Finance' },
+  'finance-ledger':        { title: 'Buku Besar (GL)', category: 'Finance' },
+  'finance-reconciliation':{ title: 'Rekonsiliasi Bank', category: 'Finance' },
+  'finance-period-closing':{ title: 'Penutupan Periode', category: 'Finance' },
+  'finance-reports':       { title: 'Laporan Keuangan', category: 'Finance' },
+  'finance-dashboard':     { title: 'Dashboard & Analitik', category: 'Finance' },
 };
 
 function ProfileDropdown({ user, onLogout, onClose }: { user: any; onLogout: () => void; onClose: () => void }) {
@@ -146,7 +155,6 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [tooltip, setTooltip] = useState<{ label: string; y: number } | null>(null);
   const [showProfile, setShowProfile] = useState(false);
-  const [showAccessibilityModal, setShowAccessibilityModal] = useState(false);
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -206,7 +214,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
     },
     {
       id: 'finance-addon',
-      label: 'Finance Add-on',
+      label: 'Finance',
       icon: Landmark,
       items: [
         { id: 'finance-addon',       label: 'Ringkasan',             page: 'finance-addon',       icon: Landmark },
@@ -310,7 +318,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
           </div>
         </div>
 
-        {/* Right: Search, Role Pill, Notifications, Accessibility, Clock, Profile */}
+        {/* Right: Search, Role Pill, Notifications, Clock, Profile */}
         <div className="flex items-center gap-2.5">
           {/* Search Input */}
           <div className="hidden sm:block">
@@ -320,16 +328,6 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
               onNavigate={onNavigate}
             />
           </div>
-
-          {/* Accessibility Settings Quick Button */}
-          <button
-            onClick={() => setShowAccessibilityModal(true)}
-            title="Pengaturan Aksesibilitas"
-            className="w-8 h-8 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-            style={{ border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)' }}
-          >
-            <Sliders className="w-3.5 h-3.5 text-amber-300" />
-          </button>
 
           {/* Notification Bell */}
           <NotificationBell dark />
@@ -596,7 +594,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
           style={{ marginLeft: mainMargin }}
         >
           {/* Portal target untuk modal/dialog yang perlu dirender di luar alur DOM normal
-              (Radix Dialog/AlertDialog, NotificationCenter, AccessibilityModal) — tetap
+              (Radix Dialog/AlertDialog, NotificationCenter) — tetap
               terkurung di dalam .content-area, tidak pernah menutupi sidebar/header. */}
           <div id="content-area-modal-root" />
 
@@ -626,16 +624,9 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
             style={{ borderColor: '#e2d8c4', background: '#faf7f0' }}
           >
             <p>© {new Date().getFullYear()} GPIB Trinitas — Gereja Manajemen Sistem (GEMAS)</p>
-            <p className="mt-1 sm:mt-0 font-medium">Soli Deo Gloria</p>
           </footer>
         </main>
       </div>
-
-      {/* Accessibility Modal */}
-      <AccessibilityModal
-        isOpen={showAccessibilityModal}
-        onClose={() => setShowAccessibilityModal(false)}
-      />
     </div>
   );
 }

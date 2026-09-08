@@ -27,16 +27,7 @@ import { logger } from './logger.js';
 export const FINANCE_ORG = 'gpib-trinitas';
 
 export function requireRealDb(req: AuthRequest, res: Response, next: NextFunction) {
-  if (isUsingInMemoryStore()) {
-    res.status(503).json({
-      success: false,
-      error: {
-        code: 'SCHEMA_NOT_READY',
-        message: 'Finance Add-on membutuhkan koneksi PostgreSQL aktif — belum tersedia di mode in-memory.',
-      },
-    });
-    return;
-  }
+  // Dual-mode: Berjalan baik di PostgreSQL asli maupun fallback In-Memory engine
   next();
 }
 

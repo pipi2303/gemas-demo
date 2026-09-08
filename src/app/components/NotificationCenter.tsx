@@ -51,13 +51,14 @@ export function NotificationCenter({ isOpen, onClose }: { isOpen: boolean; onClo
       if (!member.birthDate) return;
       if (format(new Date(member.birthDate), 'MM-dd') !== today) return;
       const exists = notifications.find(
-        n => n.type === 'birthday' && n.message.includes(member.fullName) && isToday(new Date(n.createdAt))
+        n => (n.link === `bday-${member.id}-${today}`) || (n.type === 'birthday' && n.message.includes(member.fullName) && isToday(new Date(n.createdAt)))
       );
       if (!exists) {
         addNotification({
           type: 'birthday', title: 'Ulang Tahun Hari Ini',
           message: `${member.fullName} berulang tahun hari ini (${liveAge(member)} tahun)`,
           read: false, priority: 'medium',
+          link: `bday-${member.id}-${today}`,
         });
       }
     });
@@ -107,17 +108,28 @@ export function NotificationCenter({ isOpen, onClose }: { isOpen: boolean; onClo
     });
   }, [prayerRequests.length]);
 
-  const unreadCnt  = notifications.filter(n => !n.read).length;
-  const readCnt    = notifications.filter(n => n.read).length;
+  // Sanitasi notifikasi untuk memastikan setiap item memiliki ID unik (mencegah duplicate key React)
+  const seenIds = new Set<string>();
+  const sanitizedNotifications = notifications.map((n, i) => {
+    let id = n.id;
+    if (!id || seenIds.has(id)) {
+      id = `${id || 'not'}_${i}_${Math.random().toString(36).slice(2, 6)}`;
+    }
+    seenIds.add(id);
+    return id === n.id ? n : { ...n, id };
+  });
 
-  const filtered = notifications.filter(n => {
+  const unreadCnt  = sanitizedNotifications.filter(n => !n.read).length;
+  const readCnt    = sanitizedNotifications.filter(n => n.read).length;
+
+  const filtered = sanitizedNotifications.filter(n => {
     if (filter === 'unread') return !n.read;
     if (filter === 'all')    return true;
     return n.type === filter;
   }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const handleDeleteRead = () => {
-    notifications.filter(n => n.read).forEach(n => deleteNotification(n.id));
+    sanitizedNotifications.filter(n => n.read).forEach(n => deleteNotification(n.id));
   };
 
   if (!isOpen) return null;
@@ -246,11 +258,11 @@ export function NotificationCenter({ isOpen, onClose }: { isOpen: boolean; onClo
             </div>
           ) : (
             <div>
-              {filtered.map(notif => {
+              {filtered.map((notif, idx) => {
                 const cfg = TYPE_CFG[notif.type] ?? DEFAULT_CFG;
                 return (
                   <div
-                    key={notif.id}
+                    key={`${notif.id}-${idx}`}
                     style={{
                       padding: '13px 16px',
                       borderBottom: '1px solid #f1f5f9',

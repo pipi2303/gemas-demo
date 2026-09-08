@@ -14,9 +14,11 @@ import {
   ChurchAsset, MaintenanceRecord, LoanHistoryRecord,
   BankAccount, Budget,
   LivestreamLink, ReminderSetting, Liability,
-  FiscalYearSetting, Room, CustomRole, BuiltinRoleOverride, SectorTransfer
+  FiscalYearSetting, Room, CustomRole, BuiltinRoleOverride, SectorTransfer,
+  AuditDiffField
 } from '../types';
 import { getDomainForEntityType, getAuditSeverity } from '../lib/auditUtils';
+import { DEFAULT_SEED_AUDIT_LOGS } from '../data/seedAuditLogs';
 
 interface AppContextType {
   // DB
@@ -397,7 +399,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       load<Baptism>('baptisms', setBaptisms),
       load<Sidi>('sidis', setSidis),
       load<Marriage>('marriages', setMarriages),
-      load<Notification>('notifications', setNotifications),
+      load<Notification>('notifications', (items) => {
+        const seenIds = new Set<string>();
+        const sanitized = (items || []).map((item, idx) => {
+          let id = item.id;
+          if (!id || seenIds.has(id)) {
+            id = `${id || 'not'}_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 7)}`;
+          }
+          seenIds.add(id);
+          return { ...item, id };
+        });
+        setNotifications(sanitized);
+      }),
     ]);
 
     // Fetch sisa koleksi secara paralel (bukan berurutan) supaya setState-nya bisa
@@ -1029,9 +1042,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (activityLogsLoaded) return;
     try {
       const items = await api.get<ActivityLog[]>('/api/data/activityLogs');
-      setActivityLogs(items);
+      if (items && items.length > 0) {
+        setActivityLogs(items);
+      } else {
+        setActivityLogs(DEFAULT_SEED_AUDIT_LOGS);
+      }
     } catch {
-      setActivityLogs([]);
+      setActivityLogs(DEFAULT_SEED_AUDIT_LOGS);
     } finally {
       setActivityLogsLoaded(true);
     }
@@ -1383,7 +1400,62 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setUsers(users.map(u => u.id === id ? { ...u, ...userData } : u));
     if (usr) apiSave('users', id, { ...usr, ...userData });
     if (currentUser && usr) {
-      logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Mengubah', entityType: 'User', entityId: id, entityName: usr.name, details: 'Data pengguna diperbarui' });
+      const isRoleChange = userData.role && userData.role !== usr.role;
+      const isStatusChange = userData.isActive !== undefined && userData.isActive !== usr.isActive;
+      const isPwReset = Boolean(userData.password);
+
+      let action: ActivityLog['action'] = 'Mengubah';
+      let details = 'Data pengguna diperbarui';
+      let severity: ActivityLog['severity'] = 'sensitive';
+      const diff: AuditDiffField[] = [];
+
+      if (isRoleChange) {
+        action = 'Ubah Peran';
+        severity = 'critical';
+        details = `Perubahan peran (role) pengguna "${usr.name}": dari "${usr.role}" menjadi "${userData.role}"`;
+        diff.push({
+          field: 'role',
+          label: 'Peran Pengguna (Role)',
+          oldValue: usr.role,
+          newValue: userData.role,
+        });
+      } else if (isStatusChange) {
+        action = 'Ubah Status Akun';
+        severity = 'critical';
+        details = `Status akun pengguna "${usr.name}" diubah menjadi ${userData.isActive ? 'Aktif' : 'Nonaktif'}`;
+        diff.push({
+          field: 'isActive',
+          label: 'Status Akun',
+          oldValue: usr.isActive ? 'Aktif' : 'Nonaktif',
+          newValue: userData.isActive ? 'Aktif' : 'Nonaktif',
+        });
+      } else if (isPwReset) {
+        action = 'Reset Password';
+        severity = 'critical';
+        details = `Reset kata sandi untuk akun pengguna "${usr.name}" (${usr.username})`;
+      }
+
+      if (userData.name && userData.name !== usr.name) {
+        diff.push({ field: 'name', label: 'Nama Pengguna', oldValue: usr.name, newValue: userData.name });
+      }
+      if (userData.email && userData.email !== usr.email) {
+        diff.push({ field: 'email', label: 'Alamat Email', oldValue: usr.email, newValue: userData.email });
+      }
+
+      logActivity({
+        userId: currentUser.id,
+        userName: currentUser.name,
+        action,
+        domain: 'System',
+        entityType: 'User',
+        entityId: id,
+        entityName: usr.name,
+        severity,
+        details,
+        diff: diff.length > 0 ? diff : undefined,
+        beforeState: { id: usr.id, name: usr.name, username: usr.username, role: usr.role, isActive: usr.isActive, email: usr.email },
+        afterState: { id: usr.id, name: userData.name ?? usr.name, username: userData.username ?? usr.username, role: userData.role ?? usr.role, isActive: userData.isActive ?? usr.isActive, email: userData.email ?? usr.email },
+      });
     }
   };
 
@@ -1392,7 +1464,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setUsers(users.filter(u => u.id !== id));
     apiRemove('users', id);
     if (currentUser && usr) {
-      logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menghapus', entityType: 'User', entityId: id, entityName: usr.name, details: 'Pengguna dihapus dari sistem' });
+      logActivity({
+        userId: currentUser.id,
+        userName: currentUser.name,
+        action: 'Menghapus',
+        domain: 'System',
+        entityType: 'User',
+        entityId: id,
+        entityName: usr.name,
+        severity: 'critical',
+        details: `Pengguna "${usr.name}" (Role: ${usr.role}, Username: ${usr.username}) dihapus dari sistem`,
+        beforeState: { id: usr.id, name: usr.name, username: usr.username, role: usr.role, email: usr.email, isActive: usr.isActive },
+      });
     }
   };
 
@@ -1521,9 +1604,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const addNotification = (notificationData: Omit<Notification, 'id' | 'createdAt'>) => {
-    const newNotification: Notification = { ...notificationData, id: `not${Date.now()}`, createdAt: new Date().toISOString() };
-    setNotifications(prev => [...prev, newNotification]);
-    apiSave('notifications', newNotification.id, newNotification);
+    const uniqueId = `not${Date.now()}_${Math.random().toString(36).slice(2, 8)}_${Math.floor(Math.random() * 10000)}`;
+    const newNotification: Notification = {
+      ...notificationData,
+      id: uniqueId,
+      createdAt: new Date().toISOString()
+    };
+    setNotifications(prev => {
+      if (notificationData.link && prev.some(n => n.link === notificationData.link)) {
+        return prev;
+      }
+      apiSave('notifications', newNotification.id, newNotification);
+      return [...prev, newNotification];
+    });
   };
 
   const markNotificationRead = (id: string) => {
@@ -2224,20 +2317,64 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const newR: CustomRole = { ...data, id: `cr${Date.now()}` };
     setCustomRoles(prev => [...prev, newR]);
     apiSave('customRoles', newR.id, newR);
+    if (currentUser) {
+      logActivity({
+        userId: currentUser.id,
+        userName: currentUser.name,
+        action: 'Menambahkan',
+        domain: 'System',
+        entityType: 'CustomRole',
+        entityId: newR.id,
+        entityName: newR.name,
+        severity: 'critical',
+        details: `Peran kustom baru "${newR.name}" dibuat`,
+      });
+    }
   };
 
   const updateCustomRole = (id: string, data: Partial<CustomRole>) => {
+    const existing = customRoles.find(r => r.id === id);
     setCustomRoles(prev => prev.map(r => {
       if (r.id !== id) return r;
       const updated = { ...r, ...data };
       apiSave('customRoles', id, updated);
       return updated;
     }));
+    if (currentUser && existing) {
+      logActivity({
+        userId: currentUser.id,
+        userName: currentUser.name,
+        action: 'Ubah Hak Akses',
+        domain: 'System',
+        entityType: 'CustomRole',
+        entityId: id,
+        entityName: existing.name,
+        severity: 'critical',
+        details: `Izin dan konfigurasi peran kustom "${existing.name}" diperbarui`,
+        beforeState: existing,
+        afterState: { ...existing, ...data },
+      });
+    }
   };
 
   const deleteCustomRole = (id: string) => {
+    const existing = customRoles.find(r => r.id === id);
     setCustomRoles(prev => prev.filter(r => r.id !== id));
     apiRemove('customRoles', id);
+    if (currentUser && existing) {
+      logActivity({
+        userId: currentUser.id,
+        userName: currentUser.name,
+        action: 'Menghapus',
+        domain: 'System',
+        entityType: 'CustomRole',
+        entityId: id,
+        entityName: existing.name,
+        severity: 'critical',
+        details: `Peran kustom "${existing.name}" dihapus dari sistem`,
+        beforeState: existing,
+      });
+    }
   };
 
   // ── BuiltinRoleOverride CRUD ──────────────────────────────────────────────────
@@ -2248,6 +2385,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       apiSave('builtinRoleOverrides', override.id, override);
       return next;
     });
+    if (currentUser) {
+      logActivity({
+        userId: currentUser.id,
+        userName: currentUser.name,
+        action: 'Ubah Hak Akses',
+        domain: 'System',
+        entityType: 'RolePermission',
+        entityId: override.id,
+        entityName: override.roleName || override.id,
+        severity: 'critical',
+        details: `Konfigurasi hak akses bawaan untuk peran "${override.roleName || override.id}" diperbarui`,
+      });
+    }
   };
 
   const addOffering = (offeringData: Omit<Offering, 'id' | 'createdAt'>) => {

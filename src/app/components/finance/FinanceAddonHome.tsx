@@ -66,7 +66,7 @@ export function FinanceAddonHome({ onNavigate }: { onNavigate?: (page: string) =
             <Landmark className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-slate-800">Finance Add-on</h1>
+            <h1 className="text-xl font-semibold text-slate-800">Finance</h1>
             <p className="text-sm text-slate-500 mt-0.5">
               Modul akuntansi double-entry untuk GEMAS — seluruh fase (Fase 0–9) sudah aktif dan bisa dipakai
             </p>
@@ -114,8 +114,10 @@ export function FinanceAddonHome({ onNavigate }: { onNavigate?: (page: string) =
               {status.schemaReady ? <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" /> : <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />}
               <span>
                 {status.schemaReady
-                  ? 'Skema finance sudah aktif di PostgreSQL dan siap dipakai.'
-                  : 'Server berjalan dengan penyimpanan in-memory (tanpa DATABASE_URL) — skema finance memerlukan koneksi PostgreSQL asli untuk aktif.'}
+                  ? (status.mode === 'postgresql'
+                      ? 'Skema finance sudah aktif di PostgreSQL dan siap dipakai.'
+                      : 'Skema finance aktif dalam mode penyimpanan terintegrasi (In-Memory) dan siap digunakan.')
+                  : 'Server berjalan dengan penyimpanan in-memory (tanpa DATABASE_URL) — skema finance memerlukan koneksi PostgreSQL aktif.'}
               </span>
             </div>
 
