@@ -2,7 +2,6 @@ import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
 import { hashPassword, isHashed } from './lib/passwordUtils.js';
 import cron from 'node-cron';
 import { initSchema, getPool, getAll, upsert } from './lib/db.js';
@@ -77,8 +76,6 @@ async function runBackup() {
     logger.warn('Automated backup skipped', { message: String(err) });
   }
 }
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function startServer() {
   validateEnv();
