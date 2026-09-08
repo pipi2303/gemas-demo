@@ -539,7 +539,7 @@ function EntitySection({ config, canEdit, onMutated }: { config: EntityConfig; c
 
       {modalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="absolute inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(15,23,42,0.45)' }}
           onClick={() => !saving && setModalOpen(false)}
         >
@@ -624,7 +624,7 @@ function EntitySection({ config, canEdit, onMutated }: { config: EntityConfig; c
 
       {deleteTarget && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="absolute inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(15,23,42,0.45)' }}
           onClick={() => setDeleteTarget(null)}
         >
@@ -818,7 +818,7 @@ function FiscalYearSection({ canEdit }: { canEdit: boolean }) {
       )}
 
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => !saving && setModalOpen(false)}>
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => !saving && setModalOpen(false)}>
           <div className="bg-white rounded-xl w-full max-w-md p-5 space-y-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-800">Tambah Tahun Fiskal</h3>

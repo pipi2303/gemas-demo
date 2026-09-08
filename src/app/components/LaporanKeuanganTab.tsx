@@ -1486,7 +1486,7 @@ export function LaporanKeuanganTab({ allRecords, pettyCashBalance }: Props) {
 
       {/* Investasi Edit Modal */}
       {editingInvestasi && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}}>
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}}>
           <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6" onClick={e=>e.stopPropagation()} style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}>
             <h3 className="font-semibold text-gray-900 mb-1" style={{fontSize:'15px', cursor:'move'}} onMouseDown={onMouseDown}>
               Edit Nilai Investasi — {editingInvestasi === 'peralatan' ? 'Peralatan & Teknologi' : 'Renovasi Gedung'}

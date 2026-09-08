@@ -603,7 +603,7 @@ export function RolesManagement() {
 
       {/* ── Modal: Tambah / Edit Role ── */}
       {showRoleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.4)' }}
           onClick={e => e.target === e.currentTarget && setShowRoleModal(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto" style={{ transform: `translate(${offsetRole.x}px, ${offsetRole.y}px)` }}>
@@ -762,7 +762,7 @@ export function RolesManagement() {
 
       {/* ── Modal: Tambah Pengguna ── */}
       {showAddUserModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.4)' }}
           onClick={e => e.target === e.currentTarget && setShowAddUserModal(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" style={{ transform: `translate(${offsetAddUser.x}px, ${offsetAddUser.y}px)` }}>
@@ -830,7 +830,7 @@ export function RolesManagement() {
 
       {/* ── Modal: Edit Pengguna ── */}
       {editUserTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.4)' }}
           onClick={e => e.target === e.currentTarget && setEditUserTarget(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" style={{ transform: `translate(${offsetEditUser.x}px, ${offsetEditUser.y}px)` }}>
@@ -906,7 +906,7 @@ export function RolesManagement() {
       {resetPwConfirm && (() => {
         const u = users.find(x => x.id === resetPwConfirm);
         return u ? (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          <div className="absolute inset-0 z-50 flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.4)' }}
             onClick={e => e.target === e.currentTarget && setResetPwConfirm(null)}>
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" style={{ transform: `translate(${offsetResetPw.x}px, ${offsetResetPw.y}px)` }}>
@@ -945,7 +945,7 @@ export function RolesManagement() {
       {deleteConfirm && (() => {
         const u = users.find(x => x.id === deleteConfirm);
         return u ? (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          <div className="absolute inset-0 z-50 flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.4)' }}
             onClick={e => e.target === e.currentTarget && setDeleteConfirm(null)}>
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" style={{ transform: `translate(${offsetDeleteConfirmUser.x}px, ${offsetDeleteConfirmUser.y}px)` }}>

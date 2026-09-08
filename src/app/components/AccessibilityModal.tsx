@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Sliders, Check, Eye, Type, Volume2, Sparkles, X, Sun, Moon } from 'lucide-react';
+import { getModalRootEl } from '../../lib/modalRoot';
 
 interface AccessibilityModalProps {
   isOpen: boolean;
@@ -55,11 +57,11 @@ export function AccessibilityModal({ isOpen, onClose }: AccessibilityModalProps)
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return createPortal(
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+        className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
         onClick={onClose}
       />
 
@@ -222,6 +224,7 @@ export function AccessibilityModal({ isOpen, onClose }: AccessibilityModalProps)
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    getModalRootEl()
   );
 }

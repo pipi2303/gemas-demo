@@ -6,6 +6,7 @@ import { XIcon } from "lucide-react";
 
 import { cn } from "./utils";
 import { useDraggable } from "../../../lib/useDraggable";
+import { getModalRootEl } from "../../../lib/modalRoot";
 
 function Dialog({
   ...props
@@ -20,9 +21,10 @@ function DialogTrigger({
 }
 
 function DialogPortal({
+  container,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Portal>) {
-  return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />;
+  return <DialogPrimitive.Portal data-slot="dialog-portal" container={container ?? getModalRootEl()} {...props} />;
 }
 
 function DialogClose({
@@ -43,7 +45,7 @@ function DialogOverlay(
       ref={ref}
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-black/50",
+        "absolute inset-0 z-50 bg-black/50",
         className,
       )}
       {...props}
@@ -65,7 +67,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "modal-resizable bg-background fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-lg border p-6 shadow-lg",
+          "modal-resizable bg-background absolute top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-lg border p-6 shadow-lg",
           className,
         )}
         style={{ transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))` }}

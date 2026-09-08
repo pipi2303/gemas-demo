@@ -1778,7 +1778,7 @@ export function AssetManagement() {
           const totalCatBook = catAssets.reduce((s,a) => s + calcDep(a).bookValue, 0);
           const totalCatDep = catAssets.reduce((s,a) => s + calcDep(a).annual, 0);
           return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(0,0,0,0.55)' }}
+            <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(0,0,0,0.55)' }}
               onClick={e => { if(e.target===e.currentTarget) closeLaporan(); }}>
               <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[88vh] flex flex-col overflow-hidden" style={{ transform:`translate(${offsetLaporanKategori.x}px,${offsetLaporanKategori.y}px)` }}>
                 {/* Header */}
@@ -1883,7 +1883,7 @@ export function AssetManagement() {
             'Baik':'✅','Cukup Baik':'🟡','Rusak Ringan':'🟠','Rusak Berat':'🔴','Tidak Layak':'⛔'
           };
           return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(0,0,0,0.55)' }}
+            <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(0,0,0,0.55)' }}
               onClick={e => { if(e.target===e.currentTarget) closeLaporan(); }}>
               <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[88vh] flex flex-col overflow-hidden" style={{ transform:`translate(${offsetLaporanKondisi.x}px,${offsetLaporanKondisi.y}px)` }}>
                 {/* Header */}
@@ -1993,7 +1993,7 @@ export function AssetManagement() {
           const catBg = CAT_BG[asset.category] || '#f8fafc';
           const depPctAsset = asset.acquisitionValue > 0 ? (dep.accumulated / asset.acquisitionValue * 100).toFixed(1) : '0';
           return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(0,0,0,0.55)' }}
+            <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(0,0,0,0.55)' }}
               onClick={e => { if(e.target===e.currentTarget) closeLaporan(); }}>
               <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden" style={{ transform:`translate(${offsetLaporanAsset.x}px,${offsetLaporanAsset.y}px)` }}>
                 {/* Header */}
@@ -2148,7 +2148,7 @@ export function AssetManagement() {
           const allAssetMaints = asset ? getAssetMaints(asset.id) : [];
           const maintIndex = allAssetMaints.findIndex(m => m.id === maint.id);
           return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(0,0,0,0.55)' }}
+            <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(0,0,0,0.55)' }}
               onClick={e => { if(e.target===e.currentTarget) closeLaporan(); }}>
               <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[88vh] flex flex-col overflow-hidden" style={{ transform:`translate(${offsetLaporanMaint.x}px,${offsetLaporanMaint.y}px)` }}>
                 {/* Header */}
@@ -2266,7 +2266,7 @@ export function AssetManagement() {
 
       {/* ── MODAL: TAMBAH/EDIT ASET ── */}
       {showAssetModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(0,0,0,0.5)' }}
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(0,0,0,0.5)' }}
           onClick={e=>{ if(e.target===e.currentTarget) setShowAssetModal(false); }}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" style={{ transform:`translate(${offsetAssetModal.x}px,${offsetAssetModal.y}px)` }}>
             <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor:'#f1f5f9', cursor:'move' }} onMouseDown={onMouseDownAssetModal}>
@@ -2510,7 +2510,7 @@ export function AssetManagement() {
 
       {/* ── MODAL: DETAIL ASET ── */}
       {showDetailModal && selectedAsset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(0,0,0,0.5)' }}
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(0,0,0,0.5)' }}
           onClick={e=>{ if(e.target===e.currentTarget) setShowDetailModal(false); }}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto" style={{ transform:`translate(${offsetDetailModal.x}px,${offsetDetailModal.y}px)` }}>
             <div className="px-5 py-4 border-b flex items-center justify-between" style={{ borderColor:'#f1f5f9', cursor:'move' }} onMouseDown={onMouseDownDetailModal}>
@@ -2734,7 +2734,7 @@ export function AssetManagement() {
 
       {/* ── MODAL: CATAT PEMELIHARAAN ── */}
       {showMaintModal && maintForAsset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(0,0,0,0.5)' }}
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(0,0,0,0.5)' }}
           onClick={e=>{ if(e.target===e.currentTarget) setShowMaintModal(false); }}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" style={{ transform:`translate(${offsetMaintModal.x}px,${offsetMaintModal.y}px)` }}>
             <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor:'#f1f5f9', cursor:'move' }} onMouseDown={onMouseDownMaintModal}>
@@ -2797,7 +2797,7 @@ export function AssetManagement() {
 
       {/* ── MODAL: Konfirmasi Hapus ── */}
       {deleteConfirmId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(0,0,0,0.5)' }}
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(0,0,0,0.5)' }}
           onClick={e=>{ if(e.target===e.currentTarget) setDeleteConfirmId(null); }}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" style={{ transform:`translate(${offsetDeleteConfirm.x}px,${offsetDeleteConfirm.y}px)` }}>
             <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ background:'#fef2f2', cursor:'move' }} onMouseDown={onMouseDownDeleteConfirm}>

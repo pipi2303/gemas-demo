@@ -590,11 +590,16 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
           </div>
         )}
 
-        {/* ══════════════════════ MAIN CONTENT ══════════════════════ */}
+        {/* ══════════════════════ MAIN CONTENT (AREA CONTENT UTAMA / .content-area) ══════════════════════ */}
         <main
-          className="flex-1 flex flex-col min-h-[calc(100vh-4rem)] transition-all duration-300 overflow-x-hidden"
+          className="content-area flex-1 flex flex-col h-[calc(100vh-4rem)] overflow-y-auto overflow-x-hidden transition-all duration-300 relative"
           style={{ marginLeft: mainMargin }}
         >
+          {/* Portal target untuk modal/dialog yang perlu dirender di luar alur DOM normal
+              (Radix Dialog/AlertDialog, NotificationCenter, AccessibilityModal) — tetap
+              terkurung di dalam .content-area, tidak pernah menutupi sidebar/header. */}
+          <div id="content-area-modal-root" />
+
           {/* Breadcrumb Header */}
           <div className="px-4 md:px-6 lg:px-8 pt-4 pb-1">
             <div className="flex items-center gap-1.5 text-xs text-gray-500">

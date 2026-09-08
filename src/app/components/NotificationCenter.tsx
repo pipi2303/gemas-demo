@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp } from '../context/AppContext';
+import { getModalRootEl } from '../../lib/modalRoot';
 import {
   Bell, Check, CheckCheck, X, Calendar, Gift,
   MessageSquare, AlertCircle, Info, AlertTriangle, Trash2, Heart,
@@ -135,7 +136,7 @@ export function NotificationCenter({ isOpen, onClose }: { isOpen: boolean; onClo
     <div
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       style={{
-        position: 'fixed', inset: 0, zIndex: 9999,
+        position: 'absolute', inset: 0, zIndex: 9999,
         background: 'rgba(0,0,0,0.35)',
         display: 'flex', justifyContent: 'flex-end',
       }}
@@ -364,7 +365,7 @@ export function NotificationCenter({ isOpen, onClose }: { isOpen: boolean; onClo
         </div>
       </div>
     </div>,
-    document.body
+    getModalRootEl()
   );
 }
 

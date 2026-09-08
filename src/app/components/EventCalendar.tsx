@@ -647,7 +647,7 @@ export function EventCalendar() {
         const stCfg = STATUS_CONFIG[ev.status];
         const cd = countdown(ev.date);
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>{setShowDetail(false);setSelectedEvent(null);}}>
+          <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>{setShowDetail(false);setSelectedEvent(null);}}>
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={e=>e.stopPropagation()} style={{ transform: `translate(${offsetDetail.x}px, ${offsetDetail.y}px)` }}>
               {/* Header */}
               <div className={`bg-gradient-to-br ${typeCfg.gradient} px-6 py-5`} onMouseDown={onMouseDownDetail} style={{ cursor: 'move' }}>
@@ -751,7 +751,7 @@ export function EventCalendar() {
       {/* ══════════════════════════════════════════════════════════════════════ */}
       {/* FORM MODAL */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowForm(false)}>
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowForm(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e=>e.stopPropagation()} style={{ transform: `translate(${offsetForm.x}px, ${offsetForm.y}px)` }}>
             <div className="bg-gradient-to-r from-[#144f6b] to-[#1A77A3] px-6 py-5 flex items-center justify-between flex-shrink-0" onMouseDown={onMouseDownForm} style={{ cursor: 'move' }}>
               <div>
@@ -841,7 +841,7 @@ export function EventCalendar() {
 
       {/* Delete Confirm */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowDeleteConfirm(null)}>
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowDeleteConfirm(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e=>e.stopPropagation()} style={{ transform: `translate(${offsetDeleteEvent.x}px, ${offsetDeleteEvent.y}px)` }}>
             <div className="flex items-center gap-4 mb-4" onMouseDown={onMouseDownDeleteEvent} style={{ cursor: 'move' }}>
               <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">

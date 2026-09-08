@@ -583,7 +583,7 @@ export function WorshipSchedules() {
       {/* DETAIL MODAL */}
       {/* ═══════════════════════════════════════════════════════════════════ */}
       {showDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowDetail(null)}>
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowDetail(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e=>e.stopPropagation()} style={{ transform: `translate(${offsetDetail.x}px, ${offsetDetail.y}px)` }}>
             {/* Header */}
             <div className={`${(TYPE_CONFIG[showDetail.type]??TYPE_DEFAULT).bg} ${(TYPE_CONFIG[showDetail.type]??TYPE_DEFAULT).border} border-b px-6 py-5`} onMouseDown={onMouseDownDetail} style={{ cursor: 'move' }}>
@@ -722,7 +722,7 @@ export function WorshipSchedules() {
       {/* ADD/EDIT FORM MODAL */}
       {/* ═══════════════════════════════════════════════════════════════════ */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowForm(false)}>
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowForm(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e=>e.stopPropagation()} style={{ transform: `translate(${offsetForm.x}px, ${offsetForm.y}px)` }}>
             {/* Header */}
             <div className="px-6 py-5 flex items-center justify-between" style={{ background:'linear-gradient(135deg,#0a1e2c,#0f2d41)', cursor: 'move' }} onMouseDown={onMouseDownForm}>
@@ -947,7 +947,7 @@ export function WorshipSchedules() {
       {/* DELETE CONFIRM MODAL */}
       {/* ═══════════════════════════════════════════════════════════════════ */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowDeleteConfirm(null)}>
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowDeleteConfirm(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={e=>e.stopPropagation()} style={{ transform: `translate(${offsetDelete.x}px, ${offsetDelete.y}px)` }}>
             <div className="flex items-center gap-4 mb-4" onMouseDown={onMouseDownDelete} style={{ cursor: 'move' }}>
               <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">

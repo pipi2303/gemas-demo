@@ -181,7 +181,7 @@ function AttestationDetail({ att, onClose, onEdit, onUpdateStatus }: {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
       <div className="w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'90vh', transform:`translate(${offset.x}px,${offset.y}px)`}} onClick={e=>e.stopPropagation()}>
         <div className="px-6 py-5 flex-shrink-0" style={{background:isIn?'#1A77A3':'#9c9486',cursor:'move'}} onMouseDown={onMouseDown}>
           <div className="flex items-start justify-between">
@@ -390,7 +390,7 @@ export function AttestationForm({ initial, members, families, onSave, onSaveBatc
 
   return (
     // z-[60] so this stacks above MemberDetail modal (z-50)
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.55)'}} onClick={onClose}>
+    <div className="absolute inset-0 z-[60] flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.55)'}} onClick={onClose}>
       <div className="w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'90vh', transform:`translate(${offset.x}px,${offset.y}px)`}} onClick={e=>e.stopPropagation()}>
         <div className="px-6 py-4 border-b" style={{background:isIn?'#1A77A3':'#9c9486',cursor:'move'}} onMouseDown={onMouseDown}>
           <div className="flex items-center justify-between">
@@ -887,7 +887,7 @@ export function AttestationDatabase() {
           onSave={handleSave} onSaveBatch={handleSaveBatch} onClose={()=>{setShowForm(false);setEditItem(null);}}/>
       )}
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={()=>setDeleteTarget(null)}>
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={()=>setDeleteTarget(null)}>
           <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 text-center" style={{transform:`translate(${offset.x}px,${offset.y}px)`}} onClick={e=>e.stopPropagation()}>
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{background:'#f6f4f0',cursor:'move'}} onMouseDown={onMouseDown}><Trash2 className="w-6 h-6 text-[#1A77A3]"/></div>
             <h3 style={{fontSize:'16px',fontWeight:700,color:'#0f172a',marginBottom:8}}>Hapus Data Atestasi?</h3>

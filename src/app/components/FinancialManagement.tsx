@@ -140,7 +140,7 @@ function FinancialForm({ rec, categories, currentUser, onSave, onClose }: {
   const inpCls = "w-full px-3 py-2 rounded-xl border text-sm focus:outline-none focus:border-[#7290a0] transition-colors";
   const styl = { borderColor: '#e2e8f0' };
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}>
         <div className="px-6 py-4" style={{ background: '#f0ede5', cursor: 'move' }} onMouseDown={onMouseDown}>

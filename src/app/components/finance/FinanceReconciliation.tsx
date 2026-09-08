@@ -111,7 +111,7 @@ function NewStatementModal({ bankAccountId, onClose, onCreated }: { bankAccountI
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => !saving && onClose()}>
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => !saving && onClose()}>
       <div className="bg-white rounded-xl w-full max-w-3xl p-5 space-y-3 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-slate-800">Input Rekening Koran Baru</h3>
@@ -212,7 +212,7 @@ function NewSessionModal({ bankAccountId, statements, periods, onClose, onCreate
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => !saving && onClose()}>
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => !saving && onClose()}>
       <div className="bg-white rounded-xl w-full max-w-md p-5 space-y-3" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-slate-800">Buat Sesi Rekonsiliasi</h3>
@@ -263,7 +263,7 @@ function ManualMatchModal({ line, candidates, onClose, onMatched }: {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => !saving && onClose()}>
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => !saving && onClose()}>
       <div className="bg-white rounded-xl w-full max-w-lg p-5 space-y-3 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-slate-800">Cocokkan Baris Rekening Koran</h3>

@@ -5,6 +5,7 @@ import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 
 import { cn } from "./utils";
 import { buttonVariants } from "./button";
+import { getModalRootEl } from "../../../lib/modalRoot";
 
 function AlertDialog({
   ...props
@@ -21,10 +22,11 @@ function AlertDialogTrigger({
 }
 
 function AlertDialogPortal({
+  container,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Portal>) {
   return (
-    <AlertDialogPrimitive.Portal data-slot="alert-dialog-portal" {...props} />
+    <AlertDialogPrimitive.Portal data-slot="alert-dialog-portal" container={container ?? getModalRootEl()} {...props} />
   );
 }
 
@@ -36,7 +38,7 @@ function AlertDialogOverlay({
     <AlertDialogPrimitive.Overlay
       data-slot="alert-dialog-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-black/50",
+        "absolute inset-0 z-50 bg-black/50",
         className,
       )}
       {...props}
@@ -54,7 +56,7 @@ function AlertDialogContent({
       <AlertDialogPrimitive.Content
         data-slot="alert-dialog-content"
         className={cn(
-          "modal-resizable bg-background fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg sm:max-w-lg",
+          "modal-resizable bg-background absolute top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg sm:max-w-lg",
           className,
         )}
         {...props}

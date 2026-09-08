@@ -422,7 +422,7 @@ export function LivestreamReminder() {
 
       {/* ── Confirm Delete Link ── */}
       {deleteLinkId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.45)' }}
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.45)' }}
           onClick={() => setDeleteLinkId(null)}>
           <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 text-center" onClick={e => e.stopPropagation()} style={{ transform: `translate(${offset1.x}px, ${offset1.y}px)` }}>
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-red-50" style={{ cursor: 'move' }} onMouseDown={onMouseDown1}>
@@ -440,7 +440,7 @@ export function LivestreamReminder() {
 
       {/* ── Confirm Delete Reminder ── */}
       {deleteReminderId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.45)' }}
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.45)' }}
           onClick={() => setDeleteReminderId(null)}>
           <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 text-center" onClick={e => e.stopPropagation()} style={{ transform: `translate(${offset2.x}px, ${offset2.y}px)` }}>
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-red-50" style={{ cursor: 'move' }} onMouseDown={onMouseDown2}>

@@ -117,7 +117,7 @@ function BaptismForm({ initial, onSave, onClose }: { initial?: Partial<Baptism>;
     onSave({...f,parents:{fatherName:f.fatherName,motherName:f.motherName}});
   };
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
       <div className="w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'90vh', transform:`translate(${offset.x}px,${offset.y}px)`}} onClick={e=>e.stopPropagation()}>
         <div className="px-6 py-4 border-b" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',cursor:'move'}} onMouseDown={onMouseDown}>
           <div className="flex items-center justify-between">
@@ -190,7 +190,7 @@ function SidiForm({ initial, onSave, onClose }: { initial?: Partial<Sidi>; onSav
   const h=(k:string,v:string)=>setF(p=>({...p,[k]:v}));
   const submit=()=>{if(!f.memberName||!f.sidiDate){setErr('Nama dan tanggal sidi wajib diisi');return;}onSave(f);};
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
       <div className="w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'90vh', transform:`translate(${offset.x}px,${offset.y}px)`}} onClick={e=>e.stopPropagation()}>
         <div className="px-6 py-4 border-b" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',cursor:'move'}} onMouseDown={onMouseDown}>
           <div className="flex items-center justify-between">
@@ -262,7 +262,7 @@ function MarriageForm({ initial, onSave, onClose }: { initial?: Partial<Marriage
   const h=(k:string,v:string)=>setF(p=>({...p,[k]:v}));
   const submit=()=>{if(!f.groomName||!f.brideName||!f.marriageDate){setErr('Nama mempelai dan tanggal nikah wajib diisi');return;}onSave(f);};
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
       <div className="w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'92vh', transform:`translate(${offset.x}px,${offset.y}px)`}} onClick={e=>e.stopPropagation()}>
         <div className="px-6 py-4 border-b" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',cursor:'move'}} onMouseDown={onMouseDown}>
           <div className="flex items-center justify-between">
@@ -414,7 +414,7 @@ function SacramentDocumentsModal({ item, label, onClose }: { item: any; label: s
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'85vh', transform:`translate(${offset.x}px,${offset.y}px)`}} onClick={e=>e.stopPropagation()}>
         <div className="px-6 py-4 flex-shrink-0 border-b" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',borderColor:'#1e3a2a',cursor:'move'}} onMouseDown={onMouseDown}>
           <div className="flex items-center justify-between">
@@ -847,7 +847,7 @@ export function SacramentDatabase() {
       )}
 
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={()=>setDeleteTarget(null)}>
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={()=>setDeleteTarget(null)}>
           <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 text-center" style={{transform:`translate(${offset1.x}px,${offset1.y}px)`}} onClick={e=>e.stopPropagation()}>
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{background:'#fef2f2',cursor:'move'}} onMouseDown={onMouseDown1}><Trash2 className="w-6 h-6 text-red-500"/></div>
             <h3 style={{fontSize:'16px',fontWeight:700,color:'#0f172a',marginBottom:8}}>Hapus Catatan {tc.label}?</h3>
@@ -873,7 +873,7 @@ export function SacramentDatabase() {
             })
           : kpiDetail.items;
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.55)'}} onClick={()=>setKpiDetail(null)}>
+          <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.55)'}} onClick={()=>setKpiDetail(null)}>
             <div className="w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'85vh', transform:`translate(${offset2.x}px,${offset2.y}px)`}} onClick={e=>e.stopPropagation()}>
               {/* Header */}
               <div className="px-6 py-5 flex-shrink-0 flex items-center justify-between" style={{background:typeGradient,cursor:'move'}} onMouseDown={onMouseDown2}>

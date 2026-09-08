@@ -1,22 +1,28 @@
 /*
  * Shared modal sizing. Radix content uses .modal-resizable; custom modal
- * containers are covered by the standard fixed overlay structure so existing
+ * containers are covered by the standard overlay structure so existing
  * drag handlers and modal markup do not need to be changed individually.
+ *
+ * Sizing is relative to the container (`.content-area` / AREA CONTENT UTAMA),
+ * not the viewport — modal/backdrop wrappers are `position: absolute; inset: 0`
+ * scoped to `.content-area` (see DashboardLayout.tsx), so `%` here resolves
+ * against that container's box instead of the full browser viewport (`vw`/`vh`
+ * would let a resized modal spill outside `.content-area`, over the sidebar).
  */
 .modal-resizable,
-:where(.fixed.inset-0.z-50.flex.items-center.justify-center) > div {
+:where(.absolute.inset-0.z-50.flex.items-center.justify-center) > div {
   box-sizing: border-box;
   resize: both;
-  min-width: min(320px, calc(100vw - 2rem));
-  max-width: calc(100vw - 2rem);
-  min-height: min(180px, calc(100vh - 2rem));
-  max-height: calc(100vh - 2rem);
+  min-width: min(320px, calc(100% - 2rem));
+  max-width: calc(100% - 2rem);
+  min-height: min(180px, calc(100% - 2rem));
+  max-height: calc(100% - 2rem);
   overflow: auto;
 }
 
 @media (max-width: 480px) {
   .modal-resizable,
-  :where(.fixed.inset-0.z-50.flex.items-center.justify-center) > div {
-    min-width: calc(100vw - 2rem);
+  :where(.absolute.inset-0.z-50.flex.items-center.justify-center) > div {
+    min-width: calc(100% - 2rem);
   }
 }

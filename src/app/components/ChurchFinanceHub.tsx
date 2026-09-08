@@ -144,7 +144,7 @@ function TransactionForm({ initial, onSave, onClose, bankAccounts }: { initial?:
     onSave({...form,amount:String(amt)});
   };
   return(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}} onClick={onClose}>
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}} onClick={onClose}>
       <div className="w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden bg-white" onClick={e=>e.stopPropagation()} style={{transform:`translate(${offset.x}px,${offset.y}px)`}}>
         <div className="flex items-center justify-between px-6 py-4 border-b" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',cursor:'move'}} onMouseDown={onMouseDown}>
           <h3 className="font-semibold text-white" style={{fontSize:'15px'}}>{initial?.date?'Edit Transaksi':'Tambah Transaksi Baru'}</h3>
@@ -213,7 +213,7 @@ function PettyCashForm({ initial, onSave, onClose }: { initial?: Partial<PCFormD
     onSave({...form,amount:String(amt)});
   };
   return(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}} onClick={onClose}>
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}} onClick={onClose}>
       <div className="w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden bg-white" onClick={e=>e.stopPropagation()} style={{transform:`translate(${offset.x}px,${offset.y}px)`}}>
         <div className="flex items-center justify-between px-6 py-4 border-b" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',cursor:'move'}} onMouseDown={onMouseDown}>
           <h3 className="font-semibold text-white" style={{fontSize:'15px'}}>{initial?.date?'Edit Kas Kecil':'Tambah Pengeluaran Kas Kecil'}</h3>
@@ -283,7 +283,7 @@ function TopUpModal({ onSave, onClose, bankAccounts: ba }: { onSave:(d:TopUpForm
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden bg-white" onClick={e=>e.stopPropagation()} style={{transform:`translate(${offset.x}px,${offset.y}px)`}}>
         {/* Header */}
         <div className="px-6 py-4 flex items-center justify-between" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',cursor:'move'}} onMouseDown={onMouseDown}>
@@ -397,7 +397,7 @@ function ExportModal({ curMonth, curYear, onExportPDF, onExportExcel, onClose, l
   const [selMonth,setSelMonth]=useState(curMonth);
   const [selYear,setSelYear]=useState(curYear);
   return(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}} onClick={onClose}>
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}} onClick={onClose}>
       <div className="w-full max-sm rounded-2xl shadow-2xl overflow-hidden bg-white" onClick={e=>e.stopPropagation()} style={{transform:`translate(${offset.x}px,${offset.y}px)`}}>
         <div className="flex items-center justify-between px-6 py-4 border-b" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',cursor:'move'}} onMouseDown={onMouseDown}>
           <h3 className="font-semibold text-white flex items-center gap-2" style={{fontSize:'15px'}}>
@@ -656,7 +656,7 @@ function FinanceDocumentsModal({ item, label, onClose }: { item: any; label: str
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'85vh', transform:`translate(${offset.x}px,${offset.y}px)`}} onClick={e=>e.stopPropagation()}>
         <div className="px-6 py-4 flex-shrink-0 border-b" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',borderColor:'#1e3a2a',cursor:'move'}} onMouseDown={onMouseDown}>
           <div className="flex items-center justify-between">
@@ -1807,7 +1807,7 @@ export function ChurchFinanceHub() {
       {showExport&&<ExportModal curMonth={curMonth} curYear={curYear} onExportPDF={exportToPDF} onExportExcel={exportToExcel} onClose={()=>setShowExport(false)} loading={exportLoading}/>}
 
       {deleteTopUpConfirm&&(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}} onClick={()=>setDeleteTopUpConfirm(null)}>
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}} onClick={()=>setDeleteTopUpConfirm(null)}>
           <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 text-center" onClick={e=>e.stopPropagation()} style={{transform:`translate(${offsetDelTopUp.x}px,${offsetDelTopUp.y}px)`}}>
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{background:'#eff6ff',cursor:'move'}} onMouseDown={onMouseDownDelTopUp}>
               <Trash2 className="w-6 h-6 text-blue-500"/>
@@ -1823,7 +1823,7 @@ export function ChurchFinanceHub() {
       )}
 
       {deleteConfirm&&(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}} onClick={()=>setDeleteConfirm(null)}>
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}} onClick={()=>setDeleteConfirm(null)}>
           <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 text-center" onClick={e=>e.stopPropagation()} style={{transform:`translate(${offsetDelConfirm.x}px,${offsetDelConfirm.y}px)`}}>
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{background:'#fef2f2',cursor:'move'}} onMouseDown={onMouseDownDelConfirm}><Trash2 className="w-6 h-6 text-red-500"/></div>
             <h3 style={{fontSize:'16px',fontWeight:700,color:'#0f172a',marginBottom:8}}>Hapus Transaksi?</h3>
@@ -1837,7 +1837,7 @@ export function ChurchFinanceHub() {
       )}
 
       {deletePCConfirm&&(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}} onClick={()=>setDeletePCConfirm(null)}>
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}} onClick={()=>setDeletePCConfirm(null)}>
           <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 text-center" onClick={e=>e.stopPropagation()} style={{transform:`translate(${offsetDelPC.x}px,${offsetDelPC.y}px)`}}>
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{background:'#f6f4f0',cursor:'move'}} onMouseDown={onMouseDownDelPC}><Trash2 className="w-6 h-6 text-[#1A77A3]"/></div>
             <h3 style={{fontSize:'16px',fontWeight:700,color:'#0f172a',marginBottom:8}}>Hapus Entri Kas Kecil?</h3>
@@ -1854,7 +1854,7 @@ export function ChurchFinanceHub() {
       {showBaForm&&<BankAccountForm initial={editBa} onSave={handleBaSave} onClose={()=>{setShowBaForm(false);setEditBa(null);}}/>}
 
       {deleteBaConfirm&&(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}} onClick={()=>setDeleteBaConfirm(null)}>
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}} onClick={()=>setDeleteBaConfirm(null)}>
           <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 text-center" onClick={e=>e.stopPropagation()} style={{transform:`translate(${offsetDelBa.x}px,${offsetDelBa.y}px)`}}>
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{background:'#fef2f2',cursor:'move'}} onMouseDown={onMouseDownDelBa}><Trash2 className="w-6 h-6 text-red-500"/></div>
             <h3 style={{fontSize:'16px',fontWeight:700,color:'#0f172a',marginBottom:8}}>Hapus Rekening?</h3>
@@ -1871,7 +1871,7 @@ export function ChurchFinanceHub() {
       {showBudgetForm&&<BudgetFormModal initial={editBudget} curYear={curYear} onSave={handleBudgetSave} onClose={()=>{setShowBudgetForm(false);setEditBudget(null);}}/>}
 
       {deleteBudgetConfirm&&(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}} onClick={()=>setDeleteBudgetConfirm(null)}>
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}} onClick={()=>setDeleteBudgetConfirm(null)}>
           <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 text-center" onClick={e=>e.stopPropagation()} style={{transform:`translate(${offsetDelBudget.x}px,${offsetDelBudget.y}px)`}}>
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{background:'#fef2f2',cursor:'move'}} onMouseDown={onMouseDownDelBudget}><Trash2 className="w-6 h-6 text-red-500"/></div>
             <h3 style={{fontSize:'16px',fontWeight:700,color:'#0f172a',marginBottom:8}}>Hapus Anggaran?</h3>
@@ -1909,7 +1909,7 @@ function BankAccountForm({ initial, onSave, onClose }: { initial: BankAccount|nu
     onSave(form);
   };
   return(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}} onClick={onClose}>
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}} onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden bg-white" onClick={e=>e.stopPropagation()} style={{transform:`translate(${offset.x}px,${offset.y}px)`}}>
         <div className="flex items-center justify-between px-6 py-4 border-b" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',cursor:'move'}} onMouseDown={onMouseDown}>
           <h3 className="font-semibold text-white" style={{fontSize:'15px'}}>{initial?'Edit Rekening Bank':'Tambah Rekening Bank'}</h3>
@@ -1962,7 +1962,7 @@ function BudgetFormModal({ initial, curYear, onSave, onClose }: { initial: Budge
     onSave(form);
   };
   return(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}} onClick={onClose}>
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}} onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden bg-white" onClick={e=>e.stopPropagation()} style={{transform:`translate(${offset.x}px,${offset.y}px)`}}>
         <div className="flex items-center justify-between px-6 py-4 border-b" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',cursor:'move'}} onMouseDown={onMouseDown}>
           <h3 className="font-semibold text-white" style={{fontSize:'15px'}}>{initial?'Edit Anggaran':'Tambah Item Anggaran'}</h3>

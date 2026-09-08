@@ -73,7 +73,7 @@ function ReopenModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: (
     try { await onConfirm(reason.trim()); } finally { setSaving(false); }
   };
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => !saving && onClose()}>
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => !saving && onClose()}>
       <div className="bg-white rounded-xl w-full max-w-md p-5 space-y-3" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-slate-800">Buka Kembali Periode</h3>
