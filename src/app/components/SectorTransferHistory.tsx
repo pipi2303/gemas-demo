@@ -513,7 +513,7 @@ export function SectorTransferHistory() {
                   </div>
                 ))}
               </div>
-              {can('Sektor Pelayanan', 'edit') && selectedTransfer.status !== 'Selesai' && (
+              {can('attestations', 'edit') && selectedTransfer.status !== 'Selesai' && (
                 <div className="flex gap-2 pt-2 border-t">
                   {selectedTransfer.status === 'Pending' && (
                     <Button variant="outline" className="flex-1 text-[#1A77A3] border-[#b8d5e8] hover:bg-[#f0f7fb]" onClick={() => {
@@ -532,7 +532,7 @@ export function SectorTransferHistory() {
                   </Button>
                 </div>
               )}
-              {can('Sektor Pelayanan', 'delete') && (
+              {can('attestations', 'delete') && (
                 <Button variant="outline" className="w-full text-red-500 border-red-200 hover:bg-red-50" onClick={() => { setDeleteTarget(selectedTransfer); setSelectedTransfer(null); }}>
                   <Trash2 className="w-3.5 h-3.5 mr-1" />Hapus Permohonan
                 </Button>

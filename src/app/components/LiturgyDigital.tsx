@@ -270,9 +270,9 @@ export function LiturgyDigital() {
   const [activeDetailTab, setActiveDetailTab] = useState<'urutan' | 'nyanyian' | 'alkitab' | 'khotbah'>('urutan');
   const [exportingPdf, setExportingPdf] = useState(false);
 
-  const canCreate = can('Peribadahan & Kegiatan', 'create');
-  const canEdit   = can('Peribadahan & Kegiatan', 'edit');
-  const canDelete = can('Peribadahan & Kegiatan', 'delete');
+  const canCreate = can('liturgy', 'create');
+  const canEdit   = can('liturgy', 'edit');
+  const canDelete = can('liturgy', 'delete');
 
   const { offset: offsetTemplate, onMouseDown: onMouseDownTemplate } = useDraggable();
   const { offset: offsetForm, onMouseDown: onMouseDownForm } = useDraggable();

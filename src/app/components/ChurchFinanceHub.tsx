@@ -719,10 +719,10 @@ export function ChurchFinanceHub() {
   const { offset: offsetDelBa, onMouseDown: onMouseDownDelBa } = useDraggable();
   const { offset: offsetDelBudget, onMouseDown: onMouseDownDelBudget } = useDraggable();
 
-  const canCreate = can('Keuangan & Persembahan', 'create');
-  const canEdit   = can('Keuangan & Persembahan', 'edit');
-  const canDelete = can('Keuangan & Persembahan', 'delete');
-  const canExport = can('Keuangan & Persembahan', 'export');
+  const canCreate = can('church-finance', 'create');
+  const canEdit   = can('church-finance', 'edit');
+  const canDelete = can('church-finance', 'delete');
+  const canExport = can('church-finance', 'export');
 
   const [tab, setTab] = useState<'ringkasan'|'transaksi'|'kas-kecil'|'rekening'|'laporan'>('ringkasan');
   // Transaction state

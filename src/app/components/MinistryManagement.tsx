@@ -82,9 +82,9 @@ export function MinistryManagement() {
   const [scheduleMemberSearch, setScheduleMemberSearch] = useState('');
 
 
-  const canCreate = can('Peribadahan & Kegiatan', 'create');
-  const canEdit   = can('Peribadahan & Kegiatan', 'edit');
-  const canDelete = can('Peribadahan & Kegiatan', 'delete');
+  const canCreate = can('ministries', 'create');
+  const canEdit   = can('ministries', 'edit');
+  const canDelete = can('ministries', 'delete');
 
   const { offset: offsetDetail, onMouseDown: onMouseDownDetail } = useDraggable();
   const { offset: offsetForm, onMouseDown: onMouseDownForm } = useDraggable();

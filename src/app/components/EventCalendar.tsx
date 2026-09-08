@@ -102,9 +102,9 @@ export function EventCalendar() {
   const [filterStatus, setFilterStatus] = useState<Event['status'] | 'all'>('all');
   const [reminderSetId, setReminderSetId] = useState<string | null>(null);
 
-  const canCreate = can('Peribadahan & Kegiatan', 'create');
-  const canEdit   = can('Peribadahan & Kegiatan', 'edit');
-  const canDelete = can('Peribadahan & Kegiatan', 'delete');
+  const canCreate = can('events', 'create');
+  const canEdit   = can('events', 'edit');
+  const canDelete = can('events', 'delete');
 
   const { offset: offsetDetail, onMouseDown: onMouseDownDetail } = useDraggable();
   const { offset: offsetForm, onMouseDown: onMouseDownForm } = useDraggable();

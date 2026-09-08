@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { api, apiSave, apiRemove, setToken, clearToken, getToken } from '../../lib/apiClient';
-import { ModulePermission, DEFAULT_PERMISSIONS, buildCan } from '../../lib/permissions';
+import { ModulePermission, DEFAULT_PERMISSIONS, buildCan, getPagePermission } from '../../lib/permissions';
 import type { PermissionKey } from '../../lib/permissions';
 import {
   User, Member, Family, Sector, Ministry, Event, PrayerRequest,
@@ -1039,14 +1039,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const BUILT_IN_ROLES = ['Admin', 'Majelis', 'Ketua Sektor', 'Operator'];
 
-  const can = useCallback((module: string, permission: PermissionKey): boolean => {
+  // `can()` menerima id SUBMENU (mis. 'liturgy', 'finance-transaction') — bukan nama
+  // modul kasar. Role bawaan tetap dicek per modul (buildCan menerjemahkan lewat
+  // PAGE_MODULE di dalam permissions.ts kalau perlu); Custom Role dicek per submenu
+  // lewat getPagePermission(), yang otomatis fallback ke izin modul lama kalau role
+  // itu belum pernah disimpan ulang sejak fitur granular submenu ini ada.
+  const can = useCallback((page: string, permission: PermissionKey): boolean => {
     if (!currentUser) return false;
     if (BUILT_IN_ROLES.includes(currentUser.role)) {
-      return buildCan(permMatrix, currentUser.role as UserRole)(module, permission);
+      return buildCan(permMatrix, currentUser.role as UserRole)(page, permission);
     }
     try {
       const found = customRoles.find(r => r.name === currentUser.role);
-      const perms = (found?.modulePermissions?.[module] ?? []) as string[];
+      const perms = getPagePermission(found?.modulePermissions, page);
       return perms.includes(permission);
     } catch {
       return false;

@@ -407,8 +407,8 @@ export function SectorDatabase() {
   const { offset: offset2, onMouseDown: onMouseDown2 } = useDraggable();
   const { sectors, members, families, addSector, updateSector, deleteSector, can } = useApp();
 
-  const canEdit   = can('Sektor Pelayanan', 'edit');
-  const canDelete = can('Sektor Pelayanan', 'delete');
+  const canEdit   = can('sectors', 'edit');
+  const canDelete = can('sectors', 'delete');
   const [deleteTarget, setDeleteTarget] = useState<Sector | null>(null);
 
   const [selected, setSelected] = useState<Sector|null>(null);

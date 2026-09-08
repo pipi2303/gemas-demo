@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { User, UserRole, CustomRole } from '../types';
-import { PermissionKey, DEFAULT_PERMISSIONS } from '../../lib/permissions';
+import { PermissionKey, getPageGroups, getPagePermission } from '../../lib/permissions';
 import { useDraggable } from '../../lib/useDraggable';
 import {
   ShieldCheck, Check, X, Crown, Church, MapPin, Briefcase,
@@ -135,6 +135,8 @@ export function RolesManagement() {
   const [roleModulePerms, setRoleModulePerms]   = useState<Record<string, PermissionKey[]>>({});
 
   const allRoleNames: string[] = [...ROLES, ...customRoles.map(r => r.name)];
+  // Daftar submenu dikelompokkan per modul — dipakai tabel "Hak Akses per Modul".
+  const pageGroups = useMemo(() => getPageGroups(), []);
 
   // ── User CRUD ──
   const [showAddUserModal, setShowAddUserModal] = useState(false);
@@ -178,7 +180,17 @@ export function RolesManagement() {
     setEditingBuiltIn(false);
     setEditRoleId(role.id);
     setRoleForm({ name: role.name, description: role.description, tanggung: role.tanggung, warna: role.warna });
-    setRoleModulePerms(role.modulePermissions ?? {});
+    // Expand ke page-keyed penuh — kalau role ini masih format lama (kunci nama
+    // modul), getPagePermission jatuh-balik ke izin modul induknya per submenu,
+    // supaya editor menampilkan hak akses yang benar & role lama tidak terlihat
+    // seperti kehilangan akses begitu dibuka.
+    const expanded: Record<string, PermissionKey[]> = {};
+    for (const group of pageGroups) {
+      for (const p of group.pages) {
+        expanded[p.key] = getPagePermission(role.modulePermissions, p.key);
+      }
+    }
+    setRoleModulePerms(expanded);
     setRoleFormError('');
     setShowRoleModal(true);
   };
@@ -661,56 +673,65 @@ export function RolesManagement() {
                 </div>
               </div>
 
-              {/* Hak Akses per Modul — hanya untuk custom role */}
+              {/* Hak Akses per Modul — hanya untuk custom role, granular sampai level submenu */}
               {!editingBuiltIn && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Hak Akses per Modul</label>
-                <p className="text-xs text-gray-400 mb-2">Pilih level akses untuk setiap modul. Default: tidak ada akses.</p>
+                <p className="text-xs text-gray-400 mb-2">Pilih level akses untuk setiap submenu. Default: tidak ada akses.</p>
                 <div className="rounded-lg overflow-hidden" style={{ border: '1px solid #e2e8f0' }}>
                   {/* Header */}
-                  <div className="flex items-center px-3 py-1.5" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                    <span className="flex-1 text-xs font-semibold text-gray-500 uppercase tracking-wide">Modul</span>
+                  <div className="flex items-center px-3 py-1.5 sticky top-0 z-10" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                    <span className="flex-1 text-xs font-semibold text-gray-500 uppercase tracking-wide">Modul / Submenu</span>
                     {(['none','lihat','kelola','semua'] as ModulePreset[]).map(p => (
                       <span key={p} className="w-16 text-center text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
                         {p === 'none' ? '—' : p.charAt(0).toUpperCase() + p.slice(1)}
                       </span>
                     ))}
                   </div>
-                  {DEFAULT_PERMISSIONS.map((mod, idx) => {
-                    const perms = roleModulePerms[mod.module] ?? [];
-                    const active = detectPreset(perms);
-                    const PRESET_STYLES: Record<ModulePreset, { sel: string; unsel: string }> = {
-                      none:   { sel: '#94a3b8', unsel: '#cbd5e1' },
-                      lihat:  { sel: '#1A77A3', unsel: '#cbd5e1' },
-                      kelola: { sel: '#16a34a', unsel: '#cbd5e1' },
-                      semua:  { sel: '#7c3aed', unsel: '#cbd5e1' },
-                    };
-                    return (
-                      <div key={mod.module}
-                        className="flex items-center px-3 py-2"
-                        style={{ borderBottom: idx < DEFAULT_PERMISSIONS.length - 1 ? '1px solid #f1f5f9' : 'none', background: idx % 2 === 0 ? '#fff' : '#fafbfc' }}>
-                        <div className="flex-1 flex items-center gap-2 min-w-0">
-                          <span className="text-base">{mod.emoji}</span>
-                          <span className="text-sm text-gray-700 truncate">{mod.module}</span>
+                  <div className="max-h-72 overflow-y-auto">
+                    {pageGroups.map(group => (
+                      <div key={group.module}>
+                        <div className="flex items-center gap-2 px-3 py-1.5" style={{ background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }}>
+                          <span className="text-sm">{group.emoji}</span>
+                          <span className="text-[11px] font-semibold text-gray-500 truncate uppercase tracking-wide">{group.module}</span>
                         </div>
-                        {(['none','lihat','kelola','semua'] as ModulePreset[]).map(preset => {
-                          const isActive = active === preset;
-                          const color = PRESET_STYLES[preset];
+                        {group.pages.map((page, idx) => {
+                          const perms = roleModulePerms[page.key] ?? [];
+                          const active = detectPreset(perms);
+                          const PRESET_STYLES: Record<ModulePreset, { sel: string; unsel: string }> = {
+                            none:   { sel: '#94a3b8', unsel: '#cbd5e1' },
+                            lihat:  { sel: '#1A77A3', unsel: '#cbd5e1' },
+                            kelola: { sel: '#16a34a', unsel: '#cbd5e1' },
+                            semua:  { sel: '#7c3aed', unsel: '#cbd5e1' },
+                          };
                           return (
-                            <button key={preset} type="button"
-                              onClick={() => setRoleModulePerms(prev => ({ ...prev, [mod.module]: PRESET_PERMS[preset] }))}
-                              className="w-16 flex items-center justify-center py-1 transition-all"
-                              title={preset === 'none' ? 'Tidak ada akses' : preset === 'lihat' ? 'Lihat saja' : preset === 'kelola' ? 'Lihat + Tambah + Edit + Hapus' : 'Semua hak akses'}>
-                              <div className="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all"
-                                style={{ borderColor: isActive ? color.sel : color.unsel, background: isActive ? color.sel : 'transparent' }}>
-                                {isActive && <Check className="w-2.5 h-2.5 text-white" />}
+                            <div key={page.key}
+                              className="flex items-center px-3 py-2 pl-7"
+                              style={{ borderBottom: idx < group.pages.length - 1 ? '1px solid #f1f5f9' : 'none', background: idx % 2 === 0 ? '#fff' : '#fafbfc' }}>
+                              <div className="flex-1 flex items-center gap-2 min-w-0">
+                                <span className="text-sm text-gray-700 truncate">{page.label}</span>
                               </div>
-                            </button>
+                              {(['none','lihat','kelola','semua'] as ModulePreset[]).map(preset => {
+                                const isActive = active === preset;
+                                const color = PRESET_STYLES[preset];
+                                return (
+                                  <button key={preset} type="button"
+                                    onClick={() => setRoleModulePerms(prev => ({ ...prev, [page.key]: PRESET_PERMS[preset] }))}
+                                    className="w-16 flex items-center justify-center py-1 transition-all"
+                                    title={preset === 'none' ? 'Tidak ada akses' : preset === 'lihat' ? 'Lihat saja' : preset === 'kelola' ? 'Lihat + Tambah + Edit + Hapus' : 'Semua hak akses'}>
+                                    <div className="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all"
+                                      style={{ borderColor: isActive ? color.sel : color.unsel, background: isActive ? color.sel : 'transparent' }}>
+                                      {isActive && <Check className="w-2.5 h-2.5 text-white" />}
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
                           );
                         })}
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
               </div>
               )}

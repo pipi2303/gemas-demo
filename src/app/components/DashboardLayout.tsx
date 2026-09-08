@@ -1,6 +1,5 @@
 import React, { ReactNode, useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { PAGE_MODULE } from '../../lib/permissions';
 import { NotificationBell } from './NotificationCenter';
 import { GlobalSearch } from './GlobalSearch';
 import { AccessibilityModal } from './AccessibilityModal';
@@ -455,10 +454,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
             {/* Menu Sections with Filtered Items & Categories */}
             {menuSections.map(section => {
               // Filter items by permission
-              const visibleItems = section.items.filter(item => {
-                const mod = PAGE_MODULE[item.page];
-                return !mod || can(mod, 'view');
-              });
+              const visibleItems = section.items.filter(item => can(item.page, 'view'));
 
               if (visibleItems.length === 0) return null;
 

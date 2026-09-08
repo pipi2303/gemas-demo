@@ -473,9 +473,9 @@ export function SacramentDatabase() {
   const { offset: offset2, onMouseDown: onMouseDown2 } = useDraggable();
   const { baptisms, sidis, marriages, addBaptism, updateBaptism, deleteBaptism, addSidi, updateSidi, deleteSidi, addMarriage, updateMarriage, deleteMarriage, currentUser, can, getMasterDataByCategory } = useApp();
 
-  const canCreate = can('Sakramen & Atestasi', 'create');
-  const canEdit   = can('Sakramen & Atestasi', 'edit');
-  const canDelete = can('Sakramen & Atestasi', 'delete');
+  const canCreate = can('sacraments', 'create');
+  const canEdit   = can('sacraments', 'edit');
+  const canDelete = can('sacraments', 'delete');
 
   const [tab, setTab] = useState<'baptism'|'sidi'|'marriage'>('baptism');
   const [searchQ, setSearchQ] = useState('');

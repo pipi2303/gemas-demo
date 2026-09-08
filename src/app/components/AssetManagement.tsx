@@ -200,9 +200,9 @@ export function AssetManagement() {
   const kategoriAsetOpts = getMasterDataByCategory('kategori_aset').map(m => m.value) as AssetCategory[];
   const CATEGORIES = kategoriAsetOpts.length ? kategoriAsetOpts : DEFAULT_ASSET_CATEGORIES;
 
-  const canCreate = can('Manajemen Aset', 'create');
-  const canEdit   = can('Manajemen Aset', 'edit');
-  const canDelete = can('Manajemen Aset', 'delete');
+  const canCreate = can('assets', 'create');
+  const canEdit   = can('assets', 'edit');
+  const canDelete = can('assets', 'delete');
 
   const { offset: offsetLaporanKategori, onMouseDown: onMouseDownLaporanKategori } = useDraggable();
   const { offset: offsetLaporanKondisi, onMouseDown: onMouseDownLaporanKondisi } = useDraggable();

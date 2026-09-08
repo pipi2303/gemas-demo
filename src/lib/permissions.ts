@@ -83,9 +83,102 @@ export function buildCan(matrix: ModulePermission[], role: UserRole) {
   const roleKey = role === 'Ketua Sektor'
     ? 'ketuaSektor'
     : (role.toLowerCase() as 'admin' | 'majelis' | 'operator');
-  return (module: string, permission: PermissionKey): boolean => {
-    const mod = matrix.find(m => m.module === module);
+  // Terima id submenu (mis. 'liturgy') ATAU nama modul langsung (kompatibel-mundur):
+  // resolve dulu lewat PAGE_MODULE, kalau bukan kunci submenu yang dikenal anggap
+  // sudah berupa nama modul apa adanya.
+  return (pageOrModule: string, permission: PermissionKey): boolean => {
+    const moduleName = PAGE_MODULE[pageOrModule] ?? pageOrModule;
+    const mod = matrix.find(m => m.module === moduleName);
     if (!mod) return role === 'Admin';
     return (mod[roleKey] as RolePermSet).includes(permission);
   };
 }
+
+// ─── Submenu (page) level — dipakai Custom Role ────────────────────────────────
+// PAGE_MODULE di atas sudah memetakan tiap halaman/submenu ke satu modul kasar.
+// Untuk Custom Role, hak akses sekarang disimpan per SUBMENU (bukan per modul),
+// supaya satu role bisa, misalnya, cuma lihat "Tata Ibadah" tapi kelola penuh
+// "Kalender Kegiatan" walau keduanya sama-sama di bawah modul "Peribadahan &
+// Kegiatan". Role bawaan (Admin/Majelis/Ketua Sektor/Operator) TETAP di level
+// modul seperti sebelumnya (lihat buildCan di atas) — granularitas submenu ini
+// khusus Custom Role.
+export const PAGE_LABEL: Record<string, string> = {
+  dashboard:             'Dashboard',
+  members:               'Database Warga',
+  families:              'Data Keluarga Jemaat',
+  sectors:               'Sektor Pelayanan',
+  attestations:          'Atestasi & Mutasi',
+  'sensus-report':       'Laporan Sensus Jemaat',
+  'report-center':       'Pusat Laporan Konsolidasi',
+  'worship-schedules':   'Jadwal & Petugas Ibadah',
+  'e-warta':             'E-Warta Jemaat',
+  'sermon-archive':      'Arsip Khotbah & Renungan',
+  liturgy:               'Tata Ibadah',
+  sacraments:            'Peribadahan',
+  events:                'Kalender Kegiatan',
+  ministries:            'Pelkat & Komisi',
+  livestream:            'Livestream & Reminder',
+  attendance:            'Presensi Ibadah (QR)',
+  announcements:         'Warta & Pengumuman',
+  'church-finance':      'Kas & Rekening Gereja',
+  offerings:             'Persembahan Digital',
+  financial:             'Jurnal & Neraca Kas',
+  assets:                'Manajemen Aset',
+  'room-booking':        'Peminjaman Ruangan',
+  'resource-library':    'Perpustakaan Digital',
+  'service-requests':    'Permohonan Diakonia',
+  'aid-distribution':    'Distribusi Bantuan',
+  prayers:               'Pokok & Pergumulan Doa',
+  users:                 'List User',
+  roles:                 'Manajemen Hak Akses',
+  backup:                'Backup & Restore',
+  data:                  'Pusat Manajemen Data',
+  'master-data':         'Master Data',
+  activity:              'Log Aktivitas',
+  'finance-addon':       'Ringkasan',
+  'finance-master-data': 'Master Data & Fiskal',
+  'finance-budget':      'Budget / RKA',
+  'finance-transaction': 'Transaksi & Voucher',
+  'finance-approval':    'Verifikasi & Persetujuan',
+  'finance-ledger':      'Buku Besar (GL)',
+  'finance-reconciliation': 'Rekonsiliasi Bank',
+  'finance-period-closing': 'Penutupan Periode',
+  'finance-reports':     'Laporan Keuangan',
+  'finance-dashboard':   'Dashboard & Analitik',
+};
+
+export interface PageGroup {
+  module: string;
+  emoji: string;
+  pages: { key: string; label: string }[];
+}
+
+/** Daftar submenu dikelompokkan per modul (urutan modul & emoji ikut DEFAULT_PERMISSIONS),
+ *  dipakai untuk merender tabel "Hak Akses per Modul" di editor Custom Role. */
+export function getPageGroups(): PageGroup[] {
+  return DEFAULT_PERMISSIONS
+    .map(mod => ({
+      module: mod.module,
+      emoji: mod.emoji,
+      pages: Object.keys(PAGE_MODULE)
+        .filter(key => PAGE_MODULE[key] === mod.module)
+        .map(key => ({ key, label: PAGE_LABEL[key] ?? key })),
+    }))
+    .filter(g => g.pages.length > 0);
+}
+
+/** Ambil izin submenu tertentu dari modulePermissions milik sebuah Custom Role.
+ *  Kompatibel-mundur: kalau role belum pernah disimpan ulang sejak fitur ini ada,
+ *  modulePermissions masih berkunci NAMA MODUL (format lama) — di situ, izin
+ *  submenu jatuh-balik (fallback) ke izin modul induknya, supaya role lama TIDAK
+ *  kehilangan akses sampai role itu dibuka & disimpan ulang lewat editor baru. */
+export function getPagePermission(
+  modulePermissions: Record<string, string[]> | undefined,
+  pageKey: string
+): PermissionKey[] {
+  const mp = modulePermissions ?? {};
+  if (mp[pageKey]) return mp[pageKey] as PermissionKey[];
+  const mod = PAGE_MODULE[pageKey];
+  return (mod ? (mp[mod] as PermissionKey[]) : undefined) ?? [];
+}
+

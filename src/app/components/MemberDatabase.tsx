@@ -1763,10 +1763,10 @@ export function MemberDatabase() {
   const { offset: offset2, onMouseDown: onMouseDown2 } = useDraggable();
   const { members, sectors, families, addMember, updateMember, deleteMember, currentUser, attestations, can, reloadData, getMasterDataByCategory } = useApp();
 
-  const canCreate = can('Database Warga', 'create');
-  const canEdit   = can('Database Warga', 'edit');
-  const canDelete = can('Database Warga', 'delete');
-  const canExport = can('Database Warga', 'export');
+  const canCreate = can('members', 'create');
+  const canEdit   = can('members', 'edit');
+  const canDelete = can('members', 'delete');
+  const canExport = can('members', 'export');
 
   const [searchQ, setSearchQ] = useState('');
   const [sectorF, setSectorF] = useState('all');

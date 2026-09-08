@@ -206,9 +206,9 @@ function FinancialForm({ rec, categories, currentUser, onSave, onClose }: {
 export function FinancialManagement() {
   const { financialRecords, financialCategories, currentUser, addFinancialRecord, updateFinancialRecord, deleteFinancialRecord, can } = useApp();
 
-  const canCreate = can('Keuangan & Persembahan', 'create');
-  const canEdit   = can('Keuangan & Persembahan', 'edit');
-  const canDelete = can('Keuangan & Persembahan', 'delete');
+  const canCreate = can('financial', 'create');
+  const canEdit   = can('financial', 'edit');
+  const canDelete = can('financial', 'delete');
 
   const now = new Date();
   const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'report'>('overview');

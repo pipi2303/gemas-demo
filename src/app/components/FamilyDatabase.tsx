@@ -625,10 +625,10 @@ export function FamilyDatabase() {
   const { offset: offset2, onMouseDown: onMouseDown2 } = useDraggable();
   const { families, members, sectors, addFamily, updateFamily, deleteFamily, can, reloadData } = useApp();
 
-  const canCreate = can('Data Keluarga', 'create');
-  const canEdit   = can('Data Keluarga', 'edit');
-  const canDelete = can('Data Keluarga', 'delete');
-  const canExport = can('Data Keluarga', 'export');
+  const canCreate = can('families', 'create');
+  const canEdit   = can('families', 'edit');
+  const canDelete = can('families', 'delete');
+  const canExport = can('families', 'export');
   const [syncing, setSyncing] = useState(false);
   const handleSync = async () => {
     setSyncing(true);

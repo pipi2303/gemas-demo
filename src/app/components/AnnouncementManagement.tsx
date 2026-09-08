@@ -188,9 +188,9 @@ export function AnnouncementManagement() {
                   <p className="text-gray-600 whitespace-pre-wrap">{announcement.content}</p>
                 </div>
                 
-                {(can('Pelayanan Kasih & Komunikasi', 'edit') || can('Pelayanan Kasih & Komunikasi', 'delete')) && (
+                {(can('announcements', 'edit') || can('announcements', 'delete')) && (
                   <div className="flex gap-2 ml-4">
-                    {can('Pelayanan Kasih & Komunikasi', 'edit') && (
+                    {can('announcements', 'edit') && (
                       <button
                         onMouseDown={e=>e.preventDefault()}
                         onClick={() => handleEdit(announcement)}
@@ -199,7 +199,7 @@ export function AnnouncementManagement() {
                         <Edit2 className="w-4 h-4" />
                       </button>
                     )}
-                    {can('Pelayanan Kasih & Komunikasi', 'delete') && (
+                    {can('announcements', 'delete') && (
                       <button
                         onClick={() => handleDelete(announcement.id)}
                         className="p-2 text-red-600 hover:bg-red-50 rounded"

@@ -266,9 +266,9 @@ export function EWarta() {
       .map(id => worshipSchedules.find(ws => ws.id === id))
       .filter(Boolean) as WorshipSchedule[];
 
-  const canCreate = can('Peribadahan & Kegiatan', 'create');
-  const canEdit   = can('Peribadahan & Kegiatan', 'edit');
-  const canDelete = can('Peribadahan & Kegiatan', 'delete');
+  const canCreate = can('e-warta', 'create');
+  const canEdit   = can('e-warta', 'edit');
+  const canDelete = can('e-warta', 'delete');
 
   const { offset: offsetGenerate, onMouseDown: onMouseDownGenerate } = useDraggable();
   const { offset: offsetForm, onMouseDown: onMouseDownForm } = useDraggable();

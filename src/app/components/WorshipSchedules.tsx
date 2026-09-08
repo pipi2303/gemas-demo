@@ -307,7 +307,7 @@ export function WorshipSchedules() {
             <Printer className="w-4 h-4" />
             Cetak
           </button>
-          {can('Peribadahan & Kegiatan', 'create') && (
+          {can('worship-schedules', 'create') && (
             <button
               onMouseDown={e=>e.preventDefault()}
               onClick={openAdd}
@@ -449,9 +449,9 @@ export function WorshipSchedules() {
                         <Eye className="w-3.5 h-3.5" />
                         Detail
                       </button>
-                      {(can('Peribadahan & Kegiatan', 'edit') || can('Peribadahan & Kegiatan', 'delete')) && (
+                      {(can('worship-schedules', 'edit') || can('worship-schedules', 'delete')) && (
                         <div className="flex gap-1">
-                          {can('Peribadahan & Kegiatan', 'edit') && (
+                          {can('worship-schedules', 'edit') && (
                             <button
                               onMouseDown={e=>e.preventDefault()}
                               onClick={() => openEdit(schedule)}
@@ -461,7 +461,7 @@ export function WorshipSchedules() {
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
                           )}
-                          {can('Peribadahan & Kegiatan', 'delete') && (
+                          {can('worship-schedules', 'delete') && (
                             <button
                               onClick={() => setShowDeleteConfirm(schedule)}
                               className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
@@ -696,7 +696,7 @@ export function WorshipSchedules() {
                 Dibuat: {new Date(showDetail.createdAt).toLocaleDateString('id-ID')}
               </p>
               <div className="flex gap-2">
-                {can('Peribadahan & Kegiatan', 'edit') && (
+                {can('worship-schedules', 'edit') && (
                   <button
                     onMouseDown={e=>e.preventDefault()}
                     onClick={() => { setShowDetail(null); openEdit(showDetail); }}
