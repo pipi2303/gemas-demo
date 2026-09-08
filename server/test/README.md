@@ -55,6 +55,16 @@ GitHub Actions service container, terisolasi otomatis per run, dan
   `financeCrud.ts`, yang HANYA mengekspor ulang tanpa membuat binding lokal —
   menyebabkan `ReferenceError` saat runtime yang tidak akan ketahuan dari
   `npm run build` saja (lihat komentar di file test).
+- `financeVendorDonorCostCenter.test.ts` — CRUD 3 master data baru (Pemasok,
+  Donatur, Pusat Biaya) + regression test bahwa `cost_center_id` yang
+  ditambahkan ke `transaction_lines`/`journal_lines` lewat `ALTER TABLE ADD
+  COLUMN IF NOT EXISTS` (bukan `CREATE TABLE`, karena kedua tabel itu sudah
+  live di database produksi sebelum fitur ini ada) benar-benar tersalin oleh
+  logic posting (`/:id/post`) dan pembalikan (`/:id/reverse`) — kode yang
+  sama yang pernah punya bug kritis "Balik Jurnal selalu gagal" di sesi
+  sebelumnya. Diverifikasi terhadap DUA skenario database sebelum dianggap
+  aman: migrasi di atas skema yang sudah ada (ALTER TABLE) dan instalasi baru
+  dari nol (CREATE TABLE) — keduanya harus menghasilkan skema akhir yang sama.
 
 Tidak semua endpoint tercakup (lihat memori proyek untuk gap yang belum
 diuji) — suite ini fokus pada risiko regresi yang sudah pernah nyata

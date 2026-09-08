@@ -137,6 +137,39 @@ router.use('/voucher-types', createMasterDataRouter({
   entityLabel: 'Jenis Voucher',
 }));
 
+// ── Pemasok (Vendors) ─────────────────────────────────────────────────────────
+router.use('/vendors', createMasterDataRouter({
+  table: 'finance.vendors',
+  fields: [
+    'code', 'name', 'contact_person', 'phone', 'email', 'address',
+    'npwp', 'bank_name', 'bank_account_number', 'notes', 'is_active',
+  ],
+  requiredFields: ['code', 'name'],
+  orderBy: 'name ASC',
+  deleteMode: 'deleted_at',
+  entityLabel: 'Pemasok',
+}));
+
+// ── Donatur (Donors) ──────────────────────────────────────────────────────────
+router.use('/donors', createMasterDataRouter({
+  table: 'finance.donors',
+  fields: ['code', 'name', 'donor_type', 'contact_person', 'phone', 'email', 'address', 'notes', 'is_active'],
+  requiredFields: ['code', 'name', 'donor_type'],
+  orderBy: 'name ASC',
+  deleteMode: 'deleted_at',
+  entityLabel: 'Donatur',
+}));
+
+// ── Pusat Biaya (Cost Centers) ────────────────────────────────────────────────
+router.use('/cost-centers', createMasterDataRouter({
+  table: 'finance.cost_centers',
+  fields: ['parent_id', 'code', 'name', 'description', 'manager_user_id', 'is_active'],
+  requiredFields: ['code', 'name'],
+  orderBy: 'code ASC',
+  deleteMode: 'deleted_at',
+  entityLabel: 'Pusat Biaya',
+}));
+
 // ── Tahun Fiskal & Periode (khusus — bukan generic CRUD) ─────────────────────
 const MONTHS_ID = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',

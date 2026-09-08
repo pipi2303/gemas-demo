@@ -196,11 +196,12 @@ router.post('/', requireFinancePermission('create'), async (req: AuthRequest, re
 
     const txRes = await client.query(
       `INSERT INTO finance.transactions
-        (organization_id, voucher_id, fiscal_year_id, period_id, transaction_type, transaction_date, payer_name, payee_name, description, reference_number, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+        (organization_id, voucher_id, fiscal_year_id, period_id, transaction_type, transaction_date, payer_name, payee_name, vendor_id, donor_id, description, reference_number, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
       [
         FINANCE_ORG, voucher.id, fiscal_year_id, period.id, voucherType.transaction_type, transaction_date,
-        body.payer_name || null, body.payee_name || null, description, body.reference_number || null, req.user!.userId,
+        body.payer_name || null, body.payee_name || null, body.vendor_id || null, body.donor_id || null,
+        description, body.reference_number || null, req.user!.userId,
       ]
     );
 
@@ -231,11 +232,16 @@ router.put('/:id', requireFinancePermission('edit'), async (req: AuthRequest, re
       `UPDATE finance.transactions SET
          payer_name = COALESCE($3, payer_name),
          payee_name = COALESCE($4, payee_name),
-         description = COALESCE($5, description),
-         reference_number = COALESCE($6, reference_number),
-         updated_at = NOW(), updated_by = $7
+         vendor_id = COALESCE($5, vendor_id),
+         donor_id = COALESCE($6, donor_id),
+         description = COALESCE($7, description),
+         reference_number = COALESCE($8, reference_number),
+         updated_at = NOW(), updated_by = $9
        WHERE id = $1 AND organization_id = $2 RETURNING *`,
-      [req.params.id, FINANCE_ORG, body.payer_name ?? null, body.payee_name ?? null, body.description ?? null, body.reference_number ?? null, req.user!.userId]
+      [
+        req.params.id, FINANCE_ORG, body.payer_name ?? null, body.payee_name ?? null,
+        body.vendor_id ?? null, body.donor_id ?? null, body.description ?? null, body.reference_number ?? null, req.user!.userId,
+      ]
     );
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
@@ -486,9 +492,12 @@ router.put('/:id/post', requireFinancePermission('approve'), async (req: AuthReq
     for (const line of linesRes.rows) {
       await client.query(
         `INSERT INTO finance.journal_lines
-          (journal_id, line_number, account_id, field_id, program_id, activity_id, fund_id, debit, credit, description)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-        [journal.id, line.line_number, line.account_id, line.field_id, line.program_id, line.activity_id, line.fund_id, line.debit, line.credit, line.description]
+          (journal_id, line_number, account_id, field_id, program_id, activity_id, fund_id, cost_center_id, debit, credit, description)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+        [
+          journal.id, line.line_number, line.account_id, line.field_id, line.program_id, line.activity_id,
+          line.fund_id, line.cost_center_id, line.debit, line.credit, line.description,
+        ]
       );
     }
 
@@ -574,9 +583,12 @@ router.put('/:id/reverse', requireFinancePermission('approve'), async (req: Auth
     for (const line of origLinesRes.rows) {
       await client.query(
         `INSERT INTO finance.journal_lines
-          (journal_id, line_number, account_id, field_id, program_id, activity_id, fund_id, debit, credit, description)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-        [reversalJournal.id, line.line_number, line.account_id, line.field_id, line.program_id, line.activity_id, line.fund_id, line.credit, line.debit, line.description]
+          (journal_id, line_number, account_id, field_id, program_id, activity_id, fund_id, cost_center_id, debit, credit, description)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+        [
+          reversalJournal.id, line.line_number, line.account_id, line.field_id, line.program_id, line.activity_id,
+          line.fund_id, line.cost_center_id, line.credit, line.debit, line.description,
+        ]
       );
     }
 
@@ -657,11 +669,11 @@ router.post('/:id/lines', requireFinancePermission('edit'), async (req: AuthRequ
     const lineNumber = lineNumRes.rows[0].next;
     const result = await client.query(
       `INSERT INTO finance.transaction_lines
-        (transaction_id, line_number, account_id, field_id, program_id, activity_id, fund_id, cash_account_id, bank_account_id, description, debit, credit)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+        (transaction_id, line_number, account_id, field_id, program_id, activity_id, fund_id, cost_center_id, cash_account_id, bank_account_id, description, debit, credit)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
       [
         req.params.id, lineNumber, account_id, nullable(body.field_id), nullable(body.program_id), nullable(body.activity_id),
-        nullable(body.fund_id), nullable(body.cash_account_id), nullable(body.bank_account_id), nullable(body.description),
+        nullable(body.fund_id), nullable(body.cost_center_id), nullable(body.cash_account_id), nullable(body.bank_account_id), nullable(body.description),
         side === 'debit' ? amount : 0, side === 'credit' ? amount : 0,
       ]
     );

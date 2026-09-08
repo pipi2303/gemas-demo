@@ -82,6 +82,10 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
+  CREATE TYPE finance.donor_type AS ENUM ('INDIVIDUAL','ORGANIZATION','ANONYMOUS');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
   CREATE TYPE finance.reconciliation_status AS ENUM
     ('DRAFT','IN_PROGRESS','COMPLETED','APPROVED','CANCELLED');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
@@ -227,6 +231,72 @@ CREATE TABLE IF NOT EXISTS finance.funds (
   CONSTRAINT ck_fund_not_self_parent CHECK (parent_id IS NULL OR parent_id <> id)
 );
 CREATE INDEX IF NOT EXISTS idx_funds_org_type ON finance.funds (organization_id, fund_type);
+
+-- ── VENDORS (Pemasok) ─────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS finance.vendors (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id     TEXT NOT NULL DEFAULT 'gpib-trinitas',
+  code                VARCHAR(30) NOT NULL,
+  name                VARCHAR(200) NOT NULL,
+  contact_person      VARCHAR(150),
+  phone               VARCHAR(30),
+  email               VARCHAR(150),
+  address             TEXT,
+  npwp                VARCHAR(30),
+  bank_name           VARCHAR(100),
+  bank_account_number VARCHAR(50),
+  notes               TEXT,
+  is_active           BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_by          TEXT NOT NULL,
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_by          TEXT,
+  deleted_at          TIMESTAMPTZ,
+  CONSTRAINT uq_vendor_code UNIQUE (organization_id, code)
+);
+CREATE INDEX IF NOT EXISTS idx_vendors_org ON finance.vendors (organization_id);
+
+-- ── DONORS (Donatur) ──────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS finance.donors (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id   TEXT NOT NULL DEFAULT 'gpib-trinitas',
+  code              VARCHAR(30) NOT NULL,
+  name              VARCHAR(200) NOT NULL,
+  donor_type        finance.donor_type NOT NULL DEFAULT 'INDIVIDUAL',
+  contact_person    VARCHAR(150),
+  phone             VARCHAR(30),
+  email             VARCHAR(150),
+  address           TEXT,
+  notes             TEXT,
+  is_active         BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_by        TEXT NOT NULL,
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_by        TEXT,
+  deleted_at        TIMESTAMPTZ,
+  CONSTRAINT uq_donor_code UNIQUE (organization_id, code)
+);
+CREATE INDEX IF NOT EXISTS idx_donors_org ON finance.donors (organization_id);
+
+-- ── COST CENTERS (Pusat Biaya) ────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS finance.cost_centers (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id   TEXT NOT NULL DEFAULT 'gpib-trinitas',
+  parent_id         UUID REFERENCES finance.cost_centers(id) ON DELETE RESTRICT,
+  code              VARCHAR(30) NOT NULL,
+  name              VARCHAR(150) NOT NULL,
+  description       TEXT,
+  manager_user_id   TEXT,
+  is_active         BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_by        TEXT NOT NULL,
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_by        TEXT,
+  deleted_at        TIMESTAMPTZ,
+  CONSTRAINT uq_cost_center_code UNIQUE (organization_id, code),
+  CONSTRAINT ck_cost_center_not_self_parent CHECK (parent_id IS NULL OR parent_id <> id)
+);
+CREATE INDEX IF NOT EXISTS idx_cost_centers_org_parent ON finance.cost_centers (organization_id, parent_id);
 
 -- ── FISCAL YEARS ──────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS finance.fiscal_years (
@@ -542,6 +612,27 @@ CREATE INDEX IF NOT EXISTS idx_journal_lines_field ON finance.journal_lines (fie
 CREATE INDEX IF NOT EXISTS idx_journal_lines_program ON finance.journal_lines (program_id);
 CREATE INDEX IF NOT EXISTS idx_journal_lines_fund ON finance.journal_lines (fund_id);
 
+-- ── DIMENSI TAMBAHAN: Vendor/Donatur di header transaksi, Pusat Biaya di baris ──
+-- Ditambahkan lewat ALTER TABLE (bukan ikut di definisi CREATE TABLE di atas)
+-- karena finance.transactions/transaction_lines/journal_lines sudah live di
+-- database produksi sebelum fitur ini dibuat — CREATE TABLE IF NOT EXISTS
+-- tidak menambah kolom baru ke tabel yang sudah ada, jadi harus ALTER TABLE
+-- ADD COLUMN IF NOT EXISTS supaya aman dijalankan berulang di database yang
+-- sudah maupun belum punya kolom ini.
+ALTER TABLE finance.transactions
+  ADD COLUMN IF NOT EXISTS vendor_id UUID REFERENCES finance.vendors(id) ON DELETE RESTRICT,
+  ADD COLUMN IF NOT EXISTS donor_id  UUID REFERENCES finance.donors(id)  ON DELETE RESTRICT;
+CREATE INDEX IF NOT EXISTS idx_transactions_vendor ON finance.transactions (vendor_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_donor ON finance.transactions (donor_id);
+
+ALTER TABLE finance.transaction_lines
+  ADD COLUMN IF NOT EXISTS cost_center_id UUID REFERENCES finance.cost_centers(id) ON DELETE RESTRICT;
+CREATE INDEX IF NOT EXISTS idx_transaction_lines_cost_center ON finance.transaction_lines (cost_center_id);
+
+ALTER TABLE finance.journal_lines
+  ADD COLUMN IF NOT EXISTS cost_center_id UUID REFERENCES finance.cost_centers(id) ON DELETE RESTRICT;
+CREATE INDEX IF NOT EXISTS idx_journal_lines_cost_center ON finance.journal_lines (cost_center_id);
+
 -- ── BANK STATEMENTS ───────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS finance.bank_statements (
   id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -662,6 +753,12 @@ CREATE OR REPLACE TRIGGER trg_budgets_updated
   BEFORE UPDATE ON finance.budgets FOR EACH ROW EXECUTE FUNCTION finance.set_updated_at();
 CREATE OR REPLACE TRIGGER trg_transactions_updated
   BEFORE UPDATE ON finance.transactions FOR EACH ROW EXECUTE FUNCTION finance.set_updated_at();
+CREATE OR REPLACE TRIGGER trg_vendors_updated
+  BEFORE UPDATE ON finance.vendors FOR EACH ROW EXECUTE FUNCTION finance.set_updated_at();
+CREATE OR REPLACE TRIGGER trg_donors_updated
+  BEFORE UPDATE ON finance.donors FOR EACH ROW EXECUTE FUNCTION finance.set_updated_at();
+CREATE OR REPLACE TRIGGER trg_cost_centers_updated
+  BEFORE UPDATE ON finance.cost_centers FOR EACH ROW EXECUTE FUNCTION finance.set_updated_at();
 
 -- ── ACCOUNTING VALIDATION FUNCTIONS ───────────────────────────────────────────
 CREATE OR REPLACE FUNCTION finance.validate_transaction_balance(p_transaction_id UUID)
