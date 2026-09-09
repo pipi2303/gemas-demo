@@ -396,6 +396,12 @@ export interface Offering {
   description?: string;
   qrisReference?: string;
   createdAt: string;
+  /** Diisi otomatis oleh fitur "Setor ke Buku Besar" (OfferingsQRIS.tsx /
+   *  server/routes/financeTransaction.ts POST /deposit-offerings) begitu
+   *  persembahan ini sudah diagregasi jadi transaksi Finance Add-on —
+   *  mencegah persembahan yang sama disetor dua kali. */
+  depositedTransactionId?: string;
+  depositedAt?: string;
 }
 
 export interface BuildingProject {

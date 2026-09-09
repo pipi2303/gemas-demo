@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { toast } from 'sonner';
 import { useDraggable } from '../../lib/useDraggable';
@@ -8,11 +8,34 @@ import {
   DollarSign, Plus, X, Calendar, CreditCard, User, FileText,
   Pencil, Trash2, Filter, Download, TrendingUp, Search,
   ChevronLeft, ChevronRight, Printer, ArrowUpRight, QrCode, Wallet,
-  ArrowUp, ArrowDown, ArrowUpDown
+  ArrowUp, ArrowDown, ArrowUpDown, Landmark, Loader2, CheckCircle2, BadgeCheck
 } from 'lucide-react';
 import { useSortable } from '../../hooks/useSortable';
 import { useResizableColumns } from '../../hooks/useResizableColumns';
 import { ColResizeHandle } from './ui/resizable-th';
+import { api } from '../../lib/apiClient';
+
+// -- Setor ke Buku Besar (jembatan ke Finance Add-on) -------------------------
+// Bukan bagian dari alur CRUD offerings biasa (yang lewat AppContext/collection
+// generik /api/data) -- endpoint di bawah ini ada di modul Finance Add-on
+// (server/routes/financeTransaction.ts) yang punya namespace REST sendiri
+// (/api/v1/finance/**), jadi dipanggil langsung lewat `api` client, sama
+// seperti pola di src/app/components/finance/*.tsx.
+interface DepositPreview {
+  offeringCount: number;
+  totalAmount: number;
+  cash: { total: number; count: number; byCategory: Record<string, { amount: number; count: number }> };
+  bank: { total: number; count: number; byCategory: Record<string, { amount: number; count: number }> };
+}
+interface DepositResult {
+  transactions: { bucket: 'CASH' | 'BANK'; transactionId: string; voucherNumber: string; amount: number }[];
+  offeringCount: number;
+}
+async function financeApiCall<T = any>(method: 'get' | 'post', url: string, body?: any): Promise<T> {
+  const res = method === 'get' ? await (api as any).get(url) : await (api as any).post(url, body ?? {});
+  if (!res.success) throw new Error(res.error?.message || 'Terjadi kesalahan');
+  return res.data as T;
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const formatRp = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
@@ -130,6 +153,14 @@ export function OfferingsQRIS() {
   const [filterMethod, setFilterMethod] = useState('all');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  // Setor ke Buku Besar
+  const [depositOpen, setDepositOpen] = useState(false);
+  const [depositRange, setDepositRange] = useState({ startDate: '', endDate: '' });
+  const [depositPreview, setDepositPreview] = useState<DepositPreview | null>(null);
+  const [depositPreviewLoading, setDepositPreviewLoading] = useState(false);
+  const [depositPreviewError, setDepositPreviewError] = useState<string | null>(null);
+  const [depositSubmitting, setDepositSubmitting] = useState(false);
+  const [depositResult, setDepositResult] = useState<DepositResult | null>(null);
   const PAGE_SIZE = 15;
 
   // Form state
@@ -266,6 +297,67 @@ export function OfferingsQRIS() {
     deleteOffering(o.id);
   };
 
+  // ── Setor ke Buku Besar (agregasi -> transaksi Finance Add-on) ──────────────
+  const openDepositModal = () => {
+    const toISO = (d: Date) => d.toISOString().split('T')[0];
+    const today = new Date();
+    const weekAgo = new Date(today); weekAgo.setDate(weekAgo.getDate() - 6);
+    setDepositRange({ startDate: toISO(weekAgo), endDate: toISO(today) });
+    setDepositPreview(null);
+    setDepositPreviewError(null);
+    setDepositResult(null);
+    setDepositOpen(true);
+  };
+  const loadDepositPreview = async (range: { startDate: string; endDate: string }) => {
+    if (!range.startDate || !range.endDate) return;
+    if (range.startDate > range.endDate) { setDepositPreviewError('Tanggal awal tidak boleh setelah tanggal akhir'); setDepositPreview(null); return; }
+    setDepositPreviewLoading(true);
+    setDepositPreviewError(null);
+    try {
+      const data = await financeApiCall<DepositPreview>('get', `/api/v1/finance/transactions/deposit-preview?startDate=${range.startDate}&endDate=${range.endDate}`);
+      setDepositPreview(data);
+    } catch (err: any) {
+      setDepositPreviewError(err?.message || 'Gagal memuat pratinjau');
+      setDepositPreview(null);
+    } finally {
+      setDepositPreviewLoading(false);
+    }
+  };
+  const handleConfirmDeposit = async () => {
+    if (!depositPreview || depositPreview.offeringCount === 0) return;
+    setDepositSubmitting(true);
+    try {
+      const result = await financeApiCall<DepositResult>('post', '/api/v1/finance/transactions/deposit-offerings', {
+        startDate: depositRange.startDate, endDate: depositRange.endDate,
+      });
+      // Sinkronkan status "sudah disetor" ke state lokal supaya badge di tabel
+      // langsung tampil tanpa perlu reload halaman -- backend sudah menulis
+      // tanda ini secara atomik bersama transaksinya; write di sini cuma
+      // menyalinnya ke local state (lewat updateOffering yang sudah ada),
+      // idempoten dengan yang backend tulis.
+      const nowIso = new Date().toISOString();
+      const cashTx = result.transactions.find(t => t.bucket === 'CASH');
+      const bankTx = result.transactions.find(t => t.bucket === 'BANK');
+      offerings
+        .filter(o => !o.depositedTransactionId && o.date >= depositRange.startDate && o.date <= depositRange.endDate)
+        .forEach(o => {
+          const txId = o.paymentMethod === 'Tunai' ? cashTx?.transactionId : bankTx?.transactionId;
+          if (txId) updateOffering(o.id, { depositedTransactionId: txId, depositedAt: nowIso });
+        });
+      setDepositResult(result);
+      toast.success(`Berhasil membuat ${result.transactions.length} voucher setoran (${result.offeringCount} persembahan)`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal membuat setoran');
+    } finally {
+      setDepositSubmitting(false);
+    }
+  };
+  useEffect(() => {
+    if (!depositOpen || depositResult) return;
+    loadDepositPreview(depositRange);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [depositOpen, depositRange.startDate, depositRange.endDate, depositResult]);
+
   // ── Print ────────────────────────────────────────────────────────────────────
   const handlePrint = () => {
     const w = window.open('', '_blank', 'width=900,height=700');
@@ -352,6 +444,9 @@ export function OfferingsQRIS() {
         <div className="flex gap-2">
           <button onClick={handlePrint} className="flex items-center gap-2 px-3 py-2 rounded-xl border transition-colors hover:bg-gray-50" style={{ fontSize: '13px', borderColor: '#e2e8f0' }}>
             <Printer className="w-4 h-4 text-gray-500" />Cetak
+          </button>
+          <button onMouseDown={e=>e.preventDefault()} onClick={openDepositModal} data-tooltip="Agregasi persembahan yang belum disetor menjadi transaksi Finance Add-on" className="flex items-center gap-2 px-3 py-2 rounded-xl border font-semibold transition-colors hover:bg-[#f0f7fb]" style={{ fontSize: '13px', borderColor: '#1A77A3', color: '#1A77A3' }}>
+            <Landmark className="w-4 h-4" />Setor ke Buku Besar
           </button>
           <button onMouseDown={e=>e.preventDefault()} onClick={openCreate} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white font-semibold transition-colors" style={{ background: '#1A77A3', fontSize: '13px', boxShadow: '0 2px 8px rgba(26,119,163,0.3)' }}>
             <Plus className="w-4 h-4" />Catat Persembahan
@@ -469,7 +564,16 @@ export function OfferingsQRIS() {
                         <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: mc.bg, color: mc.text }}>{o.paymentMethod}</span>
                       </td>
                       <td className="px-4 py-3" style={{ fontSize: '13px', color: '#374151' }}>{donor}</td>
-                      <td className="px-4 py-3 text-right" style={{ fontSize: '13.5px', fontWeight: 700, color: '#1A77A3', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{formatRp(o.amount)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex flex-col items-end gap-0.5">
+                          <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#1A77A3', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{formatRp(o.amount)}</span>
+                          {o.depositedTransactionId && (
+                            <span data-tooltip="Sudah disetor ke Finance Add-on" className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style={{ background: '#f0fdf4', color: '#15803d' }}>
+                              <BadgeCheck className="w-2.5 h-2.5" />Disetor
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1.5">
                           <button onMouseDown={e=>e.preventDefault()} onClick={() => openEdit(o)} data-tooltip="Edit" className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-[#f0f7fb] transition-colors">
@@ -788,6 +892,132 @@ export function OfferingsQRIS() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── SETOR KE BUKU BESAR ── */}
+      {depositOpen && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => { if (!depositSubmitting) setDepositOpen(false); }} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="flex-shrink-0 px-6 py-4 flex items-center justify-between" style={{ background: '#1A77A3', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+              <div className="flex items-center gap-2.5">
+                <Landmark className="w-5 h-5 text-white" />
+                <div>
+                  <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '17px', fontWeight: 800, color: 'white' }}>Setor ke Buku Besar</h2>
+                  <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>Agregasi persembahan yang belum disetor menjadi transaksi Finance Add-on</p>
+                </div>
+              </div>
+              <button onClick={() => { if (!depositSubmitting) setDepositOpen(false); }} data-tooltip="Tutup" className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center transition-colors flex-shrink-0">
+                <X className="w-4 h-4 text-white" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="overflow-y-auto flex-1 p-6 space-y-5">
+              {depositResult ? (
+                <div className="space-y-4">
+                  <div className="flex flex-col items-center text-center gap-2 py-2">
+                    <CheckCircle2 className="w-10 h-10" style={{ color: '#15803d' }} />
+                    <p style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>Setoran berhasil dibuat</p>
+                    <p style={{ fontSize: '12.5px', color: '#64748b' }}>{depositResult.offeringCount} catatan persembahan sudah ditandai "Disetor" dan siap diverifikasi di modul Finance Add-on (masih berstatus Draft).</p>
+                  </div>
+                  <div className="space-y-2">
+                    {depositResult.transactions.map(t => (
+                      <div key={t.transactionId} className="flex items-center justify-between px-4 py-3 rounded-xl" style={{ background: '#f8fafc', border: '1px solid #f1f5f9' }}>
+                        <div>
+                          <p style={{ fontSize: '12px', fontWeight: 700, color: '#144f6b' }}>{t.bucket === 'CASH' ? 'Tunai (BKM)' : 'Transfer/QRIS (BBM)'}</p>
+                          <p style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace' }}>{t.voucherNumber}</p>
+                        </div>
+                        <p style={{ fontSize: '13.5px', fontWeight: 800, color: '#1A77A3' }}>{formatRp(t.amount)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><label className="block text-xs font-semibold text-gray-600 mb-1.5">Dari Tanggal</label>
+                      <input type="date" value={depositRange.startDate} onChange={e => setDepositRange(r => ({ ...r, startDate: e.target.value }))} className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: '#e2e8f0' }} /></div>
+                    <div><label className="block text-xs font-semibold text-gray-600 mb-1.5">Sampai Tanggal</label>
+                      <input type="date" value={depositRange.endDate} onChange={e => setDepositRange(r => ({ ...r, endDate: e.target.value }))} className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: '#e2e8f0' }} /></div>
+                  </div>
+
+                  {depositPreviewLoading && (
+                    <div className="flex items-center justify-center gap-2 py-6" style={{ color: '#94a3b8', fontSize: '13px' }}>
+                      <Loader2 className="w-4 h-4 animate-spin" />Memuat pratinjau…
+                    </div>
+                  )}
+                  {depositPreviewError && !depositPreviewLoading && (
+                    <div className="px-4 py-3 rounded-xl text-sm" style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>{depositPreviewError}</div>
+                  )}
+                  {!depositPreviewLoading && !depositPreviewError && depositPreview && (
+                    depositPreview.offeringCount === 0 ? (
+                      <div className="px-4 py-6 rounded-xl text-center" style={{ background: '#f8fafc', color: '#94a3b8', fontSize: '13px' }}>
+                        Tidak ada persembahan yang belum disetor pada rentang tanggal ini.
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="rounded-xl p-3.5" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                            <p style={{ fontSize: '11px', fontWeight: 700, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Tunai · {depositPreview.cash.count} catatan</p>
+                            <p style={{ fontSize: '17px', fontWeight: 800, color: '#15803d', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{formatRp(depositPreview.cash.total)}</p>
+                            <p style={{ fontSize: '10.5px', color: '#166534' }}>{depositPreview.cash.count > 0 ? 'Voucher BKM · debit Kas Tunai Jemaat' : 'Tidak ada'}</p>
+                          </div>
+                          <div className="rounded-xl p-3.5" style={{ background: '#eff6ff', border: '1px solid #bfdbfe' }}>
+                            <p style={{ fontSize: '11px', fontWeight: 700, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Transfer/QRIS · {depositPreview.bank.count} catatan</p>
+                            <p style={{ fontSize: '17px', fontWeight: 800, color: '#1d4ed8', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{formatRp(depositPreview.bank.total)}</p>
+                            <p style={{ fontSize: '10.5px', color: '#1e40af' }}>{depositPreview.bank.count > 0 ? 'Voucher BBM · debit Bank Jemaat' : 'Tidak ada'}</p>
+                          </div>
+                        </div>
+                        <div className="rounded-xl p-3.5" style={{ background: '#f8fafc', border: '1px solid #f1f5f9' }}>
+                          <p style={{ fontSize: '11px', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>Rincian per Kategori</p>
+                          {Object.entries({ ...depositPreview.cash.byCategory, ...depositPreview.bank.byCategory }).length === 0 ? null : (
+                            <div className="space-y-1">
+                              {[...new Set([...Object.keys(depositPreview.cash.byCategory), ...Object.keys(depositPreview.bank.byCategory)])].map(cat => {
+                                const amt = (depositPreview.cash.byCategory[cat]?.amount || 0) + (depositPreview.bank.byCategory[cat]?.amount || 0);
+                                return (
+                                  <div key={cat} className="flex items-center justify-between" style={{ fontSize: '12.5px' }}>
+                                    <span style={{ color: '#475569' }}>{cat}</span>
+                                    <span style={{ color: '#0f172a', fontWeight: 600 }}>{formatRp(amt)}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                        <p style={{ fontSize: '11.5px', color: '#94a3b8' }}>
+                          Transaksi akan dibuat berstatus <strong>Draft</strong> — tetap perlu diajukan, diverifikasi, dan disetujui seperti transaksi manual lainnya di modul Finance Add-on.
+                        </p>
+                      </div>
+                    )
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex-shrink-0 px-6 py-4 flex justify-end gap-2" style={{ borderTop: '1px solid #f1f5f9' }}>
+              {depositResult ? (
+                <button onClick={() => setDepositOpen(false)} className="px-5 py-2 rounded-xl text-white font-semibold text-sm transition-colors" style={{ background: '#1A77A3', boxShadow: '0 2px 8px rgba(26,119,163,0.3)' }}>Selesai</button>
+              ) : (
+                <>
+                  <button type="button" disabled={depositSubmitting} onClick={() => setDepositOpen(false)} className="px-4 py-2 rounded-xl border font-semibold text-sm transition-colors hover:bg-gray-50 disabled:opacity-50" style={{ borderColor: '#e2e8f0', color: '#475569' }}>Batal</button>
+                  <button
+                    type="button"
+                    disabled={!depositPreview || depositPreview.offeringCount === 0 || depositSubmitting || depositPreviewLoading}
+                    onClick={handleConfirmDeposit}
+                    className="flex items-center gap-2 px-5 py-2 rounded-xl text-white font-semibold text-sm transition-colors disabled:opacity-50"
+                    style={{ background: '#1A77A3', boxShadow: '0 2px 8px rgba(26,119,163,0.3)' }}
+                  >
+                    {depositSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                    Proses Setoran
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
