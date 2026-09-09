@@ -8,7 +8,7 @@ import {
   ArrowLeft, Package, Shield, Baby, Heart,
   Church, BarChart3, Bell, BookOpen, Calendar,
   Megaphone, CheckCircle2, UserPlus, Pencil, Trash2,
-  HandHeart, Stethoscope, Printer, Layers,
+  HandHeart, Stethoscope, Printer, Layers, Mail, Send,
 } from 'lucide-react';
 import { AgeGroup, ActivityLog } from '../types';
 import { liveAge } from '../../lib/age';
@@ -610,7 +610,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
     attestations,
     financialRecords,
     baptisms, sidis, marriages,
-    currentUser,
+    currentUser, can,
     worshipSchedules, events, prayerRequests, announcements, attendance,
     serviceRequests, aidDistributions,
   } = useApp();
@@ -635,6 +635,32 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
       .catch(() => { if (!cancelled) setRecentActivitiesData([]); });
     return () => { cancelled = true; };
   }, []);
+
+  // Ringkasan Surat Menyurat (Fase 4 — dashboard widget, "opsional" per rencana
+  // modul). outgoingPending cuma diambil kalau user punya izin modul
+  // 'letters-outgoing' (staf tanpa izin tidak perlu — dan tidak boleh, lihat
+  // data.ts — melihat SELURUH surat keluar gereja). incomingMine dipakai
+  // /api/incoming-letters/mine (identity-based, lihat server/routes/
+  // incomingLetters.ts) supaya staf yang didisposisikan tapi tidak punya izin
+  // modul 'letters-incoming' (mis. Operator/Ketua Sektor — "assignee override")
+  // tetap melihat surat yang ditugaskan kepadanya, termasuk lewat halaman ini
+  // yang menu sidebar-nya sendiri tersembunyi untuk mereka.
+  const [suratMenyurat, setSuratMenyurat] = useState<{ outgoingPending: number; incomingMine: any[] } | null>(null);
+  const canViewOutgoingLetters = can('letters-outgoing', 'view');
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      canViewOutgoingLetters ? api.get<any[]>('/api/data/outgoingLetters').catch(() => []) : Promise.resolve([] as any[]),
+      api.get<any[]>('/api/incoming-letters/mine').catch(() => []),
+    ]).then(([outgoing, mine]) => {
+      if (cancelled) return;
+      const outgoingPending = outgoing.filter((l: any) => l.status === 'Diajukan' || l.status === 'Diperiksa').length;
+      const incomingMine = mine.filter((l: any) => l.status === 'Didisposisikan' || l.status === 'DitindakLanjuti');
+      setSuratMenyurat({ outgoingPending, incomingMine });
+    });
+    return () => { cancelled = true; };
+  }, [canViewOutgoingLetters]);
 
   const s = useMemo(() => {
     const getAgeGroup = (age: number): AgeGroup => {
@@ -1472,6 +1498,55 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
               </p>
             )}
           </div>
+
+          {/* Surat Menyurat — hanya tampil kalau relevan: pemegang izin modul
+              Surat Keluar, ATAU staf yang punya surat masuk ditugaskan ke
+              dirinya (assignee override) — bukan ditampilkan blank ke semua
+              orang yang sama sekali tidak terlibat modul ini. */}
+          {suratMenyurat && (canViewOutgoingLetters || suratMenyurat.incomingMine.length > 0) && (
+            <div className="rounded-2xl p-5" style={{ background: 'white', border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(3,105,161,0.1)' }}>
+                    <Mail className="w-3.5 h-3.5" style={{ color: '#0369a1' }} />
+                  </div>
+                  <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a' }}>Surat Menyurat</span>
+                </div>
+                <button onClick={() => nav(canViewOutgoingLetters ? 'letters-outgoing' : 'letters-incoming')} className="text-xs font-medium" style={{ color: '#0369a1' }}>Semua →</button>
+              </div>
+              {suratMenyurat.outgoingPending === 0 && suratMenyurat.incomingMine.length === 0 ? (
+                <p style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center', padding: '16px 0' }}>Tidak ada surat pending</p>
+              ) : (
+                <div className="space-y-2">
+                  {canViewOutgoingLetters && suratMenyurat.outgoingPending > 0 && (
+                    <div onClick={() => nav('letters-outgoing')}
+                      className="flex items-center gap-2.5 p-3 rounded-xl cursor-pointer hover:opacity-80 transition-opacity"
+                      style={{ background: '#f0f7fb', border: '1px solid rgba(3,105,161,0.15)' }}>
+                      <Send className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#0369a1' }} />
+                      <p style={{ fontSize: '12px', color: '#0f172a' }}>
+                        <span style={{ fontWeight: 700 }}>{suratMenyurat.outgoingPending}</span> surat keluar menunggu diproses
+                      </p>
+                    </div>
+                  )}
+                  {suratMenyurat.incomingMine.slice(0, 3).map((l: any) => (
+                    <div key={l.id} onClick={() => nav('letters-incoming')}
+                      className="p-3 rounded-xl cursor-pointer hover:opacity-80 transition-opacity"
+                      style={{ background: '#fffbeb', border: '1px solid #fde68a' }}>
+                      <p style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }} className="line-clamp-1">{l.subject || '(tanpa perihal)'}</p>
+                      <p style={{ fontSize: '11px', color: '#92400e' }}>
+                        {l.status === 'Didisposisikan' ? 'Menunggu Anda tindaklanjuti' : 'Menunggu Anda selesaikan'}
+                      </p>
+                    </div>
+                  ))}
+                  {suratMenyurat.incomingMine.length > 3 && (
+                    <p style={{ fontSize: '11px', color: '#94a3b8', textAlign: 'center', marginTop: '4px' }}>
+                      +{suratMenyurat.incomingMine.length - 3} surat masuk lainnya
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

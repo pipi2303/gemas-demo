@@ -60,7 +60,7 @@ interface IncomingLetterRecord {
   [key: string]: any;
 }
 
-async function hasPermission(req: AuthRequest, action: 'edit' | 'approve'): Promise<boolean> {
+async function hasPermission(req: AuthRequest, action: 'view' | 'edit' | 'approve'): Promise<boolean> {
   const role = req.user?.role;
   if (!role) return false;
   const customRoles = await getAll<any>('customRoles').catch(() => []);
@@ -100,6 +100,45 @@ async function notifyAssignee(letter: IncomingLetterRecord, assignedToUserId: st
     targetUserId: assignedToUserId,
   });
 }
+
+// ── Surat masuk yang didisposisikan ke SAYA (identity-based, bukan izin modul) ─
+// Dipakai staf yang ditugaskan tapi tidak punya izin modul 'letters-incoming'
+// (lihat komentar besar di atas import) — juga dipakai widget ringkasan di
+// Dashboard (Fase 4).
+router.get('/mine', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const all = await getAll<IncomingLetterRecord>('incomingLetters');
+    const mine = all.filter(l => l.disposisi?.assignedToUserId === req.user!.userId);
+    res.json(mine);
+  } catch (err) {
+    logger.error('GET incoming-letters/mine', { message: String(err) });
+    res.status(500).json({ error: 'Gagal mengambil surat masuk yang ditugaskan' });
+  }
+});
+
+// ── Lampiran satu surat — boleh diakses assignee surat itu ATAU pemegang izin
+// modul 'letters-incoming' (bukan generic /api/data/incomingLetterAttachments,
+// supaya assignee tanpa izin modul tidak perlu diberi akses baca ke SELURUH
+// koleksi lampiran surat masuk gereja, cukup lampiran surat yang ditugaskan
+// kepadanya) ─────────────────────────────────────────────────────────────────
+router.get('/:id/attachments', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const letter = await loadLetter(req.params.id);
+    if (!letter) { res.status(404).json({ error: 'Surat tidak ditemukan' }); return; }
+
+    const isAssignee = !!letter.disposisi?.assignedToUserId && letter.disposisi.assignedToUserId === req.user!.userId;
+    if (!isAssignee && !(await hasPermission(req, 'view'))) {
+      res.status(403).json({ error: 'Akses ditolak untuk operasi ini' });
+      return;
+    }
+
+    const all = await getAll<any>('incomingLetterAttachments');
+    res.json(all.filter((a: any) => a.letterId === letter.id));
+  } catch (err) {
+    logger.error('GET incoming-letters/:id/attachments', { message: String(err) });
+    res.status(500).json({ error: 'Gagal mengambil lampiran surat' });
+  }
+});
 
 // ── Disposisikan (Diterima|Didisposisikan → Didisposisikan) ────────────────
 // Boleh dipanggil ulang selama masih Didisposisikan untuk mengoreksi penugasan

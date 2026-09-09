@@ -231,3 +231,110 @@ describe('Surat Masuk & Disposisi — alur kerja (server/routes/incomingLetters.
     expect(res.status).toBe(400);
   });
 });
+
+// ============================================================
+// Fase 4 — endpoint identity-based /mine & /:id/attachments
+// ============================================================
+// Ditambahkan saat menyambungkan navigasi (Fase 4): GET /api/data/incomingLetters
+// & incomingLetterAttachments generik dicek di level MODUL (lihat
+// requirePermission() di server/middleware/checkPermission.ts), bukan per-record
+// — jadi staf yang ditugaskan lewat disposisi TAPI tidak punya izin modul
+// 'letters-incoming' (Operator/Ketua Sektor) tidak pernah bisa MELIHAT surat yang
+// ditugaskan kepadanya lewat jalur generik itu, walau endpoint transisi
+// (tindak-lanjut/selesai) sudah benar menerapkan assignee override. Dua endpoint
+// baru ini (identity-based, bukan permission-based) menutup celah itu.
+describe('GET /mine & /:id/attachments — akses identity-based untuk assignee tanpa izin modul', () => {
+  let app: any;
+  const admin = authHeader('tester-admin', { role: 'Admin' });
+  const majelis = authHeader('tester-majelis-mine', { role: 'Majelis' });
+
+  const assigneeUserId = uniqueCode('test-mine-assignee');
+  const otherUserId = uniqueCode('test-mine-lain');
+  const assigneeHeader = authHeader(assigneeUserId, { role: 'Operator', username: assigneeUserId });
+  const otherHeader = authHeader(otherUserId, { role: 'Operator', username: otherUserId });
+
+  let letterId: string;
+  let attachmentId: string;
+
+  beforeAll(async () => {
+    app = await getTestApp();
+
+    const seedUser = async (id: string) => {
+      const res = await request(app).put(`/api/data/users/${id}`).set('Authorization', admin).send({
+        id, name: id, email: `${id}@test.local`, username: id, password: 'testpass123', role: 'Operator', isActive: true,
+      });
+      expect(res.status).toBe(200);
+    };
+    await seedUser(assigneeUserId);
+    await seedUser(otherUserId);
+
+    const create = await request(app).post('/api/data/incomingLetters').set('Authorization', admin).send({
+      id: uniqueCode('inl-mine'),
+      receivedDate: '2026-01-01',
+      senderName: 'Jemaat Uji Mine',
+      subject: 'Surat Uji Coba /mine',
+      createdBy: 'tester-admin',
+    });
+    expect(create.status).toBe(200);
+    letterId = create.body.id;
+
+    const disposisikan = await request(app).put(`/api/incoming-letters/${letterId}/disposisikan`).set('Authorization', majelis).send({
+      assignedToUserId: assigneeUserId, instruction: 'Tolong cek surat ini',
+    });
+    expect(disposisikan.status).toBe(200);
+
+    attachmentId = uniqueCode('inlatt-mine');
+    const fakePdfBase64 = Buffer.from('%PDF-1.4 fake content for test').toString('base64');
+    const upload = await request(app).post('/api/data/incomingLetterAttachments').set('Authorization', admin).send({
+      id: attachmentId, letterId, fileName: 'scan-uji.pdf', fileSize: 100, mimeType: 'application/pdf',
+      fileData: fakePdfBase64, uploadedAt: new Date().toISOString(), uploadedBy: 'tester-admin',
+    });
+    expect(upload.status).toBe(200);
+  });
+
+  afterAll(async () => {
+    await request(app).delete(`/api/data/users/${assigneeUserId}`).set('Authorization', admin);
+    await request(app).delete(`/api/data/users/${otherUserId}`).set('Authorization', admin);
+    const pool = getPool();
+    await pool.query(`DELETE FROM gemas_store WHERE collection = 'incomingLetterAttachments' AND id = $1`, [attachmentId]);
+    await pool.query(`DELETE FROM gemas_store WHERE collection = 'incomingLetters' AND id = $1`, [letterId]);
+  });
+
+  it('GET /api/data/incomingLetters generik ditolak untuk Operator tanpa izin modul (baseline celah yang ditutup)', async () => {
+    const res = await request(app).get('/api/data/incomingLetters').set('Authorization', assigneeHeader);
+    expect(res.status).toBe(403);
+  });
+
+  it('GET /api/incoming-letters/mine — assignee (tanpa izin modul) melihat surat yang ditugaskan kepadanya', async () => {
+    const res = await request(app).get('/api/incoming-letters/mine').set('Authorization', assigneeHeader);
+    expect(res.status).toBe(200);
+    const rows = res.body as any[];
+    expect(rows.some(l => l.id === letterId)).toBe(true);
+  });
+
+  it('GET /api/incoming-letters/mine — staf lain (bukan assignee) TIDAK melihat surat ini', async () => {
+    const res = await request(app).get('/api/incoming-letters/mine').set('Authorization', otherHeader);
+    expect(res.status).toBe(200);
+    const rows = res.body as any[];
+    expect(rows.some(l => l.id === letterId)).toBe(false);
+  });
+
+  it('GET /api/incoming-letters/:id/attachments — assignee boleh melihat lampiran surat yang ditugaskan kepadanya', async () => {
+    const res = await request(app).get(`/api/incoming-letters/${letterId}/attachments`).set('Authorization', assigneeHeader);
+    expect(res.status).toBe(200);
+    const rows = res.body as any[];
+    expect(rows.some(a => a.id === attachmentId)).toBe(true);
+  });
+
+  it('GET /api/incoming-letters/:id/attachments — staf lain (bukan assignee, tanpa izin modul) ditolak', async () => {
+    const res = await request(app).get(`/api/incoming-letters/${letterId}/attachments`).set('Authorization', otherHeader);
+    expect(res.status).toBe(403);
+  });
+
+  it('GET /api/incoming-letters/:id/attachments — pemegang izin modul (Majelis) tetap boleh walau bukan assignee', async () => {
+    const res = await request(app).get(`/api/incoming-letters/${letterId}/attachments`).set('Authorization', majelis);
+    expect(res.status).toBe(200);
+    const rows = res.body as any[];
+    expect(rows.some(a => a.id === attachmentId)).toBe(true);
+  });
+});

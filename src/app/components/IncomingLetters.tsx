@@ -85,6 +85,15 @@ export function IncomingLetters() {
   const { currentUser, can, masterDataItems = [], users = [] } = useApp();
   const canCreate = can('letters-incoming', 'create');
   const canEditPerm = can('letters-incoming', 'edit');
+  // Staf yang ditugaskan lewat disposisi (mis. Operator/Ketua Sektor) tidak punya
+  // izin modul 'letters-incoming' sama sekali per DEFAULT_MATRIX — tapi tetap harus
+  // bisa MELIHAT & menindaklanjuti surat yang ditugaskan kepadanya ("assignee
+  // override", lihat server/routes/incomingLetters.ts). Tanpa hasModuleView ini,
+  // GET /api/data/incomingLetters (& incomingLetterAttachments) generik akan selalu
+  // 403 untuk staf itu — makanya loadList()/loadAttachments() di bawah beralih ke
+  // endpoint identity-based (/api/incoming-letters/mine & .../:id/attachments) saat
+  // hasModuleView bernilai false.
+  const hasModuleView = can('letters-incoming', 'view');
 
   const categoryOptions = useMemo(
     () => masterDataItems.filter(m => m.category === 'jenis_surat_masuk' && m.isActive).sort((a, b) => a.order - b.order),
@@ -119,25 +128,29 @@ export function IncomingLetters() {
   const loadList = useCallback(async () => {
     setLoading(true);
     try {
-      const rows = await api.get<IncomingLetter[]>('/api/data/incomingLetters');
+      const rows = hasModuleView
+        ? await api.get<IncomingLetter[]>('/api/data/incomingLetters')
+        : await api.get<IncomingLetter[]>('/api/incoming-letters/mine');
       setLetters(rows.sort((a, b) => (b.updatedAt || b.createdAt || '').localeCompare(a.updatedAt || a.createdAt || '')));
     } catch (err: any) {
       toast.error(err?.message || 'Gagal memuat daftar surat masuk');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [hasModuleView]);
 
   useEffect(() => { loadList(); }, [loadList]);
 
   const loadAttachments = useCallback(async (letterId: string) => {
     try {
-      const rows = await api.get<IncomingLetterAttachment[]>('/api/data/incomingLetterAttachments');
-      setAttachments(rows.filter(a => a.letterId === letterId));
+      const rows = hasModuleView
+        ? (await api.get<IncomingLetterAttachment[]>('/api/data/incomingLetterAttachments')).filter(a => a.letterId === letterId)
+        : await api.get<IncomingLetterAttachment[]>(`/api/incoming-letters/${letterId}/attachments`);
+      setAttachments(rows);
     } catch {
       setAttachments([]);
     }
-  }, []);
+  }, [hasModuleView]);
 
   const openNew = () => {
     setCurrent(emptyDraft(currentUser?.id || ''));
@@ -433,15 +446,17 @@ export function IncomingLetters() {
               <span className="text-sm text-slate-700 truncate flex items-center gap-2"><FileText className="w-3.5 h-3.5 text-slate-400" /> {att.fileName}</span>
               <div className="flex items-center gap-1">
                 <button onClick={() => downloadBase64Pdf(att.fileData, att.fileName)} className="p-1.5 rounded hover:bg-slate-100"><Download className="w-3.5 h-3.5 text-slate-500" /></button>
-                {isEditable && <button onClick={() => handleDeleteAttachment(att)} className="p-1.5 rounded hover:bg-red-50"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>}
+                {isEditable && hasModuleView && <button onClick={() => handleDeleteAttachment(att)} className="p-1.5 rounded hover:bg-red-50"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>}
               </div>
             </div>
           ))}
-          <label className="inline-flex items-center gap-1.5 text-xs font-medium cursor-pointer px-2.5 py-1.5 rounded-lg" style={{ background: '#e0f2fe', color: '#0369a1' }}>
-            {uploadingAttachment ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />} Tambah Lampiran (PDF, maks 2MB)
-            <input type="file" accept="application/pdf" className="hidden" disabled={uploadingAttachment}
-              onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) handleUploadAttachment(f); }} />
-          </label>
+          {hasModuleView && (
+            <label className="inline-flex items-center gap-1.5 text-xs font-medium cursor-pointer px-2.5 py-1.5 rounded-lg" style={{ background: '#e0f2fe', color: '#0369a1' }}>
+              {uploadingAttachment ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />} Tambah Lampiran (PDF, maks 2MB)
+              <input type="file" accept="application/pdf" className="hidden" disabled={uploadingAttachment}
+                onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) handleUploadAttachment(f); }} />
+            </label>
+          )}
         </Card>
       )}
 
