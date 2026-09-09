@@ -1169,7 +1169,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
 
       {/* ══ MODUL 3: KEUANGAN & PERSEMBAHAN ════════════════════════════════════ */}
       <div className="rounded-2xl p-6" style={{ background: 'white', border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-        <ModuleHeader icon={DollarSign} title="Keuangan & Persembahan" subtitle="Modul 3 · Persembahan & laporan keuangan gereja"
+        <ModuleHeader icon={DollarSign} title="Keuangan & Persembahan (Modul Klasik)" subtitle="Modul 3 · Persembahan & laporan keuangan gereja (terpisah dari Finance Add-on)"
           gradient="linear-gradient(135deg,#1A77A3,#2d9cdb)" action="Keuangan Gereja" onAction={() => nav('church-finance')} />
         <div className="flex gap-3 flex-wrap mb-5">
           <StatChip label="Total Persembahan" value={formatRp(s.offeringsTotal)}     color="#1A77A3" bg="#f0f7fb" icon={DollarSign}    trend={`${offerings.length} transaksi`} />

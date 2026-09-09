@@ -30,7 +30,8 @@ import { SectorDatabase } from './components/SectorDatabase';
 import { SacramentDatabase } from './components/SacramentDatabase';
 import { AttestationDatabase } from './components/AttestationDatabase';
 import { AssetManagement } from './components/AssetManagement';
-// NEW ORPHANED FEATURES
+// Modul database, laporan, aset & fasilitas (dulu sempat ditandai draft/orphaned —
+// sudah terhubung penuh ke AppContext, catatan lama dihapus supaya tidak menyesatkan)
 import { LaporanSensus } from './components/LaporanSensus';
 import { ReportCenter } from './components/ReportCenter';
 import { AidDistributionComponent } from './components/AidDistribution';

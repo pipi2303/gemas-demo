@@ -20,7 +20,7 @@ import { ArrowLeft, Inbox, Loader2, ShieldCheck, CheckCircle2, Landmark } from '
 import { TransactionDetail, Lookups } from './FinanceTransaction';
 import { FinancePageHeader } from './FinancePageHeader';
 
-const FINANCE_MODULE = 'Keuangan (Finance Add-on)';
+const FINANCE_MODULE = 'Finance Add-on (Standar Akuntansi)';
 
 function formatRp(n: unknown) {
   const v = Number(n ?? 0);

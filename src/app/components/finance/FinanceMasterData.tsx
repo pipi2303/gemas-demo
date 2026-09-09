@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { FinancePageHeader } from './FinancePageHeader';
 
-const FINANCE_MODULE = 'Keuangan (Finance Add-on)';
+const FINANCE_MODULE = 'Finance Add-on (Standar Akuntansi)';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatRp(n: unknown) {

@@ -1,6 +1,7 @@
 import React, { ReactNode, useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { NotificationBell } from './NotificationCenter';
+import { ThemeSwitcher } from './ThemeSwitcher';
 import { GlobalSearch } from './GlobalSearch';
 import {
   LayoutDashboard, Users, UserCog, User,
@@ -54,9 +55,9 @@ export const PAGE_LABELS: Record<string, { title: string; category: string }> = 
   livestream:            { title: 'Livestream & Pengingat', category: 'Peribadahan & Kegiatan' },
   attendance:            { title: 'Presensi Ibadah & QR', category: 'Peribadahan & Kegiatan' },
   announcements:         { title: 'Warta & Pengumuman', category: 'Peribadahan & Kegiatan' },
-  'church-finance':      { title: 'Kas & Rekening Gereja', category: 'Keuangan & Persembahan' },
-  offerings:             { title: 'Persembahan & QRIS', category: 'Keuangan & Persembahan' },
-  financial:             { title: 'Jurnal Transaksi & Laporan Keuangan', category: 'Keuangan & Persembahan' },
+  'church-finance':      { title: 'Kas & Rekening Gereja', category: 'Keuangan & Persembahan (Modul Klasik)' },
+  offerings:             { title: 'Persembahan & QRIS', category: 'Keuangan & Persembahan (Modul Klasik)' },
+  financial:             { title: 'Jurnal Transaksi & Laporan Keuangan', category: 'Keuangan & Persembahan (Modul Klasik)' },
   assets:                { title: 'Manajemen Aset & Inventaris', category: 'Fasilitas & Inventaris' },
   'room-booking':        { title: 'Peminjaman Ruangan & Fasilitas', category: 'Fasilitas & Inventaris' },
   'resource-library':    { title: 'Perpustakaan Digital', category: 'Fasilitas & Inventaris' },
@@ -69,16 +70,16 @@ export const PAGE_LABELS: Record<string, { title: string; category: string }> = 
   data:                  { title: 'Pusat Manajemen Data', category: 'Admin Sistem' },
   'master-data':         { title: 'Pengaturan Master Data', category: 'Admin Sistem' },
   activity:              { title: 'Log Aktivitas Sistem', category: 'Admin Sistem' },
-  'finance-addon':         { title: 'Ringkasan Finance', category: 'Finance' },
-  'finance-master-data':   { title: 'Master Data Finance', category: 'Finance' },
-  'finance-budget':        { title: 'Budget / RKA', category: 'Finance' },
-  'finance-transaction':   { title: 'Transaksi & Voucher', category: 'Finance' },
-  'finance-approval':      { title: 'Verifikasi & Persetujuan', category: 'Finance' },
-  'finance-ledger':        { title: 'Buku Besar (GL)', category: 'Finance' },
-  'finance-reconciliation':{ title: 'Rekonsiliasi Bank', category: 'Finance' },
-  'finance-period-closing':{ title: 'Penutupan Periode', category: 'Finance' },
-  'finance-reports':       { title: 'Laporan Keuangan', category: 'Finance' },
-  'finance-dashboard':     { title: 'Dashboard Finance', category: 'Finance' },
+  'finance-addon':         { title: 'Ringkasan Finance', category: 'Finance Add-on (Standar Akuntansi)' },
+  'finance-master-data':   { title: 'Master Data Finance', category: 'Finance Add-on (Standar Akuntansi)' },
+  'finance-budget':        { title: 'Budget / RKA', category: 'Finance Add-on (Standar Akuntansi)' },
+  'finance-transaction':   { title: 'Transaksi & Voucher', category: 'Finance Add-on (Standar Akuntansi)' },
+  'finance-approval':      { title: 'Verifikasi & Persetujuan', category: 'Finance Add-on (Standar Akuntansi)' },
+  'finance-ledger':        { title: 'Buku Besar (GL)', category: 'Finance Add-on (Standar Akuntansi)' },
+  'finance-reconciliation':{ title: 'Rekonsiliasi Bank', category: 'Finance Add-on (Standar Akuntansi)' },
+  'finance-period-closing':{ title: 'Penutupan Periode', category: 'Finance Add-on (Standar Akuntansi)' },
+  'finance-reports':       { title: 'Laporan Keuangan', category: 'Finance Add-on (Standar Akuntansi)' },
+  'finance-dashboard':     { title: 'Dashboard Finance', category: 'Finance Add-on (Standar Akuntansi)' },
 };
 
 function ProfileDropdown({ user, onLogout, onClose }: { user: any; onLogout: () => void; onClose: () => void }) {
@@ -205,7 +206,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
     },
     {
       id: 'keuangan',
-      label: 'Keuangan & Persembahan',
+      label: 'Keuangan & Persembahan (Modul Klasik)',
       icon: DollarSign,
       items: [
         { id: 'church-finance', label: 'Kas & Rekening Gereja', page: 'church-finance', icon: DollarSign },
@@ -215,7 +216,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
     },
     {
       id: 'finance-addon',
-      label: 'Finance',
+      label: 'Finance Add-on (Standar Akuntansi)',
       icon: Landmark,
       items: [
         { id: 'finance-dashboard',   label: 'Dashboard Finance',     page: 'finance-dashboard',   icon: LayoutDashboard },
@@ -331,6 +332,9 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
 
           {/* Notification Bell */}
           <NotificationBell dark />
+
+          {/* Theme Switcher (Mode Terang/Gelap) */}
+          <ThemeSwitcher dark />
 
           {/* User Role Pill Button */}
           <div className="relative">

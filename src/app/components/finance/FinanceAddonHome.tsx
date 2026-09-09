@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Landmark, CheckCircle2, AlertTriangle, Loader2, Database, Layers, ArrowRight, ShieldCheck,
   ClipboardList, Receipt, Inbox, BookOpen, ArrowLeftRight, CalendarCheck, FileBarChart, LayoutDashboard,
 } from 'lucide-react';
 import { api } from '../../../lib/apiClient';
 import { FinancePageHeader } from './FinancePageHeader';
+import { ModuleSeparationNote } from '../ModuleSeparationNote';
 
 interface FinanceStatus {
   schemaReady: boolean;
@@ -105,6 +106,8 @@ export function FinanceAddonHome({ onNavigate }: { onNavigate?: (page: string) =
         ]}
       />
 
+      <ModuleSeparationNote variant="addon" />
+
       {/* Status card */}
       <div className="bg-white rounded-xl border border-slate-200 p-5">
         <div className="flex items-center gap-2 mb-4">
@@ -171,7 +174,7 @@ export function FinanceAddonHome({ onNavigate }: { onNavigate?: (page: string) =
         </div>
         <ul className="text-sm text-slate-600 space-y-1.5">
           <li>• Skema <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">finance</code> terpisah dari data GEMAS yang ada (23 tabel, 10 enum, fungsi &amp; view validasi)</li>
-          <li>• Modul permission baru <strong>"Keuangan (Finance Add-on)"</strong> — akses diatur lewat menu Peran &amp; Hak Akses seperti modul lain</li>
+          <li>• Modul permission baru <strong>"Finance Add-on (Standar Akuntansi)"</strong> — akses diatur lewat menu Peran &amp; Hak Akses seperti modul lain</li>
           <li>• Endpoint <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">/api/v1/finance/*</code> terdaftar terpisah dari <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">/api/data</code> generic</li>
           <li>• Modul Keuangan &amp; Persembahan yang lama tetap berjalan seperti biasa selama masa transisi</li>
         </ul>

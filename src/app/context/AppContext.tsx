@@ -1940,12 +1940,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (currentUser) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menambahkan', entityType: 'AidDistribution', entityId: newAid.id, amount: newAid.amount, entityName: newAid.recipientName, details: `Pengajuan bantuan baru — ${newAid.type}` });
   };
 
+  // Status Distribusi Bantuan bisa berupa label Master Data yang sudah diedit
+  // admin (lihat komentar normStatusBantuan di AidDistribution.tsx) -- normalisasi
+  // ringan yang sama supaya pencatatan keuangan tidak diam-diam berhenti mendeteksi
+  // "Disalurkan" hanya karena labelnya diubah dari default.
+  const normAidStatus = (status?: string): string => {
+    const s = (status || '').toLowerCase();
+    if (s === 'disalurkan' || s.includes('salur')) return 'Disalurkan';
+    return status || '';
+  };
+
   const updateAidDistribution = (id: string, data: Partial<AidDistribution>) => {
     const existing = aidDistributions.find(a => a.id === id);
     const updated = existing ? { ...existing, ...data, updatedAt: new Date().toISOString() } : null;
     setAidDistributions(prev => prev.map(a => a.id === id ? { ...a, ...data, updatedAt: new Date().toISOString() } : a));
     if (updated) apiSave('aidDistributions', id, updated);
     if (currentUser && existing) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Mengubah', entityType: 'AidDistribution', entityId: id, amount: data.amount ?? existing.amount, entityName: existing.recipientName, details: `Bantuan diperbarui — status: ${data.status ?? existing.status}` });
+
+    // Integration (audit gap fix): dana diakonia yang benar-benar disalurkan
+    // sebelumnya tidak pernah tercatat sebagai transaksi keuangan sama sekali --
+    // hanya jadi catatan layanan. Begitu status baru saja pindah ke "Disalurkan"
+    // (dan belum pernah dicatat sebelumnya), catat sebagai beban di jurnal
+    // transaksi lama supaya uang yang keluar dari kas gereja punya jejak akuntansi.
+    if (updated && normAidStatus(data.status) === 'Disalurkan' && normAidStatus(existing?.status) !== 'Disalurkan') {
+      const amount = updated.amount;
+      if (amount && amount > 0) {
+        addFinancialRecord({
+          date: updated.distributedDate || new Date().toISOString().slice(0, 10),
+          type: 'expense',
+          category: 'Pelayanan & Diakonia',
+          amount,
+          description: `Distribusi Bantuan: ${updated.type} — ${updated.recipientName}`,
+          reference: updated.id,
+          recordedBy: currentUser?.name || 'Sistem',
+          recordedById: currentUser?.id || 'sys',
+        });
+      }
+    }
   };
 
   const deleteAidDistribution = (id: string) => {
@@ -2609,12 +2640,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
       { id: 'announcements', label: 'Pengumuman', keywords: ['pengumuman', 'informasi', 'announcement'], icon: 'megaphone', page: 'announcements' },
       { id: 'attendance', label: 'Absensi & Kehadiran', keywords: ['absensi', 'kehadiran', 'hadir', 'attendance'], icon: 'check-square', page: 'attendance' },
       { id: 'schedule', label: 'Jadwal Pelayan', keywords: ['jadwal pelayan', 'petugas ibadah', 'piket'], icon: 'list-checks', page: 'worship-schedules' },
-      { id: 'reports', label: 'Laporan', keywords: ['laporan umum', 'report'], icon: 'file-bar-chart', page: 'reports' },
+      { id: 'report-center', label: 'Pusat Laporan Konsolidasi', keywords: ['laporan umum', 'report', 'pusat laporan', 'laporan konsolidasi', 'cetak laporan'], icon: 'file-bar-chart', page: 'report-center' },
       { id: 'users', label: 'List User', keywords: ['pengguna', 'user', 'akun sistem', 'admin'], icon: 'user-cog', page: 'users' },
       { id: 'roles', label: 'Manajemen Roles', keywords: ['roles', 'hak akses', 'permission', 'izin akses'], icon: 'shield-check', page: 'roles' },
       { id: 'backup', label: 'Backup Data & Aplikasi', keywords: ['backup', 'restore', 'pulihkan', 'sinkron', 'ekspor', 'integritas'], icon: 'hard-drive', page: 'backup' },
       { id: 'data', label: 'Manajemen Data', keywords: ['import data', 'export data', 'migrasi'], icon: 'database', page: 'data' },
       { id: 'activity', label: 'Log Aktivitas', keywords: ['log aktivitas', 'riwayat', 'history sistem'], icon: 'activity', page: 'activity' },
+      { id: 'resource-library', label: 'Perpustakaan Digital', keywords: ['perpustakaan', 'resource', 'dokumen', 'unduhan', 'e-book'], icon: 'library', page: 'resource-library' },
+      { id: 'sermon-archive', label: 'Arsip Khotbah & Renungan', keywords: ['khotbah', 'renungan', 'arsip khotbah', 'sermon'], icon: 'book-open', page: 'sermon-archive' },
+      { id: 'room-booking', label: 'Peminjaman Ruangan & Fasilitas', keywords: ['ruangan', 'peminjaman', 'booking ruangan', 'sewa aula'], icon: 'door-open', page: 'room-booking' },
+      { id: 'aid-distribution', label: 'Distribusi Bantuan Sosial', keywords: ['bantuan sosial', 'diakonia', 'distribusi bantuan'], icon: 'gift', page: 'aid-distribution' },
+      { id: 'master-data-settings', label: 'Pengaturan Master Data', keywords: ['master data', 'pengaturan sistem', 'daftar pilihan'], icon: 'database', page: 'master-data' },
+      { id: 'finance-addon', label: 'Ringkasan Finance', keywords: ['finance add-on', 'ringkasan finance', 'keuangan add-on'], icon: 'landmark', page: 'finance-addon' },
+      { id: 'finance-master-data', label: 'Master Data Finance', keywords: ['master data finance', 'akun', 'coa', 'chart of accounts'], icon: 'database', page: 'finance-master-data' },
+      { id: 'finance-budget', label: 'Budget / RKA', keywords: ['anggaran finance', 'rka', 'budget finance'], icon: 'calculator', page: 'finance-budget' },
+      { id: 'finance-transaction', label: 'Transaksi & Voucher', keywords: ['voucher', 'transaksi finance', 'jurnal transaksi'], icon: 'receipt', page: 'finance-transaction' },
+      { id: 'finance-approval', label: 'Verifikasi & Persetujuan', keywords: ['approval', 'verifikasi transaksi', 'persetujuan transaksi'], icon: 'clipboard-list', page: 'finance-approval' },
+      { id: 'finance-ledger', label: 'Buku Besar (GL)', keywords: ['buku besar', 'general ledger', 'gl'], icon: 'book-open', page: 'finance-ledger' },
+      { id: 'finance-reconciliation', label: 'Rekonsiliasi Bank', keywords: ['rekonsiliasi', 'rekonsiliasi bank', 'mutasi bank'], icon: 'arrow-left-right', page: 'finance-reconciliation' },
+      { id: 'finance-period-closing', label: 'Penutupan Periode', keywords: ['tutup buku', 'penutupan periode', 'closing periode'], icon: 'calendar-check', page: 'finance-period-closing' },
+      { id: 'finance-reports', label: 'Laporan Keuangan Finance', keywords: ['neraca', 'laporan aktivitas', 'realisasi anggaran', 'laporan keuangan finance'], icon: 'file-bar-chart', page: 'finance-reports' },
+      { id: 'finance-dashboard', label: 'Dashboard Finance', keywords: ['dashboard finance', 'ringkasan keuangan finance'], icon: 'layout-dashboard', page: 'finance-dashboard' },
     ];
 
     // Feature / Halaman

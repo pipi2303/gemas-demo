@@ -3,6 +3,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { useApp } from '../context/AppContext';
 import { useDraggable } from '../../lib/useDraggable';
 import { api } from '../../lib/apiClient';
+import { ModuleSeparationNote } from './ModuleSeparationNote';
 import { toast } from 'sonner';
 import {
   Landmark, TrendingUp, TrendingDown, Wallet, Plus, X, Search, Eye,
@@ -577,8 +578,8 @@ function DonutPieChart({ data, total, colors, emptyMsg }: {
 function FinanceDocumentsModal({ item, label, onClose }: { item: any; label: string; onClose: () => void }) {
   const { offset, onMouseDown } = useDraggable();
   const { can: canFn, currentUser } = useApp();
-  const canEditDocs   = canFn('Keuangan & Persembahan', 'edit');
-  const canDeleteDocs = canFn('Keuangan & Persembahan', 'delete');
+  const canEditDocs   = canFn('Keuangan & Persembahan (Modul Klasik)', 'edit');
+  const canDeleteDocs = canFn('Keuangan & Persembahan (Modul Klasik)', 'delete');
 
   const [docs, setDocs] = useState<FinanceDocument[]>([]);
   const [uploadingDoc, setUploadingDoc] = useState(false);
@@ -1204,6 +1205,8 @@ export function ChurchFinanceHub() {
           )}
         </div>
       </div>
+
+      <ModuleSeparationNote variant="legacy" />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

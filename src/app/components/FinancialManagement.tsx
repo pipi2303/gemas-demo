@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
+import { ModuleSeparationNote } from './ModuleSeparationNote';
 import { toast } from 'sonner';
 import { useDraggable } from '../../lib/useDraggable';
 import { useResizableColumns } from '../../hooks/useResizableColumns';
@@ -639,7 +640,7 @@ export function FinancialManagement() {
         <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: 'radial-gradient(circle,rgba(255,255,255,0.9) 1px,transparent 1px)', backgroundSize: '20px 20px' }} />
         <div className="relative flex items-center justify-between flex-wrap gap-5">
           <div>
-            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>Modul 3 · Keuangan & Persembahan</p>
+            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>Modul 3 · Keuangan & Persembahan (Modul Klasik)</p>
             <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '24px', fontWeight: 800, color: 'white', lineHeight: 1.2 }}>Laporan Keuangan</h1>
             <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.65)', marginTop: '4px' }}>Pemasukan · Pengeluaran · Saldo Kas Gereja</p>
           </div>
@@ -657,6 +658,8 @@ export function FinancialManagement() {
           </div>
         </div>
       </div>
+
+      <ModuleSeparationNote variant="legacy" />
 
       {/* ── KPI CARDS ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
