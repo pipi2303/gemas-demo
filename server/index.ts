@@ -84,12 +84,22 @@ async function startServer() {
   const PORT = 3000;
 
   // ── Vite middleware (dev) / Static asset serving (prod) ───────────────────────
+  const cspHeader = "default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data: https:; style-src 'self' 'unsafe-inline' https:; worker-src 'self' blob: data:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss: ws: data: blob:;";
+
+  app.use((_req, res, next) => {
+    res.setHeader('Content-Security-Policy', cspHeader);
+    next();
+  });
+
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: {
         middlewareMode: true,
         host: '0.0.0.0',
         port: PORT,
+        headers: {
+          'Content-Security-Policy': cspHeader,
+        },
         hmr: {
           clientPort: 443,
         },

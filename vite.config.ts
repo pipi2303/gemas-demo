@@ -143,8 +143,16 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 3000,
+    headers: {
+      'Content-Security-Policy': "default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data: https:; style-src 'self' 'unsafe-inline' https:; worker-src 'self' blob: data:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss: ws: data: blob:;",
+    },
     hmr: {
       clientPort: 443,
+    },
+  },
+  preview: {
+    headers: {
+      'Content-Security-Policy': "default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data: https:; style-src 'self' 'unsafe-inline' https:; worker-src 'self' blob: data:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss: ws: data: blob:;",
     },
   },
 

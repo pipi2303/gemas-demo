@@ -122,9 +122,24 @@ export function FinancePageHeader({
         {/* Left Title & Status */}
         <div className="space-y-1.5">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight" title={title}>
               {title}
             </h1>
+
+            {/* Refresh Button Sejajar dengan Judul */}
+            {onRefresh && (
+              <button
+                type="button"
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                className="inline-flex items-center justify-center p-1.5 sm:p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/90 text-slate-500 hover:text-[#1A77A3] hover:border-[#1A77A3] shadow-2xs transition-all disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#1A77A3]/30"
+                title="Segarkan Data Real-Time"
+                aria-label="Segarkan Data Real-Time"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#1A77A3]' : ''}`} />
+              </button>
+            )}
+
             {statusBadge ? (
               <span
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border shadow-2xs ${getBadgeStyle(
@@ -217,18 +232,6 @@ export function FinancePageHeader({
               </div>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 pointer-events-none group-hover:text-slate-600 transition-colors" />
             </div>
-          )}
-
-          {/* Refresh Button */}
-          {onRefresh && (
-            <button
-              onClick={onRefresh}
-              disabled={isRefreshing}
-              className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-[#1A77A3] hover:border-[#1A77A3] shadow-2xs transition-all disabled:opacity-50"
-              title="Segarkan Data Real-Time"
-            >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#1A77A3]' : ''}`} />
-            </button>
           )}
 
           {/* Print Button */}

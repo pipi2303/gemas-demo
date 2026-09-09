@@ -873,7 +873,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Initialize — validasi token lalu load data
   useEffect(() => {
     const storedTheme = localStorage.getItem('theme');
-    if (storedTheme) setTheme(JSON.parse(storedTheme));
+    if (storedTheme) {
+      try {
+        setTheme(JSON.parse(storedTheme));
+      } catch {
+        localStorage.removeItem('theme');
+      }
+    }
 
     const checkAuth = async () => {
       const token = localStorage.getItem('token') || localStorage.getItem('gemas_token');
@@ -972,9 +978,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [currentUser?.id, events.length]);
 
   // ── Local demo user (hanya untuk preview lokal tanpa server) ────────────────
-  const LOCAL_USERS: Record<string, User> = JSON.parse(
-    localStorage.getItem('gemas_local_users') || '{}'
-  );
+  const LOCAL_USERS: Record<string, User> = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('gemas_local_users') || '{}');
+    } catch {
+      return {};
+    }
+  })();
   if (!LOCAL_USERS['pipi']) {
     LOCAL_USERS['pipi'] = { id:'local-pipi', name:'Pipi Administrator', email:'pipi@local', username:'pipi', password:'pipi123', role:'Admin', isActive:true };
     localStorage.setItem('gemas_local_users', JSON.stringify(LOCAL_USERS));

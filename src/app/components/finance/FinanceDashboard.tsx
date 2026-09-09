@@ -137,7 +137,14 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
 
   // Handle Print Action
   const handlePrint = () => {
-    window.print();
+    if (typeof window !== 'undefined' && window.self !== window.top) {
+      toast.info('Tips: Jika dialog cetak terhalang oleh sandbox preview, buka aplikasi di Tab Baru (Open in New Tab) untuk mencetak langsung.');
+    }
+    try {
+      window.print();
+    } catch {
+      toast.info('Silakan buka aplikasi di tab baru untuk mencetak dokumen.');
+    }
   };
 
   if (loading) {
@@ -156,7 +163,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
           <AlertTriangle className="w-10 h-10 text-amber-600 mx-auto mb-3" />
           <h3 className="text-base font-semibold text-amber-900 mb-1">Tahun Fiskal Belum Tersedia</h3>
           <p className="text-xs text-amber-700 mb-4">
-            Silakan buat dan aktifkan Tahun Fiskal terlebih dahulu melalui menu Master Data & Fiskal.
+            Silakan buat dan aktifkan Tahun Fiskal terlebih dahulu melalui menu Master Data Finance.
           </p>
           {onNavigate && (
             <button

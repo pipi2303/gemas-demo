@@ -307,11 +307,15 @@ export function FinanceLedger({ onNavigate }: { onNavigate?: (page: string) => v
     callApi<any[]>(`/api/v1/finance/fiscal-years/${fiscalYearId}/periods`).then(setPeriods).catch(() => setPeriods([]));
   }, [fiscalYearId]);
 
+  const [refreshKey, setRefreshKey] = useState(0);
+  const handleRefresh = useCallback(() => {
+    setRefreshKey(k => k + 1);
+  }, []);
+
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
       <FinancePageHeader
         title="Buku Besar (GL) & Neraca Saldo"
-        subtitle="Mutasi saldo berjalan dan verifikasi keseimbangan Neraca Saldo dari jurnal terposting"
         currentSection="Buku Besar & Jurnal"
         onNavigate={onNavigate}
         fiscalYears={fiscalYears}
@@ -319,6 +323,7 @@ export function FinanceLedger({ onNavigate }: { onNavigate?: (page: string) => v
         onFiscalYearChange={setFiscalYearId}
         systemBadge="Double-Entry General Ledger"
         metaBadge="Real-time Balances"
+        onRefresh={handleRefresh}
         secondaryActions={
           <div className="flex gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80">
             <button
@@ -378,8 +383,8 @@ export function FinanceLedger({ onNavigate }: { onNavigate?: (page: string) => v
       {!lookupsError && fiscalYears.length > 0 && (
         <>
           {tab === 'entries'
-            ? <LedgerEntriesTab fiscalYearId={fiscalYearId} accounts={accounts} />
-            : <TrialBalanceTab fiscalYearId={fiscalYearId} periods={periods} />}
+            ? <LedgerEntriesTab key={`entries-${refreshKey}`} fiscalYearId={fiscalYearId} accounts={accounts} />
+            : <TrialBalanceTab key={`tb-${refreshKey}`} fiscalYearId={fiscalYearId} periods={periods} />}
         </>
       )}
     </div>

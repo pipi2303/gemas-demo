@@ -919,8 +919,7 @@ export function FinanceMasterData({ onNavigate }: { onNavigate?: (page: string) 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
       <FinancePageHeader
-        title="Master Data & Periode Fiskal"
-        subtitle="Struktur Chart of Accounts, Bidang Pelayanan Sinodal, Rekening Kas/Bank, dan Kalender Fiskal"
+        title="Master Data Finance"
         currentSection="Master Data & Konfigurasi"
         onNavigate={onNavigate}
         systemBadge="Standar Kodefikasi Sinodal"

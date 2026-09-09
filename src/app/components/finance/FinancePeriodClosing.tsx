@@ -266,7 +266,7 @@ export function FinancePeriodClosing({ onNavigate }: { onNavigate?: (page: strin
   }
 
   if (fiscalYears.length === 0) {
-    return <div className="max-w-5xl mx-auto p-4 md:p-6"><p className="text-sm text-slate-500">Belum ada Tahun Fiskal — buat dulu lewat menu Master Data & Fiskal.</p></div>;
+    return <div className="max-w-5xl mx-auto p-4 md:p-6"><p className="text-sm text-slate-500">Belum ada Tahun Fiskal — buat dulu lewat menu Master Data Finance.</p></div>;
   }
 
   if (selectedPeriodId) {
@@ -284,7 +284,6 @@ export function FinancePeriodClosing({ onNavigate }: { onNavigate?: (page: strin
     <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
       <FinancePageHeader
         title="Penutupan Periode Fiskal (Closing)"
-        subtitle="Tutup buku bertahap per bulan — Validasi transaksi final, rekonsiliasi kas/bank, dan realisasi anggaran"
         currentSection="Penutupan Periode"
         onNavigate={onNavigate}
         fiscalYears={fiscalYears}

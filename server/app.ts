@@ -91,6 +91,17 @@ export function createApp() {
   app.use('/api/v1/finance/reports', financeReportsRoutes);
   app.use('/api/v1/finance/dashboard', financeDashboardRoutes);
 
+  // Tangani seluruh request /api yang belum ter-handle agar tidak pernah jatuh ke Vite SPA index.html (<!doctype html>)
+  app.use('/api', (req: Request, res: Response) => {
+    res.status(404).json({
+      success: false,
+      error: {
+        code: 'NOT_FOUND',
+        message: `Endpoint API tidak ditemukan: ${req.method} ${req.originalUrl}`,
+      },
+    });
+  });
+
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     logger.error('Unhandled error', { message: err.message });
     res.status(500).json({ error: 'Internal server error' });

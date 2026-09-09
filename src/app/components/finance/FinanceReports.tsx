@@ -285,6 +285,22 @@ export function FinanceReports({ onNavigate }: { onNavigate?: (page: string) => 
     try { return await callApi<any[]>(`/api/v1/finance/fiscal-years/${fyId}/periods`); } catch { return []; }
   }, []);
 
+  const [refreshKey, setRefreshKey] = useState(0);
+  const handleRefresh = useCallback(() => {
+    setRefreshKey(k => k + 1);
+  }, []);
+
+  const handlePrint = useCallback(() => {
+    if (typeof window !== 'undefined' && window.self !== window.top) {
+      toast.info('Tips: Jika dialog cetak terhalang oleh sandbox preview, buka aplikasi di Tab Baru (Open in New Tab) untuk mencetak langsung.');
+    }
+    try {
+      window.print();
+    } catch {
+      toast.info('Silakan buka aplikasi di tab baru untuk mencetak dokumen.');
+    }
+  }, []);
+
   const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: 'balance-sheet', label: 'Neraca', icon: Scale },
     { key: 'activity-statement', label: 'Laporan Aktivitas', icon: TrendingUp },
@@ -295,12 +311,12 @@ export function FinanceReports({ onNavigate }: { onNavigate?: (page: string) => 
     <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
       <FinancePageHeader
         title="Laporan Keuangan Sinodal"
-        subtitle="Neraca Keuangan, Laporan Aktivitas, dan Realisasi Anggaran — dihitung otomatis dari jurnal terposting"
         currentSection="Laporan Keuangan"
         onNavigate={onNavigate}
         systemBadge="PSAK 45 / ISAK 35"
         metaBadge="Real-time Financials"
-        onPrint={() => window.print()}
+        onRefresh={handleRefresh}
+        onPrint={handlePrint}
         secondaryActions={
           <div className="flex gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80">
             {TABS.map(t => (
@@ -344,12 +360,12 @@ export function FinanceReports({ onNavigate }: { onNavigate?: (page: string) => 
       />
 
       {loading && <div className="flex items-center justify-center py-16 text-slate-400"><Loader2 className="w-5 h-5 animate-spin mr-2" /> Memuat…</div>}
-      {!loading && fiscalYears.length === 0 && <p className="text-sm text-slate-500">Belum ada Tahun Fiskal — buat dulu lewat menu Master Data & Fiskal.</p>}
+      {!loading && fiscalYears.length === 0 && <p className="text-sm text-slate-500">Belum ada Tahun Fiskal — buat dulu lewat menu Master Data Finance.</p>}
       {!loading && fiscalYears.length > 0 && (
         <>
-          {tab === 'balance-sheet' && <BalanceSheetTab />}
-          {tab === 'activity-statement' && <ActivityStatementTab funds={funds} />}
-          {tab === 'budget-realization' && <BudgetRealizationTab fiscalYears={fiscalYears} periodsByFy={periodsByFy} />}
+          {tab === 'balance-sheet' && <BalanceSheetTab key={`bs-${refreshKey}`} />}
+          {tab === 'activity-statement' && <ActivityStatementTab key={`as-${refreshKey}`} funds={funds} />}
+          {tab === 'budget-realization' && <BudgetRealizationTab key={`br-${refreshKey}`} fiscalYears={fiscalYears} periodsByFy={periodsByFy} />}
         </>
       )}
     </div>

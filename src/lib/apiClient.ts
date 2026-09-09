@@ -24,27 +24,48 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(url, {
-    method,
-    credentials: 'include', // kirim httpOnly cookie otomatis jika didukung browser
-    headers,
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method,
+      credentials: 'include', // kirim httpOnly cookie otomatis jika didukung browser
+      headers,
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    });
+  } catch (err: any) {
+    throw new Error(err?.message || 'Gagal terhubung ke server');
+  }
+
+  // Baca respons sebagai teks terlebih dahulu untuk menghindari crash 'Unexpected token <' jika server mengembalikan HTML
+  const text = await res.text().catch(() => '');
+  let payload: any = null;
+  if (text) {
+    try {
+      payload = JSON.parse(text);
+    } catch {
+      // Jika respons berupa HTML (mis. 502/503 atau fallback SPA Vite saat server me-restart)
+      if (text.trim().startsWith('<')) {
+        if (!res.ok) {
+          throw new Error(`Server error (${res.status}): Layanan sedang memuat. Coba beberapa saat lagi.`);
+        }
+        throw new Error(`Endpoint ${url} tidak tersedia (respons halaman web, bukan data JSON).`);
+      }
+      payload = { error: text.slice(0, 150) };
+    }
+  }
 
   if (res.status === 401) {
     if (!url.includes('/api/auth/login')) {
       clearToken();
     }
-    const payload = await res.json().catch(() => ({ error: 'Username atau password salah' }));
-    throw new Error(payload.error || 'Unauthorized');
+    throw new Error(payload?.error || payload?.message || 'Sesi telah berakhir atau tidak memiliki izin');
   }
 
   if (!res.ok) {
-    const payload = await res.json().catch(() => ({ error: 'Network error' }));
-    throw new Error(payload.error || `HTTP ${res.status}`);
+    throw new Error(payload?.error || payload?.message || `HTTP ${res.status}`);
   }
 
-  return res.json() as Promise<T>;
+  return (payload ?? {}) as T;
 }
 
 export const api = {

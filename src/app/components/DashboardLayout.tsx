@@ -70,7 +70,7 @@ export const PAGE_LABELS: Record<string, { title: string; category: string }> = 
   'master-data':         { title: 'Pengaturan Master Data', category: 'Admin Sistem' },
   activity:              { title: 'Log Aktivitas Sistem', category: 'Admin Sistem' },
   'finance-addon':         { title: 'Ringkasan Finance', category: 'Finance' },
-  'finance-master-data':   { title: 'Master Data & Fiskal', category: 'Finance' },
+  'finance-master-data':   { title: 'Master Data Finance', category: 'Finance' },
   'finance-budget':        { title: 'Budget / RKA', category: 'Finance' },
   'finance-transaction':   { title: 'Transaksi & Voucher', category: 'Finance' },
   'finance-approval':      { title: 'Verifikasi & Persetujuan', category: 'Finance' },
@@ -146,6 +146,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
     jemaat: true,
     peribadahan: false,
     keuangan: false,
+    'finance-addon': false,
     fasilitas: false,
     diakonia: false,
     admin: false,
@@ -153,7 +154,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [tooltip, setTooltip] = useState<{ label: string; y: number } | null>(null);
+  const [tooltip, setTooltip] = useState<{ label: string; x?: number; y: number } | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [now, setNow] = useState(new Date());
 
@@ -218,7 +219,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
       icon: Landmark,
       items: [
         { id: 'finance-dashboard',   label: 'Dashboard Finance',     page: 'finance-dashboard',   icon: LayoutDashboard },
-        { id: 'finance-master-data', label: 'Master Data & Fiskal',  page: 'finance-master-data', icon: Layers },
+        { id: 'finance-master-data', label: 'Master Data Finance',   page: 'finance-master-data', icon: Layers },
         { id: 'finance-budget',      label: 'Budget / RKA',          page: 'finance-budget',      icon: ClipboardList },
         { id: 'finance-transaction', label: 'Transaksi & Voucher',   page: 'finance-transaction', icon: Receipt },
         { id: 'finance-approval',    label: 'Verifikasi & Persetujuan', page: 'finance-approval', icon: Inbox },
@@ -455,7 +456,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
 
               if (visibleItems.length === 0) return null;
 
-              const isExpanded = expandedSections[section.id] ?? true;
+              const isExpanded = expandedSections[section.id] ?? false;
               const hasActiveChild = visibleItems.some(i => i.page === currentPage);
               const SectionIcon = section.icon;
 
@@ -469,7 +470,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <SectionIcon className="w-3.5 h-3.5 text-amber-300/70 flex-shrink-0" />
-                        <span className="text-[10.5px] font-bold uppercase tracking-wider truncate" style={{ color: '#d8c29d' }}>
+                        <span className="text-[10.5px] font-bold uppercase tracking-wider truncate" style={{ color: '#d8c29d' }} title={section.label}>
                           {section.label}
                         </span>
                       </div>
@@ -498,9 +499,17 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
                               if (sidebarCollapsed) {
                                 const rect = e.currentTarget.getBoundingClientRect();
                                 setTooltip({ label: item.label, y: rect.top + rect.height / 2 });
+                              } else {
+                                const span = e.currentTarget.querySelector('.nav-item-label') as HTMLElement | null;
+                                if (span && span.scrollWidth > span.clientWidth) {
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  setTooltip({ label: item.label, x: rect.right + 10, y: rect.top + rect.height / 2 });
+                                }
                               }
                             }}
-                            onMouseLeave={() => sidebarCollapsed && setTooltip(null)}
+                            onMouseLeave={() => setTooltip(null)}
+                            title={item.label}
+                            aria-label={item.label}
                             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-all duration-150 ${
                               active
                                 ? 'text-white font-bold shadow-xs'
@@ -522,7 +531,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
 
                             {!sidebarCollapsed && (
                               <div className="flex-1 flex items-center justify-between min-w-0">
-                                <span className="truncate text-xs leading-tight">
+                                <span className="nav-item-label truncate text-xs leading-tight" title={item.label}>
                                   {item.label}
                                 </span>
                                 {item.badge !== undefined && (
@@ -568,18 +577,22 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
           </div>
         </aside>
 
-        {/* Floating Tooltip in Collapsed Mode */}
-        {sidebarCollapsed && tooltip && (
+        {/* Floating Tooltip in Collapsed Mode or for Truncated Text */}
+        {tooltip && (
           <div
-            className="fixed z-50 pointer-events-none"
-            style={{ left: '80px', top: tooltip.y, transform: 'translateY(-50%)' }}
+            className="fixed z-50 pointer-events-none transition-opacity duration-150"
+            style={{
+              left: tooltip.x !== undefined ? `${tooltip.x}px` : (sidebarCollapsed ? '80px' : '256px'),
+              top: tooltip.y,
+              transform: 'translateY(-50%)',
+            }}
           >
             <div
-              className="px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap text-xs font-medium text-white border"
+              className="px-3 py-1.5 rounded-lg shadow-xl whitespace-nowrap text-xs font-semibold text-white border animate-in fade-in zoom-in-95 duration-150"
               style={{
                 background: '#0d1a2d',
-                borderColor: 'rgba(212,175,55,0.3)',
-                boxShadow: '0 4px 14px rgba(0,0,0,0.4)',
+                borderColor: 'rgba(212,175,55,0.4)',
+                boxShadow: '0 6px 18px rgba(0,0,0,0.5)',
               }}
             >
               {tooltip.label}

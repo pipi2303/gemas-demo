@@ -137,7 +137,7 @@ export const PAGE_LABEL: Record<string, string> = {
   activity:              'Log Aktivitas',
   'finance-dashboard':   'Dashboard Finance',
   'finance-addon':       'Ringkasan',
-  'finance-master-data': 'Master Data & Fiskal',
+  'finance-master-data': 'Master Data Finance',
   'finance-budget':      'Budget / RKA',
   'finance-transaction': 'Transaksi & Voucher',
   'finance-approval':    'Verifikasi & Persetujuan',

@@ -577,7 +577,6 @@ export function FinanceBudget({ onNavigate }: { onNavigate?: (page: string) => v
     <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
       <FinancePageHeader
         title="Rencana Kerja & Anggaran (RKA)"
-        subtitle="Penyusunan anggaran per Bidang, Program, dan Kegiatan serta pemantauan plafon realisasi"
         currentSection="Budget & RKA"
         onNavigate={onNavigate}
         fiscalYears={lookups.fiscalYears}

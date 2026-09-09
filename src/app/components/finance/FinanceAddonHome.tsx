@@ -21,7 +21,7 @@ interface StatusResponse {
 
 const MODULES = [
   { title: 'Dashboard Finance',          desc: 'Ringkasan eksekutif: KPI, tren bulanan, top akun Beban', page: 'finance-dashboard', icon: LayoutDashboard },
-  { title: 'Master Data & Fiskal',       desc: 'Kelompok Akun, COA, Bidang/Program/Kegiatan, Dana, Kas, Bank, Tahun Fiskal', page: 'finance-master-data', icon: Layers },
+  { title: 'Master Data Finance',        desc: 'Kelompok Akun, COA, Bidang/Program/Kegiatan, Dana, Kas, Bank, Tahun Fiskal', page: 'finance-master-data', icon: Layers },
   { title: 'Budget / RKA',               desc: 'Penyusunan anggaran per Bidang/Program/Kegiatan, alur pengajuan & persetujuan', page: 'finance-budget', icon: ClipboardList },
   { title: 'Transaksi & Voucher',        desc: 'Input transaksi kas/bank dengan penomoran voucher otomatis', page: 'finance-transaction', icon: Receipt },
   { title: 'Verifikasi & Persetujuan',   desc: 'Antrian transaksi yang menunggu diproses, dengan segregation of duties', page: 'finance-approval', icon: Inbox },
@@ -36,36 +36,36 @@ export function FinanceAddonHome({ onNavigate }: { onNavigate?: (page: string) =
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setErrorMsg(null);
-      try {
-        const res = await api.get<StatusResponse>('/api/v1/finance/status');
-        if (cancelled) return;
-        if (res.success && res.data) {
-          setStatus(res.data);
-        } else {
-          setErrorMsg(res.error?.message || 'Gagal memuat status modul Finance Add-on');
-        }
-      } catch (err: any) {
-        if (!cancelled) setErrorMsg(err?.message || 'Gagal memuat status modul Finance Add-on');
-      } finally {
-        if (!cancelled) setLoading(false);
+  const loadStatus = useCallback(async () => {
+    setLoading(true);
+    setErrorMsg(null);
+    try {
+      const res = await api.get<StatusResponse>('/api/v1/finance/status');
+      if (res.success && res.data) {
+        setStatus(res.data);
+      } else {
+        setErrorMsg(res.error?.message || 'Gagal memuat status modul Finance Add-on');
       }
-    })();
-    return () => { cancelled = true; };
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Gagal memuat status modul Finance Add-on');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadStatus();
+  }, [loadStatus]);
 
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
       {/* Sleek Minimalist & Informative Executive Header */}
       <FinancePageHeader
         title="Keuangan & Perbendaharaan"
-        subtitle="Standar Akuntansi Keuangan Sinodal (SAK Sinodal)"
         currentSection="Hub Modul & Navigasi"
         onNavigate={onNavigate}
+        onRefresh={loadStatus}
+        isRefreshing={loading}
         statusBadge={{
           label: status?.schemaReady ? 'Sistem Aktif & Terintegrasi' : 'Pemeriksaan Sistem',
           variant: status?.schemaReady ? 'emerald' : 'amber',

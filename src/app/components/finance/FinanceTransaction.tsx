@@ -645,7 +645,6 @@ export function FinanceTransaction({ onNavigate }: { onNavigate?: (page: string)
     <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
       <FinancePageHeader
         title="Transaksi & Voucher Kas/Bank"
-        subtitle="Pencatatan kas & bank otomatis — Verifikasi, Persetujuan, hingga Posting Buku Besar"
         currentSection="Transaksi & Voucher"
         onNavigate={onNavigate}
         fiscalYears={lookups.fiscalYears}

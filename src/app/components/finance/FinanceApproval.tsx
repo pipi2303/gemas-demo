@@ -157,7 +157,6 @@ export function FinanceApproval({ onNavigate }: { onNavigate?: (page: string) =>
     <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
       <FinancePageHeader
         title="Verifikasi & Persetujuan Transaksi"
-        subtitle="Antrian transaksi menunggu verifikasi atau persetujuan — Prinsip Segregation of Duties (SoD)"
         currentSection="Verifikasi & Persetujuan"
         onNavigate={onNavigate}
         statusBadge={{
