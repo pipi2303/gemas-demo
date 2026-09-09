@@ -32,6 +32,7 @@ export const DEFAULT_PERMISSIONS: ModulePermission[] = [
   { module: 'Manajemen Aset',               emoji: '📦', admin: A, majelis: CRD,   ketuaSektor: NONE, operator: NONE },
   { module: 'Admin Sistem',                 emoji: '🔐', admin: A, majelis: NONE,  ketuaSektor: NONE, operator: NONE },
   { module: 'Finance Add-on (Standar Akuntansi)',    emoji: '🏛️', admin: A, majelis: CRDAX, ketuaSektor: NONE, operator: NONE },
+  { module: 'Surat Menyurat',               emoji: '✉️', admin: A, majelis: CRD,   ketuaSektor: NONE, operator: NONE },
 ];
 
 export const PAGE_MODULE: Record<string, string> = {
@@ -77,6 +78,7 @@ export const PAGE_MODULE: Record<string, string> = {
   'finance-reconciliation': 'Finance Add-on (Standar Akuntansi)',
   'finance-period-closing': 'Finance Add-on (Standar Akuntansi)',
   'finance-reports':     'Finance Add-on (Standar Akuntansi)',
+  'letter-settings':     'Surat Menyurat',
 };
 
 export function buildCan(matrix: ModulePermission[], role: UserRole) {
@@ -145,6 +147,7 @@ export const PAGE_LABEL: Record<string, string> = {
   'finance-reconciliation': 'Rekonsiliasi Bank',
   'finance-period-closing': 'Penutupan Periode',
   'finance-reports':     'Laporan Keuangan',
+  'letter-settings':     'Pengaturan Surat Menyurat',
 };
 
 export interface PageGroup {

@@ -145,6 +145,31 @@ async function mockQuery<T = any>(sql: string, params: any[] = []): Promise<{ ro
     return { rows: rows as any };
   }
 
+  // INSERT INTO gemas_store ... ON CONFLICT (collection, id) DO UPDATE SET
+  // data = jsonb_set(...lastNumber...) RETURNING data
+  // Dipakai server/routes/letterNumbers.ts untuk penomoran surat atomik (satu
+  // statement UPSERT yang increment lastNumber dari nilai TERBARU di baris,
+  // meniru cara finance.voucher_sequences ditangani khusus di financeInMemory.ts).
+  // HARUS dicek SEBELUM pola "INSERT INTO gemas_store" generik di bawah ini —
+  // pola generik itu selalu menimpa dengan nilai awal ($3) dan tidak pernah
+  // increment, sehingga counter nomor surat akan selalu balik ke 1 kalau baris
+  // ini tidak ada di atasnya.
+  if (/INSERT\s+INTO\s+gemas_store[\s\S]*ON CONFLICT[\s\S]*lastNumber/i.test(trimmed)) {
+    const [col, id, initialData] = params;
+    const map = getStoreCollection(col);
+    const existing = map.get(id);
+    let dataStr: string;
+    if (existing) {
+      const parsed = JSON.parse(existing.data);
+      const lastNumber = (parsed.lastNumber || 0) + 1;
+      dataStr = JSON.stringify({ ...parsed, lastNumber });
+    } else {
+      dataStr = typeof initialData === 'string' ? initialData : JSON.stringify(initialData);
+    }
+    map.set(id, { collection: col, id, data: dataStr, updated_at: new Date() });
+    return { rows: [{ data: dataStr } as any] };
+  }
+
   // INSERT INTO gemas_store (collection, id, data, updated_at) VALUES ($1, $2, $3, NOW()) ...
   if (/INSERT\s+INTO\s+gemas_store/i.test(trimmed)) {
     const [col, id, data] = params;

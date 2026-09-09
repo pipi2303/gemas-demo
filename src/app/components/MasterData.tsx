@@ -4,7 +4,7 @@ import { useDraggable } from '../../lib/useDraggable';
 import { MasterDataCategory, MasterDataItem } from '../types';
 import {
   Layers, Plus, Pencil, Trash2, Check, X, ToggleLeft, ToggleRight,
-  Users, Church, DollarSign, Package, Calendar, BookOpen, Search,
+  Users, Church, DollarSign, Package, Calendar, BookOpen, Search, Mail,
 } from 'lucide-react';
 
 // ── Grup kategori per modul ───────────────────────────────────────────────────
@@ -32,6 +32,10 @@ const GROUPS = [
   {
     id: 'kegiatan', label: 'Kegiatan & Komunikasi', icon: Calendar, color: '#d97706',
     categories: ['jenis_kegiatan','status_event','prioritas_pengumuman'],
+  },
+  {
+    id: 'persuratan', label: 'Surat Menyurat', icon: Mail, color: '#0369a1',
+    categories: ['jenis_surat_keluar','jenis_surat_masuk'],
   },
 ];
 
@@ -69,6 +73,8 @@ const CAT_META: Record<string, { label: string; description: string; color: stri
   jenis_kegiatan:            { label: 'Jenis Kegiatan',             description: 'Ibadah, retreat, seminar, dll',                              color: '#0891b2' },
   status_event:              { label: 'Status Kegiatan',            description: 'Akan datang, berlangsung, selesai, dll',                     color: '#d97706' },
   prioritas_pengumuman:      { label: 'Prioritas Pengumuman',       description: 'Normal, penting, mendesak',                                  color: '#d97706' },
+  jenis_surat_keluar:        { label: 'Jenis Surat Keluar',        description: 'Surat Keterangan, Pengantar, Undangan, SK, dll — admin isi sendiri', color: '#0369a1' },
+  jenis_surat_masuk:         { label: 'Jenis Surat Masuk',         description: 'Kategori surat masuk (opsional, untuk pengelompokan)',      color: '#0369a1' },
 };
 
 // ── Chip komponen (satu item) ─────────────────────────────────────────────────

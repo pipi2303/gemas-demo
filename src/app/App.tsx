@@ -39,6 +39,7 @@ import { RoomBookingComponent } from './components/RoomBooking';
 import { ResourceLibrary } from './components/ResourceLibrary';
 import { SermonArchive } from './components/SermonArchive';
 import { MasterData } from './components/MasterData';
+import { LetterSettings } from './components/LetterSettings';
 import { FinanceAddonHome } from './components/finance/FinanceAddonHome';
 import { FinanceMasterData } from './components/finance/FinanceMasterData';
 import { FinanceBudget } from './components/finance/FinanceBudget';
@@ -204,6 +205,8 @@ function AppContent() {
         return <MasterData />;
       case 'activity':
         return <ActivityLog />;
+      case 'letter-settings':
+        return <LetterSettings />;
 
       default:
         return <Dashboard />;

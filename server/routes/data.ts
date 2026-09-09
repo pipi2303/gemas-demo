@@ -15,7 +15,9 @@ function isValidCollection(name: string): boolean {
 }
 
 // Collections where only Admin can write
-const ADMIN_WRITE = new Set(['users']);
+// letterNumberCounters: internal ke endpoint atomik generate nomor surat (server/routes/letterNumbers.ts),
+// TIDAK boleh diubah lewat CRUD generik biasa (bisa merusak jaminan anti-duplikat SELECT...FOR UPDATE-nya).
+const ADMIN_WRITE = new Set(['users', 'letterNumberCounters']);
 
 // Collections monitored for automated audit trail
 const AUDITED_COLLECTIONS: Record<string, { domain: 'Member' | 'Financial' | 'Asset' | 'System'; entityType: string; nameField: string }> = {
@@ -40,6 +42,10 @@ const AUDITED_COLLECTIONS: Record<string, { domain: 'Member' | 'Financial' | 'As
   roomBookings:     { domain: 'Asset',     entityType: 'RoomBooking',     nameField: 'roomName' },
   buildingProjects: { domain: 'Asset',     entityType: 'BuildingProject', nameField: 'name' },
   users:            { domain: 'System',    entityType: 'User',            nameField: 'name' },
+  orgLetterhead:       { domain: 'System', entityType: 'OrgLetterhead',       nameField: 'churchName' },
+  letterTemplates:     { domain: 'System', entityType: 'LetterTemplate',      nameField: 'name' },
+  letterNumberFormats: { domain: 'System', entityType: 'LetterNumberFormat',  nameField: 'pattern' },
+  signatureAssets:     { domain: 'System', entityType: 'SignatureAsset',      nameField: 'type' },
 };
 
 const IGNORED_DIFF_KEYS = new Set(['id', 'createdAt', 'updatedAt', 'password']);

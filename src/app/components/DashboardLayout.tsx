@@ -13,7 +13,7 @@ import {
   BookOpen, FileText, HeartHandshake, Heart,
   MessageSquareHeart, BarChart3,
   QrCode, Book, Home, MapPin, Cross, Library, DoorOpen, Gift,
-  Bell, ChevronRight as BreadcrumbArrow, Printer, FileSpreadsheet, Landmark, ClipboardList, Receipt, Inbox, ArrowLeftRight, CalendarCheck, FileBarChart
+  Bell, ChevronRight as BreadcrumbArrow, Printer, FileSpreadsheet, Landmark, ClipboardList, Receipt, Inbox, ArrowLeftRight, CalendarCheck, FileBarChart, Mail
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -71,6 +71,7 @@ export const PAGE_LABELS: Record<string, { title: string; category: string }> = 
   data:                  { title: 'Pusat Manajemen Data', category: 'Admin Sistem' },
   'master-data':         { title: 'Pengaturan Master Data', category: 'Admin Sistem' },
   activity:              { title: 'Log Aktivitas Sistem', category: 'Admin Sistem' },
+  'letter-settings':     { title: 'Pengaturan Surat Menyurat', category: 'Surat Menyurat' },
   'finance-addon':         { title: 'Ringkasan Finance', category: 'Finance Add-on (Standar Akuntansi)' },
   'finance-master-data':   { title: 'Master Data Finance', category: 'Finance Add-on (Standar Akuntansi)' },
   'finance-budget':        { title: 'Budget / RKA', category: 'Finance Add-on (Standar Akuntansi)' },
@@ -152,6 +153,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
     fasilitas: false,
     diakonia: false,
     admin: false,
+    persuratan: false,
   });
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -262,6 +264,14 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
         { id: 'data',        label: 'Pusat Manajemen Data',  page: 'data',        icon: Database },
         { id: 'master-data', label: 'Master Data',            page: 'master-data', icon: Layers },
         { id: 'activity',    label: 'Log Aktivitas',          page: 'activity',    icon: Activity },
+      ],
+    },
+    {
+      id: 'persuratan',
+      label: 'Surat Menyurat',
+      icon: Mail,
+      items: [
+        { id: 'letter-settings', label: 'Pengaturan Surat Menyurat', page: 'letter-settings', icon: Mail },
       ],
     },
   ], [members.length, families.length, pendingPrayers, pendingServices]);

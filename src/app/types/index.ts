@@ -32,7 +32,9 @@ export type MasterDataCategory =
   | 'pendidikan'
   | 'kategori_keuangan_masuk'
   | 'kategori_keuangan_keluar'
-  | 'kategori_kas_kecil';
+  | 'kategori_kas_kecil'
+  | 'jenis_surat_keluar'
+  | 'jenis_surat_masuk';
 
 export interface MasterDataItem {
   id: string;
@@ -831,4 +833,80 @@ export interface BuiltinRoleOverride {
   desc: string;
   tanggung: string;
   warna: string;
+}
+// ============================================================
+// MODUL SURAT-MENYURAT — Fase 1 (Fondasi & Master Data)
+// ============================================================
+// Jenis surat (jenis_surat_keluar / jenis_surat_masuk) sengaja jadi Master Data
+// biasa (lihat MasterDataCategory di atas) supaya admin bebas menambah/mengubah
+// sendiri — beda dengan status alur kerja (Draft/Diajukan/Ditandatangani, dst)
+// yang nanti tetap union type tetap di kode (bukan Master Data), karena status
+// itu menggerakkan logika alur kerja & immutability, bukan sekadar label.
+
+/** Profil & kop surat organisasi — single/few-record settings collection,
+ *  polanya sama seperti FiscalYearSetting. Dibangun kosong, diisi admin sendiri
+ *  lewat halaman Pengaturan Surat Menyurat (tab "Kop Surat"). */
+export interface OrgLetterhead {
+  id: string; // konvensi: id tetap 'default' (single record)
+  churchName?: string;
+  churchCode?: string; // dipakai sebagai token {kodeGereja} di format nomor surat
+  address?: string;
+  phone?: string;
+  email?: string;
+  logoData?: string; // base64 (tanpa prefix data URL), PNG/JPG
+  logoMimeType?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+/** Template surat keluar. Isi (bodyTemplate) & manajemen penuhnya dibangun di
+ *  Fase 2 bersamaan alur pembuatan surat — di Fase 1 baru collection & tipenya
+ *  yang didaftarkan supaya jenisSuratId (Master Data) sudah bisa dirujuk. */
+export interface LetterTemplate {
+  id: string;
+  name: string;
+  jenisSuratId: string; // = id dari MasterDataItem berkategori 'jenis_surat_keluar'
+  bodyTemplate?: string; // placeholder: {namaPenerima} {tanggal} {perihal} {nomorSurat} dst
+  isActive: boolean;
+  createdBy?: string;
+  createdAt?: string;
+}
+
+/** Konfigurasi format nomor surat otomatis — satu record per jenis surat.
+ *  Token yang didukung endpoint generator: {urut}, {urut:N} (zero-pad N digit),
+ *  {jenis} (kode jenis surat), {kodeGereja}, {bulanRomawi}, {tahun}, {sektor}. */
+export interface LetterNumberFormat {
+  id: string;
+  jenisSuratId: string; // = id dari MasterDataItem berkategori 'jenis_surat_keluar'
+  pattern: string; // contoh: "{urut:3}/{jenis}/{kodeGereja}/{bulanRomawi}/{tahun}"
+  resetPeriod: 'tahunan' | 'bulanan' | 'tidak_pernah';
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+/** Counter internal atomik di balik LetterNumberFormat — TIDAK untuk diedit
+ *  manual lewat UI. id = scope key (mis. "UND-2026" atau "UND-09-2026"
+ *  tergantung resetPeriod). Diakses lewat endpoint server yang mengunci baris
+ *  (SELECT ... FOR UPDATE) supaya tidak ada nomor kembar saat submit bersamaan. */
+export interface LetterNumberCounter {
+  id: string;
+  lastNumber: number;
+  updatedAt: string;
+}
+
+/** Gambar tanda tangan & cap. type 'signature' = TTD milik satu user (ownerType
+ *  'user', ownerId = User.id); type 'stamp' = cap organisasi (ownerType
+ *  'organization', ownerId = 'org' — satu cap untuk semua surat, sesuai
+ *  keputusan awal; struktur ownerId ini tetap mendukung banyak cap kalau nanti
+ *  dibutuhkan, cukup pakai ownerId lain, tanpa ubah skema). */
+export interface SignatureAsset {
+  id: string;
+  ownerType: 'user' | 'organization';
+  ownerId: string;
+  type: 'signature' | 'stamp';
+  imageData: string; // base64 (tanpa prefix data URL), idealnya PNG transparan
+  mimeType: string;
+  isActive: boolean;
+  uploadedAt: string;
+  uploadedBy?: string;
 }
