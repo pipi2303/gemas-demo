@@ -81,10 +81,17 @@ jobs:
 
     steps:
       - name: Test Portainer authentication
+        env:
+          PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+          PORTAINER_TOKEN: ${{ secrets.PORTAINER_TOKEN }}
         run: |
-          code=$(curl -sk -o /tmp/portainer_auth.json -w "%{http_code}" \
-            -H "X-API-Key: ${{ secrets.PORTAINER_TOKEN }}" \
-            "${{ secrets.PORTAINER_URL }}/api/status")
+          set -euo pipefail
+
+          code=$(curl -sk \
+            -o /tmp/portainer_auth.json \
+            -w "%{http_code}" \
+            -H "X-API-Key: ${PORTAINER_TOKEN}" \
+            "${PORTAINER_URL}/api/status")
 
           echo "Portainer API HTTP status: $code"
 
@@ -94,26 +101,51 @@ jobs:
           fi
 
       - name: Trigger Portainer redeploy
+        env:
+          PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+          PORTAINER_TOKEN: ${{ secrets.PORTAINER_TOKEN }}
+          PORTAINER_STACK_ID: ${{ secrets.PORTAINER_STACK_ID }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+          STACK_POSTGRES_DB: ${{ secrets.STACK_POSTGRES_DB }}
+          STACK_POSTGRES_USER: ${{ secrets.STACK_POSTGRES_USER }}
+          STACK_POSTGRES_PASSWORD: ${{ secrets.STACK_POSTGRES_PASSWORD }}
+          STACK_JWT_SECRET: ${{ secrets.STACK_JWT_SECRET }}
+          STACK_CLIENT_ORIGIN: ${{ secrets.STACK_CLIENT_ORIGIN }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          code=$(curl -sk -o /tmp/portainer_response.json -w "%{http_code}" \
-            -X PUT \
-            -H "X-API-Key: ${{ secrets.PORTAINER_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "pullImage": true,
-              "repositoryAuthentication": true,
-              "repositoryUsername": "pipi2303",
-              "repositoryPassword": "${{ secrets.GH_PAT }}",
-              "env": [
-                {"name": "POSTGRES_DB", "value": "${{ secrets.STACK_POSTGRES_DB }}"},
-                {"name": "POSTGRES_USER", "value": "${{ secrets.STACK_POSTGRES_USER }}"},
-                {"name": "POSTGRES_PASSWORD", "value": "${{ secrets.STACK_POSTGRES_PASSWORD }}"},
-                {"name": "JWT_SECRET", "value": "${{ secrets.STACK_JWT_SECRET }}"},
-                {"name": "CLIENT_ORIGIN", "value": "${{ secrets.STACK_CLIENT_ORIGIN }}"},
-                {"name": "IMAGE_TAG", "value": "${{ github.sha }}"}
+          set -euo pipefail
+
+          jq -n \
+            --arg password "$GH_PAT" \
+            --arg postgres_db "$STACK_POSTGRES_DB" \
+            --arg postgres_user "$STACK_POSTGRES_USER" \
+            --arg postgres_password "$STACK_POSTGRES_PASSWORD" \
+            --arg jwt_secret "$STACK_JWT_SECRET" \
+            --arg client_origin "$STACK_CLIENT_ORIGIN" \
+            --arg image_tag "$IMAGE_TAG" \
+            '{
+              pullImage: true,
+              repositoryAuthentication: true,
+              repositoryUsername: "pipi2303",
+              repositoryPassword: $password,
+              env: [
+                {name: "POSTGRES_DB", value: $postgres_db},
+                {name: "POSTGRES_USER", value: $postgres_user},
+                {name: "POSTGRES_PASSWORD", value: $postgres_password},
+                {name: "JWT_SECRET", value: $jwt_secret},
+                {name: "CLIENT_ORIGIN", value: $client_origin},
+                {name: "IMAGE_TAG", value: $image_tag}
               ]
-            }' \
-            "${{ secrets.PORTAINER_URL }}/api/stacks/${{ secrets.PORTAINER_STACK_ID }}/git/redeploy?endpointId=3"
+            }' > /tmp/portainer_payload.json
+
+          code=$(curl -sk \
+            -o /tmp/portainer_response.json \
+            -w "%{http_code}" \
+            -X PUT \
+            -H "X-API-Key: ${PORTAINER_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data-binary @/tmp/portainer_payload.json \
+            "${PORTAINER_URL}/api/stacks/${PORTAINER_STACK_ID}/git/redeploy?endpointId=3")
 
           echo "HTTP status: $code"
 
