@@ -14,7 +14,7 @@ import { Textarea } from './ui/textarea';
 import { SearchDropdown } from './ui/SearchDropdown';
 
 export function ServiceRequestsComponent() {
-  const { serviceRequests, members, getMasterDataByCategory, addServiceRequest, updateServiceRequest, deleteServiceRequest } = useApp();
+  const { serviceRequests, members, getMasterDataByCategory, addServiceRequest, updateServiceRequest, deleteServiceRequest, aidDistributions, addAidDistribution, currentUser } = useApp();
   const serviceTypeList = getMasterDataByCategory('jenis_pelayanan').map(m => m.value) as ServiceRequestType[];
   const SERVICE_TYPE_LIST: ServiceRequestType[] = serviceTypeList.length ? serviceTypeList : ['Kunjungan','Doa Khusus','Pelayanan Duka','Konseling','Lainnya'];
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -283,10 +283,41 @@ export function ServiceRequestsComponent() {
                 </button>
               )}
               {request.status === 'Completed' && (
-                <button className="flex-1 px-3 py-2 bg-gray-100 text-gray-600 rounded-lg cursor-default text-sm">
-                  <CheckCircle className="w-4 h-4 inline mr-1" />
-                  Selesai
-                </button>
+                <>
+                  <button className="flex-1 px-3 py-2 bg-gray-100 text-gray-600 rounded-lg cursor-default text-sm">
+                    <CheckCircle className="w-4 h-4 inline mr-1" />
+                    Selesai
+                  </button>
+                  {/* Integration (audit gap fix): sebelumnya permohonan yang sudah selesai
+                      tidak punya jalur apapun ke Distribusi Bantuan -- admin harus catat
+                      ulang manual di menu terpisah, tanpa jejak permohonan asalnya. */}
+                  {aidDistributions.some(a => a.serviceRequestId === request.id) ? (
+                    <span className="flex-1 px-3 py-2 bg-[#f0ede5] text-purple-800 rounded-lg text-sm text-center">
+                      Sudah ada Distribusi Bantuan
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        addAidDistribution({
+                          type: 'Lainnya',
+                          recipientName: request.requestedBy,
+                          memberId: request.memberId,
+                          serviceRequestId: request.id,
+                          phone: request.phone,
+                          address: request.address,
+                          description: request.description,
+                          reason: `Tindak lanjut Permohonan Diakonia (${request.type}) — ${request.description}`,
+                          status: 'Pengajuan',
+                          requestedDate: new Date().toISOString().slice(0, 10),
+                        });
+                        toast.success('Draf Distribusi Bantuan dibuat — lengkapi jenis & jumlah bantuan di menu Distribusi Bantuan.');
+                      }}
+                      className="flex-1 px-3 py-2 border border-[#1A77A3] text-[#1A77A3] rounded-lg hover:bg-[#f0f7fb] transition-colors text-sm"
+                    >
+                      Buat Distribusi Bantuan
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>

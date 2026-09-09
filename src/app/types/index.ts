@@ -459,6 +459,7 @@ export interface AidDistribution {
   type: AidType;
   recipientName: string;
   memberId?: string;
+  serviceRequestId?: string; // audit gap fix: jejak balik ke Permohonan Diakonia asal
   phone: string;
   address: string;
   amount?: number;

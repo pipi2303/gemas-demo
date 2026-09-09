@@ -83,6 +83,35 @@ export function AttendanceStatsQR() {
   const [scannedMembers, setScannedMembers] = useState<any[]>([]);
   const [searchScan, setSearchScan] = useState('');
   const [activeSession, setActiveSession] = useState('');
+  const todayKey = useMemo(() => new Date().toISOString().slice(0, 10), []);
+
+  // Integration (audit gap fix): sebelumnya hasil scan/check-in manual hanya
+  // hidup di state React lokal (scannedMembers) -- tidak ada panggilan API sama
+  // sekali, jadi refresh halaman menghapus semua presensi hari itu. Koleksi
+  // `attendanceCheckins` (BUKAN `attendance` yang sudah dipakai fitur Absensi
+  // Mingguan di bawah dengan skema AbsensiRecord yang berbeda total -- menimpa
+  // koleksi yang sama akan merusak tabel Absensi Mingguan) menyimpan 1 baris per
+  // jemaat per sesi per hari, id-nya deterministik (memberId+tanggal+sesi) supaya
+  // scan ulang jemaat yang sama otomatis idempoten, bukan menumpuk duplikat.
+  useEffect(() => {
+    api.get<any[]>('/api/data/attendanceCheckins')
+      .then(rows => {
+        const todays = (rows || []).filter(r => r.scanDate === todayKey);
+        if (todays.length > 0) {
+          setScannedMembers(todays.sort((a, b) => (b.scannedAt || '').localeCompare(a.scannedAt || '')));
+        }
+      })
+      .catch(err => console.error('[AttendanceStatsQR] load check-ins:', err));
+  }, [todayKey]);
+
+  const persistCheckin = (record: any) => {
+    const checkinId = `${record.id}_${todayKey}_${record.session}`.replace(/\s+/g, '_');
+    api.put(`/api/data/attendanceCheckins/${checkinId}`, {
+      id: checkinId, memberId: record.id, fullName: record.fullName,
+      scanDate: todayKey, scanTime: record.scanTime, scannedAt: new Date().toISOString(),
+      session: record.session, manual: !!record.manual, present: true,
+    }).catch(err => console.error('[AttendanceStatsQR] save check-in:', err));
+  };
 
   // ── Absensi CRUD state ──
   const [absensiRecords, setAbsensiRecords] = useState<AbsensiRecord[]>([]);
@@ -230,11 +259,13 @@ export function AttendanceStatsQR() {
     const notScanned = members.filter(m => !scannedMembers.find(s => s.id === m.id));
     if (notScanned.length === 0) { toast.success('Semua jemaat sudah di-scan.'); return; }
     const randomMember = notScanned[Math.floor(Math.random() * notScanned.length)];
-    setScannedMembers(prev => [{
+    const record = {
       ...randomMember,
       scanTime: new Date().toLocaleTimeString('id-ID'),
       session: activeSession,
-    }, ...prev]);
+    };
+    setScannedMembers(prev => [record, ...prev]);
+    persistCheckin(record);
   };
 
   const manualCheckin = (member: any) => {
@@ -243,12 +274,14 @@ export function AttendanceStatsQR() {
       toast.success(`${member.fullName} sudah tercatat hadir.`);
       return;
     }
-    setScannedMembers(prev => [{
+    const record = {
       ...member,
       scanTime: new Date().toLocaleTimeString('id-ID'),
       session: activeSession,
       manual: true,
-    }, ...prev]);
+    };
+    setScannedMembers(prev => [record, ...prev]);
+    persistCheckin(record);
   };
 
   const filteredMembers = members.filter(m =>

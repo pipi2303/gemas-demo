@@ -398,20 +398,16 @@ export function AssetManagement() {
           loanNotes: form.loanNotes || '', status: 'Aktif',
         });
       }
-      // Integration: Auto-record purchase to financial records
-      if (form.acquisitionMethod === 'Pembelian' && form.acquisitionValue > 0) {
-        try {
-          addFinancialRecord({
-            date: form.acquisitionDate, type:'expense',
-            category:'Pemeliharaan Aset',
-            amount: form.acquisitionValue,
-            description: `Pengadaan Aset: ${form.name} (${assetCode})`,
-            reference: assetCode,
-            recordedBy: currentUser?.name || 'Sistem',
-            recordedById: currentUser?.id || 'sys',
-          });
-        } catch (_e) {}
-      }
+      // Catatan (audit gap fix): sebelumnya pembelian aset di sini otomatis
+      // dicatat SEKALIGUS sebagai Beban Pemeliharaan Aset penuh (financialRecord)
+      // DAN dikapitalisasi sebagai Aset Tetap dengan penyusutan garis lurus di
+      // LaporanKeuanganTab.tsx (asetTetapRows/depreciationPeriod) -- akibatnya
+      // satu pembelian aset menekan Surplus/Defisit periode berjalan DUA KALI:
+      // sekali penuh di beban pemeliharaan, sekali lagi lewat beban penyusutan
+      // tahunan yang dihitung otomatis dari churchAssets. Sengaja TIDAK lagi
+      // membuat financialRecord di sini -- pencatatan aset baru sudah cukup
+      // lewat addChurchAsset() di atas, dan beban penyusutannya sudah otomatis
+      // ikut terhitung di Laporan Aktivitas tanpa perlu dicatat manual lagi.
     }
     setShowAssetModal(false);
   };

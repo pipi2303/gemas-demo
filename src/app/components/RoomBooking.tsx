@@ -55,6 +55,24 @@ export function RoomBookingComponent() {
     return Array.from(all);
   }, [activeRooms, formData.roomName]);
 
+  // Integration (audit gap fix): sebelumnya form ini tidak pernah mengecek
+  // apakah ruangan+waktu yang diajukan sudah dipakai booking lain -- dua unit
+  // bisa dapat approval untuk ruangan & jam yang sama tanpa peringatan apapun.
+  // Dicek terhadap RoomBooking lain saja (bukan Jadwal Ibadah / Event) karena
+  // keduanya hanya punya satu titik waktu (`time`), bukan rentang start-end,
+  // dan field lokasinya teks bebas yang tidak selalu identik dengan nama
+  // ruangan -- mencocokkan itu berisiko false-positive yang malah memblokir
+  // booking yang sah.
+  const findRoomConflict = (roomName: string, date: string, startTime: string, endTime: string, excludeId?: string) => {
+    return roomBookings.find(b =>
+      b.id !== excludeId &&
+      b.roomName === roomName &&
+      b.date === date &&
+      b.status !== 'Rejected' && b.status !== 'Cancelled' &&
+      startTime < b.endTime && b.startTime < endTime
+    );
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     if (name === 'attendees') {
@@ -127,6 +145,12 @@ export function RoomBookingComponent() {
       return;
     }
 
+    const conflict = findRoomConflict(formData.roomName, formData.date, formData.startTime, formData.endTime);
+    if (conflict) {
+      toast.error(`Ruangan ${formData.roomName} sudah dipesan pada jam tersebut oleh ${conflict.bookedBy} (${conflict.startTime}-${conflict.endTime}). Pilih waktu atau ruangan lain.`);
+      return;
+    }
+
     addRoomBooking({ ...formData, roomType: 'Aula', email: '' });
     resetForm();
     setIsCreateDialogOpen(false);
@@ -166,6 +190,12 @@ export function RoomBookingComponent() {
 
     if (!formData.bookedBy || !formData.phone || !formData.purpose) {
       toast.error('Mohon lengkapi Nama Pemesan, Telepon, dan Tujuan Peminjaman');
+      return;
+    }
+
+    const conflict = findRoomConflict(formData.roomName, formData.date, formData.startTime, formData.endTime, selectedBooking?.id);
+    if (conflict) {
+      toast.error(`Ruangan ${formData.roomName} sudah dipesan pada jam tersebut oleh ${conflict.bookedBy} (${conflict.startTime}-${conflict.endTime}). Pilih waktu atau ruangan lain.`);
       return;
     }
 
