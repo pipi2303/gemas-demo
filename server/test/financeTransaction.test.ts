@@ -10,7 +10,7 @@
 // ============================================================
 import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
-import { getTestApp, authHeader, seedBaseFinanceData, findAuditEntry } from './helpers.js';
+import { getTestApp, authHeader, seedBaseFinanceData, findAuditEntry, uniqueCode } from './helpers.js';
 
 describe('Finance Transaction — siklus hidup & segregation of duties', () => {
   let app: any;
@@ -137,6 +137,53 @@ describe('Finance Transaction — siklus hidup & segregation of duties', () => {
     expect(reviseRes.status).toBe(200);
     expect(reviseRes.body.data.status).toBe('DRAFT');
     expect(reviseRes.body.data.rejection_reason).toBeNull();
+  });
+
+  it('mencegah approve & reject bersamaan pada transaksi VERIFIED yang sama menghasilkan status kontradiktif (race condition)', async () => {
+    const tx = await createBalancedTransaction();
+    await request(app).put(`/api/v1/finance/transactions/${tx.id}/submit`).set('Authorization', creator);
+    await request(app).put(`/api/v1/finance/transactions/${tx.id}/verify`).set('Authorization', verifier);
+
+    // Tanpa SELECT ... FOR UPDATE di /approve & /reject, kedua request ini bisa
+    // sama-sama membaca status VERIFIED lalu sama-sama berhasil -- baris bisa
+    // berakhir APPROVED tapi tetap membawa rejection_reason (atau sebaliknya),
+    // plus 2 entri audit trail "Disetujui" DAN "Ditolak" untuk transaksi yang
+    // sama. Dengan lock: harus PERSIS 1 yang berhasil (200) dan 1 gagal (400).
+    const [approveRes, rejectRes] = await Promise.all([
+      request(app).put(`/api/v1/finance/transactions/${tx.id}/approve`).set('Authorization', approver),
+      request(app).put(`/api/v1/finance/transactions/${tx.id}/reject`).set('Authorization', verifier).send({ reason: 'Dicoba bersamaan dengan approve' }),
+    ]);
+    const statuses = [approveRes.status, rejectRes.status].sort((a, b) => a - b);
+    expect(statuses).toEqual([200, 400]);
+
+    const final = await request(app).get(`/api/v1/finance/transactions/${tx.id}`).set('Authorization', creator);
+    if (approveRes.status === 200) {
+      expect(final.body.data.status).toBe('APPROVED');
+    } else {
+      expect(final.body.data.status).toBe('REJECTED');
+    }
+  });
+
+  it('menolak baris transaksi baru yang memakai akun yang sudah dinonaktifkan (soft-delete via deleted_at)', async () => {
+    const groupsRes = await request(app).get('/api/v1/finance/account-groups').set('Authorization', creator);
+    const expGroup = (groupsRes.body.data as any[]).find(g => g.code === 'EXP');
+    const accRes = await request(app).post('/api/v1/finance/accounts').set('Authorization', creator).send({
+      group_id: expGroup.id, code: uniqueCode('DEACT'), name: 'Akun untuk dinonaktifkan',
+    });
+    expect(accRes.status).toBe(201);
+    const accountId = accRes.body.data.id;
+
+    const delRes = await request(app).delete(`/api/v1/finance/accounts/${accountId}`).set('Authorization', creator);
+    expect(delRes.status).toBe(200);
+
+    const txRes = await request(app).post('/api/v1/finance/transactions').set('Authorization', creator).send({
+      voucher_type_id: seed.voucherTypeId, fiscal_year_id: seed.fiscalYearId, transaction_date: seed.transactionDate,
+      description: 'Test akun nonaktif',
+    });
+    const lineRes = await request(app).post(`/api/v1/finance/transactions/${txRes.body.data.id}/lines`).set('Authorization', creator).send({
+      account_id: accountId, side: 'debit', amount: 50000,
+    });
+    expect(lineRes.status).toBe(400);
   });
 
   it('memaginasi GET / dan menghitung meta.totalPages dengan benar', async () => {

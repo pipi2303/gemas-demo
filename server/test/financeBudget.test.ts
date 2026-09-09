@@ -93,4 +93,34 @@ describe('Finance Budget — siklus hidup & segregation of duties', () => {
     expect(rejectRes.status).toBe(200);
     expect(rejectRes.body.data.status).toBe('DRAFT');
   });
+
+  it('mencegah 2 aktivasi bersamaan menghasilkan 2 RKA ACTIVE sekaligus untuk 1 Tahun Fiskal (race condition)', async () => {
+    const budgetA = await createBudgetWithLine();
+    await request(app).put(`/api/v1/finance/budgets/${budgetA.id}/submit`).set('Authorization', creator);
+    await request(app).put(`/api/v1/finance/budgets/${budgetA.id}/approve`).set('Authorization', approver);
+
+    const budgetB = await createBudgetWithLine();
+    await request(app).put(`/api/v1/finance/budgets/${budgetB.id}/submit`).set('Authorization', creator);
+    await request(app).put(`/api/v1/finance/budgets/${budgetB.id}/approve`).set('Authorization', approver);
+
+    // Tanpa lock baris Tahun Fiskal di PUT /:id/activate, kedua request ini bisa
+    // sama-sama membaca "belum ada yang ACTIVE" lalu sama-sama berhasil set
+    // dirinya ACTIVE -- 2 RKA aktif sekaligus untuk 1 tahun fiskal (merusak
+    // Ringkasan Anggaran & Laporan Realisasi Anggaran). Dengan lock: keduanya
+    // tetap 200 (tidak ada yang gagal), tapi harus berbaris sehingga hasil
+    // akhirnya PERSIS 1 ACTIVE + 1 REVISED.
+    const [r1, r2] = await Promise.all([
+      request(app).put(`/api/v1/finance/budgets/${budgetA.id}/activate`).set('Authorization', approver),
+      request(app).put(`/api/v1/finance/budgets/${budgetB.id}/activate`).set('Authorization', approver),
+    ]);
+    expect(r1.status).toBe(200);
+    expect(r2.status).toBe(200);
+
+    const [getA, getB] = await Promise.all([
+      request(app).get(`/api/v1/finance/budgets/${budgetA.id}`).set('Authorization', creator),
+      request(app).get(`/api/v1/finance/budgets/${budgetB.id}`).set('Authorization', creator),
+    ]);
+    const statuses = [getA.body.data.status, getB.body.data.status].sort();
+    expect(statuses).toEqual(['ACTIVE', 'REVISED']);
+  });
 });

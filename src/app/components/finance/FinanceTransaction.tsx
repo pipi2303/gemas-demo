@@ -89,6 +89,8 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
   const [busy, setBusy] = useState<string | null>(null);
   const [form, setForm] = useState<Record<string, any>>({});
   const [reasonModal, setReasonModal] = useState<{ action: 'reject' | 'reverse'; reason: string } | null>(null);
+  const [budgetLineOptions, setBudgetLineOptions] = useState<any[]>([]);
+  const [loadingBudgetLines, setLoadingBudgetLines] = useState(false);
 
   const postableAccounts = lookups.accounts.filter(a => a.is_postable);
   const cashBankOptions = useMemo(() => [
@@ -119,8 +121,27 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
   const isOwnTransaction = !!currentUserId && current.created_by === currentUserId;
   const isOwnVerification = !!currentUserId && current.verified_by === currentUserId;
 
-  const resetForm = () => setForm({ account_id: '', field_id: '', program_id: '', activity_id: '', fund_id: '', cost_center_id: '', cashBank: '', side: 'debit', amount: '', description: '' });
-  const openAddLine = () => { resetForm(); setModalOpen(true); };
+  const resetForm = () => setForm({ account_id: '', field_id: '', program_id: '', activity_id: '', fund_id: '', cost_center_id: '', budget_line_id: '', cashBank: '', side: 'debit', amount: '', description: '' });
+  const openAddLine = () => { resetForm(); setBudgetLineOptions([]); setModalOpen(true); };
+
+  // Cari baris RKA yang cocok untuk akun yang dipilih di Tahun Fiskal transaksi
+  // ini -- opsional (transaksi tetap bisa dibuat tanpa mengaitkan ke RKA), tapi
+  // kalau dikaitkan, Laporan Realisasi Anggaran jadi bisa menghitung realisasi
+  // aktualnya (lihat komentar di server: budget_line_id sebelumnya tidak pernah
+  // terisi sehingga realisasi selalu tampil 0%).
+  useEffect(() => {
+    if (!modalOpen || !form.account_id || !current.fiscal_year_id) {
+      setBudgetLineOptions([]);
+      return;
+    }
+    let cancelled = false;
+    setLoadingBudgetLines(true);
+    callApi<any[]>('get', `/api/v1/finance/budgets/lines/lookup?fiscalYearId=${current.fiscal_year_id}&accountId=${form.account_id}`)
+      .then(data => { if (!cancelled) setBudgetLineOptions(data || []); })
+      .catch(() => { if (!cancelled) setBudgetLineOptions([]); })
+      .finally(() => { if (!cancelled) setLoadingBudgetLines(false); });
+    return () => { cancelled = true; };
+  }, [modalOpen, form.account_id, current.fiscal_year_id]);
 
   const handleAddLine = async () => {
     if (!form.account_id || !form.amount || Number(form.amount) <= 0) {
@@ -137,6 +158,7 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
         activity_id: form.activity_id || undefined,
         fund_id: form.fund_id || undefined,
         cost_center_id: form.cost_center_id || undefined,
+        budget_line_id: form.budget_line_id || undefined,
         description: form.description || undefined,
         side: form.side,
         amount: Number(form.amount),
@@ -454,6 +476,25 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
                   <option value="">—</option>
                   {lookups.costCenters.map(c => <option key={c.id} value={c.id}>{c.code} — {c.name}</option>)}
                 </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Baris RKA (opsional) {loadingBudgetLines && <Loader2 className="inline w-3 h-3 animate-spin ml-1" />}
+                </label>
+                <select value={form.budget_line_id ?? ''} onChange={e => setForm(prev => ({ ...prev, budget_line_id: e.target.value }))}
+                  disabled={!form.account_id || budgetLineOptions.length === 0}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3] disabled:bg-slate-50 disabled:text-slate-400">
+                  <option value="">— tidak dikaitkan ke RKA —</option>
+                  {budgetLineOptions.map(bl => (
+                    <option key={bl.id} value={bl.id}>
+                      {bl.period_name} — {formatRp(bl.budget_amount)} (sisa {formatRp(bl.available_amount)})
+                      {bl.program_name ? ` · ${bl.program_name}` : ''}{bl.activity_name ? ` / ${bl.activity_name}` : ''}
+                    </option>
+                  ))}
+                </select>
+                {form.account_id && !loadingBudgetLines && budgetLineOptions.length === 0 && (
+                  <p className="text-xs text-slate-400 mt-1">Tidak ada baris RKA aktif untuk akun ini di Tahun Fiskal transaksi.</p>
+                )}
               </div>
             </div>
 

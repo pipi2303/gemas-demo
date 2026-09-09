@@ -158,19 +158,23 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     const totalLiquidAssets = totalCash + totalBank;
 
     // ── Ringkasan Anggaran (Budget) ──────────────────────────────────────────────
+    // Hanya anggaran yang sudah AKTIF yang dihitung sebagai target realisasi --
+    // anggaran DRAFT/SUBMITTED/APPROVED (belum aktif) tidak boleh ikut mengisi
+    // "Ringkasan Anggaran" di dashboard, supaya konsisten dengan Laporan
+    // Realisasi Anggaran (financeReports.ts) yang juga hanya memakai budget aktif.
     const budgetRes = await pool.query(
       `SELECT 
-         COALESCE(SUM(CASE WHEN a.account_type = 'REVENUE' THEN bl.amount ELSE 0 END), 0) AS total_budget_revenue,
-         COALESCE(SUM(CASE WHEN a.account_type = 'EXPENSE' THEN bl.amount ELSE 0 END), 0) AS total_budget_expense
+         COALESCE(SUM(CASE WHEN a.account_type = 'REVENUE' THEN bl.budget_amount ELSE 0 END), 0) AS total_budget_revenue,
+         COALESCE(SUM(CASE WHEN a.account_type = 'EXPENSE' THEN bl.budget_amount ELSE 0 END), 0) AS total_budget_expense
        FROM finance.budget_lines bl
        JOIN finance.budgets b ON b.id = bl.budget_id
        JOIN finance.accounts a ON a.id = bl.account_id
-       WHERE b.organization_id = $1 AND b.fiscal_year_id = $2`,
+       WHERE b.organization_id = $1 AND b.fiscal_year_id = $2 AND b.status = 'ACTIVE'`,
       [FINANCE_ORG, fiscalYearId]
     );
     const budgetRow = budgetRes.rows[0] || { total_budget_revenue: 0, total_budget_expense: 0 };
-    const totalBudgetRevenue = Number(budgetRow.total_budget_revenue) || 385000000;
-    const totalBudgetExpense = Number(budgetRow.total_budget_expense) || 360000000;
+    const totalBudgetRevenue = Number(budgetRow.total_budget_revenue);
+    const totalBudgetExpense = Number(budgetRow.total_budget_expense);
 
     // Hitung persentase realisasi
     const revenueRealizationRate = totalBudgetRevenue > 0 ? (ytdRevenue / totalBudgetRevenue) * 100 : 0;

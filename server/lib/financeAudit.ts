@@ -61,6 +61,13 @@ export async function recordFinanceAudit(
   try {
     await upsert('activityLogs', logEntry.id, logEntry);
   } catch (err) {
-    logger.warn('Failed to persist finance audit trail', { message: String(err) });
+    // Sengaja TIDAK dilempar ulang (aksi finance yang memicu ini -- posting,
+    // approve, dst -- sudah berhasil & tidak boleh dibatalkan gara-gara jejak
+    // auditnya gagal ditulis) tapi di-escalate ke logger.error (bukan warn)
+    // supaya kehilangan 1 entri audit trail cukup terlihat oleh monitoring,
+    // bukan cuma warning yang gampang tenggelam di log.
+    logger.error('Failed to persist finance audit trail', {
+      message: String(err), action, entityType, entityId, severity,
+    });
   }
 }

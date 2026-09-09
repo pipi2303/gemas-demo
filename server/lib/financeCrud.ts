@@ -42,6 +42,23 @@ type Pool = ReturnType<typeof getPool>;
 import { parsePagination, paginationMeta } from './pagination.js';
 export { parsePagination, paginationMeta };
 
+// Menonaktifkan sebuah master data (akun/dana/vendor/donatur/pusat biaya/kas/
+// bank) lewat Master Data UI seharusnya mencegahnya dipakai lagi di transaksi/
+// baris RKA BARU -- tanpa pengecekan ini di titik-titik pemakaian (POST
+// transaction lines, POST budget lines, header vendor/donor), is_active/
+// deleted_at yang sudah ditoggle tidak benar-benar mencegah apa-apa untuk
+// data baru. Dipakai bareng oleh financeTransaction.ts & financeBudget.ts.
+// `table` HARUS selalu literal hardcode di call-site (tidak pernah dari input
+// pengguna) karena diselipkan langsung ke SQL.
+export async function assertMasterDataActive(client: any, table: string, id: string | null | undefined, label: string, hasDeletedAt: boolean): Promise<void> {
+  if (!id) return;
+  const cond = hasDeletedAt ? 'is_active = TRUE AND deleted_at IS NULL' : 'is_active = TRUE';
+  const r = await client.query(`SELECT 1 FROM ${table} WHERE id = $1 AND organization_id = $2 AND ${cond}`, [id, FINANCE_ORG]);
+  if (r.rows.length === 0) {
+    throw Object.assign(new Error(`${label} yang dipilih tidak ditemukan atau sudah dinonaktifkan`), { status: 400 });
+  }
+}
+
 export interface MasterDataConfig {
   /** Nama tabel lengkap dengan schema, mis. 'finance.account_groups' */
   table: string;

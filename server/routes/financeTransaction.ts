@@ -37,7 +37,7 @@
 
 import { Router, Response } from 'express';
 import { getPool, getAll } from '../lib/db.js';
-import { requireRealDb, FINANCE_ORG, parsePagination, paginationMeta } from '../lib/financeCrud.js';
+import { requireRealDb, FINANCE_ORG, parsePagination, paginationMeta, assertMasterDataActive } from '../lib/financeCrud.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { requireFinancePermission as requireFinancePermissionBase } from '../middleware/checkFinancePermission.js';
 import { recordFinanceAudit } from '../lib/financeAudit.js';
@@ -500,6 +500,9 @@ router.post('/', requireFinancePermission('create'), async (req: AuthRequest, re
     const period = periodRes.rows[0];
     if (period.status !== 'OPEN') throw Object.assign(new Error('Periode untuk tanggal ini sudah tidak Terbuka (Open)'), { status: 400 });
 
+    await assertMasterDataActive(client, 'finance.vendors', body.vendor_id, 'Vendor/Pemasok', true);
+    await assertMasterDataActive(client, 'finance.donors', body.donor_id, 'Donatur', true);
+
     const seqRes = await client.query(
       `INSERT INTO finance.voucher_sequences (organization_id, fiscal_year_id, voucher_type_id, current_number)
        VALUES ($1,$2,$3,1)
@@ -544,16 +547,26 @@ router.post('/', requireFinancePermission('create'), async (req: AuthRequest, re
 
 // ── Edit header (hanya saat Draft) ─────────────────────────────────────────────
 router.put('/:id', requireFinancePermission('edit'), async (req: AuthRequest, res: Response) => {
+  const pool = getPool();
+  const client = await pool.connect();
   try {
-    const pool = getPool();
-    const tx = await getTransactionOr404(pool, req.params.id, res);
-    if (!tx) return;
+    await client.query('BEGIN');
+    const tRes = await client.query('SELECT * FROM finance.transactions WHERE id = $1 AND organization_id = $2', [req.params.id, FINANCE_ORG]);
+    const tx = tRes.rows[0];
+    if (!tx) {
+      await client.query('ROLLBACK');
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Transaksi tidak ditemukan' } });
+      return;
+    }
     if (tx.status !== 'DRAFT') {
+      await client.query('ROLLBACK');
       res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Hanya transaksi berstatus Draft yang bisa diedit' } });
       return;
     }
     const body = req.body ?? {};
-    const result = await pool.query(
+    if (body.vendor_id) await assertMasterDataActive(client, 'finance.vendors', body.vendor_id, 'Vendor/Pemasok', true);
+    if (body.donor_id) await assertMasterDataActive(client, 'finance.donors', body.donor_id, 'Donatur', true);
+    const result = await client.query(
       `UPDATE finance.transactions SET
          payer_name = COALESCE($3, payer_name),
          payee_name = COALESCE($4, payee_name),
@@ -568,10 +581,14 @@ router.put('/:id', requireFinancePermission('edit'), async (req: AuthRequest, re
         body.vendor_id ?? null, body.donor_id ?? null, body.description ?? null, body.reference_number ?? null, req.user!.userId,
       ]
     );
+    await client.query('COMMIT');
     res.json({ success: true, data: result.rows[0] });
-  } catch (err) {
+  } catch (err: any) {
+    await client.query('ROLLBACK').catch(() => {});
     logger.error('PUT transactions/:id', { message: String(err) });
-    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal memperbarui transaksi' } });
+    res.status(err.status ?? 500).json({ success: false, error: { code: err.code || 'INTERNAL_ERROR', message: err.message || 'Gagal memperbarui transaksi' } });
+  } finally {
+    client.release();
   }
 });
 
@@ -614,151 +631,225 @@ router.delete('/:id', requireFinancePermission('delete'), async (req: AuthReques
 
 // ── Ajukan (Draft → Submitted) ─────────────────────────────────────────────────
 router.put('/:id/submit', requireFinancePermission('edit'), async (req: AuthRequest, res: Response) => {
+  const pool = getPool();
+  const client = await pool.connect();
   try {
-    const pool = getPool();
-    const tx = await getTransactionOr404(pool, req.params.id, res);
-    if (!tx) return;
+    await client.query('BEGIN');
+    // SELECT ... FOR UPDATE mengunci baris transaksi ini SELAMA transaksi Postgres
+    // -- supaya 2 request aksi alur-kerja (submit/verify/approve/reject/revise)
+    // yang menembak transaksi yang sama nyaris bersamaan tidak bisa sama-sama
+    // membaca status lama yang sama lalu sama-sama berhasil meng-UPDATE dengan
+    // asumsi yang sudah basi (bisa menghasilkan status akhir yang kontradiktif +
+    // 2 entri audit trail yang saling bertentangan). Request kedua menunggu
+    // request pertama COMMIT, lalu pengecekan status di bawah otomatis gagal
+    // dengan pesan yang jelas kalau memang sudah tidak berlaku lagi.
+    const txRes = await client.query('SELECT * FROM finance.transactions WHERE id = $1 AND organization_id = $2 FOR UPDATE', [req.params.id, FINANCE_ORG]);
+    const tx = txRes.rows[0];
+    if (!tx) {
+      await client.query('ROLLBACK');
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Transaksi tidak ditemukan' } });
+      return;
+    }
     if (tx.status !== 'DRAFT') {
+      await client.query('ROLLBACK');
       res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Hanya transaksi berstatus Draft yang bisa diajukan' } });
       return;
     }
-    const lineCount = await pool.query('SELECT COUNT(*)::int AS n FROM finance.transaction_lines WHERE transaction_id = $1', [req.params.id]);
+    const lineCount = await client.query('SELECT COUNT(*)::int AS n FROM finance.transaction_lines WHERE transaction_id = $1', [req.params.id]);
     if ((lineCount.rows[0]?.n ?? 0) === 0) {
+      await client.query('ROLLBACK');
       res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Transaksi belum punya baris jurnal — tambahkan minimal 2 baris (debit & kredit)' } });
       return;
     }
     if (Number(tx.total_debit) !== Number(tx.total_credit) || Number(tx.total_debit) === 0) {
+      await client.query('ROLLBACK');
       res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: `Transaksi belum seimbang — total debit ${tx.total_debit} ≠ total kredit ${tx.total_credit}` } });
       return;
     }
-    const result = await pool.query(
+    const result = await client.query(
       `UPDATE finance.transactions SET status = 'SUBMITTED', submitted_at = NOW(), submitted_by = $3, updated_at = NOW(), updated_by = $3
        WHERE id = $1 AND organization_id = $2 RETURNING *`,
       [req.params.id, FINANCE_ORG, req.user!.userId]
     );
-    await pool.query(
+    await client.query(
       `UPDATE finance.vouchers SET status = 'SUBMITTED', updated_at = NOW(), updated_by = $2 WHERE id = $1`,
       [tx.voucher_id, req.user!.userId]
     );
+    await client.query('COMMIT');
     logger.info('Transaction submitted', { user: req.user?.username, transactionId: req.params.id });
     await recordFinanceAudit(req, 'Diajukan', 'FinanceTransaction', tx.id, tx.voucher_number, `Transaksi ${tx.voucher_number} diajukan untuk verifikasi`, 'sensitive');
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
     logger.error('PUT transactions/:id/submit', { message: String(err) });
     res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal mengajukan transaksi' } });
+  } finally {
+    client.release();
   }
 });
 
 // ── Verifikasi (Submitted → Verified) ──────────────────────────────────────────
 router.put('/:id/verify', requireApprovalPermission('approve'), async (req: AuthRequest, res: Response) => {
+  const pool = getPool();
+  const client = await pool.connect();
   try {
-    const pool = getPool();
-    const tx = await getTransactionOr404(pool, req.params.id, res);
-    if (!tx) return;
+    await client.query('BEGIN');
+    const txRes = await client.query('SELECT * FROM finance.transactions WHERE id = $1 AND organization_id = $2 FOR UPDATE', [req.params.id, FINANCE_ORG]);
+    const tx = txRes.rows[0];
+    if (!tx) {
+      await client.query('ROLLBACK');
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Transaksi tidak ditemukan' } });
+      return;
+    }
     if (tx.status !== 'SUBMITTED') {
+      await client.query('ROLLBACK');
       res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Hanya transaksi berstatus Diajukan yang bisa diverifikasi' } });
       return;
     }
     if (tx.created_by === req.user!.userId) {
+      await client.query('ROLLBACK');
       res.status(403).json({ success: false, error: { code: 'SEGREGATION_OF_DUTIES', message: 'Pembuat transaksi tidak bisa memverifikasi transaksinya sendiri — perlu orang lain (segregation of duties)' } });
       return;
     }
-    const result = await pool.query(
+    const result = await client.query(
       `UPDATE finance.transactions SET status = 'VERIFIED', verified_at = NOW(), verified_by = $3, updated_at = NOW(), updated_by = $3
        WHERE id = $1 AND organization_id = $2 RETURNING *`,
       [req.params.id, FINANCE_ORG, req.user!.userId]
     );
+    await client.query('COMMIT');
     logger.info('Transaction verified', { user: req.user?.username, transactionId: req.params.id });
     await recordFinanceAudit(req, 'Diverifikasi', 'FinanceTransaction', tx.id, tx.voucher_number, `Transaksi ${tx.voucher_number} diverifikasi`, 'sensitive');
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
     logger.error('PUT transactions/:id/verify', { message: String(err) });
     res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal memverifikasi transaksi' } });
+  } finally {
+    client.release();
   }
 });
 
 // ── Setujui (Verified → Approved) ───────────────────────────────────────────────
 router.put('/:id/approve', requireApprovalPermission('approve'), async (req: AuthRequest, res: Response) => {
+  const pool = getPool();
+  const client = await pool.connect();
   try {
-    const pool = getPool();
-    const tx = await getTransactionOr404(pool, req.params.id, res);
-    if (!tx) return;
+    await client.query('BEGIN');
+    const txRes = await client.query('SELECT * FROM finance.transactions WHERE id = $1 AND organization_id = $2 FOR UPDATE', [req.params.id, FINANCE_ORG]);
+    const tx = txRes.rows[0];
+    if (!tx) {
+      await client.query('ROLLBACK');
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Transaksi tidak ditemukan' } });
+      return;
+    }
     if (tx.status !== 'VERIFIED') {
+      await client.query('ROLLBACK');
       res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Hanya transaksi berstatus Diverifikasi yang bisa disetujui' } });
       return;
     }
     if (tx.created_by === req.user!.userId) {
+      await client.query('ROLLBACK');
       res.status(403).json({ success: false, error: { code: 'SEGREGATION_OF_DUTIES', message: 'Pembuat transaksi tidak bisa menyetujui transaksinya sendiri — perlu orang lain (segregation of duties)' } });
       return;
     }
     if (tx.verified_by === req.user!.userId) {
+      await client.query('ROLLBACK');
       res.status(403).json({ success: false, error: { code: 'SEGREGATION_OF_DUTIES', message: 'Verifikator tidak bisa merangkap sebagai penyetuju — harus orang berbeda (segregation of duties)' } });
       return;
     }
-    const result = await pool.query(
+    const result = await client.query(
       `UPDATE finance.transactions SET status = 'APPROVED', approved_at = NOW(), approved_by = $3, updated_at = NOW(), updated_by = $3
        WHERE id = $1 AND organization_id = $2 RETURNING *`,
       [req.params.id, FINANCE_ORG, req.user!.userId]
     );
+    await client.query('COMMIT');
     logger.info('Transaction approved', { user: req.user?.username, transactionId: req.params.id });
     await recordFinanceAudit(req, 'Disetujui', 'FinanceTransaction', tx.id, tx.voucher_number, `Transaksi ${tx.voucher_number} disetujui`, 'sensitive');
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
     logger.error('PUT transactions/:id/approve', { message: String(err) });
     res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal menyetujui transaksi' } });
+  } finally {
+    client.release();
   }
 });
 
 // ── Tolak (Submitted/Verified → Rejected, wajib alasan) ─────────────────────────
 router.put('/:id/reject', requireApprovalPermission('approve'), async (req: AuthRequest, res: Response) => {
+  const pool = getPool();
+  const client = await pool.connect();
   try {
-    const pool = getPool();
-    const tx = await getTransactionOr404(pool, req.params.id, res);
-    if (!tx) return;
+    await client.query('BEGIN');
+    const txRes = await client.query('SELECT * FROM finance.transactions WHERE id = $1 AND organization_id = $2 FOR UPDATE', [req.params.id, FINANCE_ORG]);
+    const tx = txRes.rows[0];
+    if (!tx) {
+      await client.query('ROLLBACK');
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Transaksi tidak ditemukan' } });
+      return;
+    }
     if (!['SUBMITTED', 'VERIFIED'].includes(tx.status)) {
+      await client.query('ROLLBACK');
       res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Hanya transaksi berstatus Diajukan/Diverifikasi yang bisa ditolak' } });
       return;
     }
     const reason = String(req.body?.reason ?? '').trim();
     if (!reason) {
+      await client.query('ROLLBACK');
       res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Alasan penolakan wajib diisi' } });
       return;
     }
-    const result = await pool.query(
+    const result = await client.query(
       `UPDATE finance.transactions SET status = 'REJECTED', rejection_reason = $3, updated_at = NOW(), updated_by = $4
        WHERE id = $1 AND organization_id = $2 RETURNING *`,
       [req.params.id, FINANCE_ORG, reason, req.user!.userId]
     );
+    await client.query('COMMIT');
     logger.info('Transaction rejected', { user: req.user?.username, transactionId: req.params.id, reason });
     await recordFinanceAudit(req, 'Ditolak', 'FinanceTransaction', tx.id, tx.voucher_number, `Transaksi ${tx.voucher_number} ditolak — alasan: ${reason}`, 'sensitive');
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
     logger.error('PUT transactions/:id/reject', { message: String(err) });
     res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal menolak transaksi' } });
+  } finally {
+    client.release();
   }
 });
 
 // ── Revisi (Rejected → Draft, kembali untuk diedit & diajukan ulang) ────────────
 router.put('/:id/revise', requireFinancePermission('edit'), async (req: AuthRequest, res: Response) => {
+  const pool = getPool();
+  const client = await pool.connect();
   try {
-    const pool = getPool();
-    const tx = await getTransactionOr404(pool, req.params.id, res);
-    if (!tx) return;
+    await client.query('BEGIN');
+    const txRes = await client.query('SELECT * FROM finance.transactions WHERE id = $1 AND organization_id = $2 FOR UPDATE', [req.params.id, FINANCE_ORG]);
+    const tx = txRes.rows[0];
+    if (!tx) {
+      await client.query('ROLLBACK');
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Transaksi tidak ditemukan' } });
+      return;
+    }
     if (tx.status !== 'REJECTED') {
+      await client.query('ROLLBACK');
       res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Hanya transaksi berstatus Ditolak yang bisa direvisi' } });
       return;
     }
-    const result = await pool.query(
+    const result = await client.query(
       `UPDATE finance.transactions SET status = 'DRAFT', rejection_reason = NULL, updated_at = NOW(), updated_by = $3
        WHERE id = $1 AND organization_id = $2 RETURNING *`,
       [req.params.id, FINANCE_ORG, req.user!.userId]
     );
+    await client.query('COMMIT');
     logger.info('Transaction sent back to draft for revision', { user: req.user?.username, transactionId: req.params.id });
     await recordFinanceAudit(req, 'Direvisi', 'FinanceTransaction', tx.id, tx.voucher_number, `Transaksi ${tx.voucher_number} dikembalikan ke Draft untuk direvisi`, 'normal');
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
     logger.error('PUT transactions/:id/revise', { message: String(err) });
     res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal mengembalikan transaksi ke Draft' } });
+  } finally {
+    client.release();
   }
 });
 
@@ -990,16 +1081,60 @@ router.post('/:id/lines', requireFinancePermission('edit'), async (req: AuthRequ
       return;
     }
     const nullable = (v: any) => (v === '' || v === undefined ? null : v);
+
+    // Akun WAJIB selalu dicek aktif; dimensi lain (dana/pusat biaya/kas/bank)
+    // dicek HANYA kalau diisi -- mencegah baris transaksi BARU memakai master
+    // data yang sudah dinonaktifkan lewat Master Data UI (menonaktifkan
+    // sebelumnya tidak benar-benar mencegah pemakaian baru sama sekali).
+    await assertMasterDataActive(client, 'finance.accounts', account_id, 'Akun', true);
+    await assertMasterDataActive(client, 'finance.funds', nullable(body.fund_id), 'Dana', true);
+    await assertMasterDataActive(client, 'finance.cost_centers', nullable(body.cost_center_id), 'Pusat Biaya', true);
+    await assertMasterDataActive(client, 'finance.cash_accounts', nullable(body.cash_account_id), 'Kas', false);
+    await assertMasterDataActive(client, 'finance.bank_accounts', nullable(body.bank_account_id), 'Rekening Bank', false);
+
+    // budget_line_id OPSIONAL -- kalau diisi, validasi dulu supaya baris transaksi
+    // ini benar-benar bisa dihitung sebagai realisasi baris RKA tsb oleh Laporan
+    // Realisasi Anggaran (financeReports.ts, yang JOIN lewat budget_line_id):
+    // harus RKA organisasi ini, akunnya harus sama dengan akun baris ini, dan
+    // Tahun Fiskal RKA-nya harus sama dengan Tahun Fiskal transaksi ini --
+    // supaya tidak ada baris realisasi "nyasar" ke RKA akun/tahun yang salah.
+    let budgetLineId: string | null = null;
+    if (body.budget_line_id) {
+      const blRes = await client.query(
+        `SELECT bl.id, bl.account_id, b.fiscal_year_id
+         FROM finance.budget_lines bl JOIN finance.budgets b ON b.id = bl.budget_id
+         WHERE bl.id = $1 AND b.organization_id = $2`,
+        [body.budget_line_id, FINANCE_ORG]
+      );
+      const bl = blRes.rows[0];
+      if (!bl) {
+        await client.query('ROLLBACK');
+        res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Baris Anggaran (RKA) yang dipilih tidak ditemukan' } });
+        return;
+      }
+      if (bl.account_id !== account_id) {
+        await client.query('ROLLBACK');
+        res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Baris Anggaran (RKA) yang dipilih untuk akun yang berbeda' } });
+        return;
+      }
+      if (bl.fiscal_year_id !== tx.fiscal_year_id) {
+        await client.query('ROLLBACK');
+        res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Baris Anggaran (RKA) yang dipilih dari Tahun Fiskal yang berbeda' } });
+        return;
+      }
+      budgetLineId = bl.id;
+    }
+
     const lineNumRes = await client.query('SELECT COALESCE(MAX(line_number),0) + 1 AS next FROM finance.transaction_lines WHERE transaction_id = $1', [req.params.id]);
     const lineNumber = lineNumRes.rows[0].next;
     const result = await client.query(
       `INSERT INTO finance.transaction_lines
-        (transaction_id, line_number, account_id, field_id, program_id, activity_id, fund_id, cost_center_id, cash_account_id, bank_account_id, description, debit, credit)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
+        (transaction_id, line_number, account_id, field_id, program_id, activity_id, fund_id, cost_center_id, cash_account_id, bank_account_id, description, debit, credit, budget_line_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
       [
         req.params.id, lineNumber, account_id, nullable(body.field_id), nullable(body.program_id), nullable(body.activity_id),
         nullable(body.fund_id), nullable(body.cost_center_id), nullable(body.cash_account_id), nullable(body.bank_account_id), nullable(body.description),
-        side === 'debit' ? amount : 0, side === 'credit' ? amount : 0,
+        side === 'debit' ? amount : 0, side === 'credit' ? amount : 0, budgetLineId,
       ]
     );
     const totals = await recomputeTotals(client, req.params.id);
@@ -1008,8 +1143,10 @@ router.post('/:id/lines', requireFinancePermission('edit'), async (req: AuthRequ
   } catch (err: any) {
     await client.query('ROLLBACK').catch(() => {});
     logger.error('POST transactions/:id/lines', { message: String(err) });
-    const message = /foreign key/i.test(String(err?.message ?? '')) ? 'Referensi yang dipilih tidak valid' : 'Gagal menambah baris';
-    res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message } });
+    const message = err?.status
+      ? err.message
+      : (/foreign key/i.test(String(err?.message ?? '')) ? 'Referensi yang dipilih tidak valid' : 'Gagal menambah baris');
+    res.status(err?.status ?? 400).json({ success: false, error: { code: 'VALIDATION_ERROR', message } });
   } finally {
     client.release();
   }

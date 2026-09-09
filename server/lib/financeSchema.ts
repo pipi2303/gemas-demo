@@ -444,6 +444,11 @@ CREATE TABLE IF NOT EXISTS finance.budgets (
   CONSTRAINT ck_budget_version CHECK (version >= 1)
 );
 CREATE INDEX IF NOT EXISTS idx_budgets_fiscal_status ON finance.budgets (fiscal_year_id, status);
+-- Pengaman lapis kedua di level database terhadap 2 RKA ACTIVE sekaligus untuk
+-- 1 Tahun Fiskal (lock baris finance.fiscal_years di PUT /:id/activate adalah
+-- pengaman utama; index ini menjaga kalau lock itu sampai terlewati).
+CREATE UNIQUE INDEX IF NOT EXISTS uq_budgets_one_active_per_fiscal_year
+  ON finance.budgets (organization_id, fiscal_year_id) WHERE status = 'ACTIVE';
 
 CREATE TABLE IF NOT EXISTS finance.budget_lines (
   id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -713,6 +718,14 @@ CREATE TABLE IF NOT EXISTS finance.reconciliation_matches (
 );
 CREATE INDEX IF NOT EXISTS idx_recon_matches_statement ON finance.reconciliation_matches (statement_line_id);
 CREATE INDEX IF NOT EXISTS idx_recon_matches_transaction ON finance.reconciliation_matches (transaction_id);
+-- Pengaman lapis kedua di level database supaya 1 transaksi tidak pernah bisa
+-- tercocok lebih dari sekali (mis. lewat 2 sesi rekonsiliasi berbeda yang
+-- berjalan bersamaan) -- pengecekan "sudah dicocokkan?" di rute POST /matches
+-- & /auto-match hanya snapshot read, bukan lock lintas-sesi. NULL (baris
+-- penyesuaian tanpa transaksi GL) tetap boleh berulang seperti biasa --
+-- Postgres tidak menganggap NULL "sama" pada unique index biasa.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_recon_matches_transaction
+  ON finance.reconciliation_matches (transaction_id);
 
 -- ── PERIOD CLOSING ────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS finance.period_closings (

@@ -81,4 +81,39 @@ describe('Finance Reconciliation — segregation of duties pada complete/approve
     expect(cancelRes.status).toBe(200);
     expect(cancelRes.body.data.status).toBe('CANCELLED');
   });
+
+  it('mencegah 1 transaksi tercocok ke 2 sesi rekonsiliasi berbeda sekaligus (race condition lintas-sesi)', async () => {
+    // 2 sesi berbeda (statement & periode masing-masing) atas rekening bank yang
+    // sama -- pengecekan duplikat di POST /:id/matches sebelumnya cuma snapshot
+    // read per-request, TIDAK ada lock lintas sesi, jadi 2 sesi berbeda bisa
+    // sama-sama lolos cek "belum dicocokkan" untuk transaksi yang sama lalu
+    // sama-sama berhasil INSERT. uq_recon_matches_transaction (financeSchema.ts)
+    // jadi pengaman lapis kedua di level database untuk race ini.
+    const sessionX = await createBalancedSession(9);
+    const sessionY = await createBalancedSession(10);
+    const detailX = await request(app).get(`/api/v1/finance/reconciliation/${sessionX.id}`).set('Authorization', completer);
+    const detailY = await request(app).get(`/api/v1/finance/reconciliation/${sessionY.id}`).set('Authorization', completer);
+    const lineX = detailX.body.data.statementLines[0].id;
+    const lineY = detailY.body.data.statementLines[0].id;
+
+    const txRes = await request(app).post('/api/v1/finance/transactions').set('Authorization', completer).send({
+      voucher_type_id: seed.voucherTypeId, fiscal_year_id: seed.fiscalYearId, transaction_date: seed.transactionDate,
+      description: 'Transaksi untuk dicocokkan bersamaan',
+    });
+    const transactionId = txRes.body.data.id;
+
+    const [matchX, matchY] = await Promise.all([
+      request(app).post(`/api/v1/finance/reconciliation/${sessionX.id}/matches`).set('Authorization', completer).send({ statement_line_id: lineX, transaction_id: transactionId }),
+      request(app).post(`/api/v1/finance/reconciliation/${sessionY.id}/matches`).set('Authorization', completer).send({ statement_line_id: lineY, transaction_id: transactionId }),
+    ]);
+    const statuses = [matchX.status, matchY.status];
+    // Salah satu HARUS 201 (berhasil dicocokkan), satu lagi HARUS gagal (400 dari
+    // cek aplikasi kalau menang duluan sebelum commit, atau 409 dari unique index
+    // kalau race betulan kejadian di level DB) -- yang PENTING adalah TIDAK PERNAH
+    // keduanya 201 (itu berarti 1 transaksi lolos tercocok ke 2 sesi berbeda).
+    const successCount = statuses.filter((s) => s === 201).length;
+    expect(successCount).toBe(1);
+    const failureStatus = statuses.find((s) => s !== 201);
+    expect([400, 409]).toContain(failureStatus);
+  });
 });

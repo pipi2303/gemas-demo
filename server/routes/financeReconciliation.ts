@@ -390,10 +390,21 @@ router.post('/:id/auto-match', requireFinancePermission('edit'), async (req: Aut
     await client.query('COMMIT');
     logger.info('Reconciliation auto-match run', { user: req.user?.username, reconciliationId: session.id, matchedCount });
     res.json({ success: true, data: { matchedCount, totalUnmatchedBefore: unmatchedLines.rows.length } });
-  } catch (err) {
+  } catch (err: any) {
     await client.query('ROLLBACK').catch(() => {});
     logger.error('POST reconciliation/:id/auto-match', { message: String(err) });
-    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal menjalankan pencocokan otomatis' } });
+    // uq_recon_matches_transaction (financeSchema.ts) -- pengaman lapis kedua di
+    // level database kalau ada sesi rekonsiliasi lain yang barusan mencocokkan
+    // transaksi yang sama bersamaan (pengecekan NOT EXISTS di atas hanya
+    // snapshot, bukan lock, jadi bisa race antar 2 sesi berbeda).
+    const isUnique = /unique/i.test(String(err?.message ?? ''));
+    res.status(isUnique ? 409 : 500).json({
+      success: false,
+      error: {
+        code: isUnique ? 'CONFLICT' : 'INTERNAL_ERROR',
+        message: isUnique ? 'Sebagian transaksi baru saja dicocokkan oleh sesi rekonsiliasi lain — jalankan ulang pencocokan otomatis' : 'Gagal menjalankan pencocokan otomatis',
+      },
+    });
   } finally {
     client.release();
   }
@@ -446,10 +457,17 @@ router.post('/:id/matches', requireFinancePermission('edit'), async (req: AuthRe
     await client.query('COMMIT');
     logger.info('Reconciliation manual match', { user: req.user?.username, reconciliationId: session.id, statementLineId: statement_line_id, transactionId: transaction_id });
     res.status(201).json({ success: true, data: null });
-  } catch (err) {
+  } catch (err: any) {
     await client.query('ROLLBACK').catch(() => {});
     logger.error('POST reconciliation/:id/matches', { message: String(err) });
-    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal mencocokkan baris' } });
+    const isUnique = /unique/i.test(String(err?.message ?? ''));
+    res.status(isUnique ? 409 : 500).json({
+      success: false,
+      error: {
+        code: isUnique ? 'CONFLICT' : 'INTERNAL_ERROR',
+        message: isUnique ? 'Transaksi ini baru saja dicocokkan oleh sesi rekonsiliasi lain' : 'Gagal mencocokkan baris',
+      },
+    });
   } finally {
     client.release();
   }
@@ -486,85 +504,112 @@ router.delete('/:id/matches/:matchId', requireFinancePermission('edit'), async (
 
 // ── Selesaikan & Setujui Sesi (segregation of duties: penyetuju harus beda orang) ─
 router.put('/:id/complete', requireFinancePermission('approve'), async (req: AuthRequest, res: Response) => {
+  const pool = getPool();
+  const client = await pool.connect();
   try {
-    const pool = getPool();
-    const rRes = await pool.query('SELECT * FROM finance.reconciliations WHERE id = $1 AND organization_id = $2', [req.params.id, FINANCE_ORG]);
+    await client.query('BEGIN');
+    // SELECT ... FOR UPDATE mengunci sesi ini SELAMA transaksi -- pola yang sama
+    // seperti POST /:id/matches & DELETE /:id/matches/:matchId di file ini,
+    // supaya complete/approve/cancel tidak race dengan aksi lain di sesi yang
+    // sama (mis. selesaikan sesi bersamaan dengan pencocokan baru masuk).
+    const rRes = await client.query('SELECT * FROM finance.reconciliations WHERE id = $1 AND organization_id = $2 FOR UPDATE', [req.params.id, FINANCE_ORG]);
     const session = rRes.rows[0];
-    if (!session) { res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Sesi rekonsiliasi tidak ditemukan' } }); return; }
+    if (!session) { await client.query('ROLLBACK'); res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Sesi rekonsiliasi tidak ditemukan' } }); return; }
     if (session.status !== 'DRAFT' && session.status !== 'IN_PROGRESS') {
+      await client.query('ROLLBACK');
       res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Sesi ini tidak dalam status yang bisa diselesaikan' } });
       return;
     }
-    const detail = await loadSessionDetail(pool, session.id);
+    const detail = await loadSessionDetail(client as any, session.id);
     if (!detail!.balanced) {
+      await client.query('ROLLBACK');
       res.status(400).json({
         success: false,
         error: { code: 'NOT_BALANCED', message: `Selisih setelah penyesuaian belum nol (Rp ${detail!.adjustedDifference.toLocaleString('id-ID')}) — cocokkan semua baris dulu sebelum menyelesaikan sesi` },
       });
       return;
     }
-    const result = await pool.query(
+    const result = await client.query(
       `UPDATE finance.reconciliations SET status = 'COMPLETED', completed_at = NOW(), completed_by = $2
        WHERE id = $1 RETURNING *`,
       [session.id, req.user!.userId]
     );
+    await client.query('COMMIT');
     logger.info('Reconciliation completed', { user: req.user?.username, reconciliationId: session.id });
     await recordFinanceAudit(req, 'Diselesaikan', 'FinanceReconciliation', session.id, `Sesi ${session.id.slice(0, 8)}`, `Sesi rekonsiliasi ${session.id.slice(0, 8)} diselesaikan (saldo cocok)`, 'sensitive');
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
     logger.error('PUT reconciliation/:id/complete', { message: String(err) });
     res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal menyelesaikan sesi rekonsiliasi' } });
+  } finally {
+    client.release();
   }
 });
 
 router.put('/:id/approve', requireFinancePermission('approve'), async (req: AuthRequest, res: Response) => {
+  const pool = getPool();
+  const client = await pool.connect();
   try {
-    const pool = getPool();
-    const rRes = await pool.query('SELECT * FROM finance.reconciliations WHERE id = $1 AND organization_id = $2', [req.params.id, FINANCE_ORG]);
+    await client.query('BEGIN');
+    const rRes = await client.query('SELECT * FROM finance.reconciliations WHERE id = $1 AND organization_id = $2 FOR UPDATE', [req.params.id, FINANCE_ORG]);
     const session = rRes.rows[0];
-    if (!session) { res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Sesi rekonsiliasi tidak ditemukan' } }); return; }
+    if (!session) { await client.query('ROLLBACK'); res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Sesi rekonsiliasi tidak ditemukan' } }); return; }
     if (session.status !== 'COMPLETED') {
+      await client.query('ROLLBACK');
       res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Hanya sesi berstatus Selesai yang bisa disetujui' } });
       return;
     }
     if (session.completed_by === req.user!.userId) {
+      await client.query('ROLLBACK');
       res.status(403).json({ success: false, error: { code: 'SEGREGATION_OF_DUTIES', message: 'Orang yang menyelesaikan sesi tidak bisa menyetujui sesinya sendiri — perlu orang lain (segregation of duties)' } });
       return;
     }
-    const result = await pool.query(
+    const result = await client.query(
       `UPDATE finance.reconciliations SET status = 'APPROVED', approved_at = NOW(), approved_by = $2
        WHERE id = $1 RETURNING *`,
       [session.id, req.user!.userId]
     );
+    await client.query('COMMIT');
     logger.info('Reconciliation approved', { user: req.user?.username, reconciliationId: session.id });
     await recordFinanceAudit(req, 'Disetujui', 'FinanceReconciliation', session.id, `Sesi ${session.id.slice(0, 8)}`, `Sesi rekonsiliasi ${session.id.slice(0, 8)} disetujui`, 'sensitive');
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
     logger.error('PUT reconciliation/:id/approve', { message: String(err) });
     res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal menyetujui sesi rekonsiliasi' } });
+  } finally {
+    client.release();
   }
 });
 
 router.put('/:id/cancel', requireFinancePermission('edit'), async (req: AuthRequest, res: Response) => {
+  const pool = getPool();
+  const client = await pool.connect();
   try {
-    const pool = getPool();
-    const rRes = await pool.query('SELECT * FROM finance.reconciliations WHERE id = $1 AND organization_id = $2', [req.params.id, FINANCE_ORG]);
+    await client.query('BEGIN');
+    const rRes = await client.query('SELECT * FROM finance.reconciliations WHERE id = $1 AND organization_id = $2 FOR UPDATE', [req.params.id, FINANCE_ORG]);
     const session = rRes.rows[0];
-    if (!session) { res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Sesi rekonsiliasi tidak ditemukan' } }); return; }
+    if (!session) { await client.query('ROLLBACK'); res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Sesi rekonsiliasi tidak ditemukan' } }); return; }
     if (session.status === 'APPROVED') {
+      await client.query('ROLLBACK');
       res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Sesi yang sudah disetujui tidak bisa dibatalkan' } });
       return;
     }
-    const result = await pool.query(
+    const result = await client.query(
       `UPDATE finance.reconciliations SET status = 'CANCELLED', notes = COALESCE($2, notes) WHERE id = $1 RETURNING *`,
       [session.id, req.body?.reason || null]
     );
+    await client.query('COMMIT');
     logger.info('Reconciliation cancelled', { user: req.user?.username, reconciliationId: session.id });
     await recordFinanceAudit(req, 'Dibatalkan', 'FinanceReconciliation', session.id, `Sesi ${session.id.slice(0, 8)}`, `Sesi rekonsiliasi ${session.id.slice(0, 8)} dibatalkan`, 'normal');
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
     logger.error('PUT reconciliation/:id/cancel', { message: String(err) });
     res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal membatalkan sesi rekonsiliasi' } });
+  } finally {
+    client.release();
   }
 });
 
