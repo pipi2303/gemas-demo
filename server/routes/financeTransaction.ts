@@ -111,14 +111,11 @@ async function recomputeTotals(client: any, transactionId: string) {
 // atomik, tidak ada risiko voucher jadi tapi tandanya gagal atau sebaliknya)
 // — offering yang sudah punya tanda ini tidak akan pernah ikut ke-agregasi
 // setoran berikutnya.
-const OFFERING_ACCOUNT_CODE: Record<string, string> = {
-  Mingguan: '4101', Syukur: '4102', Persepuluhan: '4103',
-  Pembangunan: '4104', Diakonia: '4105', Lainnya: '4106',
-};
-const OFFERING_FUND_CODE: Record<string, string> = {
-  Mingguan: 'DU', Syukur: 'DU', Persepuluhan: 'DU', Lainnya: 'DU',
-  Pembangunan: 'DP', Diakonia: 'DD',
-};
+// Peta kategori persembahan -> akun GL/dana/kas TIDAK lagi hardcode di sini --
+// diambil dari tabel finance.offering_deposit_map (lihat financeSchema.ts) lewat
+// resolveOfferingMap() di bawah, supaya bendahara boleh mengubah kode/nama akun
+// di Master Data > Akun tanpa merusak fitur setoran ini (mapping disimpan lewat
+// ID akun yang stabil, bukan kode yang bisa berubah).
 
 interface OfferingRecord {
   id: string; type: string; amount: number; paymentMethod: string; date: string;
@@ -129,9 +126,28 @@ function offeringMethodBucket(paymentMethod: string): 'CASH' | 'BANK' {
   return paymentMethod === 'Tunai' ? 'CASH' : 'BANK';
 }
 
+// Ambil mapping akun/dana/kas untuk satu map_key ('CASH_DEBIT', 'BANK_DEBIT', atau
+// nama kategori persembahan) dari finance.offering_deposit_map. Mengembalikan null
+// kalau map_key belum dikonfigurasi ATAU akunnya sudah dihapus (account_id jadi
+// NULL lewat ON DELETE SET NULL) -- keduanya ditangani sebagai "mapping hilang"
+// oleh pemanggil: gagal dengan pesan jelas alih-alih memakai akun yang salah.
+async function resolveOfferingMap(client: any, mapKey: string): Promise<{ accountId: string; fundId: string | null; cashAccountId: string | null } | null> {
+  const r = await client.query(
+    'SELECT account_id, fund_id, cash_account_id FROM finance.offering_deposit_map WHERE organization_id = $1 AND map_key = $2',
+    [FINANCE_ORG, mapKey]
+  );
+  const row = r.rows[0];
+  if (!row || !row.account_id) return null;
+  return { accountId: row.account_id, fundId: row.fund_id ?? null, cashAccountId: row.cash_account_id ?? null };
+}
+
 async function collectUndepositedOfferings(startDate: string, endDate: string): Promise<OfferingRecord[]> {
   const all = await getAll<OfferingRecord>('offerings');
-  return all.filter(o => o && o.date >= startDate && o.date <= endDate && !o.depositedTransactionId);
+  // amount > 0 disaring di sini (sumber data), bukan cuma saat generate baris
+  // kredit -- supaya persembahan dengan nominal negatif/nol (data rusak/invalid,
+  // form frontend cuma dijaga min="0" HTML yang gampang dilewati) tidak pernah
+  // ikut masuk ke agregasi, dan tidak bisa bikin voucher timpang (debit != kredit).
+  return all.filter(o => o && o.date >= startDate && o.date <= endDate && !o.depositedTransactionId && Number(o.amount) > 0);
 }
 
 function summarizeOfferings(items: OfferingRecord[]) {
@@ -168,8 +184,7 @@ async function resolveDepositFiscalYearId(client: any, fiscalYearId?: string): P
 
 async function createDepositTransaction(client: any, req: AuthRequest, opts: {
   voucherTypeCode: 'BKM' | 'BBM';
-  debitAccountCode: string;
-  debitCashAccountCode?: string;
+  mapKey: 'CASH_DEBIT' | 'BANK_DEBIT';
   categoryTotals: Record<string, number>;
   transactionDate: string;
   fiscalYearId: string;
@@ -194,16 +209,12 @@ async function createDepositTransaction(client: any, req: AuthRequest, opts: {
   const period = periodRes.rows[0];
   if (period.status !== 'OPEN') throw Object.assign(new Error('Periode untuk tanggal setor sudah tidak Terbuka (Open)'), { status: 400 });
 
-  const debitAccount = await client.query('SELECT id FROM finance.accounts WHERE organization_id = $1 AND code = $2', [FINANCE_ORG, opts.debitAccountCode]);
-  if (debitAccount.rows.length === 0) {
-    throw Object.assign(new Error(`Akun GL ${opts.debitAccountCode} tidak ditemukan — jalankan seed Master Data Finance terlebih dahulu`), { status: 400 });
+  const debitMap = await resolveOfferingMap(client, opts.mapKey);
+  if (!debitMap) {
+    throw Object.assign(new Error(`Peta akun setoran "${opts.mapKey}" belum dikonfigurasi — jalankan seed Master Data Finance terlebih dahulu`), { status: 400 });
   }
-
-  let debitCashAccountId: string | null = null;
-  if (opts.debitCashAccountCode) {
-    const ca = await client.query('SELECT id FROM finance.cash_accounts WHERE organization_id = $1 AND code = $2', [FINANCE_ORG, opts.debitCashAccountCode]);
-    debitCashAccountId = ca.rows[0]?.id ?? null;
-  }
+  const debitAccountId = debitMap.accountId;
+  const debitCashAccountId = debitMap.cashAccountId;
 
   const seqRes = await client.query(
     `INSERT INTO finance.voucher_sequences (organization_id, fiscal_year_id, voucher_type_id, current_number)
@@ -237,20 +248,17 @@ async function createDepositTransaction(client: any, req: AuthRequest, opts: {
   await client.query(
     `INSERT INTO finance.transaction_lines (transaction_id, line_number, account_id, cash_account_id, description, debit, credit)
      VALUES ($1,$2,$3,$4,$5,$6,0)`,
-    [tx.id, lineNumber++, debitAccount.rows[0].id, debitCashAccountId, opts.description, totalAmount]
+    [tx.id, lineNumber++, debitAccountId, debitCashAccountId, opts.description, totalAmount]
   );
 
   for (const [type, amount] of Object.entries(opts.categoryTotals)) {
     if (amount <= 0) continue;
-    const accCode = OFFERING_ACCOUNT_CODE[type];
-    const fundCode = OFFERING_FUND_CODE[type];
-    const acc = await client.query('SELECT id FROM finance.accounts WHERE organization_id = $1 AND code = $2', [FINANCE_ORG, accCode]);
-    if (acc.rows.length === 0) throw Object.assign(new Error(`Akun Penerimaan untuk kategori "${type}" tidak ditemukan`), { status: 400 });
-    const fund = fundCode ? await client.query('SELECT id FROM finance.funds WHERE organization_id = $1 AND code = $2', [FINANCE_ORG, fundCode]) : { rows: [] as any[] };
+    const map = await resolveOfferingMap(client, type);
+    if (!map) throw Object.assign(new Error(`Akun Penerimaan untuk kategori "${type}" tidak ditemukan`), { status: 400 });
     await client.query(
       `INSERT INTO finance.transaction_lines (transaction_id, line_number, account_id, fund_id, description, debit, credit)
        VALUES ($1,$2,$3,$4,$5,0,$6)`,
-      [tx.id, lineNumber++, acc.rows[0].id, fund.rows[0]?.id ?? null, `Persembahan ${type}`, amount]
+      [tx.id, lineNumber++, map.accountId, map.fundId, `Persembahan ${type}`, amount]
     );
   }
 
@@ -344,22 +352,41 @@ router.post('/deposit-offerings', requireFinancePermission('create'), async (req
     res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Rentang tanggal persembahan tidak valid' } });
     return;
   }
-  const items = await collectUndepositedOfferings(startDate, endDate);
-  if (items.length === 0) {
-    res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Tidak ada persembahan yang belum disetor pada rentang tanggal ini' } });
-    return;
-  }
-  for (const o of items) {
-    if (!OFFERING_ACCOUNT_CODE[o.type]) {
-      res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: `Kategori persembahan "${o.type}" belum punya akun GL rujukan di Master Data Finance` } });
-      return;
-    }
-  }
 
   const pool = getPool();
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+
+    // Kunci baris offerings dalam rentang tanggal ini SELAMA transaksi (FOR UPDATE)
+    // -- supaya dua request setor yang tumpang-tindih rentang tanggalnya tidak bisa
+    // sama-sama membaca offering yang sama sebagai "belum disetor" dan membuat 2
+    // transaksi Finance Add-on terpisah untuk uang yang sama (double-count). Request
+    // kedua akan menunggu (blok oleh Postgres) sampai request pertama COMMIT, lalu
+    // baca ulang data yang sudah ter-flag depositedTransactionId dari request
+    // pertama -- otomatis gagal di pengecekan "tidak ada yang belum disetor" di
+    // bawah, bukan ikut membuat transaksi duplikat. ORDER BY id membuat urutan
+    // penguncian antar request konsisten supaya tidak deadlock.
+    const lockRes = await client.query(
+      `SELECT id, data FROM gemas_store
+       WHERE collection = 'offerings' AND (data::jsonb)->>'date' >= $1 AND (data::jsonb)->>'date' <= $2
+       ORDER BY id
+       FOR UPDATE`,
+      [startDate, endDate]
+    );
+    const items: OfferingRecord[] = lockRes.rows
+      .map((row: any) => JSON.parse(row.data) as OfferingRecord)
+      .filter(o => o && !o.depositedTransactionId && Number(o.amount) > 0);
+
+    if (items.length === 0) {
+      throw Object.assign(new Error('Tidak ada persembahan yang belum disetor pada rentang tanggal ini'), { status: 400 });
+    }
+    for (const type of new Set(items.map(o => o.type))) {
+      if (!(await resolveOfferingMap(client, type))) {
+        throw Object.assign(new Error(`Kategori persembahan "${type}" belum punya akun GL rujukan di Master Data Finance`), { status: 400 });
+      }
+    }
+
     const fiscalYearId = await resolveDepositFiscalYearId(client, body.fiscal_year_id);
     const summary = summarizeOfferings(items);
     const results: { bucket: 'CASH' | 'BANK'; transactionId: string; voucherNumber: string; amount: number }[] = [];
@@ -369,8 +396,7 @@ router.post('/deposit-offerings', requireFinancePermission('create'), async (req
       for (const [type, v] of Object.entries(summary.CASH.byCategory)) categoryTotals[type] = v.amount;
       const r = await createDepositTransaction(client, req, {
         voucherTypeCode: 'BKM',
-        debitAccountCode: '1101',
-        debitCashAccountCode: 'KAS-01',
+        mapKey: 'CASH_DEBIT',
         categoryTotals,
         transactionDate: depositDate,
         fiscalYearId,
@@ -383,7 +409,7 @@ router.post('/deposit-offerings', requireFinancePermission('create'), async (req
       for (const [type, v] of Object.entries(summary.BANK.byCategory)) categoryTotals[type] = v.amount;
       const r = await createDepositTransaction(client, req, {
         voucherTypeCode: 'BBM',
-        debitAccountCode: '1102',
+        mapKey: 'BANK_DEBIT',
         categoryTotals,
         transactionDate: depositDate,
         fiscalYearId,

@@ -28,6 +28,12 @@ async function getOffering(id: string): Promise<any | null> {
   return r.rows[0] ? JSON.parse(r.rows[0].data) : null;
 }
 
+async function getAccountIdByCode(code: string): Promise<string> {
+  const r = await getPool().query(`SELECT id FROM finance.accounts WHERE organization_id = 'gpib-trinitas' AND code = $1`, [code]);
+  if (!r.rows[0]) throw new Error(`Akun dengan kode ${code} tidak ditemukan di seed default — cek FINANCE_SEED_SQL`);
+  return r.rows[0].id;
+}
+
 describe('Finance — Setor ke Buku Besar (deposit Persembahan/QRIS)', () => {
   let app: any;
   let seed: Awaited<ReturnType<typeof seedBaseFinanceData>>;
@@ -162,5 +168,110 @@ describe('Finance — Setor ke Buku Besar (deposit Persembahan/QRIS)', () => {
     expect(res.status).toBe(201);
     expect(res.body.data.transactions).toHaveLength(1);
     expect(res.body.data.transactions[0].bucket).toBe('CASH');
+  });
+
+  it('mengecualikan persembahan bernominal <= 0 dari pratinjau maupun setoran (data rusak/invalid tidak boleh bikin voucher timpang)', async () => {
+    const startDate = '2031-04-01';
+    const endDate = '2031-04-02';
+    const validId = uniqueCode('OFR');
+    const negativeId = uniqueCode('OFR');
+    const zeroId = uniqueCode('OFR');
+    await seedOffering({ id: validId, type: 'Mingguan', amount: 100000, paymentMethod: 'Tunai', date: startDate });
+    await seedOffering({ id: negativeId, type: 'Mingguan', amount: -50000, paymentMethod: 'Tunai', date: startDate });
+    await seedOffering({ id: zeroId, type: 'Syukur', amount: 0, paymentMethod: 'Tunai', date: endDate });
+
+    const previewRes = await request(app)
+      .get('/api/v1/finance/transactions/deposit-preview')
+      .query({ startDate, endDate })
+      .set('Authorization', admin);
+    expect(previewRes.body.data.offeringCount).toBe(1);
+    expect(previewRes.body.data.totalAmount).toBe(100000);
+
+    const depositRes = await request(app)
+      .post('/api/v1/finance/transactions/deposit-offerings')
+      .set('Authorization', admin)
+      .send({ startDate, endDate, depositDate: seed.transactionDate, fiscal_year_id: seed.fiscalYearId });
+    expect(depositRes.status).toBe(201);
+    expect(depositRes.body.data.offeringCount).toBe(1);
+    const tx = depositRes.body.data.transactions[0];
+    expect(Number(tx.amount)).toBe(100000);
+
+    // Voucher yang dihasilkan tetap harus seimbang (debit == credit) meski ada
+    // record amount <= 0 di rentang yang sama -- karena keduanya sudah disaring
+    // sejak collectUndepositedOfferings, bukan cuma saat generate baris kredit.
+    const detail = await request(app).get(`/api/v1/finance/transactions/${tx.transactionId}`).set('Authorization', admin);
+    expect(Number(detail.body.data.total_debit)).toBe(Number(detail.body.data.total_credit));
+    expect(Number(detail.body.data.total_debit)).toBe(100000);
+
+    const negFlagged = await getOffering(negativeId);
+    expect(negFlagged.depositedTransactionId).toBeUndefined();
+    const zeroFlagged = await getOffering(zeroId);
+    expect(zeroFlagged.depositedTransactionId).toBeUndefined();
+  });
+
+  it('tetap berhasil setor walau kode akun GL diganti setelah seed (mapping pakai ID akun yang stabil, bukan kode)', async () => {
+    const accountId = await getAccountIdByCode('4101'); // akun tujuan kategori "Mingguan"
+    const renamedCode = uniqueCode('RENAMED-4101');
+    const renameRes = await request(app)
+      .put(`/api/v1/finance/accounts/${accountId}`)
+      .set('Authorization', admin)
+      .send({ code: renamedCode });
+    expect(renameRes.status).toBe(200);
+
+    try {
+      const startDate = '2031-05-01';
+      const endDate = '2031-05-01';
+      const id = uniqueCode('OFR');
+      await seedOffering({ id, type: 'Mingguan', amount: 150000, paymentMethod: 'Tunai', date: startDate });
+
+      const depositRes = await request(app)
+        .post('/api/v1/finance/transactions/deposit-offerings')
+        .set('Authorization', admin)
+        .send({ startDate, endDate, depositDate: seed.transactionDate, fiscal_year_id: seed.fiscalYearId });
+      expect(depositRes.status).toBe(201);
+      expect(depositRes.body.data.transactions).toHaveLength(1);
+      expect(Number(depositRes.body.data.transactions[0].amount)).toBe(150000);
+
+      const linesRes = await request(app)
+        .get(`/api/v1/finance/transactions/${depositRes.body.data.transactions[0].transactionId}/lines`)
+        .set('Authorization', admin);
+      const creditLine = linesRes.body.data.find((l: any) => Number(l.credit) > 0);
+      // ID akun kredit tetap sama dengan akun yang barusan diganti kodenya --
+      // mapping resolve lewat finance.offering_deposit_map (ID), bukan lewat
+      // kode '4101' yang sekarang sudah tidak ada lagi.
+      expect(creditLine.account_id).toBe(accountId);
+    } finally {
+      // Kembalikan kode semula supaya tidak mengganggu test lain di suite yang
+      // masih mengandalkan kode default '4101' untuk kategori "Mingguan".
+      await request(app).put(`/api/v1/finance/accounts/${accountId}`).set('Authorization', admin).send({ code: '4101' });
+    }
+  });
+
+  it('mencegah 2 request setor bersamaan pada rentang yang sama menghitung ganda uang yang sama (race condition)', async () => {
+    const startDate = '2031-06-01';
+    const endDate = '2031-06-01';
+    const id = uniqueCode('OFR');
+    await seedOffering({ id, type: 'Mingguan', amount: 200000, paymentMethod: 'Tunai', date: startDate });
+
+    const payload = { startDate, endDate, depositDate: seed.transactionDate, fiscal_year_id: seed.fiscalYearId };
+    const [r1, r2] = await Promise.all([
+      request(app).post('/api/v1/finance/transactions/deposit-offerings').set('Authorization', admin).send(payload),
+      request(app).post('/api/v1/finance/transactions/deposit-offerings').set('Authorization', admin).send(payload),
+    ]);
+
+    // Tanpa penguncian FOR UPDATE, kedua request bisa sama-sama membaca offering
+    // ini sebagai "belum disetor" dan sama-sama berhasil (201) -- menghasilkan 2
+    // transaksi Finance Add-on terpisah untuk 1 persembahan yang sama (double-
+    // count). Dengan penguncian baris: persis 1 yang berhasil (201), 1 lagi gagal
+    // (400) karena setelah menunggu giliran, tidak ada lagi yang belum disetor.
+    const statuses = [r1.status, r2.status].sort((a, b) => a - b);
+    expect(statuses).toEqual([201, 400]);
+
+    const successRes = r1.status === 201 ? r1 : r2;
+    expect(successRes.body.data.offeringCount).toBe(1);
+    expect(successRes.body.data.transactions).toHaveLength(1);
+
+    const flagged = await getOffering(id);
+    expect(flagged.depositedTransactionId).toBe(successRes.body.data.transactions[0].transactionId);
   });
 });

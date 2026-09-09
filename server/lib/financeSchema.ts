@@ -813,6 +813,28 @@ FROM finance.budgets b
 JOIN finance.budget_lines bl ON bl.budget_id = b.id
 JOIN finance.accounts a ON a.id = bl.account_id;
 
+-- ── OFFERING DEPOSIT MAP (dipakai fitur "Setor ke Buku Besar") ────────────────
+-- Memetakan kategori persembahan (Mingguan/Syukur/dst, ditambah 2 kunci
+-- khusus CASH_DEBIT/BANK_DEBIT untuk sisi debit Kas/Bank) ke akun GL/dana/kas
+-- Finance Add-on LEWAT REFERENSI ID, bukan kode akun (finance.accounts.code
+-- bisa diubah kapan saja lewat Master Data > Akun) -- supaya bendahara boleh
+-- mengganti nama/kode akun tanpa merusak fitur setoran ini. Baris seed awal
+-- (lihat FINANCE_SEED_SQL di bawah) diisi dengan resolve kode->ID SEKALI saat
+-- database pertama kali disiapkan; sesudah itu yang dipakai selalu ID-nya.
+CREATE TABLE IF NOT EXISTS finance.offering_deposit_map (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id   TEXT NOT NULL DEFAULT 'gpib-trinitas',
+  map_key           VARCHAR(40) NOT NULL,
+  account_id        UUID REFERENCES finance.accounts(id) ON DELETE SET NULL,
+  fund_id           UUID REFERENCES finance.funds(id) ON DELETE SET NULL,
+  cash_account_id   UUID REFERENCES finance.cash_accounts(id) ON DELETE SET NULL,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_by        TEXT NOT NULL,
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_by        TEXT,
+  CONSTRAINT uq_offering_deposit_map_key UNIQUE (organization_id, map_key)
+);
+
 COMMIT;
 `;
 
@@ -914,6 +936,33 @@ FROM finance.fiscal_years fy
 CROSS JOIN generate_series(0, 11) AS gs(m)
 WHERE fy.organization_id = 'gpib-trinitas' AND fy.code = '2026'
 ON CONFLICT (fiscal_year_id, period_number) DO NOTHING;
+
+-- Peta setoran persembahan default -- resolve KODE -> ID sekali di sini
+-- (lihat catatan di CREATE TABLE finance.offering_deposit_map di atas: sesudah
+-- baris ini ada, fitur "Setor ke Buku Besar" selalu memakai ID-nya, bukan
+-- kode, jadi aman kalau kode/nama akunnya diubah belakangan lewat Master Data).
+INSERT INTO finance.offering_deposit_map (organization_id, map_key, account_id, cash_account_id, created_by)
+SELECT 'gpib-trinitas', 'CASH_DEBIT', a.id, ca.id, 'system'
+FROM finance.accounts a
+JOIN finance.cash_accounts ca ON ca.organization_id = 'gpib-trinitas' AND ca.code = 'KAS-01'
+WHERE a.organization_id = 'gpib-trinitas' AND a.code = '1101'
+ON CONFLICT (organization_id, map_key) DO NOTHING;
+
+INSERT INTO finance.offering_deposit_map (organization_id, map_key, account_id, created_by)
+SELECT 'gpib-trinitas', 'BANK_DEBIT', a.id, 'system'
+FROM finance.accounts a
+WHERE a.organization_id = 'gpib-trinitas' AND a.code = '1102'
+ON CONFLICT (organization_id, map_key) DO NOTHING;
+
+INSERT INTO finance.offering_deposit_map (organization_id, map_key, account_id, fund_id, created_by)
+SELECT 'gpib-trinitas', x.category, a.id, f.id, 'system'
+FROM (VALUES
+  ('Mingguan', '4101', 'DU'), ('Syukur', '4102', 'DU'), ('Persepuluhan', '4103', 'DU'),
+  ('Pembangunan', '4104', 'DP'), ('Diakonia', '4105', 'DD'), ('Lainnya', '4106', 'DU')
+) AS x(category, account_code, fund_code)
+JOIN finance.accounts a ON a.organization_id = 'gpib-trinitas' AND a.code = x.account_code
+JOIN finance.funds f ON f.organization_id = 'gpib-trinitas' AND f.code = x.fund_code
+ON CONFLICT (organization_id, map_key) DO NOTHING;
 `;
 
 export async function initFinanceSchema(pool: { query: (sql: string) => Promise<any> }) {
