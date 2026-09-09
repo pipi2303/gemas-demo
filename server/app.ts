@@ -20,6 +20,7 @@ import financePeriodClosingRoutes from './routes/financePeriodClosing.js';
 import financeReportsRoutes from './routes/financeReports.js';
 import financeDashboardRoutes from './routes/financeDashboard.js';
 import letterNumbersRoutes from './routes/letterNumbers.js';
+import outgoingLettersRoutes from './routes/outgoingLetters.js';
 
 /** Express app tanpa app.listen()/cron — dipakai baik oleh server lokal/VPS (server/index.ts) maupun serverless function Vercel (api/server.ts). */
 export function createApp() {
@@ -92,6 +93,7 @@ export function createApp() {
   app.use('/api/v1/finance/reports', financeReportsRoutes);
   app.use('/api/v1/finance/dashboard', financeDashboardRoutes);
   app.use('/api/letters', letterNumbersRoutes);
+  app.use('/api/outgoing-letters', outgoingLettersRoutes);
 
   // Tangani seluruh request /api yang belum ter-handle agar tidak pernah jatuh ke Vite SPA index.html (<!doctype html>)
   app.use('/api', (req: Request, res: Response) => {

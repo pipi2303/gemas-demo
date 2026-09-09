@@ -42,15 +42,31 @@ describe('RBAC modul Surat Menyurat — permissionCache.ts (backend enforcement)
     expect(await checkPagePermission('Admin', 'letter-settings', 'edit')).toBe(true);
   });
 
-  it('Majelis boleh edit letter-settings (modul Surat Menyurat = CRD)', async () => {
+  it('Majelis boleh edit & approve letter-settings (modul Surat Menyurat = CRDAX sejak Fase 2)', async () => {
+    // Diupgrade dari CRD ke CRDAX di Fase 2 — Opsi A pada plan modul ini
+    // (Bagian 5) merekomendasikan Majelis merangkap pemeriksa (permission
+    // 'edit') SEKALIGUS penandatangan (permission 'approve') surat keluar,
+    // meniru pola dua-tahap-satu-role yang sudah dipakai modul Finance.
     expect(await checkPagePermission('Majelis', 'letter-settings', 'view')).toBe(true);
     expect(await checkPagePermission('Majelis', 'letter-settings', 'edit')).toBe(true);
-    // CRD tidak termasuk approve/export — modul ini memang belum butuh keduanya di Fase 1
-    expect(await checkPagePermission('Majelis', 'letter-settings', 'approve')).toBe(false);
+    expect(await checkPagePermission('Majelis', 'letter-settings', 'approve')).toBe(true);
+    expect(await checkPagePermission('Majelis', 'letter-settings', 'export')).toBe(true);
   });
 
   it('Operator & Ketua Sektor TIDAK boleh akses letter-settings (default NONE)', async () => {
     expect(await checkPagePermission('Operator', 'letter-settings', 'view')).toBe(false);
     expect(await checkPagePermission('Ketua Sektor', 'letter-settings', 'view')).toBe(false);
+  });
+
+  it('Majelis boleh edit & approve letters-outgoing dan letter-templates (halaman Fase 2, satu modul yang sama)', async () => {
+    expect(await checkPagePermission('Majelis', 'letters-outgoing', 'edit')).toBe(true);
+    expect(await checkPagePermission('Majelis', 'letters-outgoing', 'approve')).toBe(true);
+    expect(await checkPagePermission('Majelis', 'letter-templates', 'edit')).toBe(true);
+  });
+
+  it('Operator & Ketua Sektor TIDAK boleh akses letters-outgoing/letter-templates (default NONE)', async () => {
+    expect(await checkPagePermission('Operator', 'letters-outgoing', 'view')).toBe(false);
+    expect(await checkPagePermission('Ketua Sektor', 'letters-outgoing', 'view')).toBe(false);
+    expect(await checkPagePermission('Operator', 'letter-templates', 'view')).toBe(false);
   });
 });

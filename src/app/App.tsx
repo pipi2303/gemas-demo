@@ -40,6 +40,8 @@ import { ResourceLibrary } from './components/ResourceLibrary';
 import { SermonArchive } from './components/SermonArchive';
 import { MasterData } from './components/MasterData';
 import { LetterSettings } from './components/LetterSettings';
+import { OutgoingLetters } from './components/OutgoingLetters';
+import { LetterTemplates } from './components/LetterTemplates';
 import { FinanceAddonHome } from './components/finance/FinanceAddonHome';
 import { FinanceMasterData } from './components/finance/FinanceMasterData';
 import { FinanceBudget } from './components/finance/FinanceBudget';
@@ -205,6 +207,10 @@ function AppContent() {
         return <MasterData />;
       case 'activity':
         return <ActivityLog />;
+      case 'letters-outgoing':
+        return <OutgoingLetters />;
+      case 'letter-templates':
+        return <LetterTemplates />;
       case 'letter-settings':
         return <LetterSettings />;
 

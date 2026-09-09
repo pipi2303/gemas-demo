@@ -29,7 +29,7 @@ export const DEFAULT_MATRIX: MatrixEntry[] = [
   { module: 'Manajemen Aset',               admin: A, majelis: CRD,   ketuaSektor: NONE, operator: NONE },
   { module: 'Admin Sistem',                 admin: A, majelis: NONE,  ketuaSektor: NONE, operator: NONE },
   { module: 'Keuangan (Finance Add-on)',    admin: A, majelis: CRDAX, ketuaSektor: NONE, operator: NONE },
-  { module: 'Surat Menyurat',               admin: A, majelis: CRD,   ketuaSektor: NONE, operator: NONE },
+  { module: 'Surat Menyurat',               admin: A, majelis: CRDAX, ketuaSektor: NONE, operator: NONE },
 ];
 
 // Submenu (page) → modul kasar — mirrors PAGE_MODULE di src/lib/permissions.ts.
@@ -81,6 +81,8 @@ export const PAGE_MODULE: Record<string, string> = {
   'finance-reports':     'Keuangan (Finance Add-on)',
   'finance-dashboard':   'Keuangan (Finance Add-on)',
   'letter-settings':     'Surat Menyurat',
+  'letters-outgoing':    'Surat Menyurat',
+  'letter-templates':    'Surat Menyurat',
 };
 
 // Collection → submenu (page). Kebanyakan collection punya SATU submenu pemilik
@@ -132,10 +134,13 @@ export const COLLECTION_PAGE: Record<string, string[]> = {
   // Modul Surat Menyurat (Fase 1 — fondasi & pengaturan; outgoingLetters/
   // incomingLetters didaftarkan di fase berikutnya saat halamannya dibangun).
   orgLetterhead:         ['letter-settings'],
-  letterTemplates:       ['letter-settings'],
+  letterTemplates:       ['letter-templates'],
   letterNumberFormats:   ['letter-settings'],
   signatureAssets:       ['letter-settings'],
   letterNumberCounters:  ['letter-settings'], // internal, dibatasi juga lewat ADMIN_WRITE di data.ts
+  // Fase 2 — Surat Keluar (alur inti)
+  outgoingLetters:           ['letters-outgoing'],
+  outgoingLetterAttachments: ['letters-outgoing'],
 };
 
 // Method → action mapping

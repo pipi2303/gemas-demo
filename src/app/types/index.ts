@@ -910,3 +910,80 @@ export interface SignatureAsset {
   uploadedAt: string;
   uploadedBy?: string;
 }
+
+// ============================================================
+// MODUL SURAT-MENYURAT — Fase 2 (Surat Keluar, alur inti)
+// ============================================================
+/** Status alur kerja Surat Keluar. Tidak ada status 'Ditolak' terpisah —
+ *  penolakan di tahap Diajukan/Diperiksa mengembalikan status ke 'Draft'
+ *  (dengan rejectReason terisi), bukan status baru — lihat catatan di
+ *  OutgoingLetter.status di bawah dan Bagian 4 rencana Fase 2. */
+export type OutgoingLetterStatus =
+  | 'Draft'
+  | 'Diajukan'
+  | 'Diperiksa'
+  | 'Ditandatangani'
+  | 'Terkirim'
+  | 'Diarsipkan';
+
+/** Surat Keluar — inti Fase 2. Field yang berhubungan dengan tahap
+ *  Diperiksa/Ditandatangani/Terkirim/Diarsipkan (letterNumber, checkedBy,
+ *  signedBy, finalPdfData, dst) HANYA diisi lewat endpoint transisi
+ *  /api/outgoing-letters/:id/... (server/routes/outgoingLetters.ts) — PUT
+ *  generik /api/data/outgoingLetters/:id ditolak begitu status sudah
+ *  lewat 'Draft', supaya integritas nomor surat & TTD tidak bisa "diam-diam"
+ *  diubah lewat jalur CRUD biasa (lihat guard di server/routes/data.ts). */
+export interface OutgoingLetter {
+  id: string;
+  status: OutgoingLetterStatus;
+  letterNumber?: string; // baru terisi setelah tahap Diperiksa (nomor di-generate atomik)
+  letterDate: string;
+  templateId?: string; // ref LetterTemplate — opsional, bisa juga ditulis bebas tanpa template
+  jenisSuratId: string; // ref MasterDataItem kategori 'jenis_surat_keluar'
+  subject: string; // perihal
+  recipientName: string;
+  recipientInstitution?: string;
+  body: string; // isi surat setelah placeholder template terisi
+  sectorId?: string; // opsional — kalau surat dibuat per-sektor
+
+  createdBy: string;
+  createdAt: string;
+  updatedAt?: string;
+
+  submittedBy?: string;
+  submittedAt?: string;
+
+  checkedBy?: string;
+  checkedAt?: string;
+
+  signedBy?: string;
+  signedAt?: string;
+  signatureAssetId?: string;
+  stampAssetId?: string;
+  finalPdfData?: string; // base64 PDF hasil render final — immutable setelah Ditandatangani
+
+  sentAt?: string;
+  sentVia?: string; // opsional: pos/email/diambil langsung
+
+  archivedAt?: string;
+  archivedBy?: string;
+
+  rejectReason?: string; // alasan "Kembalikan" terbaru (dari tahap Diajukan/Diperiksa)
+
+  relatedModule?: string; // opsional: mis. 'Atestasi', 'Sakramen', 'IncomingLetter'
+  relatedId?: string;
+  replacesLetterId?: string; // opsional: kalau surat ini revisi/pengganti surat yang sudah ditandatangani
+}
+
+/** Lampiran pendukung Surat Keluar — pola sama seperti attestationDocuments
+ *  (base64, maks 2MB, PDF saja — lihat DOCUMENT_COLLECTIONS di data.ts). */
+export interface OutgoingLetterAttachment {
+  id: string;
+  letterId: string; // ref OutgoingLetter.id
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  fileData: string; // base64
+  uploadedAt: string;
+  uploadedBy?: string;
+}

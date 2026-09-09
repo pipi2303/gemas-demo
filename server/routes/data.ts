@@ -20,7 +20,7 @@ function isValidCollection(name: string): boolean {
 const ADMIN_WRITE = new Set(['users', 'letterNumberCounters']);
 
 // Collections monitored for automated audit trail
-const AUDITED_COLLECTIONS: Record<string, { domain: 'Member' | 'Financial' | 'Asset' | 'System'; entityType: string; nameField: string }> = {
+const AUDITED_COLLECTIONS: Record<string, { domain: 'Member' | 'Financial' | 'Asset' | 'System' | 'Correspondence'; entityType: string; nameField: string }> = {
   members:          { domain: 'Member',    entityType: 'Member',          nameField: 'fullName' },
   families:         { domain: 'Member',    entityType: 'Family',          nameField: 'headOfFamily' },
   sectors:          { domain: 'Member',    entityType: 'Sector',          nameField: 'name' },
@@ -42,10 +42,15 @@ const AUDITED_COLLECTIONS: Record<string, { domain: 'Member' | 'Financial' | 'As
   roomBookings:     { domain: 'Asset',     entityType: 'RoomBooking',     nameField: 'roomName' },
   buildingProjects: { domain: 'Asset',     entityType: 'BuildingProject', nameField: 'name' },
   users:            { domain: 'System',    entityType: 'User',            nameField: 'name' },
-  orgLetterhead:       { domain: 'System', entityType: 'OrgLetterhead',       nameField: 'churchName' },
-  letterTemplates:     { domain: 'System', entityType: 'LetterTemplate',      nameField: 'name' },
-  letterNumberFormats: { domain: 'System', entityType: 'LetterNumberFormat',  nameField: 'pattern' },
-  signatureAssets:     { domain: 'System', entityType: 'SignatureAsset',      nameField: 'type' },
+  // Domain 'Correspondence' dipakai satu grup untuk SELURUH modul Surat Menyurat
+  // (Fase 1 & 2) supaya semuanya konsisten difilter satu kategori di Log Aktivitas —
+  // sebelumnya Fase 1 sempat pakai 'System', diselaraskan di sini saat Fase 2 dibangun.
+  orgLetterhead:       { domain: 'Correspondence', entityType: 'OrgLetterhead',       nameField: 'churchName' },
+  letterTemplates:     { domain: 'Correspondence', entityType: 'LetterTemplate',      nameField: 'name' },
+  letterNumberFormats: { domain: 'Correspondence', entityType: 'LetterNumberFormat',  nameField: 'pattern' },
+  signatureAssets:     { domain: 'Correspondence', entityType: 'SignatureAsset',      nameField: 'type' },
+  outgoingLetters:           { domain: 'Correspondence', entityType: 'OutgoingLetter',           nameField: 'subject' },
+  outgoingLetterAttachments: { domain: 'Correspondence', entityType: 'OutgoingLetterAttachment',  nameField: 'fileName' },
 };
 
 const IGNORED_DIFF_KEYS = new Set(['id', 'createdAt', 'updatedAt', 'password']);
@@ -154,6 +159,7 @@ const DOCUMENT_COLLECTIONS: Record<string, string> = {
   assetDocuments:          'assetId',
   financeDocuments:        'recordId',
   aidDistributionDocuments:'aidId',
+  outgoingLetterAttachments:'letterId',
 };
 
 function validateDocumentData(data: Record<string, any>, ownerField: string): string | null {
@@ -172,6 +178,21 @@ function validateDocumentData(data: Record<string, any>, ownerField: string): st
   if (buf.length > MAX_DOCUMENT_BYTES) return 'Ukuran file melebihi batas 2MB';
   if (buf.subarray(0, 5).toString('latin1') !== '%PDF-') return 'File bukan PDF yang valid';
   return null;
+}
+
+// Surat Keluar: field WAJIB tetap bisa diedit generik SELAMA statusnya Draft
+// (pembuat bebas ubah field draft, sama seperti collection lain) — tapi begitu
+// status sudah lewat Draft (Diajukan/Diperiksa/Ditandatangani/Terkirim/Diarsipkan),
+// SEMUA perubahan harus lewat endpoint transisi khusus di server/routes/outgoingLetters.ts
+// (yang memvalidasi urutan status & mencatat recordLetterAudit() per transisi) — bukan
+// PUT/DELETE generik ini. Ini menutup celah supaya nomor surat & TTD yang sudah
+// dikunci tidak bisa "diam-diam" diubah lewat jalur CRUD biasa (lihat juga rencana
+// Bagian 4: status Ditandatangani ke atas harus immutable, seperti transaksi Finance
+// yang sudah diposting).
+async function blockNonDraftOutgoingLetterWrite(collection: string, id: string): Promise<boolean> {
+  if (collection !== 'outgoingLetters') return false;
+  const existing = await getOne<any>(collection, id).catch(() => null);
+  return !!existing && existing.status !== 'Draft';
 }
 
 function stripPassword(items: any[]): any[] {
@@ -233,6 +254,29 @@ router.put('/:collection/:id', requireAuth, requirePermission(), async (req: Aut
     return;
   }
 
+  if (await blockNonDraftOutgoingLetterWrite(collection, id)) {
+    res.status(403).json({ error: 'Surat yang sudah diajukan tidak bisa diedit langsung — gunakan aksi alur kerja (Kembalikan/Periksa/Tandatangani/dst.) di halaman Surat Keluar' });
+    return;
+  }
+
+  // blockNonDraftOutgoingLetterWrite() di atas hanya menolak PUT kalau status YANG
+  // TERSIMPAN sudah lewat Draft — tapi tanpa langkah ini, client yang masih di
+  // Draft bisa "lompat" langsung mengirim status/finalPdfData/letterNumber dkk.
+  // lewat body PUT biasa (skip semua endpoint transisi & validasinya). Maka:
+  // paksa status tetap 'Draft' dan buang semua field yang HARUS hanya ditulis
+  // lewat /api/outgoing-letters/:id/... — persis field yang sama yang dibuang
+  // saat create (POST) di bawah.
+  if (collection === 'outgoingLetters') {
+    data.status = 'Draft';
+    delete data.letterNumber;
+    delete data.submittedBy; delete data.submittedAt;
+    delete data.checkedBy; delete data.checkedAt;
+    delete data.signedBy; delete data.signedAt;
+    delete data.signatureAssetId; delete data.stampAssetId; delete data.finalPdfData;
+    delete data.sentAt; delete data.sentVia;
+    delete data.archivedAt; delete data.archivedBy;
+  }
+
   // Validasi format field untuk collection members
   if (collection === 'members') {
     const valErr = validateMemberData(data);
@@ -291,6 +335,21 @@ router.post('/:collection', requireAuth, requirePermission(), async (req: AuthRe
     return;
   }
 
+  // Surat Keluar baru SELALU dibuat sebagai Draft polos — field yang berhubungan
+  // dengan tahap lanjut (nomor surat, checked/signed/sent/archived by&at, PDF final)
+  // hanya boleh terisi lewat endpoint transisi khusus, tidak lewat create generik ini,
+  // walau client mengirimkannya (mis. lewat request yang dimanipulasi).
+  if (collection === 'outgoingLetters') {
+    data.status = 'Draft';
+    delete data.letterNumber;
+    delete data.submittedBy; delete data.submittedAt;
+    delete data.checkedBy; delete data.checkedAt;
+    delete data.signedBy; delete data.signedAt;
+    delete data.signatureAssetId; delete data.stampAssetId; delete data.finalPdfData;
+    delete data.sentAt; delete data.sentVia;
+    delete data.archivedAt; delete data.archivedBy;
+  }
+
   if (collection === 'members') {
     const valErr = validateMemberData(data);
     if (valErr) { res.status(400).json({ error: valErr }); return; }
@@ -322,6 +381,11 @@ router.delete('/:collection/:id', requireAuth, requirePermission(), async (req: 
 
   if (ADMIN_WRITE.has(collection) && req.user?.role !== 'Admin') {
     res.status(403).json({ error: 'Akses ditolak' });
+    return;
+  }
+
+  if (await blockNonDraftOutgoingLetterWrite(collection, id)) {
+    res.status(403).json({ error: 'Surat yang sudah diajukan tidak bisa dihapus langsung — arsipkan lewat alur kerja di halaman Surat Keluar' });
     return;
   }
 

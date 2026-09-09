@@ -39,7 +39,8 @@ import {
   CheckCircle2,
   RefreshCw,
   ShieldAlert,
-  ArrowRight
+  ArrowRight,
+  Mail
 } from 'lucide-react';
 import { ActivityLog as ActivityLogType, AuditDiffField } from '../types';
 import { AUDIT_FIELD_LABELS } from '../lib/auditUtils';
@@ -102,6 +103,7 @@ export function ActivityLog() {
         if (filterDomain === 'Financial') return ['FinancialRecord', 'FinancialCategory', 'Offering', 'PettyCash', 'PcTopUp', 'BankAccount', 'Budget', 'Liability'].includes(l.entityType);
         if (filterDomain === 'Asset') return ['ChurchAsset', 'AssetMaintenance', 'AssetLoan', 'RoomBooking', 'BuildingProject'].includes(l.entityType);
         if (filterDomain === 'System') return ['User', 'MasterData'].includes(l.entityType);
+        if (filterDomain === 'Correspondence') return ['OutgoingLetter', 'OutgoingLetterAttachment', 'OrgLetterhead', 'LetterTemplate', 'LetterNumberFormat', 'SignatureAsset'].includes(l.entityType);
         return true;
       });
     }
@@ -156,6 +158,9 @@ export function ActivityLog() {
     if (domain === 'Asset' || ['ChurchAsset', 'AssetMaintenance', 'AssetLoan', 'RoomBooking', 'BuildingProject'].includes(entityType)) {
       return <Package className="w-4 h-4 text-amber-600" />;
     }
+    if (domain === 'Correspondence' || ['OutgoingLetter', 'OutgoingLetterAttachment', 'OrgLetterhead', 'LetterTemplate', 'LetterNumberFormat', 'SignatureAsset'].includes(entityType)) {
+      return <Mail className="w-4 h-4 text-cyan-600" />;
+    }
     switch (entityType) {
       case 'Member':
         return <Users className="w-4 h-4 text-sky-600" />;
@@ -191,12 +196,13 @@ export function ActivityLog() {
       Financial: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       Asset: 'bg-amber-50 text-amber-700 border-amber-200',
       System: 'bg-purple-50 text-purple-700 border-purple-200',
+      Correspondence: 'bg-cyan-50 text-cyan-700 border-cyan-200',
       Service: 'bg-rose-50 text-rose-700 border-rose-200',
       Worship: 'bg-indigo-50 text-indigo-700 border-indigo-200',
     };
     return (
       <span className={`px-2 py-0.5 rounded text-[10.5px] font-semibold border ${colorMap[dom] || 'bg-slate-50 text-slate-700 border-slate-200'}`}>
-        {dom === 'Member' ? 'Sensus / Jemaat' : dom === 'Financial' ? 'Keuangan' : dom === 'Asset' ? 'Aset & Inventaris' : dom}
+        {dom === 'Member' ? 'Sensus / Jemaat' : dom === 'Financial' ? 'Keuangan' : dom === 'Asset' ? 'Aset & Inventaris' : dom === 'Correspondence' ? 'Surat Menyurat' : dom}
       </span>
     );
   };
@@ -453,6 +459,7 @@ export function ActivityLog() {
                 <SelectItem value="Worship">Ibadah & Pelayanan</SelectItem>
                 <SelectItem value="Service">Diakonia & Komunikasi</SelectItem>
                 <SelectItem value="System">Pengguna & Konfigurasi</SelectItem>
+                <SelectItem value="Correspondence">Surat Menyurat</SelectItem>
               </SelectContent>
             </Select>
           </div>

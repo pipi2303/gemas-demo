@@ -17,7 +17,7 @@ import { logger } from './logger.js';
 import type { AuthRequest } from '../middleware/auth.js';
 
 export type AuditSeverity = 'normal' | 'sensitive' | 'critical';
-export type AuditDomain = 'Member' | 'Financial' | 'Asset' | 'System';
+export type AuditDomain = 'Member' | 'Financial' | 'Asset' | 'System' | 'Correspondence';
 
 export async function recordAuditEntry(
   req: AuthRequest,

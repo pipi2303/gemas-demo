@@ -20,12 +20,14 @@
 // dicari dengan komentar yang menyebut "letterNumbers.ts"), meniru cara
 // finance.voucher_sequences juga punya penanganan khusus di financeInMemory.ts.
 //
-// Fase 1: endpoint ini dibangun & bisa diuji berdiri sendiri (lihat Task #19),
-// tapi belum dipanggil dari UI mana pun — pemanggilnya (tombol "Ajukan" di
-// halaman Surat Keluar) baru dibangun di Fase 2. Gate permission-nya sementara
-// dipasang ke halaman 'letter-settings' (Admin/Majelis) — begitu halaman
-// 'letters-outgoing' ada di Fase 2, gate ini perlu dipindah ke permission
-// 'edit' milik halaman itu, bukan lagi 'letter-settings'.
+// Fase 2: logika generate nomor diekstrak jadi fungsi generateLetterNumber()
+// yang dipakai LANGSUNG (function call, bukan panggilan HTTP internal) oleh
+// endpoint transisi "Periksa" di server/routes/outgoingLetters.ts — supaya
+// satu transaksi alur kerja tidak perlu 2 request HTTP terpisah. Endpoint
+// HTTP POST /api/letters/number/generate di bawah tetap ada (berguna untuk
+// keperluan lain, mis. pratinjau format nomor), gate permission-nya sudah
+// dipindah ke 'letters-outgoing' (sebelumnya 'letter-settings' sementara di
+// Fase 1, karena Fase 1 belum punya halaman Surat Keluar).
 
 import { Router, Response } from 'express';
 import { getAll, getOne, getPool } from '../lib/db.js';
@@ -72,19 +74,82 @@ export function formatLetterNumber(
     .replace(/\{sektor\}/g, values.sektor);
 }
 
+/** Inti logika generate nomor surat atomik — dipakai baik oleh endpoint HTTP
+ *  di bawah maupun langsung (function call) oleh endpoint transisi "Periksa"
+ *  Surat Keluar (server/routes/outgoingLetters.ts). Melempar Error dengan
+ *  properti `status` (mengikuti pola createDepositTransaction() di
+ *  financeTransaction.ts) kalau format nomor untuk jenis surat itu belum diatur. */
+export async function generateLetterNumber(
+  jenisSuratId: string,
+  sectorCode?: string
+): Promise<{ letterNumber: string; lastNumber: number; scopeKey: string }> {
+  const formats = await getAll<LetterNumberFormat>('letterNumberFormats');
+  const format = formats.find(f => f.jenisSuratId === jenisSuratId);
+  if (!format) {
+    throw Object.assign(
+      new Error('Format nomor untuk jenis surat ini belum diatur. Atur dulu di Pengaturan Surat Menyurat.'),
+      { status: 400 }
+    );
+  }
+
+  const masterItems = await getAll<MasterDataItem>('masterData');
+  const jenisItem = masterItems.find(m => m.id === jenisSuratId && m.category === 'jenis_surat_keluar');
+  const jenisCode = jenisItem?.value || jenisItem?.label || jenisSuratId;
+
+  const letterhead = await getOne<OrgLetterhead>('orgLetterhead', 'default');
+  const kodeGereja = letterhead?.churchCode || '';
+
+  const now = new Date();
+  const scopeKey = scopeKeyFor(jenisSuratId, format.resetPeriod, now);
+  const initialData = JSON.stringify({ id: scopeKey, lastNumber: 1, updatedAt: now.toISOString() });
+
+  const pool = getPool();
+  // Satu statement UPSERT atomik: kalau baris counter belum ada, dibuat dengan
+  // lastNumber = 1 (nilai $3 dipakai apa adanya); kalau sudah ada, Postgres
+  // mengunci baris itu sendiri lalu increment lastNumber dari nilai TERBARU-nya
+  // (bukan dari $3) — sehingga dua request bersamaan tidak pernah dapat nomor
+  // yang sama. Lihat komentar panjang di atas file ini untuk perbandingan
+  // dengan pola finance.voucher_sequences yang jadi acuan.
+  const result = await pool.query<{ data: string }>(
+    `INSERT INTO gemas_store (collection, id, data, updated_at)
+     VALUES ($1, $2, $3, NOW())
+     ON CONFLICT (collection, id) DO UPDATE SET
+       data = jsonb_set(
+         gemas_store.data::jsonb,
+         '{lastNumber}',
+         to_jsonb((COALESCE((gemas_store.data::jsonb->>'lastNumber')::int, 0)) + 1)
+       )::text,
+       updated_at = NOW()
+     RETURNING data`,
+    ['letterNumberCounters', scopeKey, initialData]
+  );
+
+  const counterData = JSON.parse(result.rows[0].data) as { lastNumber: number };
+  const nextNumber = counterData.lastNumber;
+
+  const letterNumber = formatLetterNumber(format.pattern, {
+    urut: nextNumber,
+    jenis: jenisCode,
+    kodeGereja,
+    bulanRomawi: ROMAN_MONTHS[now.getMonth()],
+    tahun: String(now.getFullYear()),
+    sektor: sectorCode || '',
+  });
+
+  return { letterNumber, lastNumber: nextNumber, scopeKey };
+}
+
 router.post('/number/generate', requireAuth, async (req: AuthRequest, res: Response) => {
   const role = req.user?.role;
   if (!role) { res.status(401).json({ error: 'Unauthorized' }); return; }
-  if (role !== 'Admin') {
-    try {
-      const customRoles = await getAll<any>('customRoles').catch(() => []);
-      const allowed = await checkPagePermission(role, 'letter-settings', 'edit', customRoles);
-      if (!allowed) { res.status(403).json({ error: 'Akses ditolak untuk operasi ini' }); return; }
-    } catch (err) {
-      logger.error('Permission check error (letter number generate)', { message: String(err) });
-      res.status(500).json({ error: 'Gagal memverifikasi akses' });
-      return;
-    }
+  try {
+    const customRoles = await getAll<any>('customRoles').catch(() => []);
+    const allowed = await checkPagePermission(role, 'letters-outgoing', 'edit', customRoles);
+    if (!allowed) { res.status(403).json({ error: 'Akses ditolak untuk operasi ini' }); return; }
+  } catch (err) {
+    logger.error('Permission check error (letter number generate)', { message: String(err) });
+    res.status(500).json({ error: 'Gagal memverifikasi akses' });
+    return;
   }
 
   const { jenisSuratId, sectorCode } = (req.body ?? {}) as { jenisSuratId?: string; sectorCode?: string };
@@ -94,60 +159,11 @@ router.post('/number/generate', requireAuth, async (req: AuthRequest, res: Respo
   }
 
   try {
-    const formats = await getAll<LetterNumberFormat>('letterNumberFormats');
-    const format = formats.find(f => f.jenisSuratId === jenisSuratId);
-    if (!format) {
-      res.status(400).json({ error: 'Format nomor untuk jenis surat ini belum diatur. Atur dulu di Pengaturan Surat Menyurat.' });
-      return;
-    }
-
-    const masterItems = await getAll<MasterDataItem>('masterData');
-    const jenisItem = masterItems.find(m => m.id === jenisSuratId && m.category === 'jenis_surat_keluar');
-    const jenisCode = jenisItem?.value || jenisItem?.label || jenisSuratId;
-
-    const letterhead = await getOne<OrgLetterhead>('orgLetterhead', 'default');
-    const kodeGereja = letterhead?.churchCode || '';
-
-    const now = new Date();
-    const scopeKey = scopeKeyFor(jenisSuratId, format.resetPeriod, now);
-    const initialData = JSON.stringify({ id: scopeKey, lastNumber: 1, updatedAt: now.toISOString() });
-
-    const pool = getPool();
-    // Satu statement UPSERT atomik: kalau baris counter belum ada, dibuat dengan
-    // lastNumber = 1 (nilai $3 dipakai apa adanya); kalau sudah ada, Postgres
-    // mengunci baris itu sendiri lalu increment lastNumber dari nilai TERBARU-nya
-    // (bukan dari $3) — sehingga dua request bersamaan tidak pernah dapat nomor
-    // yang sama. Lihat komentar panjang di atas file ini untuk perbandingan
-    // dengan pola finance.voucher_sequences yang jadi acuan.
-    const result = await pool.query<{ data: string }>(
-      `INSERT INTO gemas_store (collection, id, data, updated_at)
-       VALUES ($1, $2, $3, NOW())
-       ON CONFLICT (collection, id) DO UPDATE SET
-         data = jsonb_set(
-           gemas_store.data::jsonb,
-           '{lastNumber}',
-           to_jsonb((COALESCE((gemas_store.data::jsonb->>'lastNumber')::int, 0)) + 1)
-         )::text,
-         updated_at = NOW()
-       RETURNING data`,
-      ['letterNumberCounters', scopeKey, initialData]
-    );
-
-    const counterData = JSON.parse(result.rows[0].data) as { lastNumber: number };
-    const nextNumber = counterData.lastNumber;
-
-    const letterNumber = formatLetterNumber(format.pattern, {
-      urut: nextNumber,
-      jenis: jenisCode,
-      kodeGereja,
-      bulanRomawi: ROMAN_MONTHS[now.getMonth()],
-      tahun: String(now.getFullYear()),
-      sektor: sectorCode || '',
-    });
-
-    logger.info('Letter number generated', { user: req.user!.username, jenisSuratId, scopeKey, nextNumber });
-    res.json({ success: true, letterNumber, lastNumber: nextNumber, scopeKey });
-  } catch (err) {
+    const { letterNumber, lastNumber, scopeKey } = await generateLetterNumber(jenisSuratId, sectorCode);
+    logger.info('Letter number generated', { user: req.user!.username, jenisSuratId, scopeKey, lastNumber });
+    res.json({ success: true, letterNumber, lastNumber, scopeKey });
+  } catch (err: any) {
+    if (err?.status === 400) { res.status(400).json({ error: err.message }); return; }
     logger.error('Generate letter number error', { message: String(err) });
     res.status(500).json({ error: 'Gagal membuat nomor surat' });
   }
