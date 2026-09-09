@@ -46,6 +46,7 @@ export const PAGE_LABELS: Record<string, { title: string; category: string }> = 
   sacraments:            { title: 'Sakramen (Baptis/Sidi/Nikah)', category: 'Database Jemaat' },
   attestations:          { title: 'Surat Atestasi & Mutasi', category: 'Database Jemaat' },
   'sensus-report':       { title: 'Laporan Sensus & Demografi', category: 'Database Jemaat' },
+  'report-center':       { title: 'Pusat Laporan Konsolidasi', category: 'Database Jemaat' },
   'worship-schedules':   { title: 'Jadwal & Petugas Ibadah', category: 'Peribadahan & Kegiatan' },
   'e-warta':             { title: 'E-Warta Jemaat', category: 'Peribadahan & Kegiatan' },
   'sermon-archive':      { title: 'Arsip Khotbah & Renungan', category: 'Peribadahan & Kegiatan' },

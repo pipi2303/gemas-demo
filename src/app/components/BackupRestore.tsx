@@ -6,7 +6,7 @@ import {
   Database, Activity, Users, Upload,
 } from 'lucide-react';
 import { Card } from './ui/card';
-import { api } from '../../lib/apiClient';
+import { api, getToken } from '../../lib/apiClient';
 import { toast } from 'sonner';
 import {
   backupAllData, exportMembersToExcel, exportMembersToPDF,
@@ -36,21 +36,36 @@ const COLLECTION_LABELS: Record<string, string> = {
   baptisms:           'Baptisan',
   sidis:              'Sidi',
   marriages:          'Perkawinan',
+  ministrySchedules:  'Jadwal Pelayan Ibadah',
+  buildingProjects:   'Proyek Pembangunan',
+  serviceRequests:    'Permohonan Diakonia',
+  aidDistributions:   'Distribusi Bantuan Sosial',
+  resources:          'Perpustakaan Digital',
+  roomBookings:       'Peminjaman Ruangan',
+  notifications:      'Notifikasi',
+  pettyCash:          'Kas Kecil',
+  pettyCashTopUps:    'Top-Up Kas Kecil',
+  churchAssets:       'Aset Gereja',
+  assetMaintenances:  'Pemeliharaan Aset',
+  assetLoanHistories: 'Riwayat Peminjaman Aset',
+  bankAccounts:       'Rekening Bank',
+  budgets:            'Anggaran (Modul Klasik)',
+  livestreamLinks:    'Tautan Livestream',
+  reminderSettings:   'Pengaturan Pengingat',
+  liabilities:        'Liabilitas / Utang',
+  fiscalYearSettings: 'Pengaturan Tahun Fiskal',
+  rooms:              'Master Data Ruangan',
+  customRoles:        'Peran Kustom (RBAC)',
+  builtinRoleOverrides:'Override Hak Akses Bawaan',
+  masterData:         'Master Data Sistem',
+  sectorTransfers:    'Riwayat Mutasi Sektor',
+  financeDocuments:   'Dokumen Kas Gereja',
+  attendanceCheckins: 'Check-in Presensi QR',
 };
 
 const ORDERED_COLLECTIONS = Object.keys(COLLECTION_LABELS);
 
 type SyncStatus = 'idle' | 'loading' | 'ok' | 'error';
-
-function downloadJSON(data: object, filename: string) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 const BACKUP_TABLE_DEFAULT_WIDTHS: Record<string, number> = {
   koleksi: 220, browser: 110, server: 110, status: 120,
@@ -64,6 +79,13 @@ export function BackupRestore() {
     worshipSchedules, wartas, liturgies, offerings,
     attestations, baptisms, sidis, marriages,
     activityLogsLoaded, ensureActivityLogsLoaded,
+    // Koleksi lain yang sudah dimuat AppContext tapi sebelumnya tidak
+    // ditampilkan di tabel status backup/sinkronisasi di bawah ini
+    buildingProjects, serviceRequests, aidDistributions, resources,
+    roomBookings, notifications, pettyCash, pcTopUps, churchAssets,
+    assetMaintenances, assetLoanHistories, bankAccounts, budgets,
+    livestreamLinks, reminderSettings, liabilities, fiscalYearSettings,
+    rooms, customRoles, builtinRoleOverrides, masterDataItems, sectorTransfers,
   } = useApp();
 
   const { widths: colW, startResize } = useResizableColumns('backup-restore-main', BACKUP_TABLE_DEFAULT_WIDTHS);
@@ -72,6 +94,26 @@ export function BackupRestore() {
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [restoring, setRestoring] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // financeDocuments & attendanceCheckins bukan bagian dari state AppContext
+  // (masing-masing dimuat langsung di ChurchFinanceHub.tsx / AttendanceStatsQR.tsx),
+  // jadi diambil terpisah di sini hanya untuk ditampilkan di tabel status ini.
+  const [otherCounts, setOtherCounts] = useState<Record<string, number>>({});
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      api.get<any[]>('/api/data/financeDocuments').catch(() => []),
+      api.get<any[]>('/api/data/attendanceCheckins').catch(() => []),
+    ]).then(([financeDocuments, attendanceCheckins]) => {
+      if (!cancelled) {
+        setOtherCounts({
+          financeDocuments: (financeDocuments || []).length,
+          attendanceCheckins: (attendanceCheckins || []).length,
+        });
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   const localCounts: Record<string, number> = {
     members: members.length, families: families.length, sectors: sectors.length,
@@ -83,6 +125,18 @@ export function BackupRestore() {
     wartas: wartas.length, liturgies: liturgies.length, offerings: offerings.length,
     attestations: attestations.length, baptisms: baptisms.length,
     sidis: sidis.length, marriages: marriages.length,
+    buildingProjects: buildingProjects.length, serviceRequests: serviceRequests.length,
+    aidDistributions: aidDistributions.length, resources: resources.length,
+    roomBookings: roomBookings.length, notifications: notifications.length,
+    pettyCash: pettyCash.length, pettyCashTopUps: pcTopUps.length,
+    churchAssets: churchAssets.length, assetMaintenances: assetMaintenances.length,
+    assetLoanHistories: assetLoanHistories.length, bankAccounts: bankAccounts.length,
+    budgets: budgets.length, livestreamLinks: livestreamLinks.length,
+    reminderSettings: reminderSettings.length, liabilities: liabilities.length,
+    fiscalYearSettings: fiscalYearSettings.length, rooms: rooms.length,
+    customRoles: customRoles.length, builtinRoleOverrides: builtinRoleOverrides.length,
+    masterData: masterDataItems.length, sectorTransfers: sectorTransfers.length,
+    ...otherCounts,
   };
 
   const totalLocal  = Object.values(localCounts).reduce((a, b) => a + b, 0);
@@ -106,24 +160,97 @@ export function BackupRestore() {
   // muat sekali saat dibuka.
   useEffect(() => { ensureActivityLogsLoaded(); }, [ensureActivityLogsLoaded]);
 
-  const handleBackupJSON = () => {
-    const now = new Date().toISOString().split('T')[0];
-    downloadJSON({
-      exportedAt: new Date().toISOString(),
-      system: 'GEMAS - GPIB Bahtera Kasih',
-      version: '2.0',
-      collections: {
-        members, families, sectors, users, ministries, events,
-        prayerRequests, attendance, activityLogs, announcements,
-        financialRecords, financialCategories, ministrySchedules,
-        worshipSchedules, wartas, liturgies, offerings,
-        attestations, baptisms, sidis, marriages,
-      },
-    }, `gemas-backup-${now}.json`);
+  const [exportingJSON, setExportingJSON] = useState(false);
+
+  // Backup JSON lengkap: sebelumnya fungsi ini merakit sendiri object JSON di
+  // browser dari state React -- cuma mencakup 20 koleksi yang kebetulan sudah
+  // ada sebagai state di komponen ini (dan sama sekali tidak terenkripsi,
+  // padahal handleRestore() di bawah sudah siap menerima format terenkripsi
+  // GEMAS_ENC_V1:). Endpoint GET /api/backup/export (server/routes/backup.ts)
+  // sebenarnya SUDAH ADA dan sudah generik -- membaca langsung SELECT * dari
+  // tabel gemas_store, jadi otomatis mencakup SEMUA koleksi yang benar-benar
+  // ada di database (termasuk yang belum kita beri label di COLLECTION_LABELS
+  // kalau suatu saat ada koleksi baru lagi) dan sudah dienkripsi -- cuma belum
+  // pernah dipanggil dari UI manapun. Diganti untuk memakai endpoint itu.
+  const handleBackupJSON = async () => {
+    setExportingJSON(true);
+    try {
+      const res = await fetch('/api/backup/export', {
+        headers: { Authorization: `Bearer ${getToken() ?? ''}` },
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || `Gagal export (HTTP ${res.status})`);
+      }
+      const text = await res.text();
+      const now = new Date().toISOString().split('T')[0];
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gemas-backup-${now}.enc.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Backup lengkap (terenkripsi, semua koleksi) berhasil diunduh.');
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal membuat backup JSON.');
+    } finally {
+      setExportingJSON(false);
+    }
   };
 
   const handleBackupExcel = () => {
-    backupAllData({ members, families, attendance, financialRecords });
+    // Sheet per koleksi, label memakai COLLECTION_LABELS supaya konsisten
+    // dengan nama yang tampil di tabel status di atas. financeDocuments &
+    // attendanceCheckins (otherCounts) sengaja tidak diikutkan di sini --
+    // isinya dokumen/metadata teknis, bukan data tabular yang enak dibaca
+    // di Excel; keduanya tetap lengkap di JSON Backup di atas.
+    backupAllData({
+      [COLLECTION_LABELS.members]: members,
+      [COLLECTION_LABELS.families]: families,
+      [COLLECTION_LABELS.sectors]: sectors,
+      [COLLECTION_LABELS.users]: users,
+      [COLLECTION_LABELS.ministries]: ministries,
+      [COLLECTION_LABELS.events]: events,
+      [COLLECTION_LABELS.prayerRequests]: prayerRequests,
+      [COLLECTION_LABELS.attendance]: attendance,
+      [COLLECTION_LABELS.activityLogs]: activityLogs,
+      [COLLECTION_LABELS.announcements]: announcements,
+      [COLLECTION_LABELS.financialRecords]: financialRecords,
+      [COLLECTION_LABELS.financialCategories]: financialCategories,
+      [COLLECTION_LABELS.ministrySchedules]: ministrySchedules,
+      [COLLECTION_LABELS.worshipSchedules]: worshipSchedules,
+      [COLLECTION_LABELS.wartas]: wartas,
+      [COLLECTION_LABELS.liturgies]: liturgies,
+      [COLLECTION_LABELS.offerings]: offerings,
+      [COLLECTION_LABELS.attestations]: attestations,
+      [COLLECTION_LABELS.baptisms]: baptisms,
+      [COLLECTION_LABELS.sidis]: sidis,
+      [COLLECTION_LABELS.marriages]: marriages,
+      [COLLECTION_LABELS.buildingProjects]: buildingProjects,
+      [COLLECTION_LABELS.serviceRequests]: serviceRequests,
+      [COLLECTION_LABELS.aidDistributions]: aidDistributions,
+      [COLLECTION_LABELS.resources]: resources,
+      [COLLECTION_LABELS.roomBookings]: roomBookings,
+      [COLLECTION_LABELS.notifications]: notifications,
+      [COLLECTION_LABELS.pettyCash]: pettyCash,
+      [COLLECTION_LABELS.pettyCashTopUps]: pcTopUps,
+      [COLLECTION_LABELS.churchAssets]: churchAssets,
+      [COLLECTION_LABELS.assetMaintenances]: assetMaintenances,
+      [COLLECTION_LABELS.assetLoanHistories]: assetLoanHistories,
+      [COLLECTION_LABELS.bankAccounts]: bankAccounts,
+      [COLLECTION_LABELS.budgets]: budgets,
+      [COLLECTION_LABELS.livestreamLinks]: livestreamLinks,
+      [COLLECTION_LABELS.reminderSettings]: reminderSettings,
+      [COLLECTION_LABELS.liabilities]: liabilities,
+      [COLLECTION_LABELS.fiscalYearSettings]: fiscalYearSettings,
+      [COLLECTION_LABELS.rooms]: rooms,
+      [COLLECTION_LABELS.customRoles]: customRoles,
+      [COLLECTION_LABELS.builtinRoleOverrides]: builtinRoleOverrides,
+      [COLLECTION_LABELS.masterData]: masterDataItems,
+      [COLLECTION_LABELS.sectorTransfers]: sectorTransfers,
+    });
   };
 
   const handleRestore = async (file: File) => {
@@ -376,15 +503,15 @@ export function BackupRestore() {
           <div className="flex gap-3">
             <button
               onClick={handleBackupJSON}
-              disabled={!activityLogsLoaded}
-              title={!activityLogsLoaded ? 'Menunggu riwayat aktivitas selesai dimuat...' : undefined}
+              disabled={exportingJSON}
+              title={exportingJSON ? 'Sedang membuat backup...' : 'Backup semua koleksi (terenkripsi) langsung dari server'}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: '#f0f7fb', color: '#1A77A3', border: '1px solid #b8d5e8' }}
               onMouseOver={e => (e.currentTarget.style.background = '#f0ede5')}
               onMouseOut={e => (e.currentTarget.style.background = '#f0f7fb')}
             >
               <FileJson className="w-4 h-4" />
-              JSON Backup
+              {exportingJSON ? 'Membuat backup...' : 'JSON Backup'}
             </button>
             <button
               onClick={handleBackupExcel}

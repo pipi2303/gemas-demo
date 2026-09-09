@@ -105,33 +105,44 @@ export const exportFinancialToExcel = (records: any[]) => {
   exportToExcel(data, 'Laporan_Keuangan', 'Keuangan');
 };
 
-export const backupAllData = (appData: any) => {
+/**
+ * Backup Excel generik -- sebelumnya fungsi ini cuma tahu 4 sheet tetap
+ * (Jemaat/Keluarga/Kehadiran/Keuangan), sehingga tombol "Backup Semua Data"
+ * di DataManager.tsx & "Excel Backup" di BackupRestore.tsx cuma pernah
+ * mengekspor sebagian kecil dari puluhan koleksi yang sebenarnya ada.
+ * Sekarang menerima peta { label sheet -> array data } sembarang panjang --
+ * caller (BackupRestore.tsx) yang menentukan seberapa lengkap cakupannya.
+ * Sheet Excel dibatasi 31 karakter & tidak boleh berisi karakter \/ \ ? * [ ] --
+ * nama disanitasi otomatis, dan ditambah suffix angka kalau ada tabrakan nama
+ * setelah disanitasi/dipotong.
+ */
+export const backupAllData = (sheets: Record<string, any[] | undefined | null>) => {
   const wb = XLSX.utils.book_new();
-  
-  // Members sheet
-  if (appData.members) {
-    const membersWS = XLSX.utils.json_to_sheet(appData.members);
-    XLSX.utils.book_append_sheet(wb, membersWS, 'Jemaat');
+  const usedNames = new Set<string>();
+
+  const sanitizeSheetName = (raw: string): string => {
+    const cleaned = raw.replace(/[\/?*[\]:]/g, ' ').trim().slice(0, 31) || 'Sheet';
+    let name = cleaned;
+    let n = 2;
+    while (usedNames.has(name)) {
+      const suffix = `_${n++}`;
+      name = cleaned.slice(0, 31 - suffix.length) + suffix;
+    }
+    usedNames.add(name);
+    return name;
+  };
+
+  Object.entries(sheets).forEach(([label, data]) => {
+    if (!data || data.length === 0) return; // skip koleksi kosong, bukan berarti gagal
+    const ws = XLSX.utils.json_to_sheet(data);
+    XLSX.utils.book_append_sheet(wb, ws, sanitizeSheetName(label));
+  });
+
+  if (wb.SheetNames.length === 0) {
+    // XLSX tidak bisa menyimpan workbook tanpa sheet sama sekali
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Tidak ada data']]), 'Kosong');
   }
-  
-  // Families sheet
-  if (appData.families) {
-    const familiesWS = XLSX.utils.json_to_sheet(appData.families);
-    XLSX.utils.book_append_sheet(wb, familiesWS, 'Keluarga');
-  }
-  
-  // Attendance sheet
-  if (appData.attendance) {
-    const attendanceWS = XLSX.utils.json_to_sheet(appData.attendance);
-    XLSX.utils.book_append_sheet(wb, attendanceWS, 'Kehadiran');
-  }
-  
-  // Financial sheet
-  if (appData.financialRecords) {
-    const financialWS = XLSX.utils.json_to_sheet(appData.financialRecords);
-    XLSX.utils.book_append_sheet(wb, financialWS, 'Keuangan');
-  }
-  
+
   const timestamp = new Date().toISOString().split('T')[0];
   XLSX.writeFile(wb, `Backup_Data_Gereja_${timestamp}.xlsx`);
 };

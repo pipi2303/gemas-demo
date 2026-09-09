@@ -9,7 +9,7 @@ export function DataManager() {
 
   const handleBackupAll = () => {
     try {
-      backupAllData({ members, families, attendance, financialRecords });
+      backupAllData({ 'Data Jemaat': members, 'Data Keluarga': families, 'Kehadiran': attendance, 'Transaksi Keuangan': financialRecords });
       toast.success('Backup berhasil! File telah diunduh.');
     } catch {
       toast.error('Gagal membuat backup. Coba lagi.');
@@ -36,14 +36,16 @@ export function DataManager() {
           <h2 className="text-lg font-semibold">Backup Data</h2>
         </div>
         <p className="text-gray-600 mb-4">
-          Backup semua data gereja ke dalam satu file Excel. Termasuk data jemaat, keluarga, kehadiran, dan keuangan.
+          Backup cepat 4 data inti (jemaat, keluarga, kehadiran, keuangan) ke satu file Excel untuk laporan sehari-hari.
+          Untuk backup <strong>lengkap semua modul</strong> (termasuk keuangan, aset, diakonia, dokumen, dll) beserta
+          fitur restore, gunakan halaman <strong>Backup &amp; Restore Database</strong> di menu Admin Sistem.
         </p>
         <button
           onClick={handleBackupAll}
           className="flex items-center gap-2 px-6 py-3 bg-[#1A77A3] text-white rounded-lg hover:bg-[#144f6b]"
         >
           <Download className="w-5 h-5" />
-          Backup Semua Data
+          Backup 4 Data Inti (Excel)
         </button>
       </div>
 
