@@ -74,6 +74,7 @@ export const PAGE_LABELS: Record<string, { title: string; category: string }> = 
   activity:              { title: 'Log Aktivitas Sistem', category: 'Admin Sistem' },
   'letter-settings':     { title: 'Pengaturan Surat Menyurat', category: 'Surat Menyurat' },
   'letters-outgoing':    { title: 'Surat Keluar', category: 'Surat Menyurat' },
+  'letters-incoming':    { title: 'Surat Masuk', category: 'Surat Menyurat' },
   'letter-templates':    { title: 'Template Surat', category: 'Surat Menyurat' },
   'finance-addon':         { title: 'Ringkasan Finance', category: 'Finance Add-on (Standar Akuntansi)' },
   'finance-master-data':   { title: 'Master Data Finance', category: 'Finance Add-on (Standar Akuntansi)' },
@@ -275,6 +276,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
       icon: Mail,
       items: [
         { id: 'letters-outgoing', label: 'Surat Keluar', page: 'letters-outgoing', icon: Send },
+        { id: 'letters-incoming', label: 'Surat Masuk', page: 'letters-incoming', icon: Inbox },
         { id: 'letter-templates', label: 'Template Surat', page: 'letter-templates', icon: FileText },
         { id: 'letter-settings', label: 'Pengaturan Surat Menyurat', page: 'letter-settings', icon: Mail },
       ],

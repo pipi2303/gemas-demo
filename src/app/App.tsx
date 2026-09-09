@@ -42,6 +42,7 @@ import { MasterData } from './components/MasterData';
 import { LetterSettings } from './components/LetterSettings';
 import { OutgoingLetters } from './components/OutgoingLetters';
 import { LetterTemplates } from './components/LetterTemplates';
+import { IncomingLetters } from './components/IncomingLetters';
 import { FinanceAddonHome } from './components/finance/FinanceAddonHome';
 import { FinanceMasterData } from './components/finance/FinanceMasterData';
 import { FinanceBudget } from './components/finance/FinanceBudget';
@@ -211,6 +212,8 @@ function AppContent() {
         return <OutgoingLetters />;
       case 'letter-templates':
         return <LetterTemplates />;
+      case 'letters-incoming':
+        return <IncomingLetters />;
       case 'letter-settings':
         return <LetterSettings />;
 

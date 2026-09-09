@@ -103,7 +103,7 @@ export function ActivityLog() {
         if (filterDomain === 'Financial') return ['FinancialRecord', 'FinancialCategory', 'Offering', 'PettyCash', 'PcTopUp', 'BankAccount', 'Budget', 'Liability'].includes(l.entityType);
         if (filterDomain === 'Asset') return ['ChurchAsset', 'AssetMaintenance', 'AssetLoan', 'RoomBooking', 'BuildingProject'].includes(l.entityType);
         if (filterDomain === 'System') return ['User', 'MasterData'].includes(l.entityType);
-        if (filterDomain === 'Correspondence') return ['OutgoingLetter', 'OutgoingLetterAttachment', 'OrgLetterhead', 'LetterTemplate', 'LetterNumberFormat', 'SignatureAsset'].includes(l.entityType);
+        if (filterDomain === 'Correspondence') return ['OutgoingLetter', 'OutgoingLetterAttachment', 'IncomingLetter', 'IncomingLetterAttachment', 'OrgLetterhead', 'LetterTemplate', 'LetterNumberFormat', 'SignatureAsset'].includes(l.entityType);
         return true;
       });
     }
@@ -158,7 +158,7 @@ export function ActivityLog() {
     if (domain === 'Asset' || ['ChurchAsset', 'AssetMaintenance', 'AssetLoan', 'RoomBooking', 'BuildingProject'].includes(entityType)) {
       return <Package className="w-4 h-4 text-amber-600" />;
     }
-    if (domain === 'Correspondence' || ['OutgoingLetter', 'OutgoingLetterAttachment', 'OrgLetterhead', 'LetterTemplate', 'LetterNumberFormat', 'SignatureAsset'].includes(entityType)) {
+    if (domain === 'Correspondence' || ['OutgoingLetter', 'OutgoingLetterAttachment', 'IncomingLetter', 'IncomingLetterAttachment', 'OrgLetterhead', 'LetterTemplate', 'LetterNumberFormat', 'SignatureAsset'].includes(entityType)) {
       return <Mail className="w-4 h-4 text-cyan-600" />;
     }
     switch (entityType) {

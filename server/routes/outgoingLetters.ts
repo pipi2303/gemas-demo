@@ -27,7 +27,7 @@
 //
 // Field yang berhubungan dengan tahap lanjut HANYA ditulis dari sini, tidak
 // pernah dari PUT generik /api/data/outgoingLetters/:id (ditolak begitu
-// status sudah lewat Draft — lihat blockNonDraftOutgoingLetterWrite() di
+// status sudah lewat Draft — lihat blockNonEditableLetterWrite() di
 // server/routes/data.ts).
 
 import { Router, Response } from 'express';

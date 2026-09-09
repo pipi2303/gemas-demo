@@ -81,6 +81,7 @@ export const PAGE_MODULE: Record<string, string> = {
   'letter-settings':     'Surat Menyurat',
   'letters-outgoing':    'Surat Menyurat',
   'letter-templates':    'Surat Menyurat',
+  'letters-incoming':    'Surat Menyurat',
 };
 
 export function buildCan(matrix: ModulePermission[], role: UserRole) {
@@ -152,6 +153,7 @@ export const PAGE_LABEL: Record<string, string> = {
   'letter-settings':     'Pengaturan Surat Menyurat',
   'letters-outgoing':    'Surat Keluar',
   'letter-templates':    'Template Surat',
+  'letters-incoming':    'Surat Masuk',
 };
 
 export interface PageGroup {

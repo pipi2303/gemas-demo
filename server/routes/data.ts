@@ -51,6 +51,8 @@ const AUDITED_COLLECTIONS: Record<string, { domain: 'Member' | 'Financial' | 'As
   signatureAssets:     { domain: 'Correspondence', entityType: 'SignatureAsset',      nameField: 'type' },
   outgoingLetters:           { domain: 'Correspondence', entityType: 'OutgoingLetter',           nameField: 'subject' },
   outgoingLetterAttachments: { domain: 'Correspondence', entityType: 'OutgoingLetterAttachment',  nameField: 'fileName' },
+  incomingLetters:           { domain: 'Correspondence', entityType: 'IncomingLetter',            nameField: 'subject' },
+  incomingLetterAttachments: { domain: 'Correspondence', entityType: 'IncomingLetterAttachment',   nameField: 'fileName' },
 };
 
 const IGNORED_DIFF_KEYS = new Set(['id', 'createdAt', 'updatedAt', 'password']);
@@ -160,6 +162,7 @@ const DOCUMENT_COLLECTIONS: Record<string, string> = {
   financeDocuments:        'recordId',
   aidDistributionDocuments:'aidId',
   outgoingLetterAttachments:'letterId',
+  incomingLetterAttachments:'letterId',
 };
 
 function validateDocumentData(data: Record<string, any>, ownerField: string): string | null {
@@ -180,19 +183,26 @@ function validateDocumentData(data: Record<string, any>, ownerField: string): st
   return null;
 }
 
-// Surat Keluar: field WAJIB tetap bisa diedit generik SELAMA statusnya Draft
-// (pembuat bebas ubah field draft, sama seperti collection lain) — tapi begitu
-// status sudah lewat Draft (Diajukan/Diperiksa/Ditandatangani/Terkirim/Diarsipkan),
-// SEMUA perubahan harus lewat endpoint transisi khusus di server/routes/outgoingLetters.ts
-// (yang memvalidasi urutan status & mencatat recordLetterAudit() per transisi) — bukan
-// PUT/DELETE generik ini. Ini menutup celah supaya nomor surat & TTD yang sudah
-// dikunci tidak bisa "diam-diam" diubah lewat jalur CRUD biasa (lihat juga rencana
-// Bagian 4: status Ditandatangani ke atas harus immutable, seperti transaksi Finance
-// yang sudah diposting).
-async function blockNonDraftOutgoingLetterWrite(collection: string, id: string): Promise<boolean> {
-  if (collection !== 'outgoingLetters') return false;
+// Surat Keluar & Surat Masuk: field WAJIB tetap bisa diedit generik SELAMA
+// statusnya masih tahap awal (Draft untuk outgoingLetters, Diterima untuk
+// incomingLetters — lihat LETTER_EDITABLE_STATUS) — tapi begitu sudah masuk
+// alur kerja (Diajukan+ / Didisposisikan+), SEMUA perubahan harus lewat
+// endpoint transisi khusus (server/routes/outgoingLetters.ts,
+// server/routes/incomingLetters.ts) yang memvalidasi urutan status & mencatat
+// recordLetterAudit() per transisi — bukan PUT/DELETE generik ini. Ini
+// menutup celah supaya nomor surat/TTD/disposisi yang sudah dikunci tidak
+// bisa "diam-diam" diubah lewat jalur CRUD biasa (mirip prinsip Finance:
+// transaksi yang sudah diposting harus dibalik/reversal, tidak diedit langsung).
+const LETTER_EDITABLE_STATUS: Record<string, string> = {
+  outgoingLetters: 'Draft',
+  incomingLetters: 'Diterima',
+};
+
+async function blockNonEditableLetterWrite(collection: string, id: string): Promise<boolean> {
+  const editableStatus = LETTER_EDITABLE_STATUS[collection];
+  if (!editableStatus) return false;
   const existing = await getOne<any>(collection, id).catch(() => null);
-  return !!existing && existing.status !== 'Draft';
+  return !!existing && existing.status !== editableStatus;
 }
 
 function stripPassword(items: any[]): any[] {
@@ -254,17 +264,17 @@ router.put('/:collection/:id', requireAuth, requirePermission(), async (req: Aut
     return;
   }
 
-  if (await blockNonDraftOutgoingLetterWrite(collection, id)) {
-    res.status(403).json({ error: 'Surat yang sudah diajukan tidak bisa diedit langsung — gunakan aksi alur kerja (Kembalikan/Periksa/Tandatangani/dst.) di halaman Surat Keluar' });
+  if (await blockNonEditableLetterWrite(collection, id)) {
+    res.status(403).json({ error: 'Surat ini sudah diproses lebih lanjut dan tidak bisa diedit langsung — gunakan aksi alur kerja di halaman Surat Keluar/Surat Masuk' });
     return;
   }
 
-  // blockNonDraftOutgoingLetterWrite() di atas hanya menolak PUT kalau status YANG
-  // TERSIMPAN sudah lewat Draft — tapi tanpa langkah ini, client yang masih di
-  // Draft bisa "lompat" langsung mengirim status/finalPdfData/letterNumber dkk.
-  // lewat body PUT biasa (skip semua endpoint transisi & validasinya). Maka:
-  // paksa status tetap 'Draft' dan buang semua field yang HARUS hanya ditulis
-  // lewat /api/outgoing-letters/:id/... — persis field yang sama yang dibuang
+  // blockNonEditableLetterWrite() di atas hanya menolak PUT kalau status YANG
+  // TERSIMPAN sudah lewat tahap awal — tapi tanpa langkah ini, client yang masih
+  // di tahap awal bisa "lompat" langsung mengirim status/field tahap-lanjut lewat
+  // body PUT biasa (skip semua endpoint transisi & validasinya). Maka: paksa
+  // status tetap di tahap awal dan buang semua field yang HARUS hanya ditulis
+  // lewat endpoint transisi masing-masing — persis field yang sama yang dibuang
   // saat create (POST) di bawah.
   if (collection === 'outgoingLetters') {
     data.status = 'Draft';
@@ -274,6 +284,13 @@ router.put('/:collection/:id', requireAuth, requirePermission(), async (req: Aut
     delete data.signedBy; delete data.signedAt;
     delete data.signatureAssetId; delete data.stampAssetId; delete data.finalPdfData;
     delete data.sentAt; delete data.sentVia;
+    delete data.archivedAt; delete data.archivedBy;
+  }
+  if (collection === 'incomingLetters') {
+    data.status = 'Diterima';
+    delete data.disposisi;
+    delete data.followUpNotes; delete data.followUpAt; delete data.followUpBy;
+    delete data.completedAt; delete data.completedBy;
     delete data.archivedAt; delete data.archivedBy;
   }
 
@@ -350,6 +367,17 @@ router.post('/:collection', requireAuth, requirePermission(), async (req: AuthRe
     delete data.archivedAt; delete data.archivedBy;
   }
 
+  // Surat Masuk baru SELALU dibuat sebagai Diterima polos — disposisi & field
+  // tahap-lanjut hanya boleh terisi lewat endpoint transisi khusus
+  // (server/routes/incomingLetters.ts), sama seperti outgoingLetters di atas.
+  if (collection === 'incomingLetters') {
+    data.status = 'Diterima';
+    delete data.disposisi;
+    delete data.followUpNotes; delete data.followUpAt; delete data.followUpBy;
+    delete data.completedAt; delete data.completedBy;
+    delete data.archivedAt; delete data.archivedBy;
+  }
+
   if (collection === 'members') {
     const valErr = validateMemberData(data);
     if (valErr) { res.status(400).json({ error: valErr }); return; }
@@ -384,8 +412,8 @@ router.delete('/:collection/:id', requireAuth, requirePermission(), async (req: 
     return;
   }
 
-  if (await blockNonDraftOutgoingLetterWrite(collection, id)) {
-    res.status(403).json({ error: 'Surat yang sudah diajukan tidak bisa dihapus langsung — arsipkan lewat alur kerja di halaman Surat Keluar' });
+  if (await blockNonEditableLetterWrite(collection, id)) {
+    res.status(403).json({ error: 'Surat ini sudah diproses lebih lanjut dan tidak bisa dihapus langsung — gunakan aksi alur kerja di halaman Surat Keluar/Surat Masuk' });
     return;
   }
 

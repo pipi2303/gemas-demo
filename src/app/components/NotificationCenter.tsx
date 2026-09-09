@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext';
 import { getModalRootEl } from '../../lib/modalRoot';
 import {
   Bell, Check, CheckCheck, X, Calendar, Gift,
-  MessageSquare, AlertCircle, Info, AlertTriangle, Trash2, Heart,
+  MessageSquare, AlertCircle, Info, AlertTriangle, Trash2, Heart, Send,
 } from 'lucide-react';
 import { format, isToday, isTomorrow, differenceInDays } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
@@ -30,6 +30,7 @@ const TYPE_CFG: Record<string, { icon: React.ReactNode; color: string; bg: strin
   attendance:   { icon: <AlertTriangle  style={{ width: 16, height: 16 }} />, color: '#9c9486', bg: '#f6f4f0', border: '#e8e4d8', label: 'Kehadiran' },
   system:       { icon: <Info           style={{ width: 16, height: 16 }} />, color: '#6b7280', bg: '#f9fafb', border: '#e5e7eb', label: 'Sistem' },
   alert:        { icon: <AlertCircle    style={{ width: 16, height: 16 }} />, color: '#dc2626', bg: '#fef2f2', border: '#fecaca', label: 'Penting' },
+  disposition:  { icon: <Send           style={{ width: 16, height: 16 }} />, color: '#0369a1', bg: '#e0f2fe', border: '#bae6fd', label: 'Disposisi Surat' },
 };
 const DEFAULT_CFG = TYPE_CFG.system;
 
@@ -38,9 +39,16 @@ type FilterType = 'all' | 'unread' | 'birthday' | 'event' | 'announcement' | 'pr
 // ── Main Panel ─────────────────────────────────────────────────────────────────
 export function NotificationCenter({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const {
-    notifications, markNotificationRead, markAllNotificationsRead,
-    deleteNotification, members, events, announcements, prayerRequests, addNotification,
+    notifications: allNotifications, markNotificationRead, markAllNotificationsRead,
+    deleteNotification, members, events, announcements, prayerRequests, addNotification, currentUser,
   } = useApp();
+
+  // Notifikasi bertarget (targetUserId terisi, mis. disposisi Surat Masuk — lihat
+  // server/routes/incomingLetters.ts) hanya tampil untuk user itu; notifikasi lama
+  // tanpa targetUserId (broadcast: ulang tahun/acara/pengumuman/doa) tetap tampil
+  // untuk semua orang seperti sebelumnya — kompatibel-mundur, tidak ada collection
+  // baru atau migrasi data yang dibutuhkan.
+  const notifications = allNotifications.filter(n => !n.targetUserId || n.targetUserId === currentUser?.id);
 
   const [filter, setFilter] = useState<FilterType>('all');
 
@@ -384,7 +392,9 @@ export function NotificationCenter({ isOpen, onClose }: { isOpen: boolean; onClo
 // ── Bell Button ────────────────────────────────────────────────────────────────
 export function NotificationBell({ dark = false }: { dark?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
-  const { notifications } = useApp();
+  const { notifications: allNotifications, currentUser } = useApp();
+  // Lihat catatan targetUserId di NotificationCenter() di atas.
+  const notifications = allNotifications.filter(n => !n.targetUserId || n.targetUserId === currentUser?.id);
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (

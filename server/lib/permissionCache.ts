@@ -83,6 +83,7 @@ export const PAGE_MODULE: Record<string, string> = {
   'letter-settings':     'Surat Menyurat',
   'letters-outgoing':    'Surat Menyurat',
   'letter-templates':    'Surat Menyurat',
+  'letters-incoming':    'Surat Menyurat',
 };
 
 // Collection → submenu (page). Kebanyakan collection punya SATU submenu pemilik
@@ -131,8 +132,7 @@ export const COLLECTION_PAGE: Record<string, string[]> = {
   masterData:            ['master-data'],
   activityLogs:          ['activity'],
   audit_logs:            ['activity'],
-  // Modul Surat Menyurat (Fase 1 — fondasi & pengaturan; outgoingLetters/
-  // incomingLetters didaftarkan di fase berikutnya saat halamannya dibangun).
+  // Modul Surat Menyurat (Fase 1 — fondasi & pengaturan).
   orgLetterhead:         ['letter-settings'],
   letterTemplates:       ['letter-templates'],
   letterNumberFormats:   ['letter-settings'],
@@ -141,6 +141,9 @@ export const COLLECTION_PAGE: Record<string, string[]> = {
   // Fase 2 — Surat Keluar (alur inti)
   outgoingLetters:           ['letters-outgoing'],
   outgoingLetterAttachments: ['letters-outgoing'],
+  // Fase 3 — Surat Masuk & Disposisi
+  incomingLetters:           ['letters-incoming'],
+  incomingLetterAttachments: ['letters-incoming'],
 };
 
 // Method → action mapping

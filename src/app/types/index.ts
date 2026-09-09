@@ -240,13 +240,18 @@ export interface ActivityLog {
 
 export interface Notification {
   id: string;
-  type: 'birthday' | 'event' | 'prayer' | 'announcement' | 'attendance' | 'system';
+  type: 'birthday' | 'event' | 'prayer' | 'announcement' | 'attendance' | 'system' | 'disposition';
   title: string;
   message: string;
   read: boolean;
   createdAt: string;
   link?: string;
   priority?: 'low' | 'medium' | 'high';
+  // Fase 3 modul Surat Menyurat: kalau terisi, notifikasi ini HANYA tampil untuk
+  // user dengan id ini (lihat filter di NotificationCenter.tsx) — dipakai untuk
+  // memberi tahu penerima disposisi Surat Masuk secara privat. Notifikasi lama
+  // tanpa field ini (broadcast) tetap tampil untuk semua orang seperti biasa.
+  targetUserId?: string;
 }
 
 export interface Announcement {
@@ -984,6 +989,82 @@ export interface OutgoingLetterAttachment {
   fileSize: number;
   mimeType: string;
   fileData: string; // base64
+  uploadedAt: string;
+  uploadedBy?: string;
+}
+
+// ============================================================
+// MODUL SURAT-MENYURAT — Fase 3 (Surat Masuk & Disposisi)
+// ============================================================
+export type IncomingLetterStatus =
+  | 'Diterima'
+  | 'Didisposisikan'
+  | 'DitindakLanjuti'
+  | 'Selesai'
+  | 'Diarsipkan';
+
+/** Diisi/diubah HANYA lewat PUT /api/incoming-letters/:id/disposisikan
+ *  (server/routes/incomingLetters.ts) — boleh dipanggil ulang selagi status
+ *  masih 'Didisposisikan' untuk mengoreksi penerima/instruksi/tenggat (surat
+ *  masuk tidak punya alur "Kembalikan" seperti Surat Keluar, jadi ini jalan
+ *  keluarnya kalau disposisi awal keliru), tapi terkunci begitu status sudah
+ *  'DitindakLanjuti' ke atas. */
+export interface IncomingLetterDisposition {
+  assignedToUserId: string;
+  instruction: string;
+  dueDate?: string;
+  assignedBy?: string;
+  assignedAt?: string;
+}
+
+/** Surat Masuk — Fase 3. Beda penting dari OutgoingLetter: letterNumber di sini
+ *  adalah nomor DARI PENGIRIM (diketik manual saat mencatat), BUKAN hasil
+ *  generateLetterNumber() — surat masuk tidak melalui penomoran internal
+ *  gereja. Field tahap-lanjut (disposisi, followUp*, completedAt/By,
+ *  archivedAt/By) HANYA diisi lewat endpoint transisi khusus di
+ *  server/routes/incomingLetters.ts — PUT/DELETE generik ke
+ *  /api/data/incomingLetters/:id ditolak begitu status sudah lewat 'Diterima'
+ *  (guard yang sama prinsipnya dengan outgoingLetters, lihat data.ts). */
+export interface IncomingLetter {
+  id: string;
+  status: IncomingLetterStatus;
+  letterNumber?: string;
+  receivedDate: string;
+  senderName: string;
+  senderInstitution?: string;
+  subject: string;
+  category?: string; // ref MasterDataItem kategori 'jenis_surat_masuk'
+  notes?: string;
+
+  disposisi?: IncomingLetterDisposition;
+
+  followUpNotes?: string;
+  followUpAt?: string;
+  followUpBy?: string;
+
+  completedAt?: string;
+  completedBy?: string;
+
+  archivedAt?: string;
+  archivedBy?: string;
+
+  createdBy: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+/** Lampiran hasil scan Surat Masuk — pola sama outgoingLetterAttachments
+ *  (base64, maks 2MB, PDF saja). Sengaja dibuat sebagai collection terpisah
+ *  (bukan satu field scanFileData tunggal di record) supaya satu surat masuk
+ *  bisa punya lebih dari satu halaman/lampiran scan, konsisten dengan pola
+ *  Surat Keluar Fase 2. */
+export interface IncomingLetterAttachment {
+  id: string;
+  letterId: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  fileData: string;
   uploadedAt: string;
   uploadedBy?: string;
 }
