@@ -817,9 +817,12 @@ COMMIT;
 `;
 
 // ── SEED DATA (idempotent, ON CONFLICT DO NOTHING) ───────────────────────────
-// Default account groups (satu per account_type) + jenis voucher standar
-// (BKM/BKK/BBM/BBK/BM/BT) sesuai contoh di BRD/SRS, supaya Chart of Accounts
-// dan Voucher Engine punya data rujukan sejak modul pertama kali aktif.
+// Default account groups (satu per account_type), jenis voucher standar
+// (BKM/BKK/BBM/BBK/BM/BT), Chart of Accounts minimal (Kas/Bank + 6 akun
+// Penerimaan Persembahan), 3 kelompok dana (Dana Umum/Pembangunan/Diakonia),
+// 1 kas tunai jemaat, dan Tahun Anggaran berjalan + 12 periode bulanan —
+// supaya Master Data Finance sudah siap pakai sejak modul pertama kali aktif,
+// termasuk untuk fitur "Setor ke Buku Besar" (deposit Persembahan/QRIS).
 export const FINANCE_SEED_SQL = `
 INSERT INTO finance.account_groups (organization_id, code, name, account_type, normal_balance, sort_order, created_by)
 VALUES
@@ -840,6 +843,77 @@ VALUES
   ('gpib-trinitas', 'BM',  'Bukti Memorial',    'MEMORIAL',  'BM',  'system'),
   ('gpib-trinitas', 'BT',  'Bukti Transfer',    'TRANSFER',  'BT',  'system')
 ON CONFLICT (organization_id, code) DO NOTHING;
+
+-- Chart of Accounts default: 2 akun ASET (kas tunai + bank jemaat) dan 6 akun
+-- PENERIMAAN (satu per kategori persembahan yang sudah dipakai modul
+-- Persembahan/QRIS), supaya modul Finance Add-on punya akun rujukan siap
+-- pakai sejak awal, termasuk untuk fitur "Setor ke Buku Besar" berikutnya.
+INSERT INTO finance.accounts (organization_id, group_id, code, name, account_type, normal_balance, level, is_postable, created_by)
+SELECT 'gpib-trinitas', (SELECT id FROM finance.account_groups WHERE organization_id = 'gpib-trinitas' AND code = 'AST'),
+       x.code, x.name, 'ASSET', 'DEBIT', 1, TRUE, 'system'
+FROM (VALUES
+  ('1101', 'Kas Tunai Jemaat'),
+  ('1102', 'Bank Jemaat')
+) AS x(code, name)
+ON CONFLICT (organization_id, code) DO NOTHING;
+
+INSERT INTO finance.accounts (organization_id, group_id, code, name, account_type, normal_balance, level, is_postable, created_by)
+SELECT 'gpib-trinitas', (SELECT id FROM finance.account_groups WHERE organization_id = 'gpib-trinitas' AND code = 'REV'),
+       x.code, x.name, 'REVENUE', 'CREDIT', 1, TRUE, 'system'
+FROM (VALUES
+  ('4101', 'Persembahan Mingguan'),
+  ('4102', 'Persembahan Syukur'),
+  ('4103', 'Persembahan Persepuluhan'),
+  ('4104', 'Persembahan Pembangunan'),
+  ('4105', 'Persembahan Diakonia'),
+  ('4106', 'Persembahan Lainnya')
+) AS x(code, name)
+ON CONFLICT (organization_id, code) DO NOTHING;
+
+-- Kelompok dana (fund accounting) default, selaras dengan kategori persembahan di atas.
+INSERT INTO finance.funds (organization_id, code, name, fund_type, restriction_type, created_by)
+VALUES
+  ('gpib-trinitas', 'DU', 'Dana Umum',        'GENERAL',  'UNRESTRICTED',           'system'),
+  ('gpib-trinitas', 'DP', 'Dana Pembangunan', 'BUILDING', 'TEMPORARILY_RESTRICTED', 'system'),
+  ('gpib-trinitas', 'DD', 'Dana Diakonia',    'DIAKONIA', 'TEMPORARILY_RESTRICTED', 'system')
+ON CONFLICT (organization_id, code) DO NOTHING;
+
+-- Kas tunai jemaat, ditautkan ke akun GL 1101 di atas. Rekening bank sengaja
+-- TIDAK di-seed di sini karena nomor rekening riil jemaat harus diisi manual
+-- oleh bendahara lewat Master Data > Rekening Bank (akun GL 1102 sudah tersedia).
+INSERT INTO finance.cash_accounts (organization_id, account_id, code, name, opening_balance, current_balance, created_by)
+SELECT 'gpib-trinitas', a.id, 'KAS-01', 'Kas Tunai Jemaat', 0, 0, 'system'
+FROM finance.accounts a
+WHERE a.organization_id = 'gpib-trinitas' AND a.code = '1101'
+ON CONFLICT (organization_id, code) DO NOTHING;
+
+-- Tahun Anggaran berjalan + 12 periode bulanan. is_current hanya diset TRUE
+-- kalau belum ada tahun anggaran lain yang sedang aktif, supaya seed ini aman
+-- dijalankan ulang di database yang sudah punya data (menjaga partial unique
+-- index uq_fiscal_year_current agar startup tidak pernah gagal).
+INSERT INTO finance.fiscal_years (organization_id, code, name, start_date, end_date, status, is_current, created_by)
+SELECT 'gpib-trinitas', '2026', 'Tahun Anggaran 2026', '2026-01-01', '2026-12-31', 'OPEN',
+       NOT EXISTS (
+         SELECT 1 FROM finance.fiscal_years WHERE organization_id = 'gpib-trinitas' AND is_current = TRUE
+       ),
+       'system'
+ON CONFLICT (organization_id, code) DO NOTHING;
+
+INSERT INTO finance.periods (fiscal_year_id, period_number, code, name, start_date, end_date, quarter, status)
+SELECT
+  fy.id,
+  gs.m + 1,
+  fy.code || '-P' || lpad((gs.m + 1)::text, 2, '0'),
+  (ARRAY['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'])[gs.m + 1]
+    || ' ' || EXTRACT(YEAR FROM (fy.start_date + (gs.m::text || ' months')::interval))::text,
+  (fy.start_date + (gs.m::text || ' months')::interval)::date,
+  ((fy.start_date + ((gs.m + 1)::text || ' months')::interval) - INTERVAL '1 day')::date,
+  (gs.m / 3) + 1,
+  'OPEN'
+FROM finance.fiscal_years fy
+CROSS JOIN generate_series(0, 11) AS gs(m)
+WHERE fy.organization_id = 'gpib-trinitas' AND fy.code = '2026'
+ON CONFLICT (fiscal_year_id, period_number) DO NOTHING;
 `;
 
 export async function initFinanceSchema(pool: { query: (sql: string) => Promise<any> }) {
