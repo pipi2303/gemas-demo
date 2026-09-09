@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { getAllCollectionCounts, truncateAll, getPool } from '../lib/db.js';
 import { requireAuth, requireRole, AuthRequest } from '../middleware/auth.js';
 import { logger } from '../lib/logger.js';
+import { recordAuditEntry } from '../lib/auditLog.js';
 
 const ENCRYPTION_MARKER = 'GEMAS_ENC_V1:';
 
@@ -63,10 +64,20 @@ router.get('/export', requireAuth, requireRole('Admin'), async (req: AuthRequest
     }
 
     const filename = `gemas-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    logger.info('Data exported', { user: req.user!.username, collections: Object.keys(grouped).length });
+    const collectionCount = Object.keys(grouped).length;
+    logger.info('Data exported', { user: req.user!.username, collections: collectionCount });
     const payload = JSON.stringify({ exportedAt: new Date().toISOString(), data: grouped });
     const encrypted = encryptData(payload);
     const encFilename = filename.replace('.json', '.enc.json');
+    await recordAuditEntry(req, {
+      action: 'Export',
+      domain: 'System',
+      entityType: 'Backup',
+      entityId: encFilename,
+      entityName: encFilename,
+      details: `Export backup terenkripsi berisi ${collectionCount} koleksi data.`,
+      severity: 'sensitive',
+    });
     res.setHeader('Content-Disposition', `attachment; filename="${encFilename}"`);
     res.setHeader('Content-Type', 'text/plain');
     res.send(encrypted);
@@ -80,6 +91,20 @@ router.delete('/all', requireAuth, requireRole('Admin'), async (req: AuthRequest
   try {
     await truncateAll();
     logger.warn('All data truncated', { user: req.user!.username });
+    // Dicatat SETELAH truncateAll() selesai — truncateAll mengosongkan
+    // seluruh tabel gemas_store (termasuk collection activityLogs itu
+    // sendiri), jadi kalau entry ini ditulis sebelum truncate, entry-nya
+    // ikut terhapus. Ditulis sesudah, supaya justru jadi entry PERTAMA
+    // di log yang sudah bersih.
+    await recordAuditEntry(req, {
+      action: 'Reset',
+      domain: 'System',
+      entityType: 'Backup',
+      entityId: 'all-data',
+      entityName: 'Seluruh data (semua koleksi)',
+      details: 'Semua data di database direset/dikosongkan (truncate all).',
+      severity: 'critical',
+    });
     res.json({ ok: true });
   } catch (err) {
     logger.error('Truncate all error', { message: String(err) });
@@ -143,6 +168,18 @@ router.post('/restore', requireAuth, requireRole('Admin'), async (req: AuthReque
 
     await pool.query('COMMIT');
     logger.info('Data restored from backup', { user: req.user!.username, restored, collections: collections.length });
+    // Dicatat SETELAH transaksi COMMIT berhasil — restore adalah operasi
+    // destruktif (bisa menimpa banyak data sekaligus), jadi jejak audit
+    // hanya ditulis kalau restore-nya benar-benar sukses.
+    await recordAuditEntry(req, {
+      action: 'Restore',
+      domain: 'System',
+      entityType: 'Backup',
+      entityId: `restore-${Date.now()}`,
+      entityName: `Restore ${collections.length} koleksi (${restored} record)`,
+      details: `Restore backup: ${restored} record dipulihkan ke ${collections.length} koleksi. clearFirst=${clearFirst}.`,
+      severity: 'critical',
+    });
     res.json({ ok: true, restored, collections: collections.length });
   } catch (err) {
     await getPool().query('ROLLBACK').catch(() => {});

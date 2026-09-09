@@ -15,10 +15,16 @@
 // `activityLogs` yang sudah dipakai data.ts, supaya otomatis tampil &
 // bisa difilter (per domain "Financial", per severity) di halaman Log
 // Aktivitas yang sudah ada — tidak perlu tabel atau UI baru.
+//
+// Implementasinya sekarang cuma wrapper tipis di atas recordAuditEntry()
+// (server/lib/auditLog.ts) — helper generik yang sama juga dipakai oleh
+// server/routes/backup.ts untuk mencatat operasi Backup/Restore. Signature
+// recordFinanceAudit() sengaja TIDAK diubah supaya ke-4 call site yang ada
+// (financeBudget.ts, financePeriodClosing.ts, financeReconciliation.ts,
+// financeTransaction.ts) tidak perlu disentuh.
 // ============================================================
 
-import { upsert } from './db.js';
-import { logger } from './logger.js';
+import { recordAuditEntry } from './auditLog.js';
 import type { AuthRequest } from '../middleware/auth.js';
 
 export type FinanceAuditSeverity = 'normal' | 'sensitive' | 'critical';
@@ -32,42 +38,13 @@ export async function recordFinanceAudit(
   details: string,
   severity: FinanceAuditSeverity = 'sensitive'
 ): Promise<void> {
-  const user = req.user;
-  const userId = user?.userId || 'system';
-  const userName = user?.name || user?.username || 'System';
-  const userRole = user?.role || '-';
-  const ipAddress =
-    (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
-    req.ip ||
-    req.socket.remoteAddress ||
-    '127.0.0.1';
-
-  const logEntry = {
-    id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
-    userId,
-    userName,
-    userRole,
+  await recordAuditEntry(req, {
     action,
-    domain: 'Financial' as const,
+    domain: 'Financial',
     entityType,
     entityId,
-    entityName: String(entityName),
-    timestamp: new Date().toISOString(),
+    entityName,
     details,
-    ipAddress,
     severity,
-  };
-
-  try {
-    await upsert('activityLogs', logEntry.id, logEntry);
-  } catch (err) {
-    // Sengaja TIDAK dilempar ulang (aksi finance yang memicu ini -- posting,
-    // approve, dst -- sudah berhasil & tidak boleh dibatalkan gara-gara jejak
-    // auditnya gagal ditulis) tapi di-escalate ke logger.error (bukan warn)
-    // supaya kehilangan 1 entri audit trail cukup terlihat oleh monitoring,
-    // bukan cuma warning yang gampang tenggelam di log.
-    logger.error('Failed to persist finance audit trail', {
-      message: String(err), action, entityType, entityId, severity,
-    });
-  }
+  });
 }
