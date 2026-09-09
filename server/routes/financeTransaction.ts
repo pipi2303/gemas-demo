@@ -36,7 +36,7 @@
 // ============================================================
 
 import { Router, Response } from 'express';
-import { getPool } from '../lib/db.js';
+import { getPool, getAll } from '../lib/db.js';
 import { requireRealDb, FINANCE_ORG, parsePagination, paginationMeta } from '../lib/financeCrud.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { requireFinancePermission as requireFinancePermissionBase } from '../middleware/checkFinancePermission.js';
@@ -85,6 +85,177 @@ async function recomputeTotals(client: any, transactionId: string) {
     [transactionId, total_debit, total_credit]
   );
   return { total_debit: Number(total_debit), total_credit: Number(total_credit) };
+}
+
+// ── Setor ke Buku Besar (deposit Persembahan/QRIS → Finance Add-on) ─────────
+// Modul Persembahan/QRIS lama (`offerings`, collection generik /api/data,
+// lihat OfferingsQRIS.tsx) tidak tersambung ke double-entry Finance Add-on —
+// dua sistem pembukuan paralel. Daripada memaksa tiap catatan persembahan
+// individual melalui alur transaksi penuh (tidak realistis — bendahara
+// menghitung & menyetor persembahan secara batch, bukan per-transaksi),
+// fitur ini mengagregasi persembahan yang BELUM disetor dalam satu rentang
+// tanggal, dikelompokkan per kategori + metode pembayaran, menjadi transaksi
+// Finance Add-on berstatus DRAFT (tetap lewat alur submit→verifikasi→
+// approve→posting yang sama seperti transaksi manual — TIDAK auto-posted).
+//
+// Tunai dan Transfer/QRIS dipisah jadi 2 transaksi (voucher BKM & BBM)
+// alih-alih dipaksa jadi satu transaksi "campuran" — supaya transaction_type
+// tiap transaksi tetap konsisten dengan definisi voucher_type yang sudah ada
+// (CASH_IN murni utk BKM, BANK_IN murni utk BBM), tidak menebak asumsi
+// laporan/rekonsiliasi yang mungkin bergantung pada transaction_type.
+//
+// Idempotensi: setiap offering yang berhasil disetor ditandai
+// `depositedTransactionId`/`depositedAt` (field baru pada record JSON
+// `offerings`, ditulis via SQL langsung ke gemas_store dalam transaksi
+// Postgres yang sama dengan pembuatan voucher/transaksi — supaya keduanya
+// atomik, tidak ada risiko voucher jadi tapi tandanya gagal atau sebaliknya)
+// — offering yang sudah punya tanda ini tidak akan pernah ikut ke-agregasi
+// setoran berikutnya.
+const OFFERING_ACCOUNT_CODE: Record<string, string> = {
+  Mingguan: '4101', Syukur: '4102', Persepuluhan: '4103',
+  Pembangunan: '4104', Diakonia: '4105', Lainnya: '4106',
+};
+const OFFERING_FUND_CODE: Record<string, string> = {
+  Mingguan: 'DU', Syukur: 'DU', Persepuluhan: 'DU', Lainnya: 'DU',
+  Pembangunan: 'DP', Diakonia: 'DD',
+};
+
+interface OfferingRecord {
+  id: string; type: string; amount: number; paymentMethod: string; date: string;
+  depositedTransactionId?: string; depositedAt?: string; [key: string]: any;
+}
+
+function offeringMethodBucket(paymentMethod: string): 'CASH' | 'BANK' {
+  return paymentMethod === 'Tunai' ? 'CASH' : 'BANK';
+}
+
+async function collectUndepositedOfferings(startDate: string, endDate: string): Promise<OfferingRecord[]> {
+  const all = await getAll<OfferingRecord>('offerings');
+  return all.filter(o => o && o.date >= startDate && o.date <= endDate && !o.depositedTransactionId);
+}
+
+function summarizeOfferings(items: OfferingRecord[]) {
+  const buckets: Record<'CASH' | 'BANK', { total: number; count: number; byCategory: Record<string, { amount: number; count: number }> }> = {
+    CASH: { total: 0, count: 0, byCategory: {} },
+    BANK: { total: 0, count: 0, byCategory: {} },
+  };
+  for (const o of items) {
+    const bucket = offeringMethodBucket(o.paymentMethod);
+    const amount = Number(o.amount) || 0;
+    const b = buckets[bucket];
+    b.total += amount;
+    b.count += 1;
+    const cat = b.byCategory[o.type] ?? { amount: 0, count: 0 };
+    cat.amount += amount;
+    cat.count += 1;
+    b.byCategory[o.type] = cat;
+  }
+  return buckets;
+}
+
+async function resolveDepositFiscalYearId(client: any, fiscalYearId?: string): Promise<string> {
+  if (fiscalYearId) {
+    const r = await client.query('SELECT id FROM finance.fiscal_years WHERE id = $1 AND organization_id = $2', [fiscalYearId, FINANCE_ORG]);
+    if (r.rows.length === 0) throw Object.assign(new Error('Tahun Fiskal tidak ditemukan'), { status: 400 });
+    return r.rows[0].id;
+  }
+  const cur = await client.query('SELECT id FROM finance.fiscal_years WHERE organization_id = $1 AND is_current = TRUE', [FINANCE_ORG]);
+  if (cur.rows.length === 0) {
+    throw Object.assign(new Error('Belum ada Tahun Fiskal yang aktif — tetapkan Tahun Fiskal di Master Data Finance terlebih dahulu'), { status: 400 });
+  }
+  return cur.rows[0].id;
+}
+
+async function createDepositTransaction(client: any, req: AuthRequest, opts: {
+  voucherTypeCode: 'BKM' | 'BBM';
+  debitAccountCode: string;
+  debitCashAccountCode?: string;
+  categoryTotals: Record<string, number>;
+  transactionDate: string;
+  fiscalYearId: string;
+  description: string;
+}): Promise<{ transactionId: string; voucherNumber: string }> {
+  const vt = await client.query(
+    'SELECT * FROM finance.voucher_types WHERE organization_id = $1 AND code = $2 AND is_active = TRUE',
+    [FINANCE_ORG, opts.voucherTypeCode]
+  );
+  if (vt.rows.length === 0) throw Object.assign(new Error(`Jenis Voucher ${opts.voucherTypeCode} tidak ditemukan`), { status: 400 });
+  const voucherType = vt.rows[0];
+
+  const fy = await client.query('SELECT * FROM finance.fiscal_years WHERE id = $1 AND organization_id = $2', [opts.fiscalYearId, FINANCE_ORG]);
+  if (fy.rows.length === 0) throw Object.assign(new Error('Tahun Fiskal tidak ditemukan'), { status: 400 });
+  const fiscalYear = fy.rows[0];
+
+  const periodRes = await client.query(
+    'SELECT id, status FROM finance.periods WHERE fiscal_year_id = $1 AND start_date <= $2 AND end_date >= $2',
+    [opts.fiscalYearId, opts.transactionDate]
+  );
+  if (periodRes.rows.length === 0) throw Object.assign(new Error('Tanggal setor di luar periode Tahun Fiskal yang dipilih'), { status: 400 });
+  const period = periodRes.rows[0];
+  if (period.status !== 'OPEN') throw Object.assign(new Error('Periode untuk tanggal setor sudah tidak Terbuka (Open)'), { status: 400 });
+
+  const debitAccount = await client.query('SELECT id FROM finance.accounts WHERE organization_id = $1 AND code = $2', [FINANCE_ORG, opts.debitAccountCode]);
+  if (debitAccount.rows.length === 0) {
+    throw Object.assign(new Error(`Akun GL ${opts.debitAccountCode} tidak ditemukan — jalankan seed Master Data Finance terlebih dahulu`), { status: 400 });
+  }
+
+  let debitCashAccountId: string | null = null;
+  if (opts.debitCashAccountCode) {
+    const ca = await client.query('SELECT id FROM finance.cash_accounts WHERE organization_id = $1 AND code = $2', [FINANCE_ORG, opts.debitCashAccountCode]);
+    debitCashAccountId = ca.rows[0]?.id ?? null;
+  }
+
+  const seqRes = await client.query(
+    `INSERT INTO finance.voucher_sequences (organization_id, fiscal_year_id, voucher_type_id, current_number)
+     VALUES ($1,$2,$3,1)
+     ON CONFLICT (organization_id, fiscal_year_id, voucher_type_id)
+     DO UPDATE SET current_number = finance.voucher_sequences.current_number + 1
+     RETURNING current_number`,
+    [FINANCE_ORG, opts.fiscalYearId, voucherType.id]
+  );
+  const seqNumber = seqRes.rows[0].current_number;
+  const voucherNumber = `${voucherType.prefix}/${fiscalYear.code}/${String(seqNumber).padStart(4, '0')}`;
+
+  const voucherRes = await client.query(
+    `INSERT INTO finance.vouchers
+      (organization_id, fiscal_year_id, period_id, voucher_type_id, voucher_number, voucher_date, description, created_by)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+    [FINANCE_ORG, opts.fiscalYearId, period.id, voucherType.id, voucherNumber, opts.transactionDate, opts.description, req.user!.userId]
+  );
+  const voucher = voucherRes.rows[0];
+
+  const txRes = await client.query(
+    `INSERT INTO finance.transactions
+      (organization_id, voucher_id, fiscal_year_id, period_id, transaction_type, transaction_date, description, created_by)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+    [FINANCE_ORG, voucher.id, opts.fiscalYearId, period.id, voucherType.transaction_type, opts.transactionDate, opts.description, req.user!.userId]
+  );
+  const tx = txRes.rows[0];
+
+  const totalAmount = Object.values(opts.categoryTotals).reduce((s, v) => s + v, 0);
+  let lineNumber = 1;
+  await client.query(
+    `INSERT INTO finance.transaction_lines (transaction_id, line_number, account_id, cash_account_id, description, debit, credit)
+     VALUES ($1,$2,$3,$4,$5,$6,0)`,
+    [tx.id, lineNumber++, debitAccount.rows[0].id, debitCashAccountId, opts.description, totalAmount]
+  );
+
+  for (const [type, amount] of Object.entries(opts.categoryTotals)) {
+    if (amount <= 0) continue;
+    const accCode = OFFERING_ACCOUNT_CODE[type];
+    const fundCode = OFFERING_FUND_CODE[type];
+    const acc = await client.query('SELECT id FROM finance.accounts WHERE organization_id = $1 AND code = $2', [FINANCE_ORG, accCode]);
+    if (acc.rows.length === 0) throw Object.assign(new Error(`Akun Penerimaan untuk kategori "${type}" tidak ditemukan`), { status: 400 });
+    const fund = fundCode ? await client.query('SELECT id FROM finance.funds WHERE organization_id = $1 AND code = $2', [FINANCE_ORG, fundCode]) : { rows: [] as any[] };
+    await client.query(
+      `INSERT INTO finance.transaction_lines (transaction_id, line_number, account_id, fund_id, description, debit, credit)
+       VALUES ($1,$2,$3,$4,$5,0,$6)`,
+      [tx.id, lineNumber++, acc.rows[0].id, fund.rows[0]?.id ?? null, `Persembahan ${type}`, amount]
+    );
+  }
+
+  await recomputeTotals(client, tx.id);
+  return { transactionId: tx.id, voucherNumber };
 }
 
 // ── List & detail ────────────────────────────────────────────────────────────
@@ -136,6 +307,126 @@ router.get('/queue', requireApprovalPermission('approve'), async (req: AuthReque
   } catch (err) {
     logger.error('GET transactions/queue', { message: String(err) });
     res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal mengambil antrian verifikasi/persetujuan' } });
+  }
+});
+
+// ── Pratinjau agregasi persembahan yang belum disetor ──────────────────────────
+router.get('/deposit-preview', requireFinancePermission('view'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { startDate, endDate } = req.query as { startDate?: string; endDate?: string };
+    if (!startDate || !endDate || startDate > endDate) {
+      res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Rentang tanggal tidak valid' } });
+      return;
+    }
+    const items = await collectUndepositedOfferings(startDate, endDate);
+    const summary = summarizeOfferings(items);
+    res.json({
+      success: true,
+      data: {
+        offeringCount: items.length,
+        totalAmount: items.reduce((s, o) => s + (Number(o.amount) || 0), 0),
+        cash: summary.CASH,
+        bank: summary.BANK,
+      },
+    });
+  } catch (err) {
+    logger.error('GET transactions/deposit-preview', { message: String(err) });
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal memuat ringkasan persembahan' } });
+  }
+});
+
+// ── Setor ke Buku Besar: buat transaksi DRAFT dari persembahan yang belum disetor ──
+router.post('/deposit-offerings', requireFinancePermission('create'), async (req: AuthRequest, res: Response) => {
+  const body = req.body ?? {};
+  const { startDate, endDate } = body;
+  const depositDate = body.depositDate || endDate;
+  if (!startDate || !endDate || startDate > endDate) {
+    res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Rentang tanggal persembahan tidak valid' } });
+    return;
+  }
+  const items = await collectUndepositedOfferings(startDate, endDate);
+  if (items.length === 0) {
+    res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Tidak ada persembahan yang belum disetor pada rentang tanggal ini' } });
+    return;
+  }
+  for (const o of items) {
+    if (!OFFERING_ACCOUNT_CODE[o.type]) {
+      res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: `Kategori persembahan "${o.type}" belum punya akun GL rujukan di Master Data Finance` } });
+      return;
+    }
+  }
+
+  const pool = getPool();
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const fiscalYearId = await resolveDepositFiscalYearId(client, body.fiscal_year_id);
+    const summary = summarizeOfferings(items);
+    const results: { bucket: 'CASH' | 'BANK'; transactionId: string; voucherNumber: string; amount: number }[] = [];
+
+    if (summary.CASH.count > 0) {
+      const categoryTotals: Record<string, number> = {};
+      for (const [type, v] of Object.entries(summary.CASH.byCategory)) categoryTotals[type] = v.amount;
+      const r = await createDepositTransaction(client, req, {
+        voucherTypeCode: 'BKM',
+        debitAccountCode: '1101',
+        debitCashAccountCode: 'KAS-01',
+        categoryTotals,
+        transactionDate: depositDate,
+        fiscalYearId,
+        description: `Setor Persembahan Tunai ${startDate} s/d ${endDate}`,
+      });
+      results.push({ bucket: 'CASH', ...r, amount: summary.CASH.total });
+    }
+    if (summary.BANK.count > 0) {
+      const categoryTotals: Record<string, number> = {};
+      for (const [type, v] of Object.entries(summary.BANK.byCategory)) categoryTotals[type] = v.amount;
+      const r = await createDepositTransaction(client, req, {
+        voucherTypeCode: 'BBM',
+        debitAccountCode: '1102',
+        categoryTotals,
+        transactionDate: depositDate,
+        fiscalYearId,
+        description: `Setor Persembahan Transfer/QRIS ${startDate} s/d ${endDate}`,
+      });
+      results.push({ bucket: 'BANK', ...r, amount: summary.BANK.total });
+    }
+
+    // Tandai offerings sebagai sudah disetor DALAM transaksi Postgres yang sama
+    // (client yang sama, belum COMMIT) supaya atomik dengan pembuatan voucher
+    // di atas — bukan lewat upsert()/getPool() terpisah yang berisiko voucher
+    // jadi tapi tandanya gagal tertulis (atau sebaliknya).
+    const now = new Date().toISOString();
+    for (const o of items) {
+      const match = results.find(r => r.bucket === offeringMethodBucket(o.paymentMethod));
+      if (!match) continue;
+      const updated = { ...o, depositedTransactionId: match.transactionId, depositedAt: now };
+      await client.query(
+        `INSERT INTO gemas_store (collection, id, data, updated_at)
+         VALUES ('offerings', $1, $2, NOW())
+         ON CONFLICT (collection, id) DO UPDATE SET data = EXCLUDED.data, updated_at = EXCLUDED.updated_at`,
+        [o.id, JSON.stringify(updated)]
+      );
+    }
+
+    await client.query('COMMIT');
+
+    for (const r of results) {
+      await recordFinanceAudit(
+        req, 'Setor ke Buku Besar', 'FinanceTransaction', r.transactionId, r.voucherNumber,
+        `Setor persembahan ${r.bucket === 'CASH' ? 'Tunai' : 'Transfer/QRIS'} ${startDate} s/d ${endDate}, total Rp${r.amount.toLocaleString('id-ID')} (${items.filter(o => offeringMethodBucket(o.paymentMethod) === r.bucket).length} catatan)`,
+        'sensitive'
+      );
+    }
+
+    logger.info('Deposit persembahan created', { user: req.user?.username, results, offeringCount: items.length });
+    res.status(201).json({ success: true, data: { transactions: results, offeringCount: items.length } });
+  } catch (err: any) {
+    await client.query('ROLLBACK').catch(() => {});
+    logger.error('POST transactions/deposit-offerings', { message: String(err), stack: err?.stack });
+    res.status(err.status ?? 500).json({ success: false, error: { code: err.code || 'VALIDATION_ERROR', message: err.message || 'Gagal membuat setoran persembahan' } });
+  } finally {
+    client.release();
   }
 });
 
