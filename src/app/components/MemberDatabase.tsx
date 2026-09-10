@@ -1079,9 +1079,19 @@ function MemberForm({ mode, initial, sectors, families, attestations, members, o
 
 
 
-  const TABS: {id: typeof tab; label: string}[] = editMember
-    ? [{id:'identitas',label:'Identitas'},{id:'gereja',label:'Gereja'},{id:'kontak',label:'Kontak'},{id:'kerja',label:'Kerja'},{id:'atestasi',label:'Atestasi'},{id:'aset',label:'Aset'},{id:'dokumen',label:'Dokumentasi'}]
-    : [{id:'identitas',label:'Identitas'},{id:'gereja',label:'Gereja'},{id:'kontak',label:'Kontak'},{id:'kerja',label:'Kerja'}];
+  // Struktur tab SELALU sama antara Tambah & Edit (biar konsisten secara visual) —
+  // tapi Atestasi/Aset/Dokumentasi butuh anggota yang sudah tersimpan (perlu ID),
+  // jadi di mode Tambah ketiganya ditampilkan nonaktif (abu-abu) dengan keterangan,
+  // bukan disembunyikan begitu saja.
+  const TABS: {id: typeof tab; label: string; disabled?: boolean}[] = [
+    {id:'identitas',label:'Identitas'},
+    {id:'gereja',label:'Gereja'},
+    {id:'kontak',label:'Kontak'},
+    {id:'kerja',label:'Kerja'},
+    {id:'atestasi',label:'Atestasi', disabled: !editMember},
+    {id:'aset',label:'Aset', disabled: !editMember},
+    {id:'dokumen',label:'Dokumentasi', disabled: !editMember},
+  ];
 
   return (
     <>
@@ -1092,14 +1102,26 @@ function MemberForm({ mode, initial, sectors, families, attestations, members, o
             <h3 className="text-white font-semibold" style={{fontSize:'15px'}}>{mode==='add'?'Tambah Anggota Baru':'Edit Data Anggota'}</h3>
             <button data-tooltip="Tutup" onClick={onClose} className="text-white/50 hover:text-white transition-colors"><X className="w-4 h-4"/></button>
           </div>
-          <div className="flex gap-1 mt-3">
+          <div className="flex gap-1 mt-3 flex-wrap">
             {TABS.map(t=>(
-              <button key={t.id} onMouseDown={e=>e.preventDefault()} onClick={()=>setTab(t.id)} className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                style={{background:tab===t.id?'#FFEFB2':'transparent',color:tab===t.id?'#384959':'rgba(255,255,255,0.5)'}}>
+              <button key={t.id} onMouseDown={e=>e.preventDefault()} onClick={()=>{ if(!t.disabled) setTab(t.id); }}
+                disabled={t.disabled}
+                title={t.disabled ? 'Tersedia setelah data anggota disimpan' : undefined}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                style={{
+                  background: tab===t.id && !t.disabled ? '#FFEFB2' : 'transparent',
+                  color: t.disabled ? 'rgba(255,255,255,0.25)' : (tab===t.id?'#384959':'rgba(255,255,255,0.5)'),
+                  cursor: t.disabled ? 'not-allowed' : 'pointer',
+                }}>
                 {t.label}
               </button>
             ))}
           </div>
+          {!editMember && (
+            <p className="mt-1.5 text-[11px]" style={{color:'rgba(255,255,255,0.35)'}}>
+              Atestasi, Aset &amp; Dokumentasi baru bisa diisi setelah data anggota ini disimpan.
+            </p>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
@@ -1183,6 +1205,11 @@ function MemberForm({ mode, initial, sectors, families, attestations, members, o
           )}
           {editMember && tab==='atestasi' && <AttestationsTabContent member={editMember} memberAttestations={memberAttestations} onShowAttForm={()=>setShowAttForm(true)}/>}
           {editMember && tab==='aset' && <AssetsTabContent memberAssets={memberAssets} borrowedAssets={borrowedAssets}/>}
+          {!editMember && (tab==='atestasi' || tab==='aset' || tab==='dokumen') && (
+            <div className="flex flex-col items-center justify-center text-center py-12 text-sm" style={{color:'#94a3b8'}}>
+              Simpan data anggota terlebih dahulu untuk membuka tab ini.
+            </div>
+          )}
           {editMember && tab==='dokumen' && (
             <DocumentsTabContent
               memberDocuments={memberDocuments} canEdit={editCanEdit} canDelete={editCanDelete}
