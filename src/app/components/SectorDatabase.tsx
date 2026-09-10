@@ -556,11 +556,12 @@ export function SectorDatabase() {
       </div>
 
       {/* Global stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {[
           {label:'Total Anggota',value:totalMembers,sub:'seluruh sektor',color:'#0f172a',bg:'#f8fafc',border:'#e2e8f0', type:'members' as const, items:members},
           {label:'Total Keluarga',value:totalFamilies,sub:'seluruh sektor',color:'#1A77A3',bg:'#f6f4f0',border:'#bfdbfe', type:'families' as const, items:families},
           {label:'Anggota Aktif',value:members.filter(m=>m.membershipStatus==='Aktif').length,sub:`${totalMembers>0?((members.filter(m=>m.membershipStatus==='Aktif').length/totalMembers)*100).toFixed(0):0}% dari total`,color:'#1A77A3',bg:'#f0fdf4',border:'#b8d5e8', type:'members' as const, items:members.filter(m=>m.membershipStatus==='Aktif')},
+          {label:'Anggota Non-Aktif',value:members.filter(m=>m.membershipStatus==='Tidak Aktif').length,sub:`${totalMembers>0?((members.filter(m=>m.membershipStatus==='Tidak Aktif').length/totalMembers)*100).toFixed(0):0}% dari total`,color:'#b45309',bg:'#fef3c7',border:'#fde68a', type:'members' as const, items:members.filter(m=>m.membershipStatus==='Tidak Aktif')},
           {label:'Rata-rata Umur per Sektor',value:sectorStats.length>0?Math.round(sectorStats.reduce((a,s)=>a+s.avgAge,0)/sectorStats.length):0,sub:'tahun',color:'#144f6b',bg:'#f6f4f0',border:'#ddd6fe', type:'members' as const, items:members},
         ].map((s,i)=>(
           <div key={i} className="rounded-2xl p-4 border cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all" style={{background:s.bg,borderColor:s.border}} onClick={()=>{setKpiDetail({label:s.label,type:s.type,items:s.items});setKpiSearch('');}}>
