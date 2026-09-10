@@ -321,8 +321,8 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
           >
             <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm border border-white/20 flex-shrink-0 group-hover:scale-105 transition-transform">
               <img
-                src="/logo-gpib.jpg"
-                alt="GPIB Emblem"
+                src="/logo-gemas.png"
+                alt="Logo GEMAS"
                 className="w-full h-full object-contain rounded-full"
               />
             </div>

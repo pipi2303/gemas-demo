@@ -120,8 +120,8 @@ export function LoginPage() {
                 <div className="pulse-ring-2" />
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white p-1.5 relative z-10 shadow-2xl">
                   <img
-                    src="/logo-gpib.jpg"
-                    alt="GPIB Logo"
+                    src="/logo-gemas.png"
+                    alt="Logo GEMAS"
                     className="w-full h-full object-contain"
                   />
                 </div>
@@ -188,8 +188,8 @@ export function LoginPage() {
             <div className="flex lg:hidden items-center gap-3 mb-8">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-white p-1.5 shadow-sm" style={{ border: '1px solid #ececec' }}>
                 <img
-                  src="/logo-gpib.jpg"
-                  alt="GPIB Logo"
+                  src="/logo-gemas.png"
+                  alt="Logo GEMAS"
                   className="w-full h-full object-contain"
                 />
               </div>

@@ -98,7 +98,7 @@ function AppContent() {
       <div className="min-h-screen flex flex-col items-center justify-center" style={{ background: 'linear-gradient(145deg, #0a1e2c 0%, #0f2d41 100%)' }}>
         <div className="flex flex-col items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-white p-2 shadow-2xl">
-            <img src="/logo-gpib.jpg" alt="GPIB" className="w-full h-full object-contain" />
+            <img src="/logo-gemas.png" alt="Logo GEMAS" className="w-full h-full object-contain" />
           </div>
           <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
           <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>Menghubungkan ke server…</p>
