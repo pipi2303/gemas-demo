@@ -1824,6 +1824,8 @@ export function MemberDatabase() {
       phone: pendingMemberDraft.phone || '',
       address: pendingMemberDraft.address || '',
       familyCode: pendingMemberDraft.familyCode || '',
+      sectorId: pendingMemberDraft.sectorId || '',
+      memberNumber: pendingMemberDraft.memberNumber || '',
     });
     setFormMode('add');
     setSelected(null);

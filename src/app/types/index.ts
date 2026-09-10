@@ -584,7 +584,9 @@ export interface Attestation {
   // kosong — anggotanya sudah pasti terdaftar (memberId sudah ada sejak awal).
   phone?: string;
   address?: string;
-  familyCode?: string; // "Kel. ..." di form kertas — kode keluarga tujuan kalau sudah diketahui
+  sectorId?: string; // Sektor tujuan — dipakai utk auto-saran format No. Induk & No. KK per sektor
+  memberNumber?: string; // No. Induk yang di-assign (format: TRIN-S{sektor}-{urut 5 digit})
+  familyCode?: string; // No. KK / "Kel. ..." di form kertas (format: FAM_KK_TRIN_S{sektor}_{urut})
   // Checklist 9 syarat dokumen Atestasi Masuk, key = id tetap (lihat
   // DOCUMENT_CHECKLIST_ITEMS di AttestationDatabase.tsx), value = sudah
   // lengkap/belum. Disimpan by-id (bukan teks label) supaya tidak rusak kalau
@@ -1131,4 +1133,6 @@ export interface PendingMemberDraft {
   phone?: string;
   address?: string;
   familyCode?: string;
+  sectorId?: string;
+  memberNumber?: string;
 }

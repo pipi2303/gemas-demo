@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { Attestation } from '../types';
 import { useDraggable } from '../../lib/useDraggable';
 import { api, apiSave, apiRemove } from '../../lib/apiClient';
+import { suggestNextMemberNumber, suggestNextFamilyNumber } from '../lib/attestationNumbering';
 import { SectorTransferHistory } from './SectorTransferHistory';
 import { SearchDropdown } from './ui/SearchDropdown';
 import {
@@ -385,7 +386,7 @@ export function AttestationForm({ initial, members, families, onSave, onSaveBatc
   onSave:(d:any)=>void; onSaveBatch?:(rows:any[])=>void; onClose:()=>void;
 }) {
   const { offset, onMouseDown } = useDraggable();
-  const { getMasterDataByCategory, attestations: allAttestations } = useApp();
+  const { getMasterDataByCategory, attestations: allAttestations, sectors } = useApp();
   const statusSuratList = getMasterDataByCategory('status_permohonan_surat').map(m => m.value);
   const STATUS_SURAT_OPTS = statusSuratList.length ? statusSuratList : ['Diajukan', 'Diproses', 'Selesai', 'Ditolak'];
   const tipeAtestasi = getMasterDataByCategory('tipe_atestasi').map(m => m.value);
@@ -431,8 +432,13 @@ export function AttestationForm({ initial, members, families, onSave, onSaveBatc
     // di Attestation.phone/address/familyCode di types/index.ts).
     phone: initial?.phone||'',
     address: initial?.address||'',
+    sectorId: initial?.sectorId||'',
+    memberNumber: initial?.memberNumber||'',
     familyCode: initial?.familyCode||'',
   });
+  // Lacak nilai No. Induk/No. KK yang TERAKHIR disarankan otomatis, supaya kalau
+  // admin sudah mengedit manual nilainya, ganti sektor tidak menimpa balik.
+  const [lastSuggested, setLastSuggested] = useState<{memberNumber:string;familyCode:string}>({memberNumber:'',familyCode:''});
   const [err, setErr] = useState('');
   const h=(k:string,v:string)=>setF(p=>({...p,[k]:v}));
 
@@ -452,6 +458,23 @@ export function AttestationForm({ initial, members, families, onSave, onSaveBatc
       address: m?.address || p.address,
       familyCode: m?.familyCode || p.familyCode,
     }));
+  };
+
+  // Sektor dipilih -> otomatis saran No. Induk & No. KK berikutnya sesuai
+  // format per sektor (lihat src/app/lib/attestationNumbering.ts). Tidak
+  // menimpa kalau field-nya sudah diedit manual dari saran sebelumnya.
+  const handleSector = (sectorId: string) => {
+    const sector = sectors.find((s: any) => s.id === sectorId);
+    if (!sector) { setF(p => ({ ...p, sectorId })); return; }
+    const suggestedMemberNumber = suggestNextMemberNumber(members, sector);
+    const suggestedFamilyCode = suggestNextFamilyNumber(members, sector);
+    setF(p => ({
+      ...p,
+      sectorId,
+      memberNumber: (!p.memberNumber || p.memberNumber === lastSuggested.memberNumber) ? suggestedMemberNumber : p.memberNumber,
+      familyCode: (!p.familyCode || p.familyCode === lastSuggested.familyCode) ? suggestedFamilyCode : p.familyCode,
+    }));
+    setLastSuggested({ memberNumber: suggestedMemberNumber, familyCode: suggestedFamilyCode });
   };
 
   const submit=()=>{
@@ -641,15 +664,34 @@ export function AttestationForm({ initial, members, families, onSave, onSaveBatc
                       className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none" style={{borderColor:'#e2e8f0'}}/>
                   </div>
                   <div>
-                    <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Kode Keluarga (Kel.)</label>
-                    <input value={f.familyCode} onChange={e=>h('familyCode',e.target.value)} placeholder="Kalau sudah diketahui"
-                      className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none" style={{borderColor:'#e2e8f0'}}/>
+                    <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Sektor</label>
+                    <select value={f.sectorId} onChange={e=>handleSector(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none" style={{borderColor:'#e2e8f0'}}>
+                      <option value="">— Pilih Sektor —</option>
+                      {sectors.map((s: any)=><option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
                   </div>
                   <div className="col-span-2">
                     <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Alamat (Sekarang)</label>
                     <textarea value={f.address} onChange={e=>h('address',e.target.value)} rows={2}
                       className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none resize-none" style={{borderColor:'#e2e8f0'}}/>
                   </div>
+                  {f.sectorId && (
+                    <>
+                      <div>
+                        <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>No. Induk</label>
+                        <input value={f.memberNumber} onChange={e=>h('memberNumber',e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border text-sm font-mono focus:outline-none" style={{borderColor:'#e2e8f0'}}/>
+                        <p style={{fontSize:'10px',color:'#94a3b8',marginTop:3}}>Saran otomatis mengikuti format sektor terpilih, bisa diedit manual.</p>
+                      </div>
+                      <div>
+                        <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>No. KK</label>
+                        <input value={f.familyCode} onChange={e=>h('familyCode',e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border text-sm font-mono focus:outline-none" style={{borderColor:'#e2e8f0'}}/>
+                        <p style={{fontSize:'10px',color:'#94a3b8',marginTop:3}}>Saran otomatis mengikuti format sektor terpilih, bisa diedit manual.</p>
+                      </div>
+                    </>
+                  )}
                 </div>
                 <p style={{fontSize:'10.5px',color:'#64748b',marginTop:6}}>Dipakai untuk pra-isi data saat mendaftarkan anggota ini di Database Warga, kalau belum terdaftar.</p>
               </div>
@@ -847,6 +889,7 @@ Tetap tandai Selesai?`);
         setPendingMemberDraft({
           relatedModule:'Atestasi', relatedId:att.id, fullName:att.memberName,
           phone:att.phone, address:att.address, familyCode:att.familyCode,
+          sectorId:att.sectorId, memberNumber:att.memberNumber,
         });
         onNavigate?.('members');
       } else if(att.type==='Pindah Keluar' && att.memberId){
