@@ -98,7 +98,10 @@ function SacramentField({ label, value, onChange, type='text', opts, autoFocus, 
 function BaptismForm({ initial, onSave, onClose }: { initial?: Partial<Baptism>; onSave:(d:any)=>void; onClose:()=>void }) {
   const { offset, onMouseDown } = useDraggable();
   const { members, getMasterDataByCategory } = useApp();
-  const pelayanOpts = getMasterDataByCategory('daftar_pelayan').map(m => m.value);
+  // Pendeta/Pelayan dicari dari anggota yang kolom Jabatan Pelayanan-nya terisi
+  // (lihat SearchDropdown di bawah) — tetap bisa diketik manual kalau yang
+  // melayani bukan anggota terdaftar / datanya belum lengkap di Database Warga.
+  const ministerCandidates = members.filter(m => !!m.position);
   const tempatOpts = getMasterDataByCategory('tempat_sakramen').map(m => m.value);
   const statusSakramenOpts = getMasterDataByCategory('status_sakramen').map(m => m.value);
   const STATUS_OPTS = statusSakramenOpts.length ? statusSakramenOpts : ['Terjadwal','Selesai','Ditunda','Dibatalkan'];
@@ -149,7 +152,23 @@ function BaptismForm({ initial, onSave, onClose }: { initial?: Partial<Baptism>;
             <SacramentField label="Tipe Baptisan" value={f.type} onChange={v=>h('type',v)} opts={['Anak','Dewasa']}/>
             <SacramentField label="Tanggal Baptis*" value={f.baptismDate} onChange={v=>h('baptismDate',v)} type="date"/>
             <SacramentField label="Tempat Baptis" value={f.baptismPlace} onChange={v=>h('baptismPlace',v)} opts={tempatOpts.length ? tempatOpts : undefined}/>
-            <SacramentField label="Pendeta / Pelayan" value={f.minister} onChange={v=>h('minister',v)} opts={pelayanOpts.length ? pelayanOpts : undefined}/>
+            <div>
+              <label style={{display:'block',marginBottom:4,fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Pendeta / Pelayan</label>
+              <SearchDropdown<any>
+                value={f.minister}
+                onChange={v=>h('minister',v)}
+                placeholder="Cari nama pendeta/pelayan, atau ketik manual..."
+                items={ministerCandidates}
+                filterFn={(m,q)=>m.fullName.toLowerCase().includes(q.toLowerCase())||m.memberNumber?.toLowerCase().includes(q.toLowerCase())}
+                renderResult={m=>(
+                  <div>
+                    <p style={{fontSize:'13px',fontWeight:600,color:'#0f172a',margin:0}}>{m.fullName}</p>
+                    <p style={{fontSize:'11px',color:'#64748b',margin:0}}>{m.position}</p>
+                  </div>
+                )}
+                onSelect={m=>h('minister',m.fullName)}
+              />
+            </div>
             <SacramentField label="Saksi 1" value={f.witness1} onChange={v=>h('witness1',v)}/>
             <SacramentField label="Saksi 2" value={f.witness2} onChange={v=>h('witness2',v)}/>
             <SacramentField label="No. Surat Baptis" value={f.certificateNumber} onChange={v=>h('certificateNumber',v)}/>
@@ -175,7 +194,10 @@ function BaptismForm({ initial, onSave, onClose }: { initial?: Partial<Baptism>;
 function SidiForm({ initial, onSave, onClose }: { initial?: Partial<Sidi>; onSave:(d:any)=>void; onClose:()=>void }) {
   const { offset, onMouseDown } = useDraggable();
   const { members, getMasterDataByCategory } = useApp();
-  const pelayanOpts = getMasterDataByCategory('daftar_pelayan').map(m => m.value);
+  // Pendeta/Pelayan dicari dari anggota yang kolom Jabatan Pelayanan-nya terisi
+  // (lihat SearchDropdown di bawah) — tetap bisa diketik manual kalau yang
+  // melayani bukan anggota terdaftar / datanya belum lengkap di Database Warga.
+  const ministerCandidates = members.filter(m => !!m.position);
   const tempatOpts = getMasterDataByCategory('tempat_sakramen').map(m => m.value);
   const statusSakramenOpts = getMasterDataByCategory('status_sakramen').map(m => m.value);
   const STATUS_OPTS = statusSakramenOpts.length ? statusSakramenOpts : ['Terjadwal','Selesai','Ditunda','Dibatalkan'];
@@ -222,7 +244,23 @@ function SidiForm({ initial, onSave, onClose }: { initial?: Partial<Sidi>; onSav
             </div>
             <SacramentField label="Tanggal Sidi*" value={f.sidiDate} onChange={v=>h('sidiDate',v)} type="date"/>
             <SacramentField label="Tempat Sidi" value={f.sidiPlace} onChange={v=>h('sidiPlace',v)} opts={tempatOpts.length ? tempatOpts : undefined}/>
-            <SacramentField label="Pendeta / Pelayan" value={f.minister} onChange={v=>h('minister',v)} opts={pelayanOpts.length ? pelayanOpts : undefined}/>
+            <div>
+              <label style={{display:'block',marginBottom:4,fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Pendeta / Pelayan</label>
+              <SearchDropdown<any>
+                value={f.minister}
+                onChange={v=>h('minister',v)}
+                placeholder="Cari nama pendeta/pelayan, atau ketik manual..."
+                items={ministerCandidates}
+                filterFn={(m,q)=>m.fullName.toLowerCase().includes(q.toLowerCase())||m.memberNumber?.toLowerCase().includes(q.toLowerCase())}
+                renderResult={m=>(
+                  <div>
+                    <p style={{fontSize:'13px',fontWeight:600,color:'#0f172a',margin:0}}>{m.fullName}</p>
+                    <p style={{fontSize:'11px',color:'#64748b',margin:0}}>{m.position}</p>
+                  </div>
+                )}
+                onSelect={m=>h('minister',m.fullName)}
+              />
+            </div>
             <SacramentField label="Tanggal Baptis Sebelumnya" value={f.baptismDate} onChange={v=>h('baptismDate',v)} type="date"/>
             <SacramentField label="Tempat Baptis" value={f.baptismPlace} onChange={v=>h('baptismPlace',v)} opts={tempatOpts.length ? tempatOpts : undefined}/>
             <SacramentField label="No. Surat Sidi" value={f.certificateNumber} onChange={v=>h('certificateNumber',v)}/>
@@ -245,7 +283,10 @@ function SidiForm({ initial, onSave, onClose }: { initial?: Partial<Sidi>; onSav
 function MarriageForm({ initial, onSave, onClose }: { initial?: Partial<Marriage>; onSave:(d:any)=>void; onClose:()=>void }) {
   const { offset, onMouseDown } = useDraggable();
   const { members, getMasterDataByCategory } = useApp();
-  const pelayanOpts = getMasterDataByCategory('daftar_pelayan').map(m => m.value);
+  // Pendeta/Pelayan dicari dari anggota yang kolom Jabatan Pelayanan-nya terisi
+  // (lihat SearchDropdown di bawah) — tetap bisa diketik manual kalau yang
+  // melayani bukan anggota terdaftar / datanya belum lengkap di Database Warga.
+  const ministerCandidates = members.filter(m => !!m.position);
   const tempatOpts = getMasterDataByCategory('tempat_sakramen').map(m => m.value);
   const statusSakramenOpts = getMasterDataByCategory('status_sakramen').map(m => m.value);
   const STATUS_OPTS = statusSakramenOpts.length ? statusSakramenOpts : ['Terjadwal','Selesai','Ditunda','Dibatalkan'];
@@ -310,7 +351,23 @@ function MarriageForm({ initial, onSave, onClose }: { initial?: Partial<Marriage
             </div>
             <SacramentField label="Tanggal Pemberkatan*" value={f.marriageDate} onChange={v=>h('marriageDate',v)} type="date" ring="ring-pink-400"/>
             <SacramentField label="Tempat Pemberkatan" value={f.marriagePlace} onChange={v=>h('marriagePlace',v)} opts={tempatOpts.length ? tempatOpts : undefined} ring="ring-pink-400"/>
-            <SacramentField label="Pendeta / Pelayan" value={f.minister} onChange={v=>h('minister',v)} opts={pelayanOpts.length ? pelayanOpts : undefined} ring="ring-pink-400"/>
+            <div>
+              <label style={{display:'block',marginBottom:4,fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Pendeta / Pelayan</label>
+              <SearchDropdown<any>
+                value={f.minister}
+                onChange={v=>h('minister',v)}
+                placeholder="Cari nama pendeta/pelayan, atau ketik manual..."
+                items={ministerCandidates}
+                filterFn={(m,q)=>m.fullName.toLowerCase().includes(q.toLowerCase())||m.memberNumber?.toLowerCase().includes(q.toLowerCase())}
+                renderResult={m=>(
+                  <div>
+                    <p style={{fontSize:'13px',fontWeight:600,color:'#0f172a',margin:0}}>{m.fullName}</p>
+                    <p style={{fontSize:'11px',color:'#64748b',margin:0}}>{m.position}</p>
+                  </div>
+                )}
+                onSelect={m=>h('minister',m.fullName)}
+              />
+            </div>
             <SacramentField label="Status" value={f.status} onChange={v=>h('status',v)} opts={STATUS_OPTS} ring="ring-pink-400"/>
             <SacramentField label="Saksi 1" value={f.witness1} onChange={v=>h('witness1',v)} ring="ring-pink-400"/>
             <SacramentField label="Saksi 2" value={f.witness2} onChange={v=>h('witness2',v)} ring="ring-pink-400"/>
