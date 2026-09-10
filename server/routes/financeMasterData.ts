@@ -13,6 +13,7 @@ import { getPool } from '../lib/db.js';
 import { createMasterDataRouter, requireRealDb, FINANCE_ORG } from '../lib/financeCrud.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { requireFinancePermission as requireFinancePermissionBase } from '../middleware/checkFinancePermission.js';
+import { recordFinanceAudit } from '../lib/financeAudit.js';
 
 // Submenu Finance Add-on untuk file ini (dipakai validasi server per-submenu) —
 // lihat komentar di checkFinancePermission.ts.
@@ -134,11 +135,30 @@ router.use('/bank-accounts', createMasterDataRouter({
 // ── Jenis Voucher ─────────────────────────────────────────────────────────────
 router.use('/voucher-types', createMasterDataRouter({
   table: 'finance.voucher_types',
-  fields: ['code', 'name', 'transaction_type', 'prefix', 'sequence_scope', 'is_active'],
+  fields: ['code', 'name', 'transaction_type', 'prefix', 'sequence_scope', 'is_active', 'requires_approval'],
   requiredFields: ['code', 'name', 'transaction_type', 'prefix'],
   orderBy: 'code ASC',
   deleteMode: 'is_active',
   entityLabel: 'Jenis Voucher',
+  onUpdate: async (before, after, req) => {
+    // Catat ke Audit Trail Finance setiap kali status wajib-approval sebuah
+    // jenis voucher diubah — ini mengubah kontrol internal (SoD 4-mata),
+    // jadi perlu jejak audit yang jelas, bukan cuma log CRUD biasa.
+    if (before.requires_approval !== after.requires_approval) {
+      await recordFinanceAudit(
+        req,
+        after.requires_approval ? 'Aktifkan Approval Wajib' : 'Nonaktifkan Approval Wajib',
+        'voucher_type',
+        String(after.id),
+        `${after.code} - ${after.name}`,
+        {
+          before_requires_approval: before.requires_approval,
+          after_requires_approval: after.requires_approval,
+        },
+        'critical'
+      );
+    }
+  },
 }));
 
 // ── Pemasok (Vendors) ─────────────────────────────────────────────────────────

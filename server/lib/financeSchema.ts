@@ -634,6 +634,21 @@ ALTER TABLE finance.transaction_lines
   ADD COLUMN IF NOT EXISTS cost_center_id UUID REFERENCES finance.cost_centers(id) ON DELETE RESTRICT;
 CREATE INDEX IF NOT EXISTS idx_transaction_lines_cost_center ON finance.transaction_lines (cost_center_id);
 
+-- ── APPROVAL BISA AKTIF/NONAKTIF PER JENIS VOUCHER ────────────────────────────
+-- Ditambahkan lewat ALTER TABLE (bukan ikut CREATE TABLE voucher_types di atas)
+-- dengan alasan yang sama seperti blok ALTER TABLE lain di file ini: tabel ini
+-- sudah live di database produksi. Default TRUE supaya seluruh jenis voucher
+-- yang sudah ada tetap wajib melalui alur approval berjenjang seperti
+-- sebelumnya -- perilaku lama tidak berubah sampai Admin/Majelis secara
+-- eksplisit menonaktifkannya untuk jenis voucher tertentu di Master Data
+-- Finance. Saat requires_approval = FALSE, endpoint PUT /transactions/:id/submit
+-- (lihat financeTransaction.ts) langsung memposting transaksi ke General Ledger
+-- dalam satu langkah -- TANPA tahap verifikasi/persetujuan terpisah, dan TANPA
+-- pengecekan segregation-of-duties (konsekuensi yang disengaja, bukan bug:
+-- jenis voucher yang dianggap berisiko rendah tidak lagi butuh 4-mata).
+ALTER TABLE finance.voucher_types
+  ADD COLUMN IF NOT EXISTS requires_approval BOOLEAN NOT NULL DEFAULT TRUE;
+
 ALTER TABLE finance.journal_lines
   ADD COLUMN IF NOT EXISTS cost_center_id UUID REFERENCES finance.cost_centers(id) ON DELETE RESTRICT;
 CREATE INDEX IF NOT EXISTS idx_journal_lines_cost_center ON finance.journal_lines (cost_center_id);

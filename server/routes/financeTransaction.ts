@@ -57,6 +57,7 @@ router.use(requireAuth, requireRealDb);
 const TX_WITH_VOUCHER_SELECT = `
   SELECT t.*, v.voucher_number, v.voucher_date, v.voucher_type_id,
          vt.code AS voucher_type_code, vt.name AS voucher_type_name,
+         vt.requires_approval AS voucher_requires_approval,
          j.journal_number, j.journal_date AS posted_journal_date
   FROM finance.transactions t
   JOIN finance.vouchers v ON v.id = t.voucher_id
@@ -666,6 +667,86 @@ router.put('/:id/submit', requireFinancePermission('edit'), async (req: AuthRequ
       res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: `Transaksi belum seimbang — total debit ${tx.total_debit} ≠ total kredit ${tx.total_credit}` } });
       return;
     }
+    // ── Cek apakah jenis voucher transaksi ini butuh approval wajib ────────────
+    // (voucher_types.requires_approval, bisa diaktif/nonaktifkan Admin/Majelis
+    // lewat Master Data > Jenis Voucher). Default TRUE kalau nilainya somehow
+    // null, supaya kegagalan baca kolom ini tidak diam-diam melewatkan kontrol.
+    const voucherInfo = await client.query(
+      `SELECT v.voucher_number, vt.requires_approval
+       FROM finance.vouchers v JOIN finance.voucher_types vt ON vt.id = v.voucher_type_id
+       WHERE v.id = $1`,
+      [tx.voucher_id]
+    );
+    const voucherNumber = voucherInfo.rows[0]?.voucher_number;
+    const requiresApproval = voucherInfo.rows[0]?.requires_approval !== false;
+
+    if (!requiresApproval) {
+      // ── Jenis voucher ini dikonfigurasi TANPA approval wajib ──────────────────
+      // Langsung diposting ke General Ledger begitu diajukan — melewati alur
+      // Submitted → Verified → Approved sepenuhnya, TERMASUK cek segregation-of-
+      // duties yang biasanya berlaku di verify/approve/post (di sini pengaju dan
+      // "pemposting" memang sengaja orang yang sama, karena seluruh tahap approval
+      // untuk jenis voucher ini sengaja dimatikan). Ini konsekuensi kontrol internal
+      // yang eksplisit dari pilihan desain per-jenis-voucher, bukan bug — dan setiap
+      // transisi requires_approval sendiri sudah dicatat terpisah ke Audit Trail
+      // Finance (lihat onUpdate hook di financeMasterData.ts).
+      const periodRes = await client.query('SELECT * FROM finance.periods WHERE id = $1', [tx.period_id]);
+      const period = periodRes.rows[0];
+      if (!period || period.status !== 'OPEN') {
+        await client.query('ROLLBACK');
+        res.status(400).json({ success: false, error: { code: 'INVALID_STATE', message: 'Periode transaksi ini sudah tidak Terbuka (Open) — tidak bisa diposting' } });
+        return;
+      }
+      const fyRes = await client.query('SELECT * FROM finance.fiscal_years WHERE id = $1', [tx.fiscal_year_id]);
+      const fiscalYear = fyRes.rows[0];
+
+      const seqRes = await client.query(
+        `INSERT INTO finance.journal_sequences (organization_id, fiscal_year_id, current_number)
+         VALUES ($1,$2,1)
+         ON CONFLICT (organization_id, fiscal_year_id)
+         DO UPDATE SET current_number = finance.journal_sequences.current_number + 1
+         RETURNING current_number`,
+        [FINANCE_ORG, tx.fiscal_year_id]
+      );
+      const journalNumber = `JV/${fiscalYear.code}/${String(seqRes.rows[0].current_number).padStart(4, '0')}`;
+
+      const journalRes = await client.query(
+        `INSERT INTO finance.journals
+          (organization_id, transaction_id, voucher_id, fiscal_year_id, period_id, journal_number, journal_date, description, total_debit, total_credit, posted_by)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+        [FINANCE_ORG, tx.id, tx.voucher_id, tx.fiscal_year_id, tx.period_id, journalNumber, tx.transaction_date, tx.description, tx.total_debit, tx.total_credit, req.user!.userId]
+      );
+      const journal = journalRes.rows[0];
+
+      const linesRes = await client.query('SELECT * FROM finance.transaction_lines WHERE transaction_id = $1 ORDER BY line_number ASC', [tx.id]);
+      for (const line of linesRes.rows) {
+        await client.query(
+          `INSERT INTO finance.journal_lines
+            (journal_id, line_number, account_id, field_id, program_id, activity_id, fund_id, cost_center_id, debit, credit, description)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+          [
+            journal.id, line.line_number, line.account_id, line.field_id, line.program_id, line.activity_id,
+            line.fund_id, line.cost_center_id, line.debit, line.credit, line.description,
+          ]
+        );
+      }
+
+      const updated = await client.query(
+        `UPDATE finance.transactions SET status = 'POSTED', submitted_at = NOW(), submitted_by = $3, posted_at = NOW(), posted_by = $3, updated_at = NOW(), updated_by = $3
+         WHERE id = $1 AND organization_id = $2 RETURNING *`,
+        [req.params.id, FINANCE_ORG, req.user!.userId]
+      );
+      await client.query(
+        `UPDATE finance.vouchers SET status = 'POSTED', updated_at = NOW(), updated_by = $2 WHERE id = $1`,
+        [tx.voucher_id, req.user!.userId]
+      );
+      await client.query('COMMIT');
+      logger.info('Transaction submitted and auto-posted (voucher type has approval disabled)', { user: req.user?.username, transactionId: req.params.id, journalNumber });
+      await recordFinanceAudit(req, 'Diposting (Tanpa Approval)', 'FinanceTransaction', tx.id, voucherNumber, `Transaksi ${voucherNumber} langsung diposting ke General Ledger sebagai jurnal ${journalNumber} — jenis voucher ini dikonfigurasi tanpa approval wajib`, 'critical');
+      res.json({ success: true, data: { ...updated.rows[0], journal_number: journalNumber } });
+      return;
+    }
+
     const result = await client.query(
       `UPDATE finance.transactions SET status = 'SUBMITTED', submitted_at = NOW(), submitted_by = $3, updated_at = NOW(), updated_by = $3
        WHERE id = $1 AND organization_id = $2 RETURNING *`,
@@ -677,7 +758,7 @@ router.put('/:id/submit', requireFinancePermission('edit'), async (req: AuthRequ
     );
     await client.query('COMMIT');
     logger.info('Transaction submitted', { user: req.user?.username, transactionId: req.params.id });
-    await recordFinanceAudit(req, 'Diajukan', 'FinanceTransaction', tx.id, tx.voucher_number, `Transaksi ${tx.voucher_number} diajukan untuk verifikasi`, 'sensitive');
+    await recordFinanceAudit(req, 'Diajukan', 'FinanceTransaction', tx.id, voucherNumber, `Transaksi ${voucherNumber} diajukan untuk verifikasi`, 'sensitive');
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});

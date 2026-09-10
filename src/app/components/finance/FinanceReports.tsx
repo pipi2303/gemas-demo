@@ -35,6 +35,14 @@ const labelCls = 'block text-xs font-medium text-slate-600 mb-1';
 type Tab = 'balance-sheet' | 'activity-statement' | 'budget-realization';
 
 function todayStr() { return new Date().toISOString().slice(0, 10); }
+// Preset "Laporan Berkala" (1/3/6/12 bulan) — hitung tanggal mulai N bulan ke
+// belakang dari hari ini, dipakai ActivityStatementTab supaya pengguna tidak
+// perlu isi tanggal manual untuk laporan periodik rutin (mis. audit triwulan).
+function monthsAgoStr(months: number): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() - months);
+  return d.toISOString().slice(0, 10);
+}
 
 // ── Tab: Neraca ───────────────────────────────────────────────────────────────
 function BalanceSheetTab() {
@@ -117,8 +125,34 @@ function ActivityStatementTab({ funds }: { funds: any[] }) {
   }, [from, to, fundId]);
   useEffect(() => { load(); }, [load]);
 
+  const applyPreset = (months: number) => {
+    setFrom(monthsAgoStr(months));
+    setTo(todayStr());
+  };
+  const PRESETS: { months: number; label: string }[] = [
+    { months: 1, label: '1 Bulan' },
+    { months: 3, label: '3 Bulan (Triwulan)' },
+    { months: 6, label: '6 Bulan (Semester)' },
+    { months: 12, label: '12 Bulan (Tahunan)' },
+  ];
+
   return (
     <div className="space-y-4">
+      <div>
+        <label className={labelCls}>Laporan Berkala (cepat)</label>
+        <div className="flex flex-wrap gap-2 mt-1">
+          {PRESETS.map(p => (
+            <button
+              key={p.months}
+              type="button"
+              onClick={() => applyPreset(p.months)}
+              className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="flex flex-wrap gap-3">
         <div><label className={labelCls}>Dari</label><input type="date" value={from} onChange={e => setFrom(e.target.value)} className={inputCls} /></div>
         <div><label className={labelCls}>Sampai</label><input type="date" value={to} onChange={e => setTo(e.target.value)} className={inputCls} /></div>

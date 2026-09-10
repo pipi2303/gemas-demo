@@ -89,6 +89,7 @@ interface FormFieldDef {
   options?: { value: string; label: string }[];
   placeholder?: string;
   defaultValue?: any;
+  hint?: string; // catatan kecil di bawah field, dipakai untuk field yang perlu penjelasan tambahan (mis. konsekuensi mematikan sebuah toggle)
 }
 
 interface ColumnDef {
@@ -306,6 +307,7 @@ function buildConfigs(lk: Lookups): EntityConfig[] {
         { key: 'name', label: 'Nama' },
         { key: 'transaction_type', label: 'Tipe Transaksi', render: row => labelFor(TRANSACTION_TYPE_OPTIONS, row.transaction_type) },
         { key: 'prefix', label: 'Prefix Nomor' },
+        { key: 'requires_approval', label: 'Wajib Approval', render: row => (row.requires_approval === false ? 'Tidak (langsung posting)' : 'Ya') },
         { key: 'is_active', label: 'Aktif', render: row => (row.is_active ? 'Ya' : 'Tidak') },
       ],
       fields: [
@@ -313,6 +315,13 @@ function buildConfigs(lk: Lookups): EntityConfig[] {
         { key: 'name', label: 'Nama', type: 'text', required: true, placeholder: 'Bukti Kas Masuk' },
         { key: 'transaction_type', label: 'Tipe Transaksi', type: 'select', required: true, options: TRANSACTION_TYPE_OPTIONS },
         { key: 'prefix', label: 'Prefix Nomor Voucher', type: 'text', required: true, placeholder: 'BKM' },
+        {
+          key: 'requires_approval',
+          label: 'Wajib alur approval (Submit → Verifikasi → Setuju → Posting)',
+          type: 'checkbox',
+          defaultValue: true,
+          hint: 'Kalau dimatikan, transaksi jenis voucher ini langsung diposting ke General Ledger begitu diajukan — tanpa verifikasi/persetujuan, dan tanpa cek segregation-of-duties. Setiap perubahan tercatat di Audit Trail Finance.',
+        },
       ],
     },
     {
@@ -576,14 +585,17 @@ function EntitySection({ config, canEdit, onMutated }: { config: EntityConfig; c
                     />
                   )}
                   {f.type === 'checkbox' && (
-                    <label className="flex items-center gap-2 text-sm text-slate-600">
-                      <input
-                        type="checkbox"
-                        checked={!!form[f.key]}
-                        onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.checked }))}
-                      />
-                      {f.label}
-                    </label>
+                    <div>
+                      <label className="flex items-center gap-2 text-sm text-slate-600">
+                        <input
+                          type="checkbox"
+                          checked={!!form[f.key]}
+                          onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.checked }))}
+                        />
+                        {f.label}
+                      </label>
+                      {f.hint && <p className="mt-1 text-xs text-slate-400">{f.hint}</p>}
+                    </div>
                   )}
                   {f.type === 'number' && (
                     <input

@@ -215,7 +215,14 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
       const updated = await callApi<any>('put', `/api/v1/finance/transactions/${current.id}/${ACTION_ENDPOINT[action]}`, body ?? {});
       setCurrent((prev: any) => ({ ...prev, ...updated }));
       onChanged(updated);
-      toast.success(ACTION_SUCCESS_MESSAGE[action]);
+      // Jenis voucher dengan approval dimatikan membuat aksi 'submit' langsung
+      // memposting transaksi ke General Ledger (status berubah jadi POSTED,
+      // bukan SUBMITTED) — beri pesan yang sesuai supaya tidak membingungkan.
+      if (action === 'submit' && updated?.status === 'POSTED') {
+        toast.success(`Transaksi langsung diposting ke General Ledger (jurnal ${updated.journal_number}) — jenis voucher ini tanpa approval wajib`);
+      } else {
+        toast.success(ACTION_SUCCESS_MESSAGE[action]);
+      }
       setReasonModal(null);
     } catch (err: any) {
       toast.error(err?.message || 'Gagal memproses aksi');

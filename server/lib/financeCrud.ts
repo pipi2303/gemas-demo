@@ -76,6 +76,11 @@ export interface MasterDataConfig {
   deriveDefaults?: (body: Record<string, any>, pool: Pool) => Promise<Record<string, any>>;
   /** Label Indonesia untuk pesan error generik */
   entityLabel: string;
+  /** Hook opsional dipanggil SETELAH PUT berhasil, dengan baris SEBELUM & SESUDAH
+   *  update -- dipakai untuk mencatat audit trail saat field tertentu yang sensitif
+   *  berubah (mis. requires_approval di Jenis Voucher). Kegagalan hook ini tidak
+   *  membatalkan response sukses PUT -- hanya dicatat ke logger. */
+  onUpdate?: (before: Record<string, any>, after: Record<string, any>, req: AuthRequest) => Promise<void>;
 }
 
 function sanitizeBody(body: Record<string, any>, fields: string[]): Record<string, any> {
@@ -163,6 +168,12 @@ export function createMasterDataRouter(cfg: MasterDataConfig): Router {
         return;
       }
       const pool = getPool();
+      // Hanya query baris SEBELUM update kalau memang ada onUpdate hook yang butuh
+      // membandingkannya -- tidak menambah query untuk 7 tabel master data lain
+      // yang tidak memakai hook ini.
+      const beforeRow = cfg.onUpdate
+        ? (await pool.query(`SELECT * FROM ${cfg.table} WHERE id = $1 AND organization_id = $2`, [req.params.id, FINANCE_ORG])).rows[0] ?? null
+        : null;
       const setClauses = cols.map((f, i) => `${f} = $${i + 4}`);
       const values = cols.map(f => body[f]);
       const sql = `UPDATE ${cfg.table} SET ${setClauses.join(', ')}, updated_at = NOW(), updated_by = $3
@@ -171,6 +182,9 @@ export function createMasterDataRouter(cfg: MasterDataConfig): Router {
       if (result.rows.length === 0) {
         res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: `Data ${cfg.entityLabel} tidak ditemukan` } });
         return;
+      }
+      if (cfg.onUpdate && beforeRow) {
+        cfg.onUpdate(beforeRow, result.rows[0], req).catch(err => logger.error(`onUpdate hook gagal untuk ${cfg.table}`, { message: String(err) }));
       }
       res.json({ success: true, data: result.rows[0] });
     } catch (err: any) {
