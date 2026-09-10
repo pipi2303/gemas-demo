@@ -9,8 +9,9 @@ import {
   Church, BarChart3, Bell, BookOpen, Calendar,
   Megaphone, CheckCircle2, UserPlus, Pencil, Trash2,
   HandHeart, Stethoscope, Printer, Layers, Mail, Send,
+  Video, Target, History,
 } from 'lucide-react';
-import { AgeGroup, ActivityLog } from '../types';
+import { AgeGroup, ActivityLog, SensusSnapshot, LivestreamLink } from '../types';
 import { liveAge } from '../../lib/age';
 import { api } from '../../lib/apiClient';
 
@@ -21,9 +22,9 @@ function formatRp(n: number) {
   return `Rp ${n.toLocaleString('id-ID')}`;
 }
 
-const SECTOR_COLORS = ['#3b82f6', '#0891b2', '#144f6b', '#7c3aed', '#e11d48', '#16a34a', '#f59e0b'];
-const AGE_COLORS    = ['#3b82f6', '#0891b2', '#144f6b', '#7c3aed'];
-const DIAKONIA_COLORS = ['#144f6b','#16a34a','#f59e0b','#e11d48','#7c3aed'];
+const SECTOR_COLORS = ['#1A77A3', '#caa04a', '#2f8f5b', '#d1553f', '#8b6bb1', '#9c9486', '#144f6b'];
+const AGE_COLORS    = ['#1A77A3', '#caa04a', '#2f8f5b', '#d1553f'];
+const DIAKONIA_COLORS = ['#1A77A3','#caa04a','#2f8f5b','#d1553f','#8b6bb1'];
 
 // ── Mini SVG charts ────────────────────────────────────────────────────────────
 function MiniSparkline({ data, color = '#144f6b', color2 }: { data: { name: string; persembahan: number }[]; color?: string; color2?: string }) {
@@ -160,7 +161,7 @@ function MiniHorizontalBar({ data, color = '#144f6b' }: { data: { name: string; 
     <div className="space-y-2.5">
       {data.map((d, i) => {
         const pct = d.total > 0 ? (d.value / d.total) * 100 : 0;
-        const barColors = [color, '#0891b2', '#7c3aed', '#e11d48', '#16a34a', '#f59e0b', '#64748b'];
+        const barColors = [color, '#caa04a', '#2f8f5b', '#d1553f', '#8b6bb1', '#9c9486', '#64748b'];
         const bc = barColors[i % barColors.length];
         return (
           <div key={d.name}>
@@ -181,7 +182,7 @@ function MiniHorizontalBar({ data, color = '#144f6b' }: { data: { name: string; 
   );
 }
 
-function MiniStackedBar({ data, color1 = '#144f6b', color2 = '#ef4444', label1 = 'Pemasukan', label2 = 'Pengeluaran' }: {
+function MiniStackedBar({ data, color1 = '#2f8f5b', color2 = '#d1553f', label1 = 'Pemasukan', label2 = 'Pengeluaran' }: {
   data: { name: string; v1: number; v2: number }[]; color1?: string; color2?: string; label1?: string; label2?: string;
 }) {
   if (!data.length) return null;
@@ -343,7 +344,7 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
   const cfgMap: Record<KPIType, { title: string; subtitle: string; gradient: string; count: number; icon: any }> = {
     birthdays:       { title: 'Ulang Tahun Bulan Ini', subtitle: 'Jemaat yang berulang tahun bulan ini', gradient: '#9c9486', count: birthdayMembers.length, icon: Cake },
     attestations:    { title: 'Atestasi Pending', subtitle: 'Atestasi yang menunggu proses', gradient: '#144f6b', count: pendingAtts.length, icon: FileText },
-    inactiveMembers: { title: 'Jemaat Tidak Aktif', subtitle: 'Jemaat dengan status keanggotaan tidak aktif', gradient: '#f59e0b', count: inactiveMembers.length, icon: AlertCircle },
+    inactiveMembers: { title: 'Jemaat Tidak Aktif', subtitle: 'Jemaat dengan status keanggotaan tidak aktif', gradient: '#caa04a', count: inactiveMembers.length, icon: AlertCircle },
   };
 
   const cfg = cfgMap[activeKPI];
@@ -391,8 +392,8 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
       const m = selectedItem;
       return (
         <div className="p-4" style={{ background: '#f8fafc' }}>
-          <div className="rounded-2xl p-3 mb-3 flex items-center gap-2.5" style={{ background: '#fef3c7', border: '1px solid #f59e0b30' }}>
-            <div className="w-9 h-9 rounded-2xl flex-shrink-0 flex items-center justify-center" style={{ background: '#f59e0b20' }}><AlertCircle className="w-4.5 h-4.5" style={{ color: '#9c9486' }} /></div>
+          <div className="rounded-2xl p-3 mb-3 flex items-center gap-2.5" style={{ background: '#fdf6e8', border: '1px solid #caa04a30' }}>
+            <div className="w-9 h-9 rounded-2xl flex-shrink-0 flex items-center justify-center" style={{ background: '#caa04a20' }}><AlertCircle className="w-4.5 h-4.5" style={{ color: '#caa04a' }} /></div>
             <div>
               <p style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9c9486' }}>Status Keanggotaan</p>
               <p style={{ fontSize: '13px', fontWeight: 800, color: '#9c9486', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Tidak Aktif</p>
@@ -412,8 +413,8 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
       const att = selectedItem;
       const isIn = att.type === 'Pindah Masuk';
       const stCfg: Record<string, any> = {
-        'Diajukan': { bg: '#fef3c7', text: '#9c9486', label: 'Menunggu Proses', icon: '⏳' },
-        'Diproses': { bg: '#eff6ff', text: '#3b82f6', label: 'Sedang Diproses', icon: '🔄' },
+        'Diajukan': { bg: '#f6f4f0', text: '#9c9486', label: 'Menunggu Proses', icon: '⏳' },
+        'Diproses': { bg: '#f0f7fb', text: '#1A77A3', label: 'Sedang Diproses', icon: '🔄' },
         'Selesai':  { bg: '#f0f7fb', text: '#144f6b', label: 'Selesai',         icon: '✅' },
         'Ditolak':  { bg: '#fef2f2', text: '#dc2626', label: 'Ditolak',         icon: '❌' },
       };
@@ -499,7 +500,7 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-0.5">
                                 <p style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a' }} className="truncate">{m.fullName || `${m.firstName} ${m.lastName}`}</p>
-                                {isT && <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold flex-shrink-0" style={{ background: '#fef3c7', color: '#9c9486' }}>🎂 Hari Ini</span>}
+                                {isT && <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold flex-shrink-0" style={{ background: '#f6f4f0', color: '#9c9486' }}>🎂 Hari Ini</span>}
                               </div>
                               <div className="flex items-center gap-2" style={{ fontSize: '11.5px', color: '#64748b' }}>
                                 <span className="flex items-center gap-1"><Cake className="w-3 h-3" />{bd.toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })}</span>
@@ -508,7 +509,7 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
                               <div className="text-right">
-                                <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: isT ? '#fef3c7' : isP ? '#f0fdf4' : '#f8fafc', border: `1px solid ${isT ? '#e8e4d8' : isP ? '#f0ede5' : '#e2e8f0'}` }}>
+                                <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: isT ? '#f6f4f0' : isP ? '#f0fdf4' : '#f8fafc', border: `1px solid ${isT ? '#e8e4d8' : isP ? '#f0ede5' : '#e2e8f0'}` }}>
                                   <span style={{ fontSize: '13px', fontWeight: 800, color: isT ? '#9c9486' : isP ? '#144f6b' : '#94a3b8' }}>{bd.getDate()}</span>
                                 </div>
                                 <p style={{ fontSize: '9px', color: '#94a3b8', marginTop: '2px' }}>{getSN(m.sectorId).replace('Sektor ', 'Sek.')}</p>
@@ -527,7 +528,7 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
                     inactiveMembers.map((m, i) => (
                       <div key={m.id || i} onClick={() => setSelectedItem(m)} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md hover:border-amber-200 active:scale-[0.99] transition-all duration-150">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style={{ background: '#c2baaa' }}>{m.fullName?.charAt(0) || '?'}</div>
+                          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style={{ background: '#9c9486' }}>{m.fullName?.charAt(0) || '?'}</div>
                           <div className="flex-1 min-w-0">
                             <p style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a' }} className="truncate">{m.fullName || `${m.firstName} ${m.lastName}`}</p>
                             <div className="flex items-center gap-2" style={{ fontSize: '11.5px', color: '#64748b' }}>
@@ -553,7 +554,7 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between gap-2 mb-1">
                                 <p style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a' }} className="truncate">{att.memberName}</p>
-                                <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: isIn ? '#f0f7fb' : '#eff6ff', color: isIn ? '#144f6b' : '#3b82f6' }}>{att.type}</span>
+                                <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: isIn ? '#f0f7fb' : '#f0f7fb', color: isIn ? '#144f6b' : '#1A77A3' }}>{att.type}</span>
                               </div>
                               <p style={{ fontSize: '11.5px', color: '#64748b' }}>{isIn ? `📥 Dari: ${att.fromChurch}` : `📤 Ke: ${att.toChurch}`}</p>
                               <div className="flex items-center gap-1.5 mt-1.5"><AlertCircle className="w-3 h-3 text-[#144f6b] flex-shrink-0" /><span style={{ fontSize: '11px', fontWeight: 600, color: '#9c9486' }}>Menunggu · {new Date(att.requestDate || att.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span></div>
@@ -582,14 +583,14 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
 
 // ── Quick Nav config ──────────────────────────────────────────────────────────
 const QUICK_NAV = [
-  { label: 'Database & Anggota',      icon: Users,     page: 'members',          color: '#3b82f6', bg: '#eff6ff',                    emoji: '👥' },
-  { label: 'Jadwal & Peribadahan',    icon: Church,    page: 'worship-schedules', color: '#7c3aed', bg: 'rgba(124,58,237,0.08)',       emoji: '⛪' },
+  { label: 'Database & Anggota',      icon: Users,     page: 'members',          color: '#1A77A3', bg: '#f0f7fb',                     emoji: '👥' },
+  { label: 'Jadwal & Peribadahan',    icon: Church,    page: 'worship-schedules', color: '#8b6bb1', bg: 'rgba(139,107,177,0.08)',      emoji: '⛪' },
   { label: 'Keuangan & Kas',          icon: DollarSign,page: 'church-finance',    color: '#144f6b', bg: '#f0f7fb',                    emoji: '💰' },
   { label: 'Laporan Jemaat',          icon: BarChart3,  page: 'sensus-report',    color: '#144f6b', bg: 'rgba(20,79,107,0.08)',        emoji: '📋' },
-  { label: 'Pusat Laporan PDF',       icon: Printer,    page: 'report-center',    color: '#b45309', bg: 'rgba(180,83,9,0.08)',          emoji: '📄' },
-  { label: 'Layanan & Bantuan',       icon: Heart,      page: 'service-requests', color: '#e11d48', bg: 'rgba(225,29,72,0.08)',        emoji: '❤️' },
-  { label: 'Aset & Inventaris',       icon: Package,    page: 'assets',           color: '#0891b2', bg: 'rgba(8,145,178,0.08)',        emoji: '📦' },
-  { label: 'Pengaturan Sistem',       icon: Shield,     page: 'users',            color: '#dc2626', bg: 'rgba(220,38,38,0.06)',        emoji: '🔐' },
+  { label: 'Pusat Laporan PDF',       icon: Printer,    page: 'report-center',    color: '#caa04a', bg: 'rgba(202,160,74,0.08)',        emoji: '📄' },
+  { label: 'Layanan & Bantuan',       icon: Heart,      page: 'service-requests', color: '#d1553f', bg: 'rgba(209,85,63,0.08)',        emoji: '❤️' },
+  { label: 'Aset & Inventaris',       icon: Package,    page: 'assets',           color: '#9c9486', bg: 'rgba(156,148,134,0.08)',       emoji: '📦' },
+  { label: 'Pengaturan Sistem',       icon: Shield,     page: 'users',            color: '#144f6b', bg: 'rgba(20,79,107,0.06)',         emoji: '🔐' },
 ];
 
 const PRAYER_CATEGORY_EMOJI: Record<string, string> = {
@@ -599,7 +600,7 @@ const PRAYER_CATEGORY_EMOJI: Record<string, string> = {
 
 const ANNOUNCEMENT_PRIORITY: Record<string, { bg: string; color: string; label: string }> = {
   urgent:    { bg: 'rgba(239,68,68,0.1)',   color: '#dc2626', label: 'Mendesak' },
-  important: { bg: 'rgba(245,158,11,0.1)',  color: '#144f6b', label: 'Penting'  },
+  important: { bg: 'rgba(202,160,74,0.12)', color: '#caa04a', label: 'Penting'  },
   normal:    { bg: 'rgba(100,116,139,0.1)', color: '#64748b', label: 'Normal'   },
 };
 
@@ -613,6 +614,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
     currentUser, can,
     worshipSchedules, events, prayerRequests, announcements, attendance,
     serviceRequests, aidDistributions,
+    livestreamLinks, sensusSnapshots,
   } = useApp();
 
   const [activeKPI, setActiveKPI] = useState<KPIType | null>(null);
@@ -661,6 +663,50 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
     });
     return () => { cancelled = true; };
   }, [canViewOutgoingLetters]);
+
+  // Gating widget berdasarkan hak akses modul — sebelumnya Dashboard
+  // menampilkan widget Keuangan/Diakonia/Finance Add-on ke SEMUA role tanpa
+  // memandang izin modul masing-masing (lihat DEFAULT_PERMISSIONS di
+  // src/lib/permissions.ts). Sekarang widget-widget tsb disembunyikan untuk
+  // role yang memang NONE pada modul terkait (mis. Operator/Ketua Sektor).
+  const canViewFinanceClassic = can('church-finance', 'view');
+  const canViewDiakonia = can('service-requests', 'view');
+  const canViewFinanceAddon = can('finance-dashboard', 'view');
+  const canViewSensusReport = can('sensus-report', 'view');
+
+  // Widget Realisasi Anggaran (Finance Add-on) — hanya di-fetch kalau user
+  // berhak melihat modul Finance Add-on, supaya role lain tidak melakukan
+  // network call tambahan tiap kali membuka Dashboard.
+  const [budgetSummary, setBudgetSummary] = useState<{
+    revenueRealizationRate: number; expenseAbsorptionRate: number;
+    totalBudgetRevenue: number; totalBudgetExpense: number; fiscalYearLabel?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!canViewFinanceAddon) { setBudgetSummary(null); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const yearsRes = await api.get<{ success: boolean; data?: any[] }>('/api/v1/finance/fiscal-years');
+        const years = (yearsRes?.success ? yearsRes.data : []) || [];
+        const fy = years.find((y: any) => y.is_current) || years[0];
+        if (!fy) { if (!cancelled) setBudgetSummary(null); return; }
+        const dashRes = await api.get<{ success: boolean; data?: any }>(`/api/v1/finance/dashboard?fiscalYearId=${fy.id}`);
+        if (cancelled || !dashRes?.success) { if (!cancelled) setBudgetSummary(null); return; }
+        const b = dashRes.data?.budget || {};
+        setBudgetSummary({
+          revenueRealizationRate: b.revenueRealizationRate || 0,
+          expenseAbsorptionRate: b.expenseAbsorptionRate || 0,
+          totalBudgetRevenue: b.totalBudgetRevenue || 0,
+          totalBudgetExpense: b.totalBudgetExpense || 0,
+          fiscalYearLabel: fy.name || fy.year,
+        });
+      } catch {
+        if (!cancelled) setBudgetSummary(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [canViewFinanceAddon]);
 
   const s = useMemo(() => {
     const getAgeGroup = (age: number): AgeGroup => {
@@ -798,6 +844,27 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
       baptisms, sidis, marriages, worshipSchedules, events, prayerRequests, announcements, attendance,
       serviceRequests, aidDistributions]);
 
+  // Perbandingan Sensus Tahunan (YoY) — memakai arsip 'sensusSnapshots' yang
+  // dibuat lewat fitur Arsip Sensus Tahunan di menu Laporan Sensus Jemaat.
+  // Dibandingkan terhadap arsip TERAKHIR yang tersedia (bukan harus tahun
+  // lalu persis — arsip bisa saja belum sempat dibuat tiap tahun).
+  const sensusYoY = useMemo(() => {
+    if (!sensusSnapshots || sensusSnapshots.length === 0) return null;
+    const prev = [...sensusSnapshots].sort((a: SensusSnapshot, b: SensusSnapshot) => b.year - a.year)[0];
+    const totalMembersNow = members.length;
+    const totalFamiliesNow = families.length;
+    const memberDelta = totalMembersNow - prev.totalMembers;
+    const familyDelta = totalFamiliesNow - prev.totalFamilies;
+    const memberGrowthPct = prev.totalMembers > 0 ? (memberDelta / prev.totalMembers) * 100 : 0;
+    return { prevYear: prev.year, totalMembersNow, totalFamiliesNow, memberDelta, familyDelta, memberGrowthPct };
+  }, [sensusSnapshots, members, families]);
+
+  // Kartu sorotan "Ibadah Berikutnya" + tombol livestream kalau tersedia.
+  const nextService = s.upcomingWorship[0];
+  const nextServiceLivestream: LivestreamLink | undefined = nextService
+    ? (livestreamLinks || []).find(l => l.isActive && l.scheduleId === nextService.id)
+    : undefined;
+
   const ageChartData = [
     { name: 'Anak',   value: s.ageGroups['Anak']   || 0 },
     { name: 'Pemuda', value: s.ageGroups['Pemuda'] || 0 },
@@ -811,7 +878,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
   const greeting = hour < 12 ? 'Selamat Pagi' : hour < 15 ? 'Selamat Siang' : hour < 18 ? 'Selamat Sore' : 'Selamat Malam';
 
   const actIcon = (action: string) => {
-    if (action.includes('Menambahkan') || action.includes('tambah')) return { bg: 'rgba(22,163,74,0.1)', color: '#16a34a', Icon: UserPlus };
+    if (action.includes('Menambahkan') || action.includes('tambah')) return { bg: 'rgba(47,143,91,0.1)', color: '#2f8f5b', Icon: UserPlus };
     if (action.includes('Mengubah')    || action.includes('ubah'))   return { bg: 'rgba(20,79,107,0.1)', color: '#144f6b',  Icon: Pencil };
     if (action.includes('Menghapus')   || action.includes('hapus'))  return { bg: 'rgba(239,68,68,0.1)',  color: '#ef4444',  Icon: Trash2 };
     return { bg: '#f8fafc', color: '#94a3b8', Icon: Activity };
@@ -828,11 +895,11 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
   };
 
   const worshipTypeColor: Record<string, { bg: string; color: string }> = {
-    'Minggu':     { bg: '#f0f7fb',               color: '#144f6b' },
-    'Keluarga':   { bg: 'rgba(124,58,237,0.08)', color: '#7c3aed' },
-    'PJJ':        { bg: 'rgba(20,79,107,0.08)',  color: '#144f6b' },
-    'Kategorial': { bg: 'rgba(22,163,74,0.08)',  color: '#16a34a' },
-    'Khusus':     { bg: 'rgba(225,29,72,0.08)',  color: '#e11d48' },
+    'Minggu':     { bg: '#f0f7fb',                color: '#144f6b' },
+    'Keluarga':   { bg: 'rgba(139,107,177,0.08)', color: '#8b6bb1' },
+    'PJJ':        { bg: 'rgba(20,79,107,0.08)',   color: '#144f6b' },
+    'Kategorial': { bg: 'rgba(47,143,91,0.08)',   color: '#2f8f5b' },
+    'Khusus':     { bg: 'rgba(209,85,63,0.08)',   color: '#d1553f' },
   };
 
   const eventTypeEmoji: Record<string, string> = {
@@ -907,33 +974,70 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
         </div>
       </div>
 
+      {/* ══ IBADAH BERIKUTNYA + LIVESTREAM ══════════════════════════════════════ */}
+      {nextService && (
+        <div className="rounded-2xl p-5 flex items-center gap-4 flex-wrap" style={{ background: 'linear-gradient(135deg,#f0f7fb,#ffffff)', border: '1px solid #b8d5e8' }}>
+          <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: '#144f6b' }}>
+            <Church className="w-5 h-5 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p style={{ fontSize: '10.5px', fontWeight: 700, color: '#144f6b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Ibadah Berikutnya</p>
+            <p style={{ fontSize: '14.5px', fontWeight: 800, color: '#0f172a' }} className="truncate">{nextService.sermon_theme || nextService.title}</p>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap" style={{ fontSize: '12px', color: '#64748b' }}>
+              <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(nextService.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+              {nextService.time && <><span>·</span><span className="flex items-center gap-1"><Clock className="w-3 h-3" />{nextService.time}</span></>}
+              {nextService.preacher && <><span>·</span><span>Pk. {nextService.preacher}</span></>}
+              {nextService.location && <><span>·</span><span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{nextService.location}</span></>}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {nextServiceLivestream && (
+              <a href={nextServiceLivestream.url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white transition-all hover:opacity-90"
+                style={{ background: '#d1553f' }}>
+                <Video className="w-3.5 h-3.5" /> Tonton Livestream
+              </a>
+            )}
+            <button onClick={() => nav('worship-schedules')} className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all hover:bg-[#e8ecf0]" style={{ background: '#f0f7fb', color: '#144f6b', border: '1px solid #b8d5e8' }}>
+              Lihat Jadwal <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ══ KPI ROW 1 ════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard label="Tidak Aktif" value={s.tidakAktif} sub="jemaat tidak aktif"
-          icon={AlertCircle} gradient="#f59e0b" trend={{ value: `${s.totalMembers > 0 ? ((s.tidakAktif/s.totalMembers)*100).toFixed(0) : 0}% dari total`, up: false }}
+          icon={AlertCircle} gradient="#caa04a" trend={{ value: `${s.totalMembers > 0 ? ((s.tidakAktif/s.totalMembers)*100).toFixed(0) : 0}% dari total`, up: false }}
           onClick={() => setActiveKPI('inactiveMembers')} />
         <KPICard label="Atestasi Pending" value={s.pendingAttestations} sub="menunggu proses"
           icon={FileText} gradient="#144f6b" trend={{ value: `${s.totalAttestations} total`, up: false }}
           onClick={() => setActiveKPI('attestations')} />
+        {canViewFinanceClassic && (
         <KPICard label="Persembahan Bulan Ini" value={formatRp(s.offeringsThisMonth)} sub={`${offerings.length} transaksi`}
-          icon={DollarSign} gradient="linear-gradient(135deg,#144f6b,#2d9cdb)"
+          icon={DollarSign} gradient="linear-gradient(135deg,#144f6b,#1A77A3)"
           trend={{ value: 'Bulan ini', up: true }} onClick={() => nav('church-finance')} />
+        )}
+        {canViewFinanceClassic && (
         <KPICard label="Saldo Kas Gereja" value={formatRp(s.finIncome - s.finExpense)} sub="pemasukan – pengeluaran"
-          icon={TrendingUp} gradient="#3a7fa0" trend={{ value: 'Total bersih', up: s.finIncome >= s.finExpense }}
+          icon={TrendingUp} gradient="#2f8f5b" trend={{ value: 'Total bersih', up: s.finIncome >= s.finExpense }}
           onClick={() => nav('church-finance')} />
+        )}
       </div>
 
       {/* ══ KPI ROW 2 ════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard label="Jadwal Ibadah Mendatang" value={s.worshipThisWeek} sub="dalam 7 hari ke depan"
-          icon={Church} gradient="#7c3aed" trend={{ value: 'Minggu ini', up: true }}
+          icon={Church} gradient="#8b6bb1" trend={{ value: 'Minggu ini', up: true }}
           onClick={() => nav('worship-schedules')} />
         <KPICard label="Acara Mendatang" value={s.eventsThisWeek} sub="dalam 7 hari ke depan"
-          icon={Calendar} gradient="#0891b2" trend={{ value: '7 hari', up: true }}
+          icon={Calendar} gradient="#1A77A3" trend={{ value: '7 hari', up: true }}
           onClick={() => nav('events')} />
+        {canViewDiakonia && (
         <KPICard label="Layanan Kasih Pending" value={s.srPending} sub={`${s.srTotal} total pengajuan`}
-          icon={HandHeart} gradient="#e11d48" trend={{ value: s.srDone > 0 ? `${s.srDone} selesai` : 'Perlu tindak lanjut', up: s.srDone > s.srPending }}
+          icon={HandHeart} gradient="#d1553f" trend={{ value: s.srDone > 0 ? `${s.srDone} selesai` : 'Perlu tindak lanjut', up: s.srDone > s.srPending }}
           onClick={() => nav('service-requests')} />
+        )}
         <KPICard label="Pengumuman Aktif" value={(announcements || []).filter(a => a.isActive).length} sub="sedang berjalan"
           icon={Megaphone} gradient="#144f6b" trend={{ value: 'Aktif', up: true }}
           onClick={() => nav('announcements')} />
@@ -945,9 +1049,9 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
           gradient="#144f6b" action="Database Warga" onAction={() => nav('members')} />
         <div className="flex gap-3 flex-wrap mb-5">
           <StatChip label="Jemaat Aktif"   value={s.aktif}      color="#144f6b" bg="#f0f7fb" icon={Users}         trend={`${s.totalMembers > 0 ? ((s.aktif / s.totalMembers) * 100).toFixed(0) : 0}% dari total`} />
-          <StatChip label="Pindah"         value={s.pindah}     color="#3b82f6" bg="#eff6ff" icon={ArrowUpRight} />
+          <StatChip label="Pindah"         value={s.pindah}     color="#1A77A3" bg="#f0f7fb" icon={ArrowUpRight} />
           <StatChip label="Meninggal"      value={s.meninggal}  color="#64748b" bg="#f8fafc" icon={Circle} />
-          <StatChip label="Tidak Aktif"    value={s.tidakAktif} color="#c2baaa" bg="#fef3c7" icon={AlertCircle} />
+          <StatChip label="Tidak Aktif"    value={s.tidakAktif} color="#caa04a" bg="#fdf6e8" icon={AlertCircle} />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div>
@@ -962,10 +1066,10 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
             <MiniBar data={ageChartData} colors={AGE_COLORS} />
             <div className="space-y-1.5 mt-1">
               {[
-                { label: 'Anak (0–12)',    color: '#3b82f6', val: s.ageGroups['Anak']   || 0 },
-                { label: 'Pemuda (13–24)', color: '#3a7fa0', val: s.ageGroups['Pemuda'] || 0 },
-                { label: 'Dewasa (25–59)', color: '#144f6b', val: s.ageGroups['Dewasa'] || 0 },
-                { label: 'Lansia (60+)',   color: '#c2baaa', val: s.ageGroups['Lansia'] || 0 },
+                { label: 'Anak (0–12)',    color: '#1A77A3', val: s.ageGroups['Anak']   || 0 },
+                { label: 'Pemuda (13–24)', color: '#caa04a', val: s.ageGroups['Pemuda'] || 0 },
+                { label: 'Dewasa (25–59)', color: '#2f8f5b', val: s.ageGroups['Dewasa'] || 0 },
+                { label: 'Lansia (60+)',   color: '#d1553f', val: s.ageGroups['Lansia'] || 0 },
               ].map((item) => (
                 <div key={item.label} className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
@@ -986,9 +1090,9 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
               <div className="rounded-xl p-3" style={{ background: '#f8fafc', border: '1px solid #f1f5f9' }}>
                 <p style={{ fontSize: '10.5px', color: '#94a3b8', fontWeight: 600, marginBottom: '8px' }}>JENIS KELAMIN</p>
                 <div className="flex gap-3">
-                  <div className="flex-1 text-center"><p style={{ fontSize: '20px', fontWeight: 800, color: '#3b82f6', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{s.genderL}</p><p style={{ fontSize: '10px', color: '#64748b' }}>♂ Laki-laki</p></div>
+                  <div className="flex-1 text-center"><p style={{ fontSize: '20px', fontWeight: 800, color: '#1A77A3', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{s.genderL}</p><p style={{ fontSize: '10px', color: '#64748b' }}>♂ Laki-laki</p></div>
                   <div className="w-px bg-gray-200" />
-                  <div className="flex-1 text-center"><p style={{ fontSize: '20px', fontWeight: 800, color: '#ec4899', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{s.genderP}</p><p style={{ fontSize: '10px', color: '#64748b' }}>♀ Perempuan</p></div>
+                  <div className="flex-1 text-center"><p style={{ fontSize: '20px', fontWeight: 800, color: '#8b6bb1', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1 }}>{s.genderP}</p><p style={{ fontSize: '10px', color: '#64748b' }}>♀ Perempuan</p></div>
                 </div>
               </div>
               <div className="rounded-xl p-3" style={{ background: '#f8fafc', border: '1px solid #f1f5f9' }}>
@@ -1003,9 +1107,9 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
               <div className="rounded-xl p-3" style={{ background: '#f8fafc', border: '1px solid #f1f5f9' }}>
                 <p style={{ fontSize: '10.5px', color: '#94a3b8', fontWeight: 600, marginBottom: '8px' }}>SAKRAMEN {new Date().getFullYear()}</p>
                 {[
-                  { icon: Baby,   label: 'Baptisan',   val: s.baptismsThisYear,  pending: s.baptismPending, color: '#3b82f6' },
-                  { icon: Shield, label: 'Sidi',        val: s.sidisThisYear,     pending: s.sidiPending,    color: '#3a7fa0' },
-                  { icon: Heart,  label: 'Pernikahan',  val: s.marriagesThisYear, pending: 0,                color: '#ec4899' },
+                  { icon: Baby,   label: 'Baptisan',   val: s.baptismsThisYear,  pending: s.baptismPending, color: '#1A77A3' },
+                  { icon: Shield, label: 'Sidi',        val: s.sidisThisYear,     pending: s.sidiPending,    color: '#caa04a' },
+                  { icon: Heart,  label: 'Pernikahan',  val: s.marriagesThisYear, pending: 0,                color: '#8b6bb1' },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center justify-between mb-1.5 last:mb-0">
                     <div className="flex items-center gap-1.5">
@@ -1014,7 +1118,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>{item.val}</span>
-                      {item.pending > 0 && <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold" style={{ background: '#fef3c7', color: '#9c9486' }}>{item.pending} terjadwal</span>}
+                      {item.pending > 0 && <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold" style={{ background: '#f6f4f0', color: '#9c9486' }}>{item.pending} terjadwal</span>}
                     </div>
                   </div>
                 ))}
@@ -1026,7 +1130,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
         {(() => {
           const PELKAT_KEYS = ['PA','PT','GP','PKP','PKB','PKLU'];
           const PELKAT_LABELS: Record<string,string> = { PA:'Pelayanan Anak', PT:'Persekutuan Teruna', GP:'Gerakan Pemuda', PKP:'Kaum Perempuan', PKB:'Kaum Bapak', PKLU:'Lanjut Usia' };
-          const PELKAT_COLORS = ['#16a34a','#f59e0b','#3b82f6','#a855f7','#0891b2','#f97316'];
+          const PELKAT_COLORS = ['#2f8f5b','#caa04a','#1A77A3','#8b6bb1','#d1553f','#9c9486'];
           const pelkatData = PELKAT_KEYS.map(k => ({
             key: k, label: PELKAT_LABELS[k],
             value: members.filter(m => m.pelkatStatus && m.pelkatStatus.toUpperCase().includes(k)).length,
@@ -1053,22 +1157,52 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
             { label: 'Sektor Pelayanan', page: 'sectors' }, { label: 'Atestasi', page: 'attestations' },
             { label: 'Sakramen', page: 'sacraments' },
           ].map(item => (
-            <button key={item.page} onClick={() => nav(item.page)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors hover:bg-blue-50" style={{ fontSize: '12px', fontWeight: 500, color: '#3b82f6', background: '#eff6ff' }}>
+            <button key={item.page} onClick={() => nav(item.page)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors hover:bg-blue-50" style={{ fontSize: '12px', fontWeight: 500, color: '#1A77A3', background: '#f0f7fb' }}>
               {item.label} <ChevronRight className="w-3 h-3" />
             </button>
           ))}
         </div>
       </div>
 
+      {/* ══ PERBANDINGAN SENSUS TAHUNAN (YoY) ═══════════════════════════════════ */}
+      {canViewSensusReport && sensusYoY && (
+      <div className="rounded-2xl p-6" style={{ background: 'white', border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <ModuleHeader icon={History} title="Perbandingan Sensus Tahunan" subtitle={`Dibandingkan dengan arsip sensus tahun ${sensusYoY.prevYear}`}
+          gradient="#9c9486" action="Laporan Sensus" onAction={() => nav('sensus-report')} />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="rounded-xl p-4 text-center" style={{ background: '#f8fafc', border: '1px solid #f1f5f9' }}>
+            <p style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{sensusYoY.totalMembersNow}</p>
+            <p style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Total Jemaat Saat Ini</p>
+            <p className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold" style={{ background: sensusYoY.memberDelta >= 0 ? '#f0f9f4' : '#fdf2f0', color: sensusYoY.memberDelta >= 0 ? '#2f8f5b' : '#d1553f' }}>
+              {sensusYoY.memberDelta >= 0 ? '▲' : '▼'} {Math.abs(sensusYoY.memberDelta)} ({sensusYoY.memberGrowthPct >= 0 ? '+' : ''}{sensusYoY.memberGrowthPct.toFixed(1)}%)
+            </p>
+          </div>
+          <div className="rounded-xl p-4 text-center" style={{ background: '#f8fafc', border: '1px solid #f1f5f9' }}>
+            <p style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{sensusYoY.totalFamiliesNow}</p>
+            <p style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Total Keluarga Saat Ini</p>
+            <p className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold" style={{ background: sensusYoY.familyDelta >= 0 ? '#f0f9f4' : '#fdf2f0', color: sensusYoY.familyDelta >= 0 ? '#2f8f5b' : '#d1553f' }}>
+              {sensusYoY.familyDelta >= 0 ? '▲' : '▼'} {Math.abs(sensusYoY.familyDelta)} KK
+            </p>
+          </div>
+        </div>
+      </div>
+      )}
+      {canViewSensusReport && !sensusYoY && (
+      <div className="rounded-2xl p-5 flex items-center gap-3" style={{ background: '#f8fafc', border: '1px dashed #e2e8f0' }}>
+        <History className="w-5 h-5 text-gray-300 flex-shrink-0" />
+        <p style={{ fontSize: '12.5px', color: '#94a3b8' }}>Belum ada arsip sensus tahunan. Arsipkan sensus tahun ini di menu <strong>Laporan Sensus Jemaat</strong> untuk melihat perbandingan tahun ke tahun di sini.</p>
+      </div>
+      )}
+
       {/* ══ MODUL 2: PERIBADAHAN & KEGIATAN ════════════════════════════════════ */}
       <div className="rounded-2xl p-6" style={{ background: 'white', border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         <ModuleHeader icon={Church} title="Peribadahan & Kegiatan" subtitle="Modul 2 · Jadwal ibadah, acara, dan kehadiran"
-          gradient="#7c3aed" action="Jadwal Ibadah" onAction={() => nav('worship-schedules')} />
+          gradient="#8b6bb1" action="Jadwal Ibadah" onAction={() => nav('worship-schedules')} />
 
         <div className="flex gap-3 flex-wrap mb-5">
-          <StatChip label="Total Jadwal Ibadah" value={worshipSchedules?.length || 0}  color="#7c3aed" bg="rgba(124,58,237,0.08)" icon={Church}   trend="Semua waktu" />
-          <StatChip label="Ibadah Mendatang"    value={s.worshipThisWeek}              color="#0891b2" bg="rgba(8,145,178,0.08)"  icon={Calendar} trend="7 hari ke depan" />
-          <StatChip label="Kehadiran Bulan Ini" value={s.attendanceThisMonth}          color="#16a34a" bg="rgba(22,163,74,0.08)"  icon={CheckCircle2} trend="Record hadir" />
+          <StatChip label="Total Jadwal Ibadah" value={worshipSchedules?.length || 0}  color="#8b6bb1" bg="rgba(139,107,177,0.08)" icon={Church}   trend="Semua waktu" />
+          <StatChip label="Ibadah Mendatang"    value={s.worshipThisWeek}              color="#1A77A3" bg="rgba(26,119,163,0.08)"  icon={Calendar} trend="7 hari ke depan" />
+          <StatChip label="Kehadiran Bulan Ini" value={s.attendanceThisMonth}          color="#2f8f5b" bg="rgba(47,143,91,0.08)"  icon={CheckCircle2} trend="Record hadir" />
           <StatChip label="Total Acara"         value={events?.length || 0}            color="#144f6b" bg="rgba(20,79,107,0.08)"  icon={Calendar} trend="Semua waktu" />
         </div>
 
@@ -1100,7 +1234,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="text-xs px-2 py-0.5 rounded-full font-semibold flex-shrink-0"
                             style={{ background: wColor.bg, color: wColor.color }}>{w.type}</span>
-                          {isToday && <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: 'rgba(124,58,237,0.15)', color: '#7c3aed' }}>Hari Ini</span>}
+                          {isToday && <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: 'rgba(139,107,177,0.15)', color: '#8b6bb1' }}>Hari Ini</span>}
                         </div>
                         <p style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }} className="truncate">
                           {w.sermon_theme || w.title}
@@ -1149,7 +1283,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
                         </div>
                       </div>
                       <span className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0"
-                        style={{ background: 'rgba(8,145,178,0.1)', color: '#0891b2' }}>{e.type}</span>
+                        style={{ background: 'rgba(26,119,163,0.1)', color: '#1A77A3' }}>{e.type}</span>
                     </div>
                   );
                 })}
@@ -1158,13 +1292,13 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
 
             {/* Kehadiran ringkas */}
             <div className="mt-4 p-3 rounded-xl" style={{ background: 'rgba(22,163,74,0.06)', border: '1px solid rgba(22,163,74,0.15)' }}>
-              <p style={{ fontSize: '10.5px', color: '#16a34a', fontWeight: 700, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Statistik Kehadiran</p>
+              <p style={{ fontSize: '10.5px', color: '#2f8f5b', fontWeight: 700, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Statistik Kehadiran</p>
               <div className="flex gap-4">
-                <div><p style={{ fontSize: '20px', fontWeight: 800, color: '#16a34a', lineHeight: 1 }}>{s.attendanceThisMonth}</p><p style={{ fontSize: '10px', color: '#64748b' }}>Hadir bulan ini</p></div>
+                <div><p style={{ fontSize: '20px', fontWeight: 800, color: '#2f8f5b', lineHeight: 1 }}>{s.attendanceThisMonth}</p><p style={{ fontSize: '10px', color: '#64748b' }}>Hadir bulan ini</p></div>
                 <div className="w-px bg-green-200" />
-                <div><p style={{ fontSize: '20px', fontWeight: 800, color: '#16a34a', lineHeight: 1 }}>{s.attendanceDates}</p><p style={{ fontSize: '10px', color: '#64748b' }}>Total sesi tercatat</p></div>
+                <div><p style={{ fontSize: '20px', fontWeight: 800, color: '#2f8f5b', lineHeight: 1 }}>{s.attendanceDates}</p><p style={{ fontSize: '10px', color: '#64748b' }}>Total sesi tercatat</p></div>
                 <div className="w-px bg-green-200" />
-                <div><p style={{ fontSize: '20px', fontWeight: 800, color: '#16a34a', lineHeight: 1 }}>{attendance?.length || 0}</p><p style={{ fontSize: '10px', color: '#64748b' }}>Total record</p></div>
+                <div><p style={{ fontSize: '20px', fontWeight: 800, color: '#2f8f5b', lineHeight: 1 }}>{attendance?.length || 0}</p><p style={{ fontSize: '10px', color: '#64748b' }}>Total record</p></div>
               </div>
             </div>
           </div>
@@ -1176,7 +1310,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
             <p style={{ fontSize: '12.5px', fontWeight: 700, color: '#374151', marginBottom: '10px' }}>Jadwal Ibadah per Kategori</p>
             <MiniBar
               data={Object.entries(s.worshipByType).map(([name, value]) => ({ name, value: value as number }))}
-              colors={['#7c3aed','#144f6b','#16a34a','#e11d48','#f59e0b','#0891b2']}
+              colors={['#8b6bb1','#144f6b','#2f8f5b','#d1553f','#caa04a','#1A77A3']}
             />
           </div>
         )}
@@ -1186,7 +1320,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
             { label: 'Tata Ibadah', page: 'liturgy' }, { label: 'Kalender Gerejawi', page: 'events' },
             { label: 'Absensi', page: 'attendance' },
             ].map((item, i) => (
-            <button key={item.page} onClick={() => nav(item.page)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors" style={{ fontSize: '12px', fontWeight: 500, color: '#7c3aed', background: 'rgba(124,58,237,0.08)' }}>
+            <button key={item.page} onClick={() => nav(item.page)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors" style={{ fontSize: '12px', fontWeight: 500, color: '#8b6bb1', background: 'rgba(139,107,177,0.08)' }}>
               {item.label} <ChevronRight className="w-3 h-3" />
             </button>
           ))}
@@ -1194,14 +1328,15 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
       </div>
 
       {/* ══ MODUL 3: KEUANGAN & PERSEMBAHAN ════════════════════════════════════ */}
+      {canViewFinanceClassic && (
       <div className="rounded-2xl p-6" style={{ background: 'white', border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         <ModuleHeader icon={DollarSign} title="Keuangan & Persembahan (Modul Klasik)" subtitle="Modul 3 · Persembahan & laporan keuangan gereja (terpisah dari Finance Add-on)"
-          gradient="linear-gradient(135deg,#144f6b,#2d9cdb)" action="Keuangan Gereja" onAction={() => nav('church-finance')} />
+          gradient="linear-gradient(135deg,#144f6b,#1A77A3)" action="Keuangan Gereja" onAction={() => nav('church-finance')} />
         <div className="flex gap-3 flex-wrap mb-5">
           <StatChip label="Total Persembahan" value={formatRp(s.offeringsTotal)}     color="#144f6b" bg="#f0f7fb" icon={DollarSign}    trend={`${offerings.length} transaksi`} />
           <StatChip label="Bulan Ini"          value={formatRp(s.offeringsThisMonth)} color="#144f6b" bg="#f0f9ff" icon={TrendingUp} />
-          <StatChip label="Total Pemasukan"    value={formatRp(s.finIncome)}          color="#3a7fa0" bg="#f5f3ff" icon={ArrowUpRight} />
-          <StatChip label="Total Pengeluaran"  value={formatRp(s.finExpense)}         color="#c2baaa" bg="#fef3c7" icon={ArrowDownRight} />
+          <StatChip label="Total Pemasukan"    value={formatRp(s.finIncome)}          color="#2f8f5b" bg="#f0f9f4" icon={ArrowUpRight} />
+          <StatChip label="Total Pengeluaran"  value={formatRp(s.finExpense)}         color="#d1553f" bg="#fdf2f0" icon={ArrowDownRight} />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-2 space-y-4">
@@ -1213,10 +1348,10 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
             <div>
               <p style={{ fontSize: '12.5px', fontWeight: 700, color: '#374151', marginBottom: '4px' }}>Kas Masuk vs Keluar (6 Bulan)</p>
               <div className="flex items-center gap-4 mb-2">
-                <span className="flex items-center gap-1.5 text-xs text-gray-500"><span className="w-3 h-2 rounded-sm inline-block" style={{ background: '#144f6b' }} />Pemasukan</span>
-                <span className="flex items-center gap-1.5 text-xs text-gray-500"><span className="w-3 h-2 rounded-sm inline-block" style={{ background: '#ef4444' }} />Pengeluaran</span>
+                <span className="flex items-center gap-1.5 text-xs text-gray-500"><span className="w-3 h-2 rounded-sm inline-block" style={{ background: '#2f8f5b' }} />Pemasukan</span>
+                <span className="flex items-center gap-1.5 text-xs text-gray-500"><span className="w-3 h-2 rounded-sm inline-block" style={{ background: '#d1553f' }} />Pengeluaran</span>
               </div>
-              <MiniStackedBar data={s.last6Months} color1="#144f6b" color2="#ef4444" />
+              <MiniStackedBar data={s.last6Months} color1="#2f8f5b" color2="#d1553f" />
             </div>
           </div>
           <div>
@@ -1226,17 +1361,17 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
                 <p style={{ fontSize: '10.5px', color: '#94a3b8', fontWeight: 600, marginBottom: '8px' }}>NERACA KAS</p>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1.5" style={{ fontSize: '11.5px', color: '#475569' }}><ArrowUpRight className="w-3 h-3 text-[#3a7fa0]" />Pemasukan</span>
+                    <span className="flex items-center gap-1.5" style={{ fontSize: '11.5px', color: '#475569' }}><ArrowUpRight className="w-3 h-3 text-[#2f8f5b]" />Pemasukan</span>
                     <span style={{ fontSize: '12px', fontWeight: 700, color: '#144f6b' }}>{formatRp(s.finIncome)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-1.5" style={{ fontSize: '11.5px', color: '#475569' }}><ArrowDownRight className="w-3 h-3 text-red-400" />Pengeluaran</span>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#ef4444' }}>{formatRp(s.finExpense)}</span>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#d1553f' }}>{formatRp(s.finExpense)}</span>
                   </div>
                   <div className="h-px bg-gray-200 my-1" />
                   <div className="flex items-center justify-between">
                     <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#374151' }}>Saldo Bersih</span>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: s.finIncome >= s.finExpense ? '#144f6b' : '#ef4444', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{formatRp(s.finIncome - s.finExpense)}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: s.finIncome >= s.finExpense ? '#144f6b' : '#d1553f', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{formatRp(s.finIncome - s.finExpense)}</span>
                   </div>
                 </div>
               </div>
@@ -1265,18 +1400,50 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
           ))}
         </div>
       </div>
+      )}
+
+      {/* ══ REALISASI ANGGARAN (FINANCE ADD-ON) ═════════════════════════════════ */}
+      {canViewFinanceAddon && budgetSummary && (
+      <div className="rounded-2xl p-6" style={{ background: 'white', border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <ModuleHeader icon={Target} title="Realisasi Anggaran (Finance Add-on)" subtitle={`Standar Akuntansi · Tahun Fiskal ${budgetSummary.fiscalYearLabel || ''}`}
+          gradient="#144f6b" action="Finance Add-on" onAction={() => nav('finance-dashboard')} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="rounded-xl p-4" style={{ background: '#f0f9f4', border: '1px solid #bfe3cf' }}>
+            <div className="flex items-center justify-between mb-2">
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#2f8f5b' }}>Realisasi Pendapatan</span>
+              <span style={{ fontSize: '13px', fontWeight: 800, color: '#2f8f5b' }}>{budgetSummary.revenueRealizationRate}%</span>
+            </div>
+            <div className="h-2 rounded-full overflow-hidden" style={{ background: '#dcefe3' }}>
+              <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, budgetSummary.revenueRealizationRate)}%`, background: '#2f8f5b' }} />
+            </div>
+            <p style={{ fontSize: '11px', color: '#5a8f6f', marginTop: '6px' }}>Target RKA: <strong>{formatRp(budgetSummary.totalBudgetRevenue)}</strong></p>
+          </div>
+          <div className="rounded-xl p-4" style={{ background: '#fdf6e8', border: '1px solid #eddca8' }}>
+            <div className="flex items-center justify-between mb-2">
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#caa04a' }}>Penyerapan Belanja</span>
+              <span style={{ fontSize: '13px', fontWeight: 800, color: '#caa04a' }}>{budgetSummary.expenseAbsorptionRate}%</span>
+            </div>
+            <div className="h-2 rounded-full overflow-hidden" style={{ background: '#f5e8cc' }}>
+              <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, budgetSummary.expenseAbsorptionRate)}%`, background: '#caa04a' }} />
+            </div>
+            <p style={{ fontSize: '11px', color: '#9c7f3f', marginTop: '6px' }}>Pagu Anggaran: <strong>{formatRp(budgetSummary.totalBudgetExpense)}</strong></p>
+          </div>
+        </div>
+      </div>
+      )}
 
       {/* ══ MODUL 4: DIAKONIA & LAYANAN KASIH ══════════════════════════════════ */}
+      {canViewDiakonia && (
       <div className="rounded-2xl p-6" style={{ background: 'white', border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         <ModuleHeader icon={HandHeart} title="Diakonia & Layanan Kasih" subtitle="Modul 4 · Pelayanan kasih & bantuan sosial jemaat"
-          gradient="#e11d48" action="Layanan Kasih" onAction={() => nav('service-requests')} />
+          gradient="#d1553f" action="Layanan Kasih" onAction={() => nav('service-requests')} />
         <div className="flex gap-3 flex-wrap mb-5">
-          <StatChip label="Total Pengajuan" value={s.srTotal}    color="#e11d48" bg="rgba(225,29,72,0.07)"  icon={HandHeart}     trend="Semua waktu" />
-          <StatChip label="Menunggu Tindak" value={s.srPending}  color="#f59e0b" bg="rgba(245,158,11,0.07)" icon={AlertCircle}   trend="Perlu perhatian" />
-          <StatChip label="Terjadwal"       value={s.srScheduled}color="#0891b2" bg="rgba(8,145,178,0.07)"  icon={Calendar} />
-          <StatChip label="Selesai"         value={s.srDone}     color="#16a34a" bg="rgba(22,163,74,0.07)"  icon={CheckCircle2}  trend="Sudah ditangani" />
-          <StatChip label="Bantuan Sosial"  value={s.aidTotal}   color="#7c3aed" bg="rgba(124,58,237,0.07)" icon={Package}       trend={`${s.aidPending} pending`} />
-          <StatChip label="Bantuan Disalurkan" value={s.aidDone} color="#16a34a" bg="rgba(22,163,74,0.07)"  icon={CheckCircle2} />
+          <StatChip label="Total Pengajuan" value={s.srTotal}    color="#d1553f" bg="rgba(209,85,63,0.07)"  icon={HandHeart}     trend="Semua waktu" />
+          <StatChip label="Menunggu Tindak" value={s.srPending}  color="#caa04a" bg="rgba(202,160,74,0.07)" icon={AlertCircle}   trend="Perlu perhatian" />
+          <StatChip label="Terjadwal"       value={s.srScheduled}color="#1A77A3" bg="rgba(26,119,163,0.07)"  icon={Calendar} />
+          <StatChip label="Selesai"         value={s.srDone}     color="#2f8f5b" bg="rgba(47,143,91,0.07)"  icon={CheckCircle2}  trend="Sudah ditangani" />
+          <StatChip label="Bantuan Sosial"  value={s.aidTotal}   color="#8b6bb1" bg="rgba(139,107,177,0.07)" icon={Package}       trend={`${s.aidPending} pending`} />
+          <StatChip label="Bantuan Disalurkan" value={s.aidDone} color="#2f8f5b" bg="rgba(47,143,91,0.07)"  icon={CheckCircle2} />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* Donut by jenis layanan */}
@@ -1324,9 +1491,9 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
               <div className="space-y-2.5">
                 {s.recentSR.map((sr: any, i: number) => {
                   const stCfg: Record<string,{bg:string;color:string;label:string}> = {
-                    Pending:   { bg: 'rgba(245,158,11,0.1)',  color: '#f59e0b', label: 'Pending' },
-                    Scheduled: { bg: 'rgba(8,145,178,0.1)',   color: '#0891b2', label: 'Terjadwal' },
-                    Completed: { bg: 'rgba(22,163,74,0.1)',   color: '#16a34a', label: 'Selesai' },
+                    Pending:   { bg: 'rgba(202,160,74,0.1)',  color: '#caa04a', label: 'Pending' },
+                    Scheduled: { bg: 'rgba(26,119,163,0.1)',   color: '#1A77A3', label: 'Terjadwal' },
+                    Completed: { bg: 'rgba(47,143,91,0.1)',   color: '#2f8f5b', label: 'Selesai' },
                     Cancelled: { bg: 'rgba(100,116,139,0.1)', color: '#64748b', label: 'Dibatalkan' },
                   };
                   const sc = stCfg[sr.status] || stCfg.Pending;
@@ -1355,12 +1522,13 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
             { label: 'Bantuan Sosial', page: 'aid-distribution' },
             { label: 'Pokok Doa', page: 'prayers' },
           ].map(item => (
-            <button key={item.page} onClick={() => nav(item.page)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors" style={{ fontSize: '12px', fontWeight: 500, color: '#e11d48', background: 'rgba(225,29,72,0.07)' }}>
+            <button key={item.page} onClick={() => nav(item.page)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors" style={{ fontSize: '12px', fontWeight: 500, color: '#d1553f', background: 'rgba(209,85,63,0.07)' }}>
               {item.label} <ChevronRight className="w-3 h-3" />
             </button>
           ))}
         </div>
       </div>
+      )}
 
       {/* ══ AKTIVITAS TERBARU + PENGUMUMAN & DOA ════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
@@ -1468,7 +1636,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
                 </div>
                 <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a' }}>Permintaan Doa</span>
               </div>
-              <button onClick={() => nav('prayers')} className="text-xs font-medium" style={{ color: '#e11d48' }}>Semua →</button>
+              <button onClick={() => nav('prayers')} className="text-xs font-medium" style={{ color: '#d1553f' }}>Semua →</button>
             </div>
             {s.activePrayersList.length === 0 ? (
               <p style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center', padding: '16px 0' }}>Tidak ada permintaan doa aktif</p>
@@ -1485,7 +1653,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
                       <div className="flex-1 min-w-0">
                         <p style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>{name}</p>
                         <p style={{ fontSize: '11px', color: '#64748b' }} className="line-clamp-1">{prayer.request}</p>
-                        <span className="text-[10px] font-medium" style={{ color: '#e11d48' }}>{prayer.category}</span>
+                        <span className="text-[10px] font-medium" style={{ color: '#d1553f' }}>{prayer.category}</span>
                       </div>
                     </div>
                   );
