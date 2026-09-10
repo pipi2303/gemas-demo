@@ -11,6 +11,7 @@ import {
   ServiceRequest, AidDistribution, Resource, RoomBooking, Attestation,
   Baptism, Sidi, Marriage, MasterDataItem, MasterDataCategory, UserRole,
   SensusSnapshot,
+  ConsolidatedReportSnapshot,
   PettyCash, PcTopUp,
   ChurchAsset, MaintenanceRecord, LoanHistoryRecord,
   BankAccount, Budget,
@@ -103,6 +104,8 @@ interface AppContextType {
   // Arsip Sensus Jemaat (snapshot tahunan)
   sensusSnapshots: SensusSnapshot[];
   archiveSensusSnapshot: (snapshot: SensusSnapshot) => Promise<void>;
+  consolidatedReportSnapshots: ConsolidatedReportSnapshot[];
+  archiveConsolidatedReportSnapshot: (snapshot: ConsolidatedReportSnapshot) => Promise<void>;
 
   // Master Data
   masterDataItems: MasterDataItem[];
@@ -339,6 +342,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [sidis, setSidis] = useState<Sidi[]>([]);
   const [marriages, setMarriages] = useState<Marriage[]>([]);
   const [sensusSnapshots, setSensusSnapshots] = useState<SensusSnapshot[]>([]);
+  const [consolidatedReportSnapshots, setConsolidatedReportSnapshots] = useState<ConsolidatedReportSnapshot[]>([]);
   const [masterDataItems, setMasterDataItems] = useState<MasterDataItem[]>([]);
   const [permMatrix, setPermMatrix] = useState<ModulePermission[]>(DEFAULT_PERMISSIONS);
   const [pettyCash, setPettyCash] = useState<PettyCash[]>([]);
@@ -889,6 +893,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setSensusSnapshots(snaps);
     } catch {
       setSensusSnapshots([]);
+    }
+
+    // Arsip Pusat Laporan Konsolidasi: koleksi independen, tidak perlu logic seeding
+    try {
+      const rcSnaps = await api.get<ConsolidatedReportSnapshot[]>('/api/data/consolidatedReportSnapshots');
+      setConsolidatedReportSnapshots(rcSnaps);
+    } catch {
+      setConsolidatedReportSnapshots([]);
     }
 
     return { loadedMembers, loadedEvents, loadedWorshipSchedules, loadedMarriages };
@@ -1939,6 +1951,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
         entityId: snapshot.id,
         entityName: `Sensus Jemaat ${snapshot.year}`,
         details: `Sensus jemaat tahun ${snapshot.year} dikunci & diarsipkan (${snapshot.totalMembers} jiwa, ${snapshot.totalFamilies} KK)`
+      });
+    }
+  };
+
+  // ── Arsip Pusat Laporan Konsolidasi (snapshot tahun/periode) ─────────────────
+  const archiveConsolidatedReportSnapshot = async (snapshot: ConsolidatedReportSnapshot) => {
+    await api.put(`/api/data/consolidatedReportSnapshots/${snapshot.id}`, snapshot);
+    setConsolidatedReportSnapshots(prev => [...prev.filter(s => s.id !== snapshot.id), snapshot]);
+    if (currentUser) {
+      logActivity({
+        userId: currentUser.id,
+        userName: currentUser.name,
+        action: 'Mengarsipkan',
+        entityType: 'ConsolidatedReportSnapshot',
+        entityId: snapshot.id,
+        entityName: `Laporan Konsolidasi ${snapshot.year} (${snapshot.period})`,
+        details: `Laporan konsolidasi periode ${snapshot.period.toUpperCase()} tahun ${snapshot.year} diarsipkan (${snapshot.totalMembers} jiwa, ${snapshot.moduleIds.length} modul)`
       });
     }
   };
@@ -3032,6 +3061,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // NEW: Arsip Sensus Jemaat
       sensusSnapshots,
       archiveSensusSnapshot,
+      consolidatedReportSnapshots,
+      archiveConsolidatedReportSnapshot,
 
       // ServiceRequest CRUD
       addServiceRequest,

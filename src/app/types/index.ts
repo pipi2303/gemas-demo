@@ -712,6 +712,34 @@ export interface SensusSnapshot {
 }
 
 // ========================================
+// Consolidated Report Center — Arsip Tahunan
+// ========================================
+export interface ConsolidatedReportSnapshot {
+  id: string; // format: `report-center-${year}-${period}` — satu arsip per kombinasi tahun+periode
+  year: number;
+  period: string; // 'annual' | 'semester1' | 'semester2' | 'q1' | 'q2' | 'q3' | 'q4'
+  archivedAt: string; // ISO timestamp saat diarsipkan
+  archivedBy?: string;
+
+  selectedSector: string;
+  moduleIds: string[]; // modul yang disertakan saat diarsipkan
+
+  totalMembers: number;
+  totalFamilies: number;
+  totalIncome: number;
+  totalExpense: number;
+  totalCashBalance: number;
+  totalAssetBookValue: number;
+  baptisEvents: number;
+  sidiEvents: number;
+  marriageEvents: number;
+  worshipCount: number;
+  eventsCount: number;
+  aidTotalDistributed: number;
+  aidRecipientsCount: number;
+}
+
+// ========================================
 // Petty Cash
 // ========================================
 export type PettyCashStatus = 'Lunas' | 'Pending';

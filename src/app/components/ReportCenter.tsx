@@ -4,9 +4,11 @@ import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 import { liveAge } from '../../lib/age';
 import { calcDep } from '../../lib/assetDepreciation';
+import { ConsolidatedReportSnapshot } from '../types';
 import {
   FileText, Download, Printer, CheckSquare, Square,
   Users, DollarSign, Package, Cross, Church, HeartHandshake,
@@ -16,7 +18,7 @@ import {
 } from 'lucide-react';
 
 interface ReportModuleConfig {
-  id: 'sensus' | 'keuangan' | 'inventaris' | 'sakramen' | 'peribadahan' | 'diakonia';
+  id: 'sensus' | 'keuangan' | 'inventaris' | 'sakramen' | 'peribadahan' | 'diakonia' | 'presensi';
   name: string;
   category: string;
   description: string;
@@ -31,6 +33,29 @@ function formatRp(n: number): string {
 
 function formatNumber(n: number): string {
   return n.toLocaleString('id-ID');
+}
+
+type PeriodKey = 'annual' | 'semester1' | 'semester2' | 'q1' | 'q2' | 'q3' | 'q4';
+
+function getPeriodRange(yearStr: string, period: PeriodKey): { start: Date; end: Date } {
+  const y = parseInt(yearStr, 10) || new Date().getFullYear();
+  const endOfDay = (mo: number, d: number) => new Date(y, mo, d, 23, 59, 59, 999);
+  switch (period) {
+    case 'semester1': return { start: new Date(y, 0, 1), end: endOfDay(5, 30) };
+    case 'semester2': return { start: new Date(y, 6, 1), end: endOfDay(11, 31) };
+    case 'q1': return { start: new Date(y, 0, 1), end: endOfDay(2, 31) };
+    case 'q2': return { start: new Date(y, 3, 1), end: endOfDay(5, 30) };
+    case 'q3': return { start: new Date(y, 6, 1), end: endOfDay(8, 30) };
+    case 'q4': return { start: new Date(y, 9, 1), end: endOfDay(11, 31) };
+    default: return { start: new Date(y, 0, 1), end: endOfDay(11, 31) };
+  }
+}
+
+function inPeriod(dateStr: string | undefined | null, range: { start: Date; end: Date }): boolean {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return false;
+  return d >= range.start && d <= range.end;
 }
 
 export function ReportCenter() {
@@ -57,6 +82,9 @@ export function ReportCenter() {
     rooms,
     roomBookings,
     currentUser,
+    attendance,
+    consolidatedReportSnapshots,
+    archiveConsolidatedReportSnapshot,
   } = useApp();
 
   const currentYear = new Date().getFullYear();
@@ -68,6 +96,7 @@ export function ReportCenter() {
   const [includeDetailTables, setIncludeDetailTables] = useState<boolean>(true);
   const [includeNotes, setIncludeNotes] = useState<boolean>(true);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [isArchiving, setIsArchiving] = useState<boolean>(false);
   const [activeView, setActiveView] = useState<'config' | 'preview'>('config');
 
   // Signatory settings
@@ -90,7 +119,7 @@ export function ReportCenter() {
       category: 'Bidang Teologi & Organisasi',
       description: 'Demografi jemaat, rekapitulasi keluarga (KK), statistik sektor, komposisi usia Pelkat, dan status sakramen.',
       icon: Users,
-      color: '#1e3a8a', // navy
+      color: '#144f6b', // navy (house palette)
       selected: true,
     },
     {
@@ -99,7 +128,7 @@ export function ReportCenter() {
       category: 'Bidang Perbendaharaan',
       description: 'Rekapitulasi kas dan bank, ringkasan penerimaan vs pengeluaran, saldo berjalan, kas kecil, dan serapan RAPB.',
       icon: DollarSign,
-      color: '#047857', // emerald
+      color: '#2f8f5b', // hijau (house palette)
       selected: true,
     },
     {
@@ -108,7 +137,7 @@ export function ReportCenter() {
       category: 'Bidang Sarana & Prasarana',
       description: 'Daftar nilai perolehan dan nilai buku aset fisik, kondisi fisik sarana prasarana, serta pemanfaatan ruangan gereja.',
       icon: Package,
-      color: '#b45309', // amber
+      color: '#caa04a', // emas (house palette)
       selected: true,
     },
     {
@@ -117,7 +146,7 @@ export function ReportCenter() {
       category: 'Bidang Keesaan & Teologi',
       description: 'Pelayanan Sakramen Baptisan Anak/Dewasa, Peneguhan Sidi, Pernikahan Kudus, dan mutasi warga masuk/keluar.',
       icon: Cross,
-      color: '#7c3aed', // purple
+      color: '#8b6bb1', // ungu (house palette)
       selected: false,
     },
     {
@@ -126,7 +155,7 @@ export function ReportCenter() {
       category: 'Bidang Pembinaan Jemaat',
       description: 'Jadwal dan frekuensi ibadah hari minggu/sektor, kalender kegiatan gerejawi, serta keaktifan komisi/pelkat.',
       icon: Church,
-      color: '#0284c7', // sky
+      color: '#1A77A3', // biru aksen (house palette)
       selected: false,
     },
     {
@@ -135,7 +164,16 @@ export function ReportCenter() {
       category: 'Bidang Pelayanan Kasih (Diakonia)',
       description: 'Penyaluran bantuan sosial, santunan jemaat, permohonan layanan pastoral, dan rekap permohonan doa syafaat.',
       icon: HeartHandshake,
-      color: '#e11d48', // rose
+      color: '#d1553f', // terracotta (house palette)
+      selected: false,
+    },
+    {
+      id: 'presensi',
+      name: 'Presensi & Partisipasi Ibadah',
+      category: 'Bidang Pembinaan Jemaat',
+      description: 'Rekapitulasi kehadiran jemaat dalam ibadah, tingkat partisipasi, dan rata-rata jemaat hadir per ibadah pada periode berjalan.',
+      icon: Clock,
+      color: '#9c9486', // abu netral (house palette)
       selected: false,
     },
   ]);
@@ -161,7 +199,7 @@ export function ReportCenter() {
       setModules(prev => prev.map(m => ({ ...m, selected: ['sensus', 'keuangan', 'inventaris'].includes(m.id) })));
       setReportTitle('LAPORAN EKSEKUTIF MAJELIS JEMAAT (SENSUS, KEUANGAN & ASET)');
     } else if (preset === 'pastoral') {
-      setModules(prev => prev.map(m => ({ ...m, selected: ['sensus', 'sakramen', 'peribadahan', 'diakonia'].includes(m.id) })));
+      setModules(prev => prev.map(m => ({ ...m, selected: ['sensus', 'sakramen', 'peribadahan', 'diakonia', 'presensi'].includes(m.id) })));
       setReportTitle('LAPORAN BIDANG PELAYANAN TEOLOGI, IBADAH & DIAKONIA');
     } else if (preset === 'finance_asset') {
       setModules(prev => prev.map(m => ({ ...m, selected: ['keuangan', 'inventaris'].includes(m.id) })));
@@ -183,6 +221,23 @@ export function ReportCenter() {
     return families.filter(f => f.sectorId === selectedSector);
   }, [families, selectedSector]);
 
+  // Rentang tanggal aktual dari kombinasi Tahun + Periode yang dipilih.
+  // Semua metrik "arus" (transaksi, pelayanan, permohonan) di bawah ini difilter
+  // terhadap rentang ini agar laporan benar-benar mencerminkan periode yang tertera
+  // di judul dokumen — bukan data sepanjang masa (all-time) seperti sebelumnya.
+  const periodRange = useMemo(() => getPeriodRange(selectedYear, selectedPeriod), [selectedYear, selectedPeriod]);
+
+  const periodFinancialRecords = useMemo(() => financialRecords.filter(t => inPeriod(t.date, periodRange)), [financialRecords, periodRange]);
+  const periodBaptisms = useMemo(() => baptisms.filter(b => inPeriod(b.baptismDate, periodRange)), [baptisms, periodRange]);
+  const periodSidis = useMemo(() => sidis.filter(s => inPeriod(s.sidiDate, periodRange)), [sidis, periodRange]);
+  const periodMarriages = useMemo(() => marriages.filter(m => inPeriod(m.marriageDate, periodRange)), [marriages, periodRange]);
+  const periodAttestations = useMemo(() => attestations.filter(a => inPeriod(a.requestDate, periodRange)), [attestations, periodRange]);
+  const periodWorshipSchedules = useMemo(() => worshipSchedules.filter(w => inPeriod(w.date, periodRange)), [worshipSchedules, periodRange]);
+  const periodEvents = useMemo(() => events.filter(e => inPeriod(e.date, periodRange)), [events, periodRange]);
+  const periodAidDistributions = useMemo(() => aidDistributions.filter(a => inPeriod(a.distributedDate || a.requestedDate, periodRange)), [aidDistributions, periodRange]);
+  const periodServiceRequests = useMemo(() => serviceRequests.filter(sr => inPeriod(sr.createdAt, periodRange)), [serviceRequests, periodRange]);
+  const periodPrayerRequests = useMemo(() => prayerRequests.filter(p => inPeriod(p.createdAt, periodRange)), [prayerRequests, periodRange]);
+
   // Sensus metrics
   const totalMembersCount = filteredMembers.length;
   const totalFamiliesCount = filteredFamilies.length;
@@ -201,12 +256,12 @@ export function ReportCenter() {
 
   // Keuangan metrics
   const totalIncome = useMemo(() => {
-    return financialRecords.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
-  }, [financialRecords]);
+    return periodFinancialRecords.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
+  }, [periodFinancialRecords]);
 
   const totalExpense = useMemo(() => {
-    return financialRecords.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
-  }, [financialRecords]);
+    return periodFinancialRecords.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
+  }, [periodFinancialRecords]);
 
   const totalBankBalance = useMemo(() => {
     return bankAccounts.reduce((s, b) => s + (b.balance || 0), 0);
@@ -231,25 +286,38 @@ export function ReportCenter() {
   const fairConditionAssets = churchAssets.filter(a => a.condition === 'Cukup Baik').length;
   const badConditionAssets = churchAssets.filter(a => a.condition === 'Rusak Ringan' || a.condition === 'Rusak Berat' || a.condition === 'Tidak Layak').length;
 
-  // Sakramen metrics
-  const baptisEvents = baptisms.length;
-  const sidiEvents = sidis.length;
-  const marriageEvents = marriages.length;
-  const attestationIn = attestations.filter(a => a.type === 'Masuk').length;
-  const attestationOut = attestations.filter(a => a.type === 'Keluar').length;
+  // Sakramen metrics (difilter periode: tanggal pelaksanaan/permohonan masing-masing)
+  const baptisEvents = periodBaptisms.length;
+  const sidiEvents = periodSidis.length;
+  const marriageEvents = periodMarriages.length;
+  const attestationIn = periodAttestations.filter(a => a.type === 'Masuk').length;
+  const attestationOut = periodAttestations.filter(a => a.type === 'Keluar').length;
 
-  // Peribadahan metrics
-  const worshipCount = worshipSchedules.length;
-  const eventsCount = events.length;
+  // Peribadahan metrics (difilter periode)
+  const worshipCount = periodWorshipSchedules.length;
+  const eventsCount = periodEvents.length;
   const ministriesCount = ministries.length;
 
-  // Diakonia metrics
+  // Diakonia metrics (difilter periode)
   const aidTotalDistributed = useMemo(() => {
-    return aidDistributions.reduce((s, a) => s + (a.amount || a.cost || 0), 0);
-  }, [aidDistributions]);
-  const aidRecipientsCount = aidDistributions.length;
-  const serviceRequestsCount = serviceRequests.length;
-  const prayerRequestsCount = prayerRequests.length;
+    return periodAidDistributions.reduce((s, a) => s + (a.amount || a.cost || 0), 0);
+  }, [periodAidDistributions]);
+  const aidRecipientsCount = periodAidDistributions.length;
+  const serviceRequestsCount = periodServiceRequests.length;
+  const prayerRequestsCount = periodPrayerRequests.length;
+
+  // Presensi metrics (difilter periode)
+  const periodAttendance = useMemo(() => attendance.filter(a => inPeriod(a.date, periodRange)), [attendance, periodRange]);
+  const attendanceRecordsCount = periodAttendance.length;
+  const attendancePresentCount = periodAttendance.filter(a => a.present).length;
+  const attendanceRate = attendanceRecordsCount > 0 ? Math.round((attendancePresentCount / attendanceRecordsCount) * 100) : 0;
+  const attendanceServiceDatesCount = useMemo(() => new Set(periodAttendance.map(a => a.date)).size, [periodAttendance]);
+  const avgAttendancePerService = attendanceServiceDatesCount > 0 ? Math.round(attendancePresentCount / attendanceServiceDatesCount) : 0;
+
+  // Arsip laporan periode yang sama tahun lalu (perbandingan apel-ke-apel: periode yg sama, tahun sebelumnya)
+  const lastReportSnapshot = useMemo(() => {
+    return consolidatedReportSnapshots.find(sn => sn.id === `report-center-${parseInt(selectedYear, 10) - 1}-${selectedPeriod}`);
+  }, [consolidatedReportSnapshots, selectedYear, selectedPeriod]);
 
   // ── GENERATE CONSOLIDATED PDF ENGINE ─────────────────────────────────
   const generateConsolidatedPDF = () => {
@@ -636,6 +704,63 @@ export function ReportCenter() {
         y = doc.lastAutoTable.finalY + 8;
       }
 
+      // ── MODULE 7: PRESENSI & PARTISIPASI IBADAH ──
+      const presensiModule = modules.find(m => m.id === 'presensi');
+      if (presensiModule?.selected) {
+        addSectionTitle('VIII. PRESENSI & PARTISIPASI IBADAH', 'PEMBINAAN JEMAAT');
+
+        const presensiRows = [
+          ['Total Data Presensi Tercatat', `${formatNumber(attendanceRecordsCount)} Entri Kehadiran`],
+          ['Jumlah Kehadiran (Hadir)', `${formatNumber(attendancePresentCount)} Kehadiran`],
+          ['Tingkat Partisipasi Ibadah', `${attendanceRate}%`],
+          ['Jumlah Ibadah Tercatat Presensinya', `${formatNumber(attendanceServiceDatesCount)} Ibadah`],
+          ['Rata-rata Jemaat Hadir per Ibadah', `${formatNumber(avgAttendancePerService)} Orang`],
+        ];
+
+        autoTable(doc, {
+          startY: y,
+          head: [['Indikator Presensi & Partisipasi', 'Nilai / Jumlah']],
+          body: presensiRows,
+          theme: 'striped',
+          headStyles: { fillColor: [156, 148, 134], textColor: [255, 255, 255], fontSize: 7.5, fontStyle: 'bold' },
+          bodyStyles: { fontSize: 7, cellPadding: 1.8 },
+          columnStyles: { 0: { cellWidth: 120 }, 1: { cellWidth: 62, halign: 'right', fontStyle: 'bold' } },
+          margin: { left: 14, right: 14 },
+        });
+
+        // @ts-ignore
+        y = doc.lastAutoTable.finalY + 8;
+      }
+
+      // ── PERBANDINGAN DENGAN PERIODE YANG SAMA TAHUN LALU (ARSIP) ──
+      if (lastReportSnapshot) {
+        addSectionTitle(`IX. PERBANDINGAN DENGAN PERIODE ${selectedPeriod.toUpperCase()} TAHUN ${lastReportSnapshot.year}`, 'ARSIP TAHUN KE TAHUN');
+
+        const compareRows = [
+          ['Total Warga Jemaat', formatNumber(lastReportSnapshot.totalMembers), formatNumber(totalMembersCount), formatNumber(totalMembersCount - lastReportSnapshot.totalMembers)],
+          ['Total Kepala Keluarga', formatNumber(lastReportSnapshot.totalFamilies), formatNumber(totalFamiliesCount), formatNumber(totalFamiliesCount - lastReportSnapshot.totalFamilies)],
+          ['Realisasi Penerimaan Kas', formatRp(lastReportSnapshot.totalIncome), formatRp(totalIncome), formatRp(totalIncome - lastReportSnapshot.totalIncome)],
+          ['Realisasi Pengeluaran Kas', formatRp(lastReportSnapshot.totalExpense), formatRp(totalExpense), formatRp(totalExpense - lastReportSnapshot.totalExpense)],
+          ['Nilai Buku Aset', formatRp(lastReportSnapshot.totalAssetBookValue), formatRp(totalAssetBookValue), formatRp(totalAssetBookValue - lastReportSnapshot.totalAssetBookValue)],
+          ['Pelayanan Sakramen (Baptis+Sidi+Nikah)', formatNumber(lastReportSnapshot.baptisEvents + lastReportSnapshot.sidiEvents + lastReportSnapshot.marriageEvents), formatNumber(baptisEvents + sidiEvents + marriageEvents), formatNumber((baptisEvents + sidiEvents + marriageEvents) - (lastReportSnapshot.baptisEvents + lastReportSnapshot.sidiEvents + lastReportSnapshot.marriageEvents))],
+          ['Penyaluran Diakonia/Bantuan', formatRp(lastReportSnapshot.aidTotalDistributed), formatRp(aidTotalDistributed), formatRp(aidTotalDistributed - lastReportSnapshot.aidTotalDistributed)],
+        ];
+
+        autoTable(doc, {
+          startY: y,
+          head: [['Indikator', `${selectedPeriod.toUpperCase()} ${lastReportSnapshot.year}`, `${selectedPeriod.toUpperCase()} ${selectedYear}`, 'Selisih']],
+          body: compareRows,
+          theme: 'grid',
+          headStyles: { fillColor: [13, 26, 45], textColor: [255, 255, 255], fontSize: 7.5, fontStyle: 'bold', halign: 'center' },
+          bodyStyles: { fontSize: 6.8, cellPadding: 1.8 },
+          columnStyles: { 0: { cellWidth: 70 }, 1: { cellWidth: 38, halign: 'right' }, 2: { cellWidth: 38, halign: 'right' }, 3: { cellWidth: 36, halign: 'right', fontStyle: 'bold' } },
+          margin: { left: 14, right: 14 },
+        });
+
+        // @ts-ignore
+        y = doc.lastAutoTable.finalY + 8;
+      }
+
       // ── CATATAN EVALUASI & KESIMPULAN MAJELIS ──
       if (includeNotes && customNotes) {
         checkPageBreak(25);
@@ -741,6 +866,201 @@ export function ReportCenter() {
     }
   };
 
+  // ── ARSIPKAN LAPORAN (SNAPSHOT PERIODE INI, UNTUK PERBANDINGAN TAHUN DEPAN) ──
+  const handleArchiveSnapshot = async () => {
+    setIsArchiving(true);
+    try {
+      const snapshot: ConsolidatedReportSnapshot = {
+        id: `report-center-${selectedYear}-${selectedPeriod}`,
+        year: parseInt(selectedYear, 10),
+        period: selectedPeriod,
+        archivedAt: new Date().toISOString(),
+        archivedBy: currentUser?.fullName || currentUser?.name,
+        selectedSector,
+        moduleIds: modules.filter(m => m.selected).map(m => m.id),
+        totalMembers: totalMembersCount,
+        totalFamilies: totalFamiliesCount,
+        totalIncome,
+        totalExpense,
+        totalCashBalance,
+        totalAssetBookValue,
+        baptisEvents,
+        sidiEvents,
+        marriageEvents,
+        worshipCount,
+        eventsCount,
+        aidTotalDistributed,
+        aidRecipientsCount,
+      };
+      await archiveConsolidatedReportSnapshot(snapshot);
+      toast.success(`Laporan periode ${selectedPeriod.toUpperCase()} ${selectedYear} berhasil diarsipkan untuk perbandingan tahun depan.`);
+    } catch (err: any) {
+      console.error('Failed to archive report snapshot:', err);
+      toast.error(`Gagal mengarsipkan laporan: ${err.message || 'Terjadi kesalahan'}`);
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
+  // ── EKSPOR EXCEL (MULTI-SHEET, MENGIKUTI MODUL YANG DIPILIH) ──
+  const handleExportExcel = () => {
+    if (selectedModuleCount === 0) {
+      toast.error('Pilih minimal satu modul untuk membuat laporan konsolidasi.');
+      return;
+    }
+    try {
+      const wb = XLSX.utils.book_new();
+      const sectorLabel = selectedSector === 'all' ? 'Seluruh Sektor Pelayanan' : `Sektor Pelayanan ${selectedSector}`;
+
+      const ringkasan: any[][] = [
+        [reportTitle],
+        [`GPIB Jemaat "Trinitas" | Periode: ${selectedYear} (${selectedPeriod.toUpperCase()}) | Cakupan: ${sectorLabel}`],
+        [`No. Dokumen: ${reportDocNo} | Dicetak: ${signDate}`],
+        [],
+        ['Indikator Kunci', 'Nilai / Status'],
+        ['Total Warga Jemaat Terdata', totalMembersCount],
+        ['Total Kepala Keluarga (KK)', totalFamiliesCount],
+        ['Total Posisi Kas & Bank', totalCashBalance],
+        ['Realisasi Penerimaan Kas', totalIncome],
+        ['Realisasi Pengeluaran Kas', totalExpense],
+        ['Total Aset & Inventaris (Nilai Buku)', totalAssetBookValue],
+        ['Penyaluran Diakonia/Bantuan', aidTotalDistributed],
+      ];
+      const wsRingkasan = XLSX.utils.aoa_to_sheet(ringkasan);
+      wsRingkasan['!cols'] = [{ wch: 38 }, { wch: 20 }];
+      XLSX.utils.book_append_sheet(wb, wsRingkasan, 'Ringkasan');
+
+      if (modules.find(m => m.id === 'sensus')?.selected) {
+        const sensusRows: any[][] = [
+          ['Kategori Demografi', 'Jumlah', 'Persentase'],
+          ['Total Warga Jemaat', totalMembersCount, '100%'],
+          ['Laki-laki', maleCount, totalMembersCount > 0 ? `${((maleCount / totalMembersCount) * 100).toFixed(1)}%` : '0%'],
+          ['Perempuan', femaleCount, totalMembersCount > 0 ? `${((femaleCount / totalMembersCount) * 100).toFixed(1)}%` : '0%'],
+          ['Kepala Keluarga (KK)', totalFamiliesCount, '-'],
+          ['Sudah Baptis', baptisCount, totalMembersCount > 0 ? `${((baptisCount / totalMembersCount) * 100).toFixed(1)}%` : '0%'],
+          ['Sudah Sidi', sidiCount, totalMembersCount > 0 ? `${((sidiCount / totalMembersCount) * 100).toFixed(1)}%` : '0%'],
+          ['Pelkat PA (0-12 Tahun)', paCount, '-'],
+          ['Pelkat PT (13-16 Tahun)', ptCount, '-'],
+          ['Pelkat GP (17-35 Tahun)', gpCount, '-'],
+          ['Pelkat PKP & PKB (36-59 Tahun)', pkbPkpCount, '-'],
+          ['Pelkat PKLU (60+ Tahun)', pkluCount, '-'],
+        ];
+        const wsSensus = XLSX.utils.aoa_to_sheet(sensusRows);
+        wsSensus['!cols'] = [{ wch: 32 }, { wch: 12 }, { wch: 12 }];
+        XLSX.utils.book_append_sheet(wb, wsSensus, 'Sensus');
+      }
+
+      if (modules.find(m => m.id === 'keuangan')?.selected) {
+        const keuanganRows: any[][] = [
+          ['Komponen Keuangan', 'Nominal (Rupiah)'],
+          ['Total Saldo Kas & Bank Berjalan', totalCashBalance],
+          ['Total Pemasukan/Penerimaan (Periode)', totalIncome],
+          ['Total Pengeluaran/Beban (Periode)', totalExpense],
+          ['Surplus / (Defisit) Bersih', totalIncome - totalExpense],
+          ['Total Saldo Rekening Bank', totalBankBalance],
+          ['Total Saldo Kas Kecil', totalPettyCash],
+        ];
+        const wsKeuangan = XLSX.utils.aoa_to_sheet(keuanganRows);
+        wsKeuangan['!cols'] = [{ wch: 36 }, { wch: 18 }];
+        XLSX.utils.book_append_sheet(wb, wsKeuangan, 'Keuangan');
+      }
+
+      if (modules.find(m => m.id === 'inventaris')?.selected) {
+        const inventarisRows: any[][] = [
+          ['Parameter Aset & Fasilitas', 'Nilai'],
+          ['Total Jumlah Aset Terdata', totalAssetsCount],
+          ['Total Nilai Perolehan Aset', totalAssetAcquisitionValue],
+          ['Total Nilai Buku Terkini', totalAssetBookValue],
+          ['Kondisi: Baik', goodConditionAssets],
+          ['Kondisi: Cukup Baik', fairConditionAssets],
+          ['Kondisi: Rusak/Afkir', badConditionAssets],
+          ['Total Ruangan Gereja', rooms.length],
+          ['Riwayat Peminjaman Ruangan', roomBookings.length],
+        ];
+        const wsInventaris = XLSX.utils.aoa_to_sheet(inventarisRows);
+        wsInventaris['!cols'] = [{ wch: 34 }, { wch: 16 }];
+        XLSX.utils.book_append_sheet(wb, wsInventaris, 'Inventaris');
+      }
+
+      if (modules.find(m => m.id === 'sakramen')?.selected) {
+        const sakramenRows: any[][] = [
+          ['Bentuk Pelayanan Sakramen & Mutasi (Periode)', 'Total'],
+          ['Pelayanan Sakramen Baptis', baptisEvents],
+          ['Pelayanan Peneguhan Sidi', sidiEvents],
+          ['Pemberkatan Pernikahan Kudus', marriageEvents],
+          ['Atestasi Pindah Masuk', attestationIn],
+          ['Atestasi Pindah Keluar', attestationOut],
+        ];
+        const wsSakramen = XLSX.utils.aoa_to_sheet(sakramenRows);
+        wsSakramen['!cols'] = [{ wch: 40 }, { wch: 14 }];
+        XLSX.utils.book_append_sheet(wb, wsSakramen, 'Sakramen');
+      }
+
+      if (modules.find(m => m.id === 'peribadahan')?.selected) {
+        const peribadahanRows: any[][] = [
+          ['Aktivitas Peribadahan & Pembinaan (Periode)', 'Jumlah'],
+          ['Jadwal Ibadah Terjadwal', worshipCount],
+          ['Kalender Agenda & Kegiatan', eventsCount],
+          ['Pelkat & Komisi Aktif', ministriesCount],
+        ];
+        const wsPeribadahan = XLSX.utils.aoa_to_sheet(peribadahanRows);
+        wsPeribadahan['!cols'] = [{ wch: 40 }, { wch: 14 }];
+        XLSX.utils.book_append_sheet(wb, wsPeribadahan, 'Peribadahan');
+      }
+
+      if (modules.find(m => m.id === 'diakonia')?.selected) {
+        const diakoniaRows2: any[][] = [
+          ['Layanan Kasih & Pastoral (Periode)', 'Realisasi / Jumlah'],
+          ['Total Dana Distribusi Bantuan Kasih', aidTotalDistributed],
+          ['Jumlah Penerima Bantuan/Santunan', aidRecipientsCount],
+          ['Permohonan Pelayanan Diakonia & Pastoral', serviceRequestsCount],
+          ['Pokok Pergumulan Doa Syafaat', prayerRequestsCount],
+        ];
+        const wsDiakonia = XLSX.utils.aoa_to_sheet(diakoniaRows2);
+        wsDiakonia['!cols'] = [{ wch: 40 }, { wch: 16 }];
+        XLSX.utils.book_append_sheet(wb, wsDiakonia, 'Diakonia');
+      }
+
+      if (modules.find(m => m.id === 'presensi')?.selected) {
+        const presensiRows2: any[][] = [
+          ['Indikator Presensi & Partisipasi (Periode)', 'Nilai'],
+          ['Total Data Presensi Tercatat', attendanceRecordsCount],
+          ['Jumlah Kehadiran (Hadir)', attendancePresentCount],
+          ['Tingkat Partisipasi Ibadah (%)', attendanceRate],
+          ['Jumlah Ibadah Tercatat Presensinya', attendanceServiceDatesCount],
+          ['Rata-rata Jemaat Hadir per Ibadah', avgAttendancePerService],
+        ];
+        const wsPresensi = XLSX.utils.aoa_to_sheet(presensiRows2);
+        wsPresensi['!cols'] = [{ wch: 42 }, { wch: 14 }];
+        XLSX.utils.book_append_sheet(wb, wsPresensi, 'Presensi');
+      }
+
+      if (lastReportSnapshot) {
+        const bandingRows: any[][] = [
+          ['Indikator', `${selectedPeriod.toUpperCase()} ${lastReportSnapshot.year}`, `${selectedPeriod.toUpperCase()} ${selectedYear}`, 'Selisih'],
+          ['Total Warga Jemaat', lastReportSnapshot.totalMembers, totalMembersCount, totalMembersCount - lastReportSnapshot.totalMembers],
+          ['Total Kepala Keluarga', lastReportSnapshot.totalFamilies, totalFamiliesCount, totalFamiliesCount - lastReportSnapshot.totalFamilies],
+          ['Realisasi Penerimaan Kas', lastReportSnapshot.totalIncome, totalIncome, totalIncome - lastReportSnapshot.totalIncome],
+          ['Realisasi Pengeluaran Kas', lastReportSnapshot.totalExpense, totalExpense, totalExpense - lastReportSnapshot.totalExpense],
+          ['Nilai Buku Aset', lastReportSnapshot.totalAssetBookValue, totalAssetBookValue, totalAssetBookValue - lastReportSnapshot.totalAssetBookValue],
+          ['Penyaluran Diakonia/Bantuan', lastReportSnapshot.aidTotalDistributed, aidTotalDistributed, aidTotalDistributed - lastReportSnapshot.aidTotalDistributed],
+        ];
+        const wsBanding = XLSX.utils.aoa_to_sheet(bandingRows);
+        wsBanding['!cols'] = [{ wch: 30 }, { wch: 18 }, { wch: 18 }, { wch: 16 }];
+        XLSX.utils.book_append_sheet(wb, wsBanding, 'Perbandingan Tahunan');
+      }
+
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const filename = `Laporan_Konsolidasi_GPIB_Trinitas_${selectedYear}_${selectedPeriod.toUpperCase()}_${pad(now.getDate())}${pad(now.getMonth() + 1)}${now.getFullYear()}.xlsx`;
+      XLSX.writeFile(wb, filename);
+      toast.success(`Laporan konsolidasi berhasil diekspor ke Excel (${filename})`);
+    } catch (err: any) {
+      console.error('Failed to export consolidated Excel:', err);
+      toast.error(`Gagal mengekspor Excel: ${err.message || 'Terjadi kesalahan'}`);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-16">
       {/* ── Top Header Banner ── */}
@@ -779,6 +1099,35 @@ export function ReportCenter() {
                   Pengaturan Modul
                 </>
               )}
+            </Button>
+
+            <Button
+              onClick={handleArchiveSnapshot}
+              disabled={isArchiving || selectedModuleCount === 0}
+              variant="outline"
+              className="bg-white/10 text-white hover:bg-white/20 border-white/20 text-xs h-10 px-4"
+            >
+              {isArchiving ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Mengarsipkan...
+                </>
+              ) : (
+                <>
+                  <Clock className="w-4 h-4 mr-2 text-amber-300" />
+                  Arsipkan Laporan Ini
+                </>
+              )}
+            </Button>
+
+            <Button
+              onClick={handleExportExcel}
+              disabled={selectedModuleCount === 0}
+              variant="outline"
+              className="bg-white/10 text-white hover:bg-white/20 border-white/20 text-xs h-10 px-4"
+            >
+              <FileText className="w-4 h-4 mr-2 text-amber-300" />
+              Ekspor Excel
             </Button>
 
             <Button
@@ -922,9 +1271,10 @@ export function ReportCenter() {
                         {mod.id === 'sensus' && `${totalMembersCount} Jiwa (${totalFamiliesCount} KK)`}
                         {mod.id === 'keuangan' && `Saldo: ${formatRp(totalCashBalance)}`}
                         {mod.id === 'inventaris' && `${totalAssetsCount} Aset (${formatRp(totalAssetBookValue)})`}
-                        {mod.id === 'sakramen' && `${baptisms.length + sidis.length + marriages.length} Sakramen, ${attestations.length} Atestasi`}
+                        {mod.id === 'sakramen' && `${periodBaptisms.length + periodSidis.length + periodMarriages.length} Sakramen, ${periodAttestations.length} Atestasi`}
                         {mod.id === 'peribadahan' && `${worshipCount} Ibadah, ${eventsCount} Acara`}
                         {mod.id === 'diakonia' && `${aidRecipientsCount} Bantuan (${formatRp(aidTotalDistributed)})`}
+                        {mod.id === 'presensi' && `${attendanceRate}% Partisipasi (${attendanceServiceDatesCount} Ibadah)`}
                       </span>
                     </div>
                   </div>
