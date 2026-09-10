@@ -15,7 +15,7 @@ import {
   BankAccount, Budget,
   LivestreamLink, ReminderSetting, Liability,
   FiscalYearSetting, Room, CustomRole, BuiltinRoleOverride, SectorTransfer,
-  AuditDiffField, PendingLetterDraft
+  AuditDiffField, PendingLetterDraft, PendingMemberDraft
 } from '../types';
 import { getDomainForEntityType, getAuditSeverity } from '../lib/auditUtils';
 import { DEFAULT_SEED_AUDIT_LOGS } from '../data/seedAuditLogs';
@@ -36,6 +36,10 @@ interface AppContextType {
   // PendingLetterDraft di types/index.ts & pemakaiannya di OutgoingLetters.tsx.
   pendingLetterDraft: PendingLetterDraft | null;
   setPendingLetterDraft: (draft: PendingLetterDraft | null) => void;
+  // Prefill lintas-modul Atestasi Masuk -> Tambah Anggota (gap-fix Sept 2026) —
+  // lihat PendingMemberDraft di types/index.ts & pemakaiannya di MemberDatabase.tsx.
+  pendingMemberDraft: PendingMemberDraft | null;
+  setPendingMemberDraft: (draft: PendingMemberDraft | null) => void;
   users: User[];
   ministries: Ministry[];
   events: Event[];
@@ -290,6 +294,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [families, setFamilies] = useState<Family[]>([]);
   const [sectors, setSectors] = useState<Sector[]>([]);
   const [pendingLetterDraft, setPendingLetterDraft] = useState<PendingLetterDraft | null>(null);
+  const [pendingMemberDraft, setPendingMemberDraft] = useState<PendingMemberDraft | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [ministries, setMinistries] = useState<Ministry[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
@@ -3110,6 +3115,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // Prefill lintas-modul Surat-Menyurat (gap-fix Sept 2026)
       pendingLetterDraft,
       setPendingLetterDraft,
+      pendingMemberDraft,
+      setPendingMemberDraft,
     }}>
       {children}
     </AppContext.Provider>

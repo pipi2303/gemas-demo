@@ -38,7 +38,27 @@ interface AttestationDocument {
   fileData: string; // base64
   uploadedAt: string;
   uploadedBy: string;
+  docType?: string; // id dari DOCUMENT_CHECKLIST_ITEMS di bawah — kalau kosong, file ini adalah dokumen lain di luar 9 syarat tetap (upload lama sebelum fitur checklist ada, tetap tampil di bagian "Dokumen Lain")
 }
+
+// ── Syarat kelengkapan Atestasi Masuk (gap-fix Sept 2026) ────────────────────
+// 9 item tetap sesuai formulir kertas yang dipakai gereja. id dipakai sebagai
+// key di Attestation.documentChecklist DAN di AttestationDocument.docType —
+// sengaja bukan teks label supaya tidak rusak kalau labelnya nanti direvisi.
+// HANYA ditampilkan untuk type 'Pindah Masuk' (lihat insight/diskusi sebelum
+// fitur ini dibangun: untuk Pindah Keluar anggotanya sudah terdaftar, jadi
+// checklist pendaftaran-anggota-baru ini tidak relevan).
+const DOCUMENT_CHECKLIST_ITEMS: { id: string; label: string }[] = [
+  { id: 'surat_atestasi_asal', label: 'Atestasi dari Gereja Asal (proses)' },
+  { id: 'ktp', label: 'KTP' },
+  { id: 'kk', label: 'KK' },
+  { id: 'akte_lahir', label: 'Akte Kelahiran' },
+  { id: 'surat_baptis', label: 'Surat Baptis' },
+  { id: 'surat_sidi', label: 'Surat Sidi' },
+  { id: 'surat_nikah_sipil', label: 'Surat Nikah Catatan Sipil' },
+  { id: 'surat_nikah_gereja', label: 'Surat Nikah Gereja' },
+  { id: 'foto', label: 'Foto (untuk multimedia dan warta)' },
+];
 
 // ── Status & type configs ──────────────────────────────────────────────────────
 const STATUS_CFG: Record<string, { bg:string; color:string; label:string; icon: React.ReactNode }> = {
@@ -94,10 +114,11 @@ function StatusStepper({ status }: { status: string }) {
 }
 
 // ── DETAIL MODAL ──────────────────────────────────────────────────────────────
-function AttestationDetail({ att, onClose, onEdit, onUpdateStatus, onBuatSurat }: {
+function AttestationDetail({ att, onClose, onEdit, onUpdateStatus, onBuatSurat, onUpdateChecklist }: {
   att: Attestation; onClose:()=>void; onEdit:()=>void;
   onUpdateStatus:(id:string,status:Attestation['status'])=>void;
   onBuatSurat?: (att: Attestation) => void;
+  onUpdateChecklist:(id:string,checklist:Record<string,boolean>)=>void;
 }) {
   const { offset, onMouseDown } = useDraggable();
   const { can: canFn, currentUser } = useApp();
@@ -110,6 +131,10 @@ function AttestationDetail({ att, onClose, onEdit, onUpdateStatus, onBuatSurat }
   const [attDocuments, setAttDocuments] = useState<AttestationDocument[]>([]);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const docFileInputRef = React.useRef<HTMLInputElement>(null);
+  // Kalau diisi id item checklist, upload berikutnya ditag ke item itu (dan
+  // otomatis mencentang item itu) — undefined berarti unggahan umum/lepas.
+  const [uploadTargetDocType, setUploadTargetDocType] = useState<string | undefined>(undefined);
+  const checklistDone = DOCUMENT_CHECKLIST_ITEMS.filter(it => !!att.documentChecklist?.[it.id]).length;
 
   useEffect(() => {
     api.get<AttestationDocument[]>('/api/data/attestationDocuments').then(all => {
@@ -118,7 +143,7 @@ function AttestationDetail({ att, onClose, onEdit, onUpdateStatus, onBuatSurat }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [att.id]);
 
-  const handleUploadDocClick = () => docFileInputRef.current?.click();
+  const handleUploadDocClick = (docType?: string) => { setUploadTargetDocType(docType); docFileInputRef.current?.click(); };
 
   const handleDocFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -146,9 +171,13 @@ function AttestationDetail({ att, onClose, onEdit, onUpdateStatus, onBuatSurat }
         id, attestationId: att.id, fileName: file.name, fileSize: file.size,
         mimeType: 'application/pdf', fileData: base64,
         uploadedAt: new Date().toISOString(), uploadedBy: currentUser?.name || 'Administrator',
+        docType: uploadTargetDocType,
       };
       await api.put(`/api/data/attestationDocuments/${id}`, doc);
       setAttDocuments(prev => [doc, ...prev]);
+      if (uploadTargetDocType) {
+        onUpdateChecklist(att.id, { ...(att.documentChecklist||{}), [uploadTargetDocType]: true });
+      }
       toast.success(`Dokumen "${file.name}" berhasil diunggah`);
     } catch (err) {
       toast.error('Gagal mengunggah dokumen. Silakan coba lagi');
@@ -236,41 +265,79 @@ function AttestationDetail({ att, onClose, onEdit, onUpdateStatus, onBuatSurat }
             ))}
           </div>
 
-          {/* Dokumen Pendukung */}
-          <div className="p-4 rounded-xl border" style={{borderColor:'#f1f5f9',background:'#fafbfc'}}>
-            <p style={{fontSize:'12px',color:'#64748b',fontWeight:600,marginBottom:10}}>Dokumen Pendukung ({attDocuments.length})</p>
-            <input ref={docFileInputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={handleDocFileSelected}/>
-            {canEditDocs && (
-              <button onClick={handleUploadDocClick} disabled={uploadingDoc}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed text-sm font-semibold transition-colors disabled:opacity-60 mb-3"
-                style={{borderColor:'#b8d5e8',color:'#1A77A3',background:'#f0fdf4'}}>
-                {uploadingDoc ? <Loader2 className="w-4 h-4 animate-spin"/> : <Upload className="w-4 h-4"/>}
-                {uploadingDoc ? 'Mengunggah...' : 'Unggah Dokumen PDF'}
-              </button>
-            )}
-            {attDocuments.length === 0 ? (
-              <p style={{fontSize:'12px',color:'#94a3b8',textAlign:'center',padding:'8px 0'}}>Belum ada dokumen pendukung</p>
-            ) : (
-              <div className="space-y-2">
-                {attDocuments.map(doc => (
-                  <div key={doc.id} className="flex items-center gap-3 p-2.5 rounded-lg border bg-white" style={{borderColor:'#f1f5f9'}}>
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{background:'#fef2f2'}}>
-                      <FileText className="w-4 h-4 text-[#dc2626]"/>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate" style={{fontSize:'12.5px',fontWeight:600,color:'#334155'}}>{doc.fileName}</p>
-                      <p style={{fontSize:'11px',color:'#94a3b8'}}>{formatBytes(doc.fileSize)} · {fmtDate(doc.uploadedAt)} · {doc.uploadedBy}</p>
-                    </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <button data-tooltip="Lihat" onClick={()=>handleViewDocument(doc)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#1A77A3] transition-colors"><Eye className="w-4 h-4"/></button>
-                      {canDeleteDocs && (
-                        <button data-tooltip="Hapus" onClick={()=>handleDeleteDocument(doc)} className="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4"/></button>
+          {/* Kelengkapan Dokumen Atestasi Masuk (9 syarat tetap) — hanya Pindah Masuk */}
+          {isIn && (
+            <div className="p-4 rounded-xl border" style={{borderColor:'#f1f5f9',background:'#fafbfc'}}>
+              <div className="flex items-center justify-between mb-3">
+                <p style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Kelengkapan Dokumen</p>
+                <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{background: checklistDone===DOCUMENT_CHECKLIST_ITEMS.length?'#f0fdf4':'#fef3c7', color: checklistDone===DOCUMENT_CHECKLIST_ITEMS.length?'#16a34a':'#b45309'}}>
+                  {checklistDone}/{DOCUMENT_CHECKLIST_ITEMS.length} lengkap
+                </span>
+              </div>
+              <div className="space-y-1.5">
+                {DOCUMENT_CHECKLIST_ITEMS.map(item => {
+                  const checked = !!att.documentChecklist?.[item.id];
+                  const docsForItem = attDocuments.filter(d => d.docType === item.id);
+                  return (
+                    <div key={item.id} className="flex items-center gap-2 p-2 rounded-lg border bg-white" style={{borderColor: checked?'#bbf7d0':'#f1f5f9'}}>
+                      <input type="checkbox" checked={checked} disabled={!canEditDocs}
+                        onChange={e=>onUpdateChecklist(att.id, { ...(att.documentChecklist||{}), [item.id]: e.target.checked })}/>
+                      <span className="flex-1" style={{fontSize:'12px',color:checked?'#1A77A3':'#334155',fontWeight:checked?600:500}}>{item.label}</span>
+                      {docsForItem.length>0 ? (
+                        <button data-tooltip="Lihat file" onClick={()=>handleViewDocument(docsForItem[0])} className="p-1.5 rounded-lg hover:bg-gray-100 text-[#1A77A3]"><Eye className="w-3.5 h-3.5"/></button>
+                      ) : canEditDocs && (
+                        <button data-tooltip="Unggah PDF" onClick={()=>handleUploadDocClick(item.id)} disabled={uploadingDoc} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#1A77A3]"><Upload className="w-3.5 h-3.5"/></button>
                       )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-            )}
+            </div>
+          )}
+
+          {/* Dokumen Pendukung — untuk Pindah Masuk cuma tampilkan file yang tidak terkait
+              salah satu dari 9 checklist di atas (docType kosong = unggahan bebas / lama) */}
+          <div className="p-4 rounded-xl border" style={{borderColor:'#f1f5f9',background:'#fafbfc'}}>
+            {(() => {
+              const otherDocs = isIn ? attDocuments.filter(d => !d.docType) : attDocuments;
+              return (
+                <>
+                  <p style={{fontSize:'12px',color:'#64748b',fontWeight:600,marginBottom:10}}>{isIn ? `Dokumen Lain (${otherDocs.length})` : `Dokumen Pendukung (${otherDocs.length})`}</p>
+                  <input ref={docFileInputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={handleDocFileSelected}/>
+                  {canEditDocs && (
+                    <button onClick={()=>handleUploadDocClick(undefined)} disabled={uploadingDoc}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed text-sm font-semibold transition-colors disabled:opacity-60 mb-3"
+                      style={{borderColor:'#b8d5e8',color:'#1A77A3',background:'#f0fdf4'}}>
+                      {uploadingDoc ? <Loader2 className="w-4 h-4 animate-spin"/> : <Upload className="w-4 h-4"/>}
+                      {uploadingDoc ? 'Mengunggah...' : 'Unggah Dokumen PDF'}
+                    </button>
+                  )}
+                  {otherDocs.length === 0 ? (
+                    <p style={{fontSize:'12px',color:'#94a3b8',textAlign:'center',padding:'8px 0'}}>{isIn ? 'Tidak ada dokumen lain di luar checklist' : 'Belum ada dokumen pendukung'}</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {otherDocs.map(doc => (
+                        <div key={doc.id} className="flex items-center gap-3 p-2.5 rounded-lg border bg-white" style={{borderColor:'#f1f5f9'}}>
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{background:'#fef2f2'}}>
+                            <FileText className="w-4 h-4 text-[#dc2626]"/>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="truncate" style={{fontSize:'12.5px',fontWeight:600,color:'#334155'}}>{doc.fileName}</p>
+                            <p style={{fontSize:'11px',color:'#94a3b8'}}>{formatBytes(doc.fileSize)} · {fmtDate(doc.uploadedAt)} · {doc.uploadedBy}</p>
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <button data-tooltip="Lihat" onClick={()=>handleViewDocument(doc)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#1A77A3] transition-colors"><Eye className="w-4 h-4"/></button>
+                            {canDeleteDocs && (
+                              <button data-tooltip="Hapus" onClick={()=>handleDeleteDocument(doc)} className="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4"/></button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
 
           {/* Quick status update */}
@@ -360,6 +427,11 @@ export function AttestationForm({ initial, members, families, onSave, onSaveBatc
     processedDate: initial?.processedDate||'',
     completedDate: initial?.completedDate||'',
     notes: initial?.notes||'',
+    // Data Kontak & Domisili — cuma relevan untuk Pindah Masuk (lihat komentar
+    // di Attestation.phone/address/familyCode di types/index.ts).
+    phone: initial?.phone||'',
+    address: initial?.address||'',
+    familyCode: initial?.familyCode||'',
   });
   const [err, setErr] = useState('');
   const h=(k:string,v:string)=>setF(p=>({...p,[k]:v}));
@@ -370,10 +442,16 @@ export function AttestationForm({ initial, members, families, onSave, onSaveBatc
     else setF(p=>({...p,type:t,fromChurch:'GPIB Trinitas',toChurch:''}));
   };
 
-  // Auto-fill name when member selected (only in non-locked mode)
+  // Auto-fill name (+ kontak/domisili kalau ada) saat anggota dipilih dari
+  // dropdown (mode non-locked). Tetap bisa diedit manual sesudahnya.
   const handleMember = (id:string) => {
     const m=members.find(m=>m.id===id);
-    setF(p=>({...p,memberId:id,memberName:m?.fullName||''}));
+    setF(p=>({
+      ...p,memberId:id,memberName:m?.fullName||'',
+      phone: m?.phone || p.phone,
+      address: m?.address || p.address,
+      familyCode: m?.familyCode || p.familyCode,
+    }));
   };
 
   const submit=()=>{
@@ -553,6 +631,29 @@ export function AttestationForm({ initial, members, families, onSave, onSaveBatc
               <input type="date" value={f.completedDate} onChange={e=>h('completedDate',e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none" style={{borderColor:'#e2e8f0'}}/>
             </div>
+            {isIn && mode!=='keluarga' && (
+              <div className="col-span-2 p-3 rounded-xl" style={{background:'#f0fdf4',border:'1px solid #bbf7d0'}}>
+                <p style={{fontSize:'11px',fontWeight:700,color:'#1A77A3',marginBottom:8,textTransform:'uppercase',letterSpacing:'0.03em'}}>Data Kontak & Domisili</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>No. HP</label>
+                    <input value={f.phone} onChange={e=>h('phone',e.target.value)} placeholder="08xxxxxxxxxx"
+                      className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none" style={{borderColor:'#e2e8f0'}}/>
+                  </div>
+                  <div>
+                    <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Kode Keluarga (Kel.)</label>
+                    <input value={f.familyCode} onChange={e=>h('familyCode',e.target.value)} placeholder="Kalau sudah diketahui"
+                      className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none" style={{borderColor:'#e2e8f0'}}/>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Alamat (Sekarang)</label>
+                    <textarea value={f.address} onChange={e=>h('address',e.target.value)} rows={2}
+                      className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none resize-none" style={{borderColor:'#e2e8f0'}}/>
+                  </div>
+                </div>
+                <p style={{fontSize:'10.5px',color:'#64748b',marginTop:6}}>Dipakai untuk pra-isi data saat mendaftarkan anggota ini di Database Warga, kalau belum terdaftar.</p>
+              </div>
+            )}
             <div className="col-span-2">
               <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Alasan</label>
               <textarea value={f.reason} onChange={e=>h('reason',e.target.value)} rows={2}
@@ -579,7 +680,7 @@ export function AttestationForm({ initial, members, families, onSave, onSaveBatc
 // ── MAIN ──────────────────────────────────────────────────────────────────────
 export function AttestationDatabase({ onNavigate }: { onNavigate?: (page: string) => void } = {}) {
   const { offset, onMouseDown } = useDraggable();
-  const { attestations, members, families, currentUser, addAttestation: _addAttestation, updateAttestation: _updateAttestation, getMasterDataByCategory, can, setPendingLetterDraft } = useApp();
+  const { attestations, members, families, currentUser, addAttestation: _addAttestation, updateAttestation: _updateAttestation, updateMember, getMasterDataByCategory, can, setPendingLetterDraft, setPendingMemberDraft } = useApp();
 
   // Use context attestations as source of truth; sync via API
   const [items, setItems] = useState<Attestation[]>(attestations||[]);
@@ -675,7 +776,61 @@ export function AttestationDatabase({ onNavigate }: { onNavigate?: (page: string
     onNavigate?.('letters-outgoing');
   };
 
-  const handleUpdateStatus = (id:string, status:Attestation['status']) => {
+  // Toggle satu item checklist kelengkapan dokumen (Atestasi Masuk) — dipanggil
+  // dari AttestationDetail, disimpan penuh via apiSave (persis pola handleUpdateStatus).
+  const handleUpdateChecklist = (id:string, checklist:Record<string,boolean>) => {
+    setItems(p=>p.map(a=>{
+      if(a.id!==id) return a;
+      const updated = {...a, documentChecklist:checklist, updatedAt:new Date().toISOString()};
+      apiSave('attestations', id, updated);
+      return updated;
+    }));
+    setShowDetail(prev=>prev&&prev.id===id?{...prev,documentChecklist:checklist}:prev);
+  };
+
+  // Menandai status Selesai = titik "approval" atestasi ini. Sebelum benar-benar
+  // menyimpan, cek kelengkapan yang relevan per arah (dokumen untuk Masuk, surat
+  // untuk Keluar) dan beri peringatan (tidak memblokir) kalau belum lengkap.
+  // Setelah tersimpan, jalankan tindak lanjut lintas-modul: Masuk yang belum
+  // terdaftar dibukakan modal Tambah Anggota (prefill), Keluar yang sudah
+  // terdaftar diubah membershipStatus-nya jadi "Pindah".
+  const handleUpdateStatus = async (id:string, status:Attestation['status']) => {
+    const att = items.find(a=>a.id===id);
+    if(!att) return;
+
+    if(status==='Selesai'){
+      if(att.type==='Pindah Masuk'){
+        const missing = DOCUMENT_CHECKLIST_ITEMS.filter(it=>!att.documentChecklist?.[it.id]);
+        if(missing.length>0){
+          const proceed = window.confirm(
+            `Dokumen belum lengkap (${DOCUMENT_CHECKLIST_ITEMS.length-missing.length}/${DOCUMENT_CHECKLIST_ITEMS.length}):
+
+`+
+            missing.map(m=>`• ${m.label}`).join(`
+`)+
+            `
+
+Tetap tandai Selesai?`
+          );
+          if(!proceed) return;
+        }
+      } else if(att.type==='Pindah Keluar'){
+        try{
+          const letters = await api.get<any[]>('/api/data/outgoingLetters');
+          const related = (letters||[]).filter(l=>l.relatedModule==='Atestasi'&&l.relatedId===att.id);
+          const latest = related.sort((a,b)=>new Date(b.updatedAt||b.createdAt||0).getTime()-new Date(a.updatedAt||a.createdAt||0).getTime())[0];
+          const doneStatuses = ['Ditandatangani','Terkirim','Diarsipkan'];
+          if(!latest || !doneStatuses.includes(latest.status)){
+            const label = latest ? latest.status : 'belum dibuat';
+            const proceed = window.confirm(`Surat Atestasi untuk ${att.memberName} belum ditandatangani (status surat saat ini: ${label}).
+
+Tetap tandai Selesai?`);
+            if(!proceed) return;
+          }
+        }catch{ /* kalau gagal cek status surat, jangan blokir aksi utama */ }
+      }
+    }
+
     setItems(p=>p.map(a=>{
       if(a.id!==id) return a;
       const updated = {...a,status,updatedAt:new Date().toISOString(),
@@ -686,6 +841,18 @@ export function AttestationDatabase({ onNavigate }: { onNavigate?: (page: string
       return updated;
     }));
     setShowDetail(prev=>prev&&prev.id===id?{...prev,status}:prev);
+
+    if(status==='Selesai'){
+      if(att.type==='Pindah Masuk' && !att.memberId){
+        setPendingMemberDraft({
+          relatedModule:'Atestasi', relatedId:att.id, fullName:att.memberName,
+          phone:att.phone, address:att.address, familyCode:att.familyCode,
+        });
+        onNavigate?.('members');
+      } else if(att.type==='Pindah Keluar' && att.memberId){
+        updateMember(att.memberId, { membershipStatus:'Pindah' as any });
+      }
+    }
   };
 
   const exportPDF = () => {
@@ -875,7 +1042,16 @@ export function AttestationDatabase({ onNavigate }: { onNavigate?: (page: string
                   </td>
                   <td className="px-4 py-3 text-sm whitespace-nowrap" style={{color:'#4b5563'}}>{fmtDate(a.requestDate)}</td>
                   <td className="px-4 py-3 text-xs font-mono" style={{color:'#94a3b8'}}>{a.letterNumber||'—'}</td>
-                  <td className="px-4 py-3"><StatusBadge status={a.status}/></td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1.5">
+                      <StatusBadge status={a.status}/>
+                      {a.type==='Pindah Masuk' && (()=>{ const done=DOCUMENT_CHECKLIST_ITEMS.filter(it=>!!a.documentChecklist?.[it.id]).length; return (
+                        <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold" style={{background:done===DOCUMENT_CHECKLIST_ITEMS.length?'#f0fdf4':'#fef3c7',color:done===DOCUMENT_CHECKLIST_ITEMS.length?'#16a34a':'#b45309'}}>
+                          {done}/{DOCUMENT_CHECKLIST_ITEMS.length}
+                        </span>
+                      );})()}
+                    </div>
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1" onClick={e=>e.stopPropagation()}>
                       <button onClick={()=>setShowDetail(a)} data-tooltip="Lihat Detail" className="p-1.5 rounded-lg hover:bg-[#f6f4f0] transition-colors"><Eye className="w-3.5 h-3.5 text-[#1A77A3]"/></button>
@@ -907,7 +1083,8 @@ export function AttestationDatabase({ onNavigate }: { onNavigate?: (page: string
         <AttestationDetail att={showDetail} onClose={()=>setShowDetail(null)}
           onEdit={()=>{setEditItem(showDetail);setShowDetail(null);setShowForm(true);}}
           onUpdateStatus={handleUpdateStatus}
-          onBuatSurat={handleBuatSurat}/>
+          onBuatSurat={handleBuatSurat}
+          onUpdateChecklist={handleUpdateChecklist}/>
       )}
       {showForm && (
         <AttestationForm initial={editItem||undefined} members={members} families={families}

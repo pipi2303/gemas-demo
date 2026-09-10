@@ -1784,7 +1784,7 @@ const MEMBER_TABLE_DEFAULT_WIDTHS: Record<string, number> = {
 export function MemberDatabase() {
   const { offset: offset1, onMouseDown: onMouseDown1 } = useDraggable();
   const { offset: offset2, onMouseDown: onMouseDown2 } = useDraggable();
-  const { members, sectors, families, addMember, updateMember, deleteMember, currentUser, attestations, can, reloadData, getMasterDataByCategory } = useApp();
+  const { members, sectors, families, addMember, updateMember, deleteMember, currentUser, attestations, can, reloadData, getMasterDataByCategory, pendingMemberDraft, setPendingMemberDraft } = useApp();
 
   const canCreate = can('members', 'create');
   const canEdit   = can('members', 'edit');
@@ -1811,6 +1811,26 @@ export function MemberDatabase() {
   const [cardFamily, setCardFamily] = useState<any>(null);
   const [showImport, setShowImport] = useState(false);
   const [pageSize, setPageSize] = useState<number|'all'>(25);
+  // Prefill dari Atestasi Masuk (gap-fix Sept 2026) — lihat PendingMemberDraft
+  // di types/index.ts. Dikonsumsi sekali di sini, lalu langsung dibersihkan
+  // supaya tidak "nyangkut" kalau staf pindah ke halaman ini lewat jalur lain.
+  const [prefillDraft, setPrefillDraft] = useState<Partial<typeof EMPTY_FORM> | null>(null);
+  useEffect(() => {
+    if (!pendingMemberDraft) return;
+    const parts = (pendingMemberDraft.fullName || '').trim().split(/\s+/).filter(Boolean);
+    setPrefillDraft({
+      firstName: parts[0] || '',
+      lastName: parts.slice(1).join(' '),
+      phone: pendingMemberDraft.phone || '',
+      address: pendingMemberDraft.address || '',
+      familyCode: pendingMemberDraft.familyCode || '',
+    });
+    setFormMode('add');
+    setSelected(null);
+    setShowForm(true);
+    setPendingMemberDraft(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingMemberDraft]);
   const { widths: colW, startResize } = useResizableColumns('member-database-main', MEMBER_TABLE_DEFAULT_WIDTHS);
 
   const handleViewFamilyCard = (member: Member) => {
@@ -2490,9 +2510,9 @@ export function MemberDatabase() {
       )}
       {showForm && (
         <MemberForm mode={formMode}
-          initial={formMode==='edit'&&selected ? { ...selected } as any : undefined}
+          initial={formMode==='edit'&&selected ? { ...selected } as any : (prefillDraft || undefined)}
           sectors={sectors} families={families} attestations={attestations} members={members}
-          onSave={handleSave} onClose={()=>{setShowForm(false);setSelected(null);}}/>
+          onSave={handleSave} onClose={()=>{setShowForm(false);setSelected(null);setPrefillDraft(null);}}/>
       )}
       {cardFamily && (
         <FamilyCardModal family={cardFamily} members={members} sectors={sectors} onClose={()=>setCardFamily(null)} />

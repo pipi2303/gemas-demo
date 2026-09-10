@@ -564,6 +564,21 @@ export interface Attestation {
   createdAt: string;
   updatedAt: string;
   familyId?: string; // diisi kalau atestasi ini diajukan sekaligus untuk 1 keluarga (batch) - setiap anggota tetap punya record sendiri, familyId menandai mereka sebagai satu pengajuan
+  // ── Kelengkapan Atestasi Masuk (gap-fix Sept 2026) ──────────────────────────
+  // Field di bawah ini HANYA relevan untuk type 'Pindah Masuk' — orang yang
+  // atestasi masuk seringkali belum terdaftar di Database Warga sama sekali,
+  // jadi data kontak/domisili ini ditangkap di sini dulu, lalu dipakai untuk
+  // pre-fill saat mendaftarkan mereka sebagai anggota baru (lihat
+  // PendingMemberDraft di bawah). Untuk 'Pindah Keluar' field ini dibiarkan
+  // kosong — anggotanya sudah pasti terdaftar (memberId sudah ada sejak awal).
+  phone?: string;
+  address?: string;
+  familyCode?: string; // "Kel. ..." di form kertas — kode keluarga tujuan kalau sudah diketahui
+  // Checklist 9 syarat dokumen Atestasi Masuk, key = id tetap (lihat
+  // DOCUMENT_CHECKLIST_ITEMS di AttestationDatabase.tsx), value = sudah
+  // lengkap/belum. Disimpan by-id (bukan teks label) supaya tidak rusak kalau
+  // labelnya nanti diedit di suatu tempat.
+  documentChecklist?: Record<string, boolean>;
 }
 
 // ========================================
@@ -1090,4 +1105,19 @@ export interface PendingLetterDraft {
   recipientInstitution?: string;
   subject?: string;
   body?: string;
+}
+
+/** Payload sementara (in-memory saja lewat AppContext.pendingMemberDraft, TIDAK
+ *  pernah disimpan ke server) yang membawa data dari Atestasi Masuk ke modal
+ *  Tambah Anggota baru di Database Jemaat, saat atestasi ditandai Selesai
+ *  tapi orangnya belum terdaftar (memberId kosong). MemberDatabase.tsx
+ *  mengonsumsinya lewat efek satu kali lalu langsung memanggil
+ *  setPendingMemberDraft(null) — pola sama persis dengan PendingLetterDraft. */
+export interface PendingMemberDraft {
+  relatedModule: 'Atestasi';
+  relatedId: string;
+  fullName: string;
+  phone?: string;
+  address?: string;
+  familyCode?: string;
 }
