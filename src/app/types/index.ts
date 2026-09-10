@@ -152,6 +152,7 @@ export interface Sector {
   description?: string;
   leaderId?: string;      // ID member Koordinator Sektor
   deputyLeaderId?: string; // ID member Wakil Koord. Sektor
+  treasurerId?: string;   // ID member Bendahara Sektor
 }
 
 export type AgeGroup = 'Anak' | 'Pemuda' | 'Dewasa' | 'Lansia';

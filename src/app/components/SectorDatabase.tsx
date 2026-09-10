@@ -46,6 +46,14 @@ function SectorDetail({ sector, members, families, theme, onClose, onEdit }: {
   const sMembers = members.filter(m=>m.sectorId===sector.id);
   const sFamilies = families.filter(f=>f.sectorId===sector.id);
 
+  // Kepengurusan sektor — prioritas ID tersimpan, fallback ke Jabatan Pelayanan anggota
+  const ketua = (sector.leaderId ? members.find(m=>m.id===sector.leaderId) : null)
+    || sMembers.find(m=>m.position && /ketua sektor/i.test(m.position) && !/wakil/i.test(m.position));
+  const wakilKetua = (sector.deputyLeaderId ? members.find(m=>m.id===sector.deputyLeaderId) : null)
+    || sMembers.find(m=>m.position && /wakil ketua/i.test(m.position));
+  const bendahara = (sector.treasurerId ? members.find(m=>m.id===sector.treasurerId) : null)
+    || sMembers.find(m=>m.position && /bendahara/i.test(m.position));
+
   // Demographics
   const aktif = sMembers.filter(m=>m.membershipStatus==='Aktif').length;
   const laki = sMembers.filter(m=>m.gender==='Laki-laki').length;
@@ -125,6 +133,21 @@ function SectorDetail({ sector, members, families, theme, onClose, onEdit }: {
                   </div>
                 ))}
               </div>
+              {/* Kepengurusan */}
+              <div className="rounded-2xl border p-4" style={{borderColor:'#f1f5f9'}}>
+                <h4 style={{fontSize:'13px',fontWeight:700,color:'#4b5563',marginBottom:12}}>Kepengurusan Sektor</h4>
+                {[
+                  {l:'Koordinator Sektor', v: ketua?.fullName},
+                  {l:'Wakil Koordinator Sektor', v: wakilKetua?.fullName},
+                  {l:'Bendahara Sektor', v: bendahara?.fullName},
+                ].map(x=>(
+                  <div key={x.l} className="flex items-center justify-between mb-2.5">
+                    <span style={{fontSize:'12px',color:'#4b5563'}}>{x.l}</span>
+                    <span style={{fontSize:'12px',fontWeight:600,color: x.v ? '#0f172a' : '#cbd5e1'}}>{x.v || '—'}</span>
+                  </div>
+                ))}
+              </div>
+
               {/* Usia */}
               <div className="rounded-2xl border p-4" style={{borderColor:'#f1f5f9'}}>
                 <h4 style={{fontSize:'13px',fontWeight:700,color:'#4b5563',marginBottom:12}}>Kelompok Usia</h4>
@@ -339,6 +362,7 @@ function SectorForm({ sector, onSave, onClose }: {
   const [leaderContact, setLeaderContact] = useState(sector?.leaderContact || '');
   const [leader, setLeader] = useState<Member | null>(findMember(sector?.leaderId));
   const [deputy, setDeputy] = useState<Member | null>(findMember(sector?.deputyLeaderId));
+  const [treasurer, setTreasurer] = useState<Member | null>(findMember(sector?.treasurerId));
 
   const handleSave = () => {
     // Auto-update phone di database jemaat jika diisi
@@ -353,6 +377,7 @@ function SectorForm({ sector, onSave, onClose }: {
       leaderContact,
       leaderId: leader?.id || '',
       deputyLeaderId: deputy?.id || '',
+      treasurerId: treasurer?.id || '',
     });
   };
 
@@ -375,6 +400,8 @@ function SectorForm({ sector, onSave, onClose }: {
           <MemberPicker label="Koordinator Sektor" value={leader} onSelect={m => { setLeader(m); if (m?.phone) setLeaderContact(m.phone); }} members={members} sectors={sectors}/>
 
           <MemberPicker label="Wakil Koord. Sektor" value={deputy} onSelect={setDeputy} members={members} sectors={sectors}/>
+
+          <MemberPicker label="Bendahara Sektor" value={treasurer} onSelect={setTreasurer} members={members} sectors={sectors}/>
 
           <div>
             <label style={{display:'block',marginBottom:4,fontSize:'12px',color:'#64748b',fontWeight:600}}>
@@ -439,7 +466,9 @@ export function SectorDatabase() {
         || sm.find(m => m.position && /ketua sektor/i.test(m.position) && !/wakil/i.test(m.position));
       const wakilKetua = (s.deputyLeaderId ? members.find(m => m.id === s.deputyLeaderId) : null)
         || sm.find(m => m.position && /wakil ketua/i.test(m.position));
-      return { ...s, sm, sf, aktif, laki, perempuan, avgAge, ketua, wakilKetua, theme: SECTOR_THEMES[i%SECTOR_THEMES.length] };
+      const bendahara = (s.treasurerId ? members.find(m => m.id === s.treasurerId) : null)
+        || sm.find(m => m.position && /bendahara/i.test(m.position));
+      return { ...s, sm, sf, aktif, laki, perempuan, avgAge, ketua, wakilKetua, bendahara, theme: SECTOR_THEMES[i%SECTOR_THEMES.length] };
     });
   },[sectors,members,families]);
 
@@ -487,6 +516,7 @@ export function SectorDatabase() {
       // Info rows
       aoa.push(['Ketua Sektor:', s.ketua?.fullName || '-', '', '', '', '']);
       aoa.push(['Wakil Ketua Sektor:', s.wakilKetua?.fullName || '-', '', '', '', '']);
+      aoa.push(['Bendahara Sektor:', s.bendahara?.fullName || '-', '', '', '', '']);
       addMerged(`Jenis Kelamin: Laki-Laki: ${s.laki} (${pct(s.laki)}), Perempuan: ${s.perempuan} (${pct(s.perempuan)})`);
 
       // Age groups
@@ -591,6 +621,7 @@ export function SectorDatabase() {
                   </div>
                   <p style={{fontSize:'12px',color:'rgba(255,255,255,0.65)'}}>Koordinator Sektor: {s.ketua?.fullName||'—'}</p>
                   <p style={{fontSize:'12px',color:'rgba(255,255,255,0.65)'}}>Wakil Koord. Sektor: {s.wakilKetua?.fullName||'—'}</p>
+                  <p style={{fontSize:'12px',color:'rgba(255,255,255,0.65)'}}>Bendahara Sektor: {s.bendahara?.fullName||'—'}</p>
                 </div>
                 <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                   {canEdit && <button data-tooltip="Edit" onMouseDown={e=>e.preventDefault()} onClick={()=>{setEditSector(s);setShowForm(true);}} className="p-1.5 rounded-lg hover:bg-white/20 text-white/70 hover:text-white transition-colors"><Pencil className="w-3.5 h-3.5"/></button>}
