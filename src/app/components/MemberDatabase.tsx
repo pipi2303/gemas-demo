@@ -135,13 +135,10 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
   const detailCanEdit   = canFn('Database Warga', 'edit');
   const detailCanDelete = canFn('Database Warga', 'delete');
   const [tab, setTab] = useState<'personal'|'gereja'|'kontak'|'kerja'|'atestasi'|'aset'|'dokumen'>('personal');
-  // Drawer slide-in animation: mount closed (off-screen right), then flip open next frame.
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  useEffect(() => {
-    const raf = requestAnimationFrame(() => setDrawerOpen(true));
-    return () => cancelAnimationFrame(raf);
-  }, []);
-  // Lock page scroll behind the drawer while it's open, restore on close/unmount.
+  // Modal draggable-by-header, sama seperti modal Tambah/Edit Anggota (MemberForm)
+  // agar seluruh modal di modul Database Jemaat konsisten satu gaya.
+  const { offset, onMouseDown } = useDraggable();
+  // Lock page scroll behind the modal while it's open, restore on close/unmount.
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -301,11 +298,10 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
 
   return (
     <>
-    <div className="absolute inset-0 z-50 flex justify-end overflow-hidden">
-      <div className="absolute inset-0" style={{background:'rgba(15,23,42,0.45)',backdropFilter:'blur(4px)'}} onClick={onClose} />
-      <div className="relative w-full shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxWidth:'520px', height:'100vh', maxHeight:'100dvh', transform: drawerOpen ? 'translateX(0)' : 'translateX(100%)', transition:'transform 240ms ease-out'}} onClick={e=>e.stopPropagation()}>
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
+      <div className="relative w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'92vh', transform:`translate(${offset.x}px,${offset.y}px)`}} onClick={e=>e.stopPropagation()}>
         {/* Header */}
-        <div className="px-6 py-5 flex-shrink-0" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)'}}>
+        <div className="px-6 py-5 flex-shrink-0" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',cursor:'move'}} onMouseDown={onMouseDown}>
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-4">
               <AvatarMember name={member.fullName} role={member.familyRole} size={56}/>
@@ -345,7 +341,7 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
           {/* Tab nav */}
           <div className="flex gap-1 mt-4 overflow-x-auto pb-0.5" style={{scrollbarWidth:'none'}}>
             {TABS.map(t=>(
-              <button key={t.id} onClick={()=>setTab(t.id as any)}
+              <button key={t.id} onMouseDown={e=>e.preventDefault()} onClick={()=>setTab(t.id as any)}
                 className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
                 style={{background:tab===t.id?'#FFEFB2':'transparent',color:tab===t.id?'#384959':'rgba(255,255,255,0.5)'}}>
                 {t.label}
