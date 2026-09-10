@@ -106,7 +106,7 @@ function BaptismForm({ initial, onSave, onClose }: { initial?: Partial<Baptism>;
   const statusSakramenOpts = getMasterDataByCategory('status_sakramen').map(m => m.value);
   const STATUS_OPTS = statusSakramenOpts.length ? statusSakramenOpts : ['Terjadwal','Selesai','Ditunda','Dibatalkan'];
   const [f, setF] = useState({
-    memberName:initial?.memberName||'', type:initial?.type||'Anak',
+    memberName:initial?.memberName||'', memberId:(initial as any)?.memberId||'', type:initial?.type||'Anak',
     baptismDate:initial?.baptismDate||'', baptismPlace:initial?.baptismPlace||'GPIB Trinitas',
     minister:initial?.minister||'',
     witness1:initial?.witness1||'', witness2:initial?.witness2||'',
@@ -136,7 +136,7 @@ function BaptismForm({ initial, onSave, onClose }: { initial?: Partial<Baptism>;
               <label style={{display:'block',marginBottom:4,fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Nama Jemaat*</label>
               <SearchDropdown<any>
                 value={f.memberName}
-                onChange={v=>h('memberName',v)}
+                onChange={v=>{h('memberName',v);h('memberId','');}}
                 placeholder="Cari nama jemaat..."
                 items={members}
                 filterFn={(m,q)=>m.fullName.toLowerCase().includes(q.toLowerCase())||m.memberNumber?.toLowerCase().includes(q.toLowerCase())}
@@ -146,7 +146,7 @@ function BaptismForm({ initial, onSave, onClose }: { initial?: Partial<Baptism>;
                     <p style={{fontSize:'11px',color:'#64748b',margin:0}}>{m.memberNumber||'-'}</p>
                   </div>
                 )}
-                onSelect={m=>h('memberName',m.fullName)}
+                onSelect={m=>{h('memberName',m.fullName);h('memberId',m.id);}}
               />
             </div>
             <SacramentField label="Tipe Baptisan" value={f.type} onChange={v=>h('type',v)} opts={['Anak','Dewasa']}/>
@@ -202,7 +202,7 @@ function SidiForm({ initial, onSave, onClose }: { initial?: Partial<Sidi>; onSav
   const statusSakramenOpts = getMasterDataByCategory('status_sakramen').map(m => m.value);
   const STATUS_OPTS = statusSakramenOpts.length ? statusSakramenOpts : ['Terjadwal','Selesai','Ditunda','Dibatalkan'];
   const [f, setF] = useState({
-    memberName:initial?.memberName||'', sidiDate:initial?.sidiDate||'',
+    memberName:initial?.memberName||'', memberId:(initial as any)?.memberId||'', sidiDate:initial?.sidiDate||'',
     sidiPlace:initial?.sidiPlace||'GPIB Trinitas',
     minister:initial?.minister||'',
     baptismDate:initial?.baptismDate||'', baptismPlace:initial?.baptismPlace||'',
@@ -226,7 +226,7 @@ function SidiForm({ initial, onSave, onClose }: { initial?: Partial<Sidi>; onSav
               <label style={{display:'block',marginBottom:4,fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Nama Jemaat*</label>
               <SearchDropdown<any>
                 value={f.memberName}
-                onChange={v=>h('memberName',v)}
+                onChange={v=>{h('memberName',v);h('memberId','');}}
                 placeholder="Cari nama jemaat..."
                 items={members}
                 filterFn={(m,q)=>m.fullName.toLowerCase().includes(q.toLowerCase())||m.memberNumber?.toLowerCase().includes(q.toLowerCase())}
@@ -238,6 +238,7 @@ function SidiForm({ initial, onSave, onClose }: { initial?: Partial<Sidi>; onSav
                 )}
                 onSelect={m=>{
                   h('memberName',m.fullName);
+                  h('memberId',m.id);
                   if(m.baptismDate) h('baptismDate',m.baptismDate);
                 }}
               />
@@ -291,8 +292,8 @@ function MarriageForm({ initial, onSave, onClose }: { initial?: Partial<Marriage
   const statusSakramenOpts = getMasterDataByCategory('status_sakramen').map(m => m.value);
   const STATUS_OPTS = statusSakramenOpts.length ? statusSakramenOpts : ['Terjadwal','Selesai','Ditunda','Dibatalkan'];
   const [f, setF] = useState({
-    groomName:initial?.groomName||'', groomBirthDate:initial?.groomBirthDate||'', groomBaptismDate:initial?.groomBaptismDate||'',
-    brideName:initial?.brideName||'', brideBirthDate:initial?.brideBirthDate||'', brideBaptismDate:initial?.brideBaptismDate||'',
+    groomName:initial?.groomName||'', groomMemberId:initial?.groomMemberId||'', groomBirthDate:initial?.groomBirthDate||'', groomBaptismDate:initial?.groomBaptismDate||'',
+    brideName:initial?.brideName||'', brideMemberId:initial?.brideMemberId||'', brideBirthDate:initial?.brideBirthDate||'', brideBaptismDate:initial?.brideBaptismDate||'',
     marriageDate:initial?.marriageDate||'', marriagePlace:initial?.marriagePlace||'GPIB Trinitas',
     minister:initial?.minister||'',
     witness1:initial?.witness1||'', witness2:initial?.witness2||'',
@@ -319,12 +320,12 @@ function MarriageForm({ initial, onSave, onClose }: { initial?: Partial<Marriage
                 <div>
                   <label style={{display:'block',marginBottom:4,fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Nama Mempelai Pria*</label>
                   <SearchDropdown<any>
-                    value={f.groomName} onChange={v=>h('groomName',v)}
+                    value={f.groomName} onChange={v=>{h('groomName',v);h('groomMemberId','');}}
                     placeholder="Cari nama jemaat..."
                     items={members}
                     filterFn={(m,q)=>m.fullName.toLowerCase().includes(q.toLowerCase())||m.memberNumber?.toLowerCase().includes(q.toLowerCase())}
                     renderResult={m=><div><p style={{fontSize:'13px',fontWeight:600,color:'#0f172a',margin:0}}>{m.fullName}</p><p style={{fontSize:'11px',color:'#64748b',margin:0}}>{m.memberNumber||'-'}</p></div>}
-                    onSelect={m=>{h('groomName',m.fullName);if(m.birthDate)h('groomBirthDate',m.birthDate);if(m.baptismDate)h('groomBaptismDate',m.baptismDate);}}
+                    onSelect={m=>{h('groomName',m.fullName);h('groomMemberId',m.id);if(m.birthDate)h('groomBirthDate',m.birthDate);if(m.baptismDate)h('groomBaptismDate',m.baptismDate);}}
                   />
                 </div>
                 <SacramentField label="Tgl Lahir" value={f.groomBirthDate} onChange={v=>h('groomBirthDate',v)} type="date" ring="ring-pink-400"/>
@@ -337,12 +338,12 @@ function MarriageForm({ initial, onSave, onClose }: { initial?: Partial<Marriage
                 <div>
                   <label style={{display:'block',marginBottom:4,fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Nama Mempelai Wanita*</label>
                   <SearchDropdown<any>
-                    value={f.brideName} onChange={v=>h('brideName',v)}
+                    value={f.brideName} onChange={v=>{h('brideName',v);h('brideMemberId','');}}
                     placeholder="Cari nama jemaat..."
                     items={members}
                     filterFn={(m,q)=>m.fullName.toLowerCase().includes(q.toLowerCase())||m.memberNumber?.toLowerCase().includes(q.toLowerCase())}
                     renderResult={m=><div><p style={{fontSize:'13px',fontWeight:600,color:'#0f172a',margin:0}}>{m.fullName}</p><p style={{fontSize:'11px',color:'#64748b',margin:0}}>{m.memberNumber||'-'}</p></div>}
-                    onSelect={m=>{h('brideName',m.fullName);if(m.birthDate)h('brideBirthDate',m.birthDate);if(m.baptismDate)h('brideBaptismDate',m.baptismDate);}}
+                    onSelect={m=>{h('brideName',m.fullName);h('brideMemberId',m.id);if(m.birthDate)h('brideBirthDate',m.birthDate);if(m.baptismDate)h('brideBaptismDate',m.baptismDate);}}
                   />
                 </div>
                 <SacramentField label="Tgl Lahir" value={f.brideBirthDate} onChange={v=>h('brideBirthDate',v)} type="date" ring="ring-pink-400"/>

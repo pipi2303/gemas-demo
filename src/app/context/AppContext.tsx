@@ -1779,6 +1779,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     setBaptisms([...baptisms, newBaptism]);
     apiSave('baptisms', newBaptism.id, newBaptism);
+    // gap-fix: sensus/laporan (ReportCenter, LaporanSensus, SectorDatabase) menghitung
+    // baptis/sidi murni dari Member.baptismStatus/sidiStatus — tanpa sinkronisasi ini,
+    // mencatat baptisan di sini tidak pernah mengubah angka sensus sama sekali.
+    if (newBaptism.status === 'Selesai' && (newBaptism as any).memberId) {
+      updateMember((newBaptism as any).memberId, { baptismStatus: 'Sudah', baptismDate: newBaptism.baptismDate } as any);
+    }
     if (currentUser) {
       logActivity({
         userId: currentUser.id,
@@ -1794,8 +1800,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const updateBaptism = (id: string, baptismData: Partial<Baptism>) => {
     const baptism = baptisms.find(b => b.id === id);
+    const mergedBaptism = baptism ? { ...baptism, ...baptismData } : null;
     setBaptisms(baptisms.map(b => b.id === id ? { ...b, ...baptismData, updatedAt: new Date().toISOString() } : b));
     if (baptism) apiSave('baptisms', id, { ...baptism, ...baptismData, updatedAt: new Date().toISOString() });
+    if (mergedBaptism && mergedBaptism.status === 'Selesai' && (mergedBaptism as any).memberId) {
+      updateMember((mergedBaptism as any).memberId, { baptismStatus: 'Sudah', baptismDate: mergedBaptism.baptismDate } as any);
+    }
     if (currentUser && baptism) {
       logActivity({
         userId: currentUser.id,
@@ -1835,6 +1845,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     setSidis([...sidis, newSidi]);
     apiSave('sidis', newSidi.id, newSidi);
+    // gap-fix: lihat catatan yang sama di addBaptism di atas.
+    if (newSidi.status === 'Selesai' && (newSidi as any).memberId) {
+      updateMember((newSidi as any).memberId, { sidiStatus: 'Sudah', sidiDate: newSidi.sidiDate } as any);
+    }
     if (currentUser) {
       logActivity({
         userId: currentUser.id,
@@ -1850,8 +1864,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const updateSidi = (id: string, sidiData: Partial<Sidi>) => {
     const sidiItem = sidis.find(s => s.id === id);
+    const mergedSidi = sidiItem ? { ...sidiItem, ...sidiData } : null;
     setSidis(sidis.map(s => s.id === id ? { ...s, ...sidiData, updatedAt: new Date().toISOString() } : s));
     if (sidiItem) apiSave('sidis', id, { ...sidiItem, ...sidiData, updatedAt: new Date().toISOString() });
+    if (mergedSidi && mergedSidi.status === 'Selesai' && (mergedSidi as any).memberId) {
+      updateMember((mergedSidi as any).memberId, { sidiStatus: 'Sudah', sidiDate: mergedSidi.sidiDate } as any);
+    }
     if (currentUser && sidiItem) {
       logActivity({
         userId: currentUser.id,

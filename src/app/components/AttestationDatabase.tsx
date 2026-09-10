@@ -777,11 +777,20 @@ export function AttestationDatabase({ onNavigate }: { onNavigate?: (page: string
     ditolak: items.filter(a=>normStatusSurat(a.status)==='Ditolak').length,
   };
 
-  const handleSave = (d:any) => {
+  const handleSave = async (d:any) => {
     if(editItem){
-      const updated: Attestation = {...editItem,...d,updatedAt:new Date().toISOString()};
-      setItems(p=>p.map(a=>a.id===editItem.id?updated:a));
-      apiSave('attestations', updated.id, updated);
+      let merged: Attestation = {...editItem,...d,updatedAt:new Date().toISOString()};
+      // gap-fix: kalau status berubah lewat form Edit ini, jalankan validasi &
+      // efek samping yang sama seperti tombol status cepat (lihat applyStatusChange)
+      // — sebelumnya form Edit bisa melompat langsung ke "Selesai" tanpa cek
+      // kelengkapan dokumen/surat dan tanpa memperbarui membershipStatus anggota.
+      if(d.status && d.status !== editItem.status){
+        const withEffects = await applyStatusChange(merged, d.status);
+        if(!withEffects){ return; } // dibatalkan oleh admin di tengah konfirmasi
+        merged = withEffects;
+      }
+      setItems(p=>p.map(a=>a.id===editItem.id?merged:a));
+      apiSave('attestations', merged.id, merged);
     } else {
       const newItem: Attestation = { ...d, id:'at'+Date.now(), createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
       setItems(p=>[newItem,...p]);
@@ -830,16 +839,14 @@ export function AttestationDatabase({ onNavigate }: { onNavigate?: (page: string
     setShowDetail(prev=>prev&&prev.id===id?{...prev,documentChecklist:checklist}:prev);
   };
 
-  // Menandai status Selesai = titik "approval" atestasi ini. Sebelum benar-benar
-  // menyimpan, cek kelengkapan yang relevan per arah (dokumen untuk Masuk, surat
-  // untuk Keluar) dan beri peringatan (tidak memblokir) kalau belum lengkap.
-  // Setelah tersimpan, jalankan tindak lanjut lintas-modul: Masuk yang belum
-  // terdaftar dibukakan modal Tambah Anggota (prefill), Keluar yang sudah
-  // terdaftar diubah membershipStatus-nya jadi "Pindah".
-  const handleUpdateStatus = async (id:string, status:Attestation['status']) => {
-    const att = items.find(a=>a.id===id);
-    if(!att) return;
-
+  // Terapkan satu perubahan status secara konsisten, dari MANA PUN ia dipicu
+  // (tombol status cepat di detail, ATAU form Edit). Sebelum gap-fix ini, form
+  // Edit bisa langsung menyimpan status baru lewat handleSave tanpa melalui
+  // validasi kelengkapan dokumen/surat maupun sinkronisasi membershipStatus di
+  // bawah — sehingga atestasi bisa "Selesai" tanpa anggota benar-benar tercatat
+  // pindah. Mengembalikan null berarti admin membatalkan (lewat window.confirm)
+  // di tengah proses, dan caller TIDAK boleh menyimpan perubahan apa pun.
+  const applyStatusChange = async (att: Attestation, status: Attestation['status']): Promise<Attestation | null> => {
     if(status==='Selesai'){
       if(att.type==='Pindah Masuk'){
         const missing = DOCUMENT_CHECKLIST_ITEMS.filter(it=>!att.documentChecklist?.[it.id]);
@@ -854,7 +861,7 @@ export function AttestationDatabase({ onNavigate }: { onNavigate?: (page: string
 
 Tetap tandai Selesai?`
           );
-          if(!proceed) return;
+          if(!proceed) return null;
         }
       } else if(att.type==='Pindah Keluar'){
         try{
@@ -867,22 +874,16 @@ Tetap tandai Selesai?`
             const proceed = window.confirm(`Surat Atestasi untuk ${att.memberName} belum ditandatangani (status surat saat ini: ${label}).
 
 Tetap tandai Selesai?`);
-            if(!proceed) return;
+            if(!proceed) return null;
           }
         }catch{ /* kalau gagal cek status surat, jangan blokir aksi utama */ }
       }
     }
 
-    setItems(p=>p.map(a=>{
-      if(a.id!==id) return a;
-      const updated = {...a,status,updatedAt:new Date().toISOString(),
-        ...(status==='Selesai'?{completedDate:new Date().toISOString().split('T')[0]}:{}),
-        ...(status==='Diproses'?{processedDate:new Date().toISOString().split('T')[0],processedBy:currentUser?.name||'Admin'}:{}),
-      };
-      apiSave('attestations', id, updated);
-      return updated;
-    }));
-    setShowDetail(prev=>prev&&prev.id===id?{...prev,status}:prev);
+    const updated: Attestation = {...att,status,updatedAt:new Date().toISOString(),
+      ...(status==='Selesai'?{completedDate:new Date().toISOString().split('T')[0]}:{}),
+      ...(status==='Diproses'?{processedDate:new Date().toISOString().split('T')[0],processedBy:currentUser?.name||'Admin'}:{}),
+    };
 
     if(status==='Selesai'){
       if(att.type==='Pindah Masuk' && !att.memberId){
@@ -896,6 +897,18 @@ Tetap tandai Selesai?`);
         updateMember(att.memberId, { membershipStatus:'Pindah' as any });
       }
     }
+
+    return updated;
+  };
+
+  const handleUpdateStatus = async (id:string, status:Attestation['status']) => {
+    const att = items.find(a=>a.id===id);
+    if(!att) return;
+    const updated = await applyStatusChange(att, status);
+    if(!updated) return;
+    setItems(p=>p.map(a=>a.id===id?updated:a));
+    apiSave('attestations', id, updated);
+    setShowDetail(prev=>prev&&prev.id===id?{...prev,status}:prev);
   };
 
   const exportPDF = () => {
