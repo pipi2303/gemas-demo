@@ -22,7 +22,7 @@ import {
   ArrowUp, ArrowDown, Gift, UserCheck, UserX, FileText,
   ArrowRight, ArrowLeft, Clock, RefreshCw, Ban,
   Building2, Truck, Package, Monitor, Layers, Tag, Shield,
-  Upload, FolderOpen, Loader2
+  Upload, FolderOpen, Loader2, MessageCircle
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -35,6 +35,15 @@ const formatBytes = (bytes: number) => {
   return kb < 1024 ? `${kb.toFixed(0)} KB` : `${(kb/1024).toFixed(2)} MB`;
 };
 const MAX_DOCUMENT_BYTES = 2 * 1024 * 1024; // 2MB
+const MAX_PHOTO_SOURCE_BYTES = 8 * 1024 * 1024; // 8MB (sumber, sebelum dikompres otomatis)
+
+const toWaLink = (phone?: string) => {
+  if (!phone) return '';
+  let digits = String(phone).replace(/\D/g, '');
+  if (digits.startsWith('0')) digits = '62' + digits.slice(1);
+  else if (!digits.startsWith('62')) digits = '62' + digits;
+  return `https://wa.me/${digits}`;
+};
 
 interface MemberDocument {
   id: string;
@@ -51,9 +60,9 @@ interface MemberDocument {
 export function StatusBadge({ status }: { status?: string }) {
   const cfg: Record<string, { bg: string; color: string }> = {
     'Aktif':      { bg:'#f0fdf4', color:'#144f6b' },
-    'Pindah':     { bg:'#eff6ff', color:'#2563eb' },
+    'Pindah':     { bg:'#f0f7fb', color:'#1A77A3' },
     'Meninggal':  { bg:'#f8fafc', color:'#64748b' },
-    'Tidak Aktif':{ bg:'#fef2f2', color:'#dc2626' },
+    'Tidak Aktif':{ bg:'#fdf6e8', color:'#caa04a' },
   };
   const c = cfg[status||''] || { bg:'#f1f5f9', color:'#64748b' };
   return (
@@ -64,8 +73,14 @@ export function StatusBadge({ status }: { status?: string }) {
 }
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
-export function AvatarMember({ name, role, size = 32 }: { name: string; role?: string; size?: number }) {
+export function AvatarMember({ name, role, size = 32, photo }: { name: string; role?: string; size?: number; photo?: string }) {
   const rs = roleStyle(role);
+  if (photo) {
+    return (
+      <img src={photo} alt={name} className="rounded-full flex-shrink-0 object-cover"
+        style={{ width: size, height: size, border: '1px solid rgba(0,0,0,0.06)' }} />
+    );
+  }
   return (
     <div className="rounded-full flex items-center justify-center flex-shrink-0"
       style={{ width: size, height: size, background: rs.avatarBg, color: rs.avatarText, fontSize: size * 0.35, fontWeight: 700 }}>
@@ -113,7 +128,7 @@ export function AssetCatIcon({ cat }: { cat: string }) {
 export function AttBadge({ status }: { status: string }) {
   const cfg: Record<string,{bg:string;color:string;icon:React.ReactNode}> = {
     'Diajukan': { bg:'#f6f4f0', color:'#9c9486', icon:<Clock className="w-2.5 h-2.5"/> },
-    'Diproses': { bg:'#eff6ff', color:'#2563eb', icon:<RefreshCw className="w-2.5 h-2.5"/> },
+    'Diproses': { bg:'#f0f7fb', color:'#1A77A3', icon:<RefreshCw className="w-2.5 h-2.5"/> },
     'Selesai':  { bg:'#f0fdf4', color:'#144f6b', icon:<CheckCircle2 className="w-2.5 h-2.5"/> },
     'Ditolak':  { bg:'#fef2f2', color:'#dc2626', icon:<Ban className="w-2.5 h-2.5"/> },
   };
@@ -304,7 +319,7 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
         <div className="px-6 py-5 flex-shrink-0" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',cursor:'move'}} onMouseDown={onMouseDown}>
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-4">
-              <AvatarMember name={member.fullName} role={member.familyRole} size={56}/>
+              <AvatarMember name={member.fullName} role={member.familyRole} size={56} photo={member.photo}/>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-white font-bold" style={{fontSize:'17px'}}>{member.fullName}</h3>
@@ -343,11 +358,11 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
             {TABS.map(t=>(
               <button key={t.id} onMouseDown={e=>e.preventDefault()} onClick={()=>setTab(t.id as any)}
                 className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                style={{background:tab===t.id?'#FFEFB2':'transparent',color:tab===t.id?'#384959':'rgba(255,255,255,0.5)'}}>
+                style={{background:tab===t.id?'#e8ecf0':'transparent',color:tab===t.id?'#144f6b':'rgba(255,255,255,0.5)'}}>
                 {t.label}
                 {t.count !== null && (
                   <span className="px-1.5 py-0.5 rounded-full text-xs font-bold leading-none"
-                    style={{background:tab===t.id?'rgba(56,73,89,0.15)':'rgba(255,255,255,0.1)',color:tab===t.id?'#384959':'rgba(255,255,255,0.4)',fontSize:'10px'}}>
+                    style={{background:tab===t.id?'rgba(20,79,107,0.15)':'rgba(255,255,255,0.1)',color:tab===t.id?'#144f6b':'rgba(255,255,255,0.4)',fontSize:'10px'}}>
                     {t.count}
                   </span>
                 )}
@@ -422,8 +437,8 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
               </div>
               {member.otherHistory && (
                 <div>
-                  <SectionHeader icon={<FileText className="w-3.5 h-3.5 text-[#144f6b]"/>} title="Riwayat Gerejawi"/>
-                  <p style={{fontSize:'12.5px',color:'#4b5563',lineHeight:1.7}}>{member.churchExperience||'—'}</p>
+                  <SectionHeader icon={<FileText className="w-3.5 h-3.5 text-[#144f6b]"/>} title="Riwayat Lain"/>
+                  <p style={{fontSize:'12.5px',color:'#4b5563',lineHeight:1.7}}>{member.otherHistory||'—'}</p>
                 </div>
               )}
             </div>
@@ -435,6 +450,31 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
                 <InfoRow label="No. Handphone" value={member.phone}/>
                 <InfoRow label="No. Telp Rumah" value={member.homePhone}/>
                 <InfoRow label="Email" value={member.email}/>
+                {(member.phone || member.email) && (
+                  <div className="flex items-center flex-wrap gap-2 pt-3 mt-1">
+                    {member.phone && (
+                      <a href={toWaLink(member.phone)} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white"
+                        style={{background:'#2f8f5b'}}>
+                        <MessageCircle className="w-3.5 h-3.5"/> WhatsApp
+                      </a>
+                    )}
+                    {member.phone && (
+                      <a href={`tel:${member.phone}`}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white"
+                        style={{background:'#144f6b'}}>
+                        <Phone className="w-3.5 h-3.5"/> Telepon
+                      </a>
+                    )}
+                    {member.email && (
+                      <a href={`mailto:${member.email}`}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border"
+                        style={{borderColor:'#e2e8f0',color:'#374151'}}>
+                        <Mail className="w-3.5 h-3.5"/> Email
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
               <div>
                 <SectionHeader icon={<Home className="w-3.5 h-3.5 text-[#144f6b]"/>} title="Alamat"/>
@@ -608,7 +648,7 @@ function AssetsTabContent({ memberAssets, borrowedAssets }: {
 }) {
             const condCfg: Record<string,{text:string;bg:string;border:string}> = {
               'Baik':         {text:'#144f6b',bg:'#f0fdf4',border:'#b8d5e8'},
-              'Cukup Baik':   {text:'#2563eb',bg:'#eff6ff',border:'#bfdbfe'},
+              'Cukup Baik':   {text:'#1A77A3',bg:'#f0f7fb',border:'#b8d5e8'},
               'Rusak Ringan': {text:'#9c9486',bg:'#f6f4f0',border:'#e8e4d8'},
               'Rusak Berat':  {text:'#dc2626',bg:'#fef2f2',border:'#fecaca'},
               'Tidak Layak':  {text:'#7f1d1d',bg:'#fff1f2',border:'#fca5a5'},
@@ -861,7 +901,7 @@ const EMPTY_FORM = {
   homePhone:'', phone:'', email:'',
   position:'', pelkatStatus:'', familyId:'', sectorId:'', address:'',
   membershipStatus:'Aktif' as any, membershipType:'Warga Jemaat' as any,
-  joinDate:'', notes:'', otherHistory:''
+  joinDate:'', notes:'', otherHistory:'', photo:''
 };
 
 // ── MemberField — module level agar tidak re-mount tiap render ──────────────
@@ -981,6 +1021,59 @@ function MemberForm({ mode, initial, sectors, families, attestations, members, o
     loadMemberDocuments();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editMember?.id]);
+
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoFileInputRef = React.useRef<HTMLInputElement>(null);
+  const handleUploadPhotoClick = () => photoFileInputRef.current?.click();
+
+  const handlePhotoFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const isImage = file.type.startsWith('image/') || /\.(jpe?g|png|webp)$/i.test(file.name);
+    if (!isImage) {
+      toast.error('Hanya file gambar (JPG, PNG, WEBP) yang diperbolehkan');
+      return;
+    }
+    if (file.size > MAX_PHOTO_SOURCE_BYTES) {
+      toast.error(`Ukuran file melebihi batas 8MB (file ini ${formatBytes(file.size)})`);
+      return;
+    }
+    setUploadingPhoto(true);
+    try {
+      const rawDataUrl: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('Gagal membaca file'));
+        reader.readAsDataURL(file);
+      });
+      const compressed = await new Promise<string>((resolve, reject) => {
+        const img = new window.Image();
+        img.onload = () => {
+          const MAX_DIM = 400;
+          let width = img.width, height = img.height;
+          if (width > height && width > MAX_DIM) { height = Math.round(height * MAX_DIM / width); width = MAX_DIM; }
+          else if (height >= width && height > MAX_DIM) { width = Math.round(width * MAX_DIM / height); height = MAX_DIM; }
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) { reject(new Error('Canvas tidak didukung')); return; }
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        };
+        img.onerror = () => reject(new Error('Gagal memuat gambar'));
+        img.src = rawDataUrl;
+      });
+      h('photo', compressed);
+      toast.success('Foto berhasil ditambahkan. Klik Simpan untuk menyimpan perubahan');
+    } catch (err) {
+      toast.error('Gagal memproses foto. Silakan coba lagi');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleRemovePhoto = () => h('photo', '');
 
   const handleUploadDocClick = () => docFileInputRef.current?.click();
 
@@ -1105,8 +1198,8 @@ function MemberForm({ mode, initial, sectors, families, attestations, members, o
                 title={t.disabled ? 'Tersedia setelah data anggota disimpan' : undefined}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
                 style={{
-                  background: tab===t.id && !t.disabled ? '#FFEFB2' : 'transparent',
-                  color: t.disabled ? 'rgba(255,255,255,0.25)' : (tab===t.id?'#384959':'rgba(255,255,255,0.5)'),
+                  background: tab===t.id && !t.disabled ? '#e8ecf0' : 'transparent',
+                  color: t.disabled ? 'rgba(255,255,255,0.25)' : (tab===t.id?'#144f6b':'rgba(255,255,255,0.5)'),
                   cursor: t.disabled ? 'not-allowed' : 'pointer',
                 }}>
                 {t.label}
@@ -1123,6 +1216,28 @@ function MemberForm({ mode, initial, sectors, families, attestations, members, o
         <div className="flex-1 overflow-y-auto p-6">
           {tab==='identitas' && (
             <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2 flex items-center gap-4 pb-3 mb-1" style={{borderBottom:'1px solid #e2e8f0'}}>
+                <AvatarMember name={`${form.firstName} ${form.lastName}`.trim() || 'Warga'} role={form.familyRole} size={64} photo={form.photo}/>
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={handleUploadPhotoClick} disabled={uploadingPhoto}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-60"
+                      style={{background:'#144f6b'}}>
+                      {uploadingPhoto ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <Upload className="w-3.5 h-3.5"/>}
+                      {form.photo ? 'Ganti Foto' : 'Unggah Foto'}
+                    </button>
+                    {form.photo && (
+                      <button type="button" onClick={handleRemovePhoto}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border"
+                        style={{borderColor:'#e2e8f0',color:'#64748b'}}>
+                        <X className="w-3.5 h-3.5"/> Hapus
+                      </button>
+                    )}
+                    <input ref={photoFileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoFileSelected}/>
+                  </div>
+                  <p style={{fontSize:'11px',color:'#94a3b8'}}>Format JPG/PNG/WEBP, maks 8MB. Foto otomatis dioptimalkan &amp; dikompres.</p>
+                </div>
+              </div>
               <MemberField label="Nama Depan" value={form.firstName} onChange={v=>h('firstName',v)} required autoFocus/>
               <MemberField label="Nama Belakang" value={form.lastName} onChange={v=>h('lastName',v)}/>
               <MemberField label="Nama Keluarga (Marga)" value={form.familyName} onChange={v=>h('familyName',v)}/>
@@ -1196,6 +1311,14 @@ function MemberForm({ mode, initial, sectors, families, attestations, members, o
               <div className="col-span-2">
                 <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Pengalaman Gerejawi</label>
                 <textarea value={form.churchExperience} onChange={e=>h('churchExperience',e.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none" style={{borderColor:'#e2e8f0'}}/>
+              </div>
+              <div className="col-span-2">
+                <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Riwayat Lain</label>
+                <textarea value={form.otherHistory} onChange={e=>h('otherHistory',e.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none" style={{borderColor:'#e2e8f0'}}/>
+              </div>
+              <div className="col-span-2">
+                <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Catatan</label>
+                <textarea value={form.notes} onChange={e=>h('notes',e.target.value)} rows={2} placeholder="Catatan tambahan tentang warga ini" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none" style={{borderColor:'#e2e8f0'}}/>
               </div>
             </div>
           )}
@@ -1406,8 +1529,8 @@ function mapJemaatFmt(row: Record<string, any>, sectors: any[]): Omit<Member, 'i
     membershipStatus,
     membershipType: 'Warga Jemaat' as any,
     joinDate: joinDate || undefined,
-    notes: String(row['Riwayat Lain'] || '').trim() || undefined,
-    otherHistory: undefined, ministries: [],
+    notes: undefined,
+    otherHistory: String(row['Riwayat Lain'] || '').trim() || undefined, ministries: [],
   };
 }
 
@@ -1420,7 +1543,7 @@ function detectFormat(headers: string[]): 'jemaat' | 'gemas' | null {
 function ImportMembersModal({ sectors, existingMembers, onImport, onClose }: {
   sectors: any[];
   existingMembers: Member[];
-  onImport: (rows: Omit<Member, 'id' | 'createdAt' | 'updatedAt'>[]) => Promise<void>;
+  onImport: (rows: Omit<Member, 'id' | 'createdAt' | 'updatedAt'>[], toUpdate: { id: string; data: Omit<Member, 'id' | 'createdAt' | 'updatedAt'> }[]) => Promise<void>;
   onClose: () => void;
 }) {
   const { offset, onMouseDown } = useDraggable();
@@ -1430,6 +1553,8 @@ function ImportMembersModal({ sectors, existingMembers, onImport, onClose }: {
   const [format, setFormat] = useState<'jemaat' | 'gemas' | null>(null);
   const [importing, setImporting] = useState(false);
   const [doneCount, setDoneCount] = useState(0);
+  const [doneUpdateCount, setDoneUpdateCount] = useState(0);
+  const [updateMode, setUpdateMode] = useState(false);
   const [previewTab, setPreviewTab] = useState<'new' | 'dupe' | 'error'>('new');
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -1504,8 +1629,12 @@ function ImportMembersModal({ sectors, existingMembers, onImport, onClose }: {
   const handleImport = async () => {
     setImporting(true);
     const toImport = newRows.map(r => r.mapped!);
-    await onImport(toImport);
+    const toUpdate = updateMode
+      ? dupeRows.filter(r => r.mapped && r.duplicateId).map(r => ({ id: r.duplicateId!, data: r.mapped! }))
+      : [];
+    await onImport(toImport, toUpdate);
     setDoneCount(toImport.length);
+    setDoneUpdateCount(toUpdate.length);
     setStep('done');
     setImporting(false);
   };
@@ -1517,7 +1646,7 @@ function ImportMembersModal({ sectors, existingMembers, onImport, onClose }: {
       <div className="w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{ maxHeight: '90vh', transform:`translate(${offset.x}px,${offset.y}px)` }} onClick={e => e.stopPropagation()}>
 
         {/* Header */}
-        <div className="px-6 py-4 flex items-center justify-between border-b" style={{ background: '#384959', cursor:'move' }} onMouseDown={onMouseDown}>
+        <div className="px-6 py-4 flex items-center justify-between border-b" style={{ background: '#144f6b', cursor:'move' }} onMouseDown={onMouseDown}>
           <div>
             <h3 className="text-white font-bold" style={{ fontSize: '15px' }}>Import Data Jemaat</h3>
             <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
@@ -1534,10 +1663,10 @@ function ImportMembersModal({ sectors, existingMembers, onImport, onClose }: {
           {(['upload', 'preview', 'done'] as ImportStep[]).map((s, i) => (
             <div key={s} className="flex-1 flex items-center gap-2 px-4 py-2.5">
               <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                style={{ background: step === s ? '#384959' : ((['upload','preview','done'].indexOf(step) > i) ? '#144f6b' : '#e2e8f0'), color: step === s || ['upload','preview','done'].indexOf(step) > i ? '#fff' : '#94a3b8' }}>
+                style={{ background: step === s ? '#144f6b' : ((['upload','preview','done'].indexOf(step) > i) ? '#144f6b' : '#e2e8f0'), color: step === s || ['upload','preview','done'].indexOf(step) > i ? '#fff' : '#94a3b8' }}>
                 {['upload','preview','done'].indexOf(step) > i ? '✓' : i + 1}
               </div>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: step === s ? '#384959' : '#94a3b8' }}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: step === s ? '#144f6b' : '#94a3b8' }}>
                 {s === 'upload' ? 'Upload' : s === 'preview' ? 'Preview' : 'Selesai'}
               </span>
               {i < 2 && <div className="flex-1 h-px ml-2" style={{ background: ['upload','preview','done'].indexOf(step) > i ? '#144f6b' : '#e2e8f0' }} />}
@@ -1561,7 +1690,7 @@ function ImportMembersModal({ sectors, existingMembers, onImport, onClose }: {
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: '#f0f7fb' }}>
                   <Download className="w-7 h-7" style={{ color: '#144f6b', transform: 'rotate(180deg)' }} />
                 </div>
-                <p style={{ fontSize: '14px', fontWeight: 700, color: '#384959' }}>Drag & drop file di sini</p>
+                <p style={{ fontSize: '14px', fontWeight: 700, color: '#144f6b' }}>Drag & drop file di sini</p>
                 <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: 4 }}>atau klik untuk pilih file</p>
                 <div className="flex justify-center gap-2 mt-4">
                   {['.xlsx', '.xls', '.csv'].map(ext => (
@@ -1572,7 +1701,7 @@ function ImportMembersModal({ sectors, existingMembers, onImport, onClose }: {
               <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) processFile(f); }} />
 
               <div className="mt-5 p-4 rounded-xl border" style={{ borderColor: '#e8e4d8', background: '#fefcf8' }}>
-                <p style={{ fontSize: '12px', fontWeight: 700, color: '#384959', marginBottom: 8 }}>Format yang didukung:</p>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: '#144f6b', marginBottom: 8 }}>Format yang didukung:</p>
                 <div className="space-y-1.5">
                   {[
                     ['Format SIJEMAAT / SIG', 'Kolom: Kode Keluarga, No Induk, Nama Pertama, Nama Belakang, Sektor, ...'],
@@ -1598,7 +1727,7 @@ function ImportMembersModal({ sectors, existingMembers, onImport, onClose }: {
               <div className="grid grid-cols-3 gap-3">
                 {([
                   { key: 'new' as const,   label: 'Akan Diimpor', count: newRows.length,   bg: '#f0fdf4', border: '#b8d5e8', color: '#144f6b' },
-                  { key: 'dupe' as const,  label: 'Sudah Ada',    count: dupeRows.length,  bg: '#fffbeb', border: '#fcd34d', color: '#b45309' },
+                  { key: 'dupe' as const,  label: 'Sudah Ada',    count: dupeRows.length,  bg: '#fdf6e8', border: '#eddca8', color: '#caa04a' },
                   { key: 'error' as const, label: 'Dilewati',     count: errorRows.length, bg: '#fef2f2', border: '#fca5a5', color: '#dc2626' },
                 ] as const).map(c => (
                   <button key={c.key} onClick={() => setPreviewTab(c.key)}
@@ -1622,8 +1751,8 @@ function ImportMembersModal({ sectors, existingMembers, onImport, onClose }: {
 
               {/* Sector warning */}
               {noSector.length > 0 && (
-                <div className="flex items-start gap-2 px-3 py-2 rounded-xl" style={{ background: '#fffbeb', border: '1px solid #fcd34d' }}>
-                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#b45309' }} />
+                <div className="flex items-start gap-2 px-3 py-2 rounded-xl" style={{ background: '#fdf6e8', border: '1px solid #eddca8' }}>
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#caa04a' }} />
                   <p style={{ fontSize: '12px', color: '#92400e' }}>
                     <strong>{noSector.length} anggota</strong> tidak dapat dicocokkan ke sektor yang ada — sektor akan dikosongkan, bisa diisi manual setelah import.
                   </p>
@@ -1640,7 +1769,7 @@ function ImportMembersModal({ sectors, existingMembers, onImport, onClose }: {
                   ] as const).map(t => (
                     <button key={t.key} onClick={() => setPreviewTab(t.key)}
                       className="px-4 py-2.5 text-xs font-semibold transition-all"
-                      style={{ color: previewTab === t.key ? '#384959' : '#94a3b8', borderBottom: previewTab === t.key ? '2px solid #384959' : '2px solid transparent', background: 'transparent' }}>
+                      style={{ color: previewTab === t.key ? '#144f6b' : '#94a3b8', borderBottom: previewTab === t.key ? '2px solid #144f6b' : '2px solid transparent', background: 'transparent' }}>
                       {t.label}
                     </button>
                   ))}
@@ -1678,24 +1807,32 @@ function ImportMembersModal({ sectors, existingMembers, onImport, onClose }: {
                   {previewTab === 'dupe' && (
                     dupeRows.length === 0
                       ? <p className="text-center py-8 text-sm" style={{ color: '#94a3b8' }}>Tidak ada duplikat</p>
-                      : <table className="w-full text-xs">
-                          <thead>
-                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                              {['Nama', 'No. Induk', 'Keterangan'].map(h => (
-                                <th key={h} className="px-3 py-2 text-left font-semibold" style={{ color: '#64748b' }}>{h}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {dupeRows.slice(0, 50).map((r, i) => (
-                              <tr key={i} className="border-b" style={{ borderColor: '#f1f5f9' }}>
-                                <td className="px-3 py-2 font-medium" style={{ color: '#334155' }}>{r.mapped?.fullName}</td>
-                                <td className="px-3 py-2 font-mono" style={{ color: '#94a3b8' }}>{r.mapped?.memberNumber || '—'}</td>
-                                <td className="px-3 py-2" style={{ color: '#b45309' }}>Sudah ada, dilewati</td>
+                      : <div>
+                          <label className="flex items-start gap-2 mb-3 p-3 rounded-xl cursor-pointer" style={{ background: '#fdf6e8', border: '1px solid #eddca8' }}>
+                            <input type="checkbox" checked={updateMode} onChange={e => setUpdateMode(e.target.checked)} className="mt-0.5"/>
+                            <span style={{ fontSize: '12px', color: '#7a5c17' }}>
+                              <strong>Mode Update:</strong> perbarui data anggota yang sudah ada di database dengan data dari file ini, alih-alih dilewati. Data lama akan ditimpa oleh data pada file impor untuk {dupeRows.length} anggota berikut.
+                            </span>
+                          </label>
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                {['Nama', 'No. Induk', 'Keterangan'].map(h => (
+                                  <th key={h} className="px-3 py-2 text-left font-semibold" style={{ color: '#64748b' }}>{h}</th>
+                                ))}
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody>
+                              {dupeRows.slice(0, 50).map((r, i) => (
+                                <tr key={i} className="border-b" style={{ borderColor: '#f1f5f9' }}>
+                                  <td className="px-3 py-2 font-medium" style={{ color: '#334155' }}>{r.mapped?.fullName}</td>
+                                  <td className="px-3 py-2 font-mono" style={{ color: '#94a3b8' }}>{r.mapped?.memberNumber || '—'}</td>
+                                  <td className="px-3 py-2" style={{ color: updateMode ? '#2f8f5b' : '#caa04a' }}>{updateMode ? 'Akan diperbarui' : 'Sudah ada, dilewati'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                   )}
                   {previewTab === 'error' && (
                     errorRows.length === 0
@@ -1733,8 +1870,11 @@ function ImportMembersModal({ sectors, existingMembers, onImport, onClose }: {
               <p style={{ fontSize: '13px', color: '#64748b' }}>
                 <strong style={{ color: '#144f6b' }}>{doneCount} anggota</strong> berhasil ditambahkan ke database.
               </p>
-              {dupeRows.length > 0 && (
-                <p style={{ fontSize: '12px', color: '#b45309', marginTop: 6 }}>{dupeRows.length} data duplikat dilewati.</p>
+              {doneUpdateCount > 0 && (
+                <p style={{ fontSize: '12px', color: '#2f8f5b', marginTop: 6 }}><strong>{doneUpdateCount} anggota</strong> berhasil diperbarui.</p>
+              )}
+              {dupeRows.length > 0 && doneUpdateCount === 0 && (
+                <p style={{ fontSize: '12px', color: '#caa04a', marginTop: 6 }}>{dupeRows.length} data duplikat dilewati.</p>
               )}
             </div>
           )}
@@ -1748,16 +1888,16 @@ function ImportMembersModal({ sectors, existingMembers, onImport, onClose }: {
           {step === 'preview' && (
             <div className="flex items-center gap-3">
               <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-                {newRows.length} anggota baru akan ditambahkan
+                {newRows.length} anggota baru{updateMode && dupeRows.length > 0 ? ` · ${dupeRows.length} akan diperbarui` : ''}
               </span>
               <button
                 onClick={handleImport}
-                disabled={importing || newRows.length === 0}
+                disabled={importing || (newRows.length === 0 && !(updateMode && dupeRows.length > 0))}
                 className="flex items-center gap-2 px-5 py-2 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: '#384959' }}
+                style={{ background: '#144f6b' }}
               >
                 {importing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4 rotate-180" />}
-                Import {newRows.length} Anggota
+                Import {newRows.length}{updateMode && dupeRows.length > 0 ? ` + Update ${dupeRows.length}` : ''} Anggota
               </button>
             </div>
           )}
@@ -1765,7 +1905,7 @@ function ImportMembersModal({ sectors, existingMembers, onImport, onClose }: {
             <span style={{ fontSize: '12px', color: '#94a3b8' }}>Pilih file untuk melanjutkan</span>
           )}
           {step === 'done' && (
-            <button onClick={() => { setStep('upload'); setFileName(''); setParsed([]); }} className="px-4 py-2 rounded-xl text-sm font-medium border hover:bg-gray-50 transition-all" style={{ borderColor: '#e2e8f0', color: '#384959' }}>
+            <button onClick={() => { setStep('upload'); setFileName(''); setParsed([]); }} className="px-4 py-2 rounded-xl text-sm font-medium border hover:bg-gray-50 transition-all" style={{ borderColor: '#e2e8f0', color: '#144f6b' }}>
               Import File Lain
             </button>
           )}
@@ -1784,7 +1924,7 @@ const MEMBER_TABLE_DEFAULT_WIDTHS: Record<string, number> = {
 export function MemberDatabase() {
   const { offset: offset1, onMouseDown: onMouseDown1 } = useDraggable();
   const { offset: offset2, onMouseDown: onMouseDown2 } = useDraggable();
-  const { members, sectors, families, addMember, updateMember, deleteMember, currentUser, attestations, can, reloadData, getMasterDataByCategory, pendingMemberDraft, setPendingMemberDraft } = useApp();
+  const { members, sectors, families, addMember, updateMember, deleteMember, currentUser, attestations, churchAssets, can, reloadData, getMasterDataByCategory, pendingMemberDraft, setPendingMemberDraft } = useApp();
 
   const canCreate = can('members', 'create');
   const canEdit   = can('members', 'edit');
@@ -1808,6 +1948,35 @@ export function MemberDatabase() {
   const [showForm, setShowForm] = useState(false);
   const [formMode, setFormMode] = useState<'add'|'edit'>('add');
   const [deleteTarget, setDeleteTarget] = useState<Member|null>(null);
+  const [deleteLinked, setDeleteLinked] = useState<{ attestations: number; assetsManaged: number; assetsBorrowed: number; documents: number } | null>(null);
+  const [deleteLinkedLoading, setDeleteLinkedLoading] = useState(false);
+  useEffect(() => {
+    if (!deleteTarget) { setDeleteLinked(null); return; }
+    setDeleteLinkedLoading(true);
+    const nm = deleteTarget.fullName.toLowerCase();
+    const memberAttCount = attestations.filter(a =>
+      (a.memberId && a.memberId === deleteTarget.id) || (!a.memberId && a.memberName?.toLowerCase() === nm)
+    ).length;
+    let assetsManaged = 0, assetsBorrowed = 0;
+    churchAssets.forEach(a => {
+      const isManaged = a.memberId
+        ? a.memberId === deleteTarget.id
+        : (() => { const rp = (a.responsiblePerson||'').toLowerCase(); return rp && (rp.includes(nm)||nm.includes(rp)); })();
+      const isBorrowed = (a.loanStatus||'Tersedia') === 'Dipinjam' && (
+        (a.borrowedById && a.borrowedById === deleteTarget.id) ||
+        (!a.borrowedById && a.borrowedByName && a.borrowedByName.toLowerCase().includes(nm))
+      );
+      if (isBorrowed) assetsBorrowed++;
+      else if (isManaged) assetsManaged++;
+    });
+    api.get<MemberDocument[]>('/api/data/memberDocuments').then(all => {
+      const documents = (all||[]).filter(d => d.memberId === deleteTarget.id).length;
+      setDeleteLinked({ attestations: memberAttCount, assetsManaged, assetsBorrowed, documents });
+    }).catch(() => {
+      setDeleteLinked({ attestations: memberAttCount, assetsManaged, assetsBorrowed, documents: 0 });
+    }).finally(() => setDeleteLinkedLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deleteTarget?.id]);
   const [cardFamily, setCardFamily] = useState<any>(null);
   const [showImport, setShowImport] = useState(false);
   const [pageSize, setPageSize] = useState<number|'all'>(25);
@@ -1893,7 +2062,12 @@ export function MemberDatabase() {
     }
     return [...r].sort((a,b)=>{
       const av=(a as any)[sort.col]??'', bv=(b as any)[sort.col]??'';
-      const cmp=String(av).localeCompare(String(bv));
+      // Bandingkan sebagai angka jika keduanya numerik (mis. kolom Usia), supaya urutan
+      // tidak jadi leksikografis ("10" sebelum "9"); selain itu tetap pakai localeCompare
+      // numeric-aware untuk kolom string yang mengandung angka (mis. nama sektor).
+      const cmp = (typeof av === 'number' && typeof bv === 'number')
+        ? av - bv
+        : String(av).localeCompare(String(bv), 'id', { numeric: true });
       return sort.dir==='asc'?cmp:-cmp;
     });
   },[members,searchQ,sectorF,statusF,genderF,pelkatF,ageF,periodeField,periodeFrom,periodeTo,sort]);
@@ -1927,11 +2101,17 @@ export function MemberDatabase() {
     }
     setShowForm(false); setSelected(null);
   };
+  const deleteBlocked = !!(deleteLinked && (deleteLinked.attestations>0 || deleteLinked.assetsManaged>0 || deleteLinked.assetsBorrowed>0 || deleteLinked.documents>0));
   const handleDelete = () => {
-    if(deleteTarget) { deleteMember(deleteTarget.id); setDeleteTarget(null); setShowDetail(false); }
+    if (!deleteTarget) return;
+    if (deleteBlocked) { toast.error('Tidak dapat menghapus, masih ada data terkait yang harus diselesaikan terlebih dahulu'); return; }
+    deleteMember(deleteTarget.id); setDeleteTarget(null); setShowDetail(false);
   };
 
-  const handleImportMembers = async (rows: Omit<Member, 'id' | 'createdAt' | 'updatedAt'>[]) => {
+  const handleImportMembers = async (
+    rows: Omit<Member, 'id' | 'createdAt' | 'updatedAt'>[],
+    toUpdate: { id: string; data: Omit<Member, 'id' | 'createdAt' | 'updatedAt'> }[] = [],
+  ) => {
     try {
       const res = await api.post<{ ok: boolean; imported: number; duplicates: number; familiesCreated: number; familiesUpdated: number; sectorsUpdated: number }>(
         '/api/admin/members/import',
@@ -1948,6 +2128,10 @@ export function MemberDatabase() {
       // fallback: import individual via addMember
       rows.forEach(r => addMember(r));
       toast.success(`${rows.length} anggota berhasil diimpor`);
+    }
+    if (toUpdate.length > 0) {
+      toUpdate.forEach(u => updateMember(u.id, u.data));
+      toast.success(`${toUpdate.length} anggota berhasil diperbarui dari file impor`);
     }
   };
 
@@ -2065,7 +2249,7 @@ export function MemberDatabase() {
             </button>
           )}
           {canCreate && (
-            <button onClick={()=>setShowImport(true)} className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border hover:bg-gray-50 transition-all" style={{borderColor:'#e2e8f0',color:'#384959'}}>
+            <button onClick={()=>setShowImport(true)} className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border hover:bg-gray-50 transition-all" style={{borderColor:'#e2e8f0',color:'#144f6b'}}>
               <ArrowRight className="w-4 h-4 rotate-90"/> Import Excel
             </button>
           )}
@@ -2080,14 +2264,14 @@ export function MemberDatabase() {
       {/* KPI Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
         {[
-          {label:'Total Anggota',value:stats.total,           color:'#0f172a',bg:'#f8fafc',border:'#e2e8f0',list:members},
-          {label:'Aktif',        value:stats.aktif.length,     color:'#144f6b',bg:'#f0fdf4',border:'#b8d5e8',list:stats.aktif},
-          {label:'Pindah',       value:stats.pindah.length,    color:'#2563eb',bg:'#eff6ff',border:'#bfdbfe',list:stats.pindah},
+          {label:'Total Anggota',value:stats.total,           color:'#144f6b',bg:'#e8ecf0',border:'#b8d5e8',list:members},
+          {label:'Aktif',        value:stats.aktif.length,     color:'#2f8f5b',bg:'#f0f9f4',border:'#bfe3cf',list:stats.aktif},
+          {label:'Pindah',       value:stats.pindah.length,    color:'#1A77A3',bg:'#f0f7fb',border:'#b8d5e8',list:stats.pindah},
           {label:'Meninggal',    value:stats.meninggal.length, color:'#64748b',bg:'#f8fafc',border:'#e2e8f0',list:stats.meninggal},
-          {label:'Tidak Aktif',  value:stats.tidakAktif.length,color:'#b45309',bg:'#fffbeb',border:'#fde68a',list:stats.tidakAktif},
-          {label:'Laki-Laki',    value:stats.lakiLaki.length,  color:'#2563eb',bg:'#eff6ff',border:'#bfdbfe',list:stats.lakiLaki},
-          {label:'Perempuan',    value:stats.perempuan.length, color:'#3a7fa0',bg:'#fdf2f8',border:'#fbcfe8',list:stats.perempuan},
-          {label:'Sudah Sidi',   value:stats.sudahSidi.length, color:'#144f6b',bg:'#f0fdf4',border:'#b8d5e8',list:stats.sudahSidi},
+          {label:'Tidak Aktif',  value:stats.tidakAktif.length,color:'#caa04a',bg:'#fdf6e8',border:'#eddca8',list:stats.tidakAktif},
+          {label:'Laki-Laki',    value:stats.lakiLaki.length,  color:'#1A77A3',bg:'#f0f7fb',border:'#b8d5e8',list:stats.lakiLaki},
+          {label:'Perempuan',    value:stats.perempuan.length, color:'#8b6bb1',bg:'#f5f3ff',border:'#ddd6f3',list:stats.perempuan},
+          {label:'Sudah Sidi',   value:stats.sudahSidi.length, color:'#2f8f5b',bg:'#f0f9f4',border:'#bfe3cf',list:stats.sudahSidi},
         ].map((s,i)=>(
           <div key={i}
             onClick={()=>{setKpiDetail({label:s.label,list:s.list});setKpiSearch('');}}
@@ -2306,7 +2490,7 @@ export function MemberDatabase() {
                       <td className="px-4 py-3 text-xs font-mono" style={{color:'#64748b'}}>{m.memberNumber||'—'}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
-                          <AvatarMember name={m.fullName} role={m.familyRole} size={30}/>
+                          <AvatarMember name={m.fullName} role={m.familyRole} size={30} photo={m.photo}/>
                           <div>
                             <p style={{fontSize:'13px',fontWeight:600,color:'#334155'}}>{m.fullName}</p>
                             {isBday && <span style={{fontSize:'10px',color:'#9c9486'}}>🎂 Ulang tahun bulan ini</span>}
@@ -2369,7 +2553,7 @@ export function MemberDatabase() {
               return (
                 <div key={m.id} className="rounded-2xl border bg-white p-4 hover:shadow-md transition-shadow" style={{borderColor:'#e2e8f0'}}>
                   <div className="flex items-start gap-3 mb-3">
-                    <AvatarMember name={m.fullName} role={m.familyRole} size={42}/>
+                    <AvatarMember name={m.fullName} role={m.familyRole} size={42} photo={m.photo}/>
                     <div className="flex-1 min-w-0">
                       <p data-tooltip={m.fullName} data-tooltip-truncate className="truncate" style={{fontSize:'13.5px',fontWeight:700,color:'#334155'}}>{m.fullName}</p>
                       <p style={{fontSize:'11px',color:'#94a3b8'}}>{m.memberNumber||'—'}</p>
@@ -2383,7 +2567,15 @@ export function MemberDatabase() {
                     <div className="flex items-center gap-1.5" style={{fontSize:'11.5px',color:'#64748b'}}>
                       <Calendar className="w-3 h-3 flex-shrink-0"/><span>{liveAge(m)} tahun · {m.gender}</span>
                     </div>
-                    {m.phone && <div className="flex items-center gap-1.5" style={{fontSize:'11.5px',color:'#64748b'}}><Phone className="w-3 h-3"/><span>{m.phone}</span></div>}
+                    {m.phone && (
+                      <div className="flex items-center justify-between gap-1.5" style={{fontSize:'11.5px',color:'#64748b'}}>
+                        <span className="flex items-center gap-1.5 min-w-0"><Phone className="w-3 h-3 flex-shrink-0"/><span className="truncate">{m.phone}</span></span>
+                        <a data-tooltip="Chat WhatsApp" href={toWaLink(m.phone)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()}
+                          className="p-1 rounded-md hover:bg-[#f0f9f4] transition-colors flex-shrink-0">
+                          <MessageCircle className="w-3.5 h-3.5" style={{color:'#2f8f5b'}}/>
+                        </a>
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center justify-between">
                     <StatusBadge status={m.membershipStatus}/>
@@ -2461,7 +2653,7 @@ export function MemberDatabase() {
                             <td className="px-4 py-2.5 text-xs font-mono" style={{color:'#cbd5e1'}}>{i+1}</td>
                             <td className="px-4 py-2.5">
                               <div className="flex items-center gap-2">
-                                <AvatarMember name={m.fullName} role={m.familyRole} size={28}/>
+                                <AvatarMember name={m.fullName} role={m.familyRole} size={28} photo={m.photo}/>
                                 <div>
                                   <p style={{fontSize:'12.5px',fontWeight:600,color:'#334155'}}>{m.fullName}</p>
                                   {m.memberNumber && <p style={{fontSize:'10px',color:'#94a3b8'}}>{m.memberNumber}</p>}
@@ -2473,8 +2665,8 @@ export function MemberDatabase() {
                             <td className="px-4 py-2.5">
                               <span className="px-2 py-0.5 rounded-full text-xs font-medium"
                                 style={{
-                                  background:m.membershipStatus==='Aktif'?'#f0fdf4':m.membershipStatus==='Pindah'?'#eff6ff':'#f8fafc',
-                                  color:m.membershipStatus==='Aktif'?'#144f6b':m.membershipStatus==='Pindah'?'#2563eb':'#64748b'
+                                  background:m.membershipStatus==='Aktif'?'#f0fdf4':m.membershipStatus==='Pindah'?'#f0f7fb':'#f8fafc',
+                                  color:m.membershipStatus==='Aktif'?'#144f6b':m.membershipStatus==='Pindah'?'#1A77A3':'#64748b'
                                 }}>
                                 {m.membershipStatus||'—'}
                               </span>
@@ -2525,10 +2717,25 @@ export function MemberDatabase() {
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{background:'#fef2f2',cursor:'move'}} onMouseDown={onMouseDown2}><Trash2 className="w-6 h-6 text-red-500"/></div>
             <h3 style={{fontSize:'16px',fontWeight:700,color:'#0f172a',marginBottom:8}}>Hapus Anggota?</h3>
             <p style={{fontSize:'13px',color:'#64748b',marginBottom:8}}>Data <strong>{deleteTarget.fullName}</strong> akan dihapus secara permanen.</p>
-            <p style={{fontSize:'12px',color:'#94a3b8',marginBottom:24}}>Tindakan ini tidak dapat dibatalkan.</p>
+            {deleteLinkedLoading ? (
+              <p style={{fontSize:'12px',color:'#94a3b8',marginBottom:24}}>Memeriksa data terkait...</p>
+            ) : deleteBlocked ? (
+              <div className="text-left rounded-xl p-3 mb-5" style={{background:'#fdf6e8',border:'1px solid #eddca8'}}>
+                <p style={{fontSize:'12px',fontWeight:700,color:'#7a5c17',marginBottom:6}}>⚠ Tidak dapat dihapus — masih ada data terkait:</p>
+                <ul style={{fontSize:'11.5px',color:'#7a5c17',paddingLeft:16,lineHeight:1.7,margin:0}}>
+                  {deleteLinked!.attestations>0 && <li>{deleteLinked!.attestations} data atestasi</li>}
+                  {deleteLinked!.assetsManaged>0 && <li>{deleteLinked!.assetsManaged} aset yang dikelola/ditanggungjawabi</li>}
+                  {deleteLinked!.assetsBorrowed>0 && <li>{deleteLinked!.assetsBorrowed} aset yang sedang dipinjam</li>}
+                  {deleteLinked!.documents>0 && <li>{deleteLinked!.documents} dokumen terlampir</li>}
+                </ul>
+                <p style={{fontSize:'11px',color:'#7a5c17',marginTop:6,marginBottom:0}}>Selesaikan atau pindahkan data di atas terlebih dahulu sebelum menghapus anggota ini.</p>
+              </div>
+            ) : (
+              <p style={{fontSize:'12px',color:'#94a3b8',marginBottom:24}}>Tindakan ini tidak dapat dibatalkan.</p>
+            )}
             <div className="flex gap-3">
               <button onClick={()=>setDeleteTarget(null)} className="flex-1 py-2.5 rounded-xl border font-medium text-gray-600 hover:bg-gray-50 transition-colors text-sm" style={{borderColor:'#e2e8f0'}}>Batal</button>
-              <button onClick={handleDelete} className="flex-1 py-2.5 rounded-xl text-white font-semibold text-sm transition-all hover:opacity-90" style={{background:'#ef4444'}}>Hapus</button>
+              <button onClick={handleDelete} disabled={deleteLinkedLoading || deleteBlocked} className="flex-1 py-2.5 rounded-xl text-white font-semibold text-sm transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed" style={{background:'#ef4444'}}>Hapus</button>
             </div>
           </div>
         </div>
