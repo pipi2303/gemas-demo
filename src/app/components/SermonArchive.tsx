@@ -1,10 +1,12 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Resource } from '../types';
-import { BookOpen, Search, Play, Pause, Download, User, Volume2, Sparkles, StopCircle, RefreshCw } from 'lucide-react';
+import { BookOpen, Search, Play, Pause, Download, User, Volume2, Sparkles, StopCircle, RefreshCw, Calendar, MapPin, AlertTriangle, FileDown } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 
 export function SermonArchive() {
-  const { resources, updateResource } = useApp();
+  const { resources, updateResource, worshipSchedules, can } = useApp();
+  const canExport = can('sermon-archive', 'export');
   const [search, setSearch] = useState('');
   const [activeTag, setActiveTag] = useState('Semua');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -32,7 +34,9 @@ export function SermonArchive() {
       const matchesSearch = !q ||
         s.title.toLowerCase().includes(q) ||
         (s.author || '').toLowerCase().includes(q) ||
-        (s.bibleVerse || '').toLowerCase().includes(q);
+        (s.bibleVerse || '').toLowerCase().includes(q) ||
+        (s.description || '').toLowerCase().includes(q) ||
+        (s.fullTranscript || '').toLowerCase().includes(q);
       return matchesTag && matchesSearch;
     });
   }, [sermons, activeTag, search]);
@@ -122,6 +126,77 @@ export function SermonArchive() {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+    updateResource(selected.id, { downloads: (selected.downloads || 0) + 1 });
+  };
+
+  const linkedSchedule = selected?.worshipScheduleId
+    ? worshipSchedules.find(ws => ws.id === selected.worshipScheduleId)
+    : undefined;
+  const hasOrphanLink = !!selected?.worshipScheduleId && !linkedSchedule;
+
+  const handleDownloadPDF = () => {
+    if (!selected) return;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const NAVY: [number, number, number] = [20, 79, 107];
+    const GOLD: [number, number, number] = [202, 160, 74];
+    let y = 34;
+
+    doc.setFillColor(...NAVY);
+    doc.rect(0, 0, pageWidth, 26, 'F');
+    doc.setFillColor(...GOLD);
+    doc.rect(0, 26, pageWidth, 1.5, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text('ARSIP KHOTBAH & RENUNGAN', pageWidth / 2, 11, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text('GPIB Trinitas', pageWidth / 2, 17, { align: 'center' });
+    doc.setFontSize(8);
+    doc.text(formatDate(selected.publishedDate), pageWidth / 2, 22.5, { align: 'center' });
+
+    doc.setTextColor(30, 41, 59);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    const titleLines = doc.splitTextToSize(selected.title, pageWidth - 28);
+    doc.text(titleLines, 14, y);
+    y += titleLines.length * 5.5 + 3;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(71, 85, 105);
+    if (selected.author) { doc.text(`Pelayan Firman: ${selected.author}`, 14, y); y += 5; }
+    if (selected.bibleVerse) { doc.text(`Nats Alkitab: ${selected.bibleVerse}`, 14, y); y += 5; }
+    if (linkedSchedule) { doc.text(`Ibadah: ${linkedSchedule.title} – ${formatDate(linkedSchedule.date)}`, 14, y); y += 5; }
+    y += 4;
+
+    const body = selected.fullTranscript || selected.description || 'Naskah belum tersedia.';
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(30, 41, 59);
+    const bodyLines = doc.splitTextToSize(body, pageWidth - 28);
+    bodyLines.forEach((line: string) => {
+      if (y > pageHeight - 20) { doc.addPage(); y = 16; }
+      doc.text(line, 14, y);
+      y += 5;
+    });
+
+    const totalPages = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.4);
+      doc.line(14, pageHeight - 12, pageWidth - 14, pageHeight - 12);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+      doc.setTextColor(148, 163, 184);
+      doc.text('Dokumen Internal GPIB Trinitas', 14, pageHeight - 7.5);
+      doc.text(`Halaman ${i} dari ${totalPages}`, pageWidth - 14, pageHeight - 7.5, { align: 'right' });
+    }
+
+    doc.save(`Khotbah-${selected.title.replace(/[^a-z0-9]+/gi, '-')}.pdf`);
     updateResource(selected.id, { downloads: (selected.downloads || 0) + 1 });
   };
 
@@ -287,6 +362,20 @@ export function SermonArchive() {
                       </div>
                     )}
                   </div>
+                  {linkedSchedule && (
+                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-600 bg-[#f0f7fb] border border-[#b8d5e8] rounded-lg px-3 py-2">
+                      <span className="flex items-center gap-1 font-medium text-[#144f6b]"><BookOpen className="w-3.5 h-3.5" />Ibadah Terkait:</span>
+                      <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{formatDate(linkedSchedule.date)}</span>
+                      <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{linkedSchedule.location}</span>
+                      <span className="truncate">{linkedSchedule.title}</span>
+                    </div>
+                  )}
+                  {hasOrphanLink && (
+                    <div className="mt-3 flex items-start gap-2 text-xs rounded-lg px-3 py-2" style={{ background: 'rgba(209,85,63,0.08)', color: '#b8442f' }}>
+                      <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                      <span>Jadwal ibadah yang tertaut ke khotbah ini sudah dihapus dari Jadwal Ibadah.</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="h-px bg-gray-100" />
@@ -333,13 +422,25 @@ export function SermonArchive() {
                       )}
                     </button>
 
-                    <button
-                      onClick={handleDownloadTranscript}
-                      className="px-4 py-2.5 rounded-xl text-xs lg:text-sm font-semibold flex items-center gap-2 transition-all bg-white/10 hover:bg-white/20 text-white border border-white/20"
-                    >
-                      <Download className="w-4 h-4" />
-                      Unduh Naskah (.txt)
-                    </button>
+                    {canExport && (
+                      <button
+                        onClick={handleDownloadTranscript}
+                        className="px-4 py-2.5 rounded-xl text-xs lg:text-sm font-semibold flex items-center gap-2 transition-all bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                      >
+                        <Download className="w-4 h-4" />
+                        Unduh Naskah (.txt)
+                      </button>
+                    )}
+                    {canExport && (
+                      <button
+                        onClick={handleDownloadPDF}
+                        className="px-4 py-2.5 rounded-xl text-xs lg:text-sm font-semibold flex items-center gap-2 transition-all"
+                        style={{ background: '#caa049', color: '#0d1a2d' }}
+                      >
+                        <FileDown className="w-4 h-4" />
+                        Unduh PDF
+                      </button>
+                    )}
                   </div>
 
                   {selected.fileUrl && (

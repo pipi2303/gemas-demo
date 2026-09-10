@@ -393,6 +393,8 @@ export interface Liturgy {
     preacher: string;
     summary?: string;
   };
+  /** Referensi ke WorshipSchedule — jadwal ibadah yang liturgi ini susun tata ibadahnya */
+  worshipScheduleId?: string;
   createdAt: string;
 }
 
@@ -523,6 +525,8 @@ export interface Resource {
   bibleVerse?: string;
   /** Naskah lengkap khotbah — hanya relevan untuk type 'Khotbah' */
   fullTranscript?: string;
+  /** Referensi ke WorshipSchedule — jadwal ibadah tempat khotbah ini disampaikan (khusus type 'Khotbah') */
+  worshipScheduleId?: string;
 }
 
 export type RoomType = 'Ruang Ibadah' | 'Aula' | 'Ruang Kelas' | 'Ruang Pertemuan' | 'Lainnya';

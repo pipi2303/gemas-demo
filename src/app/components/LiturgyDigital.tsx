@@ -7,9 +7,11 @@ import { SearchDropdown } from './ui/SearchDropdown';
 import {
   BookOpen, Calendar, Plus, X, Music, Pencil, Trash2, Eye, ChevronRight,
   BookMarked, Mic2, FileText, List, Hash, Download, Copy, Search, Filter,
-  CheckCircle, AlertCircle, Piano, Church, Star, Printer
+  CheckCircle, AlertCircle, Piano, Church, Star, Printer, MapPin, AlertTriangle,
+  ChevronUp, ChevronDown
 } from 'lucide-react';
 import jsPDF from 'jspdf';
+import { getOfficerNamesByKeyword } from '../lib/worshipOfficers';
 
 // ─── PDF Bulletin Export ───────────────────────────────────────────────────────
 function exportBulletinPDF(l: Liturgy) {
@@ -18,14 +20,14 @@ function exportBulletinPDF(l: Liturgy) {
   let y = 0;
 
   // ── Header Bar ──
-  doc.setFillColor(88, 28, 135);
+  doc.setFillColor(20, 79, 107);
   doc.rect(0, 0, W, 32, 'F');
-  doc.setFillColor(109, 40, 217);
+  doc.setFillColor(202, 160, 74);
   doc.rect(0, 22, W, 10, 'F');
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
   doc.setTextColor(255, 255, 255);
-  doc.text('GPIB BAHTERA KASIH', W / 2, 11, { align: 'center' });
+  doc.text('GPIB TRINITAS', W / 2, 11, { align: 'center' });
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.text('Buletin Ibadah', W / 2, 19, { align: 'center' });
@@ -41,7 +43,7 @@ function exportBulletinPDF(l: Liturgy) {
   // ── Tema ──
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(22, 14, 64);
+  doc.setTextColor(30, 41, 59);
   const themeLines = doc.splitTextToSize(l.theme, W - 36);
   doc.text(themeLines, W / 2, y, { align: 'center' });
   y += themeLines.length * 8 + 2;
@@ -49,12 +51,12 @@ function exportBulletinPDF(l: Liturgy) {
   if (l.sermon?.preacher) {
     doc.setFontSize(9);
     doc.setFont('helvetica', 'italic');
-    doc.setTextColor(109, 40, 217);
+    doc.setTextColor(168, 126, 42);
     doc.text(`Pengkhotbah: ${l.sermon.preacher}`, W / 2, y, { align: 'center' });
     y += 7;
   }
 
-  doc.setDrawColor(200, 180, 240);
+  doc.setDrawColor(226, 232, 240);
   doc.setLineWidth(0.4);
   doc.line(16, y, W - 16, y);
   y += 7;
@@ -62,18 +64,18 @@ function exportBulletinPDF(l: Liturgy) {
   // ── Bacaan Alkitab ──
   if (l.scripture.length > 0) {
     const blockH = 9 + l.scripture.length * 6.5;
-    doc.setFillColor(238, 232, 255);
+    doc.setFillColor(240, 247, 251);
     doc.roundedRect(14, y - 2, W - 28, blockH, 2, 2, 'F');
-    doc.setDrawColor(167, 139, 250);
+    doc.setDrawColor(184, 213, 232);
     doc.roundedRect(14, y - 2, W - 28, blockH, 2, 2, 'S');
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(88, 28, 135);
+    doc.setTextColor(20, 79, 107);
     doc.text('BACAAN ALKITAB', 20, y + 4);
     y += 9;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    doc.setTextColor(31, 14, 64);
+    doc.setTextColor(51, 65, 85);
     l.scripture.forEach(s => {
       doc.text(`\u2022  ${s.book}  ${s.chapter}:${s.verse}`, 22, y + 1);
       y += 6.5;
@@ -84,10 +86,10 @@ function exportBulletinPDF(l: Liturgy) {
   // ── Tata Urutan ──
   doc.setFontSize(9.5);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(22, 14, 64);
+  doc.setTextColor(30, 41, 59);
   doc.text('TATA URUTAN IBADAH', 16, y);
   y += 3;
-  doc.setDrawColor(109, 40, 217);
+  doc.setDrawColor(202, 160, 74);
   doc.setLineWidth(0.6);
   doc.line(16, y, 72, y);
   doc.setLineWidth(0.3);
@@ -96,20 +98,20 @@ function exportBulletinPDF(l: Liturgy) {
   doc.setFontSize(8.5);
   l.liturgyOrder.forEach(o => {
     if (y > 270) { doc.addPage(); y = 18; }
-    doc.setFillColor(237, 233, 254);
+    doc.setFillColor(224, 238, 247);
     doc.circle(20, y + 1.8, 3.2, 'F');
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7);
-    doc.setTextColor(88, 28, 135);
+    doc.setTextColor(20, 79, 107);
     doc.text(String(o.order), 20, y + 2.6, { align: 'center' });
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
-    doc.setTextColor(15, 10, 40);
+    doc.setTextColor(30, 41, 59);
     doc.text(o.title, 26, y + 2.6);
     if (o.content) {
       const cLines = doc.splitTextToSize(o.content, W - 52);
       doc.setFontSize(7.5);
-      doc.setTextColor(100, 80, 150);
+      doc.setTextColor(100, 116, 139);
       doc.text(cLines, 26, y + 8);
       y += cLines.length * 4.5 + 5;
     } else {
@@ -123,10 +125,10 @@ function exportBulletinPDF(l: Liturgy) {
     y += 4;
     doc.setFontSize(9.5);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(22, 14, 64);
+    doc.setTextColor(30, 41, 59);
     doc.text('NYANYIAN JEMAAT', 16, y);
     y += 3;
-    doc.setDrawColor(245, 158, 11);
+    doc.setDrawColor(202, 160, 74);
     doc.setLineWidth(0.6);
     doc.line(16, y, 66, y);
     doc.setLineWidth(0.3);
@@ -136,11 +138,11 @@ function exportBulletinPDF(l: Liturgy) {
       if (y > 272) { doc.addPage(); y = 18; }
       doc.setFontSize(7.5);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(146, 64, 14);
+      doc.setTextColor(140, 105, 20);
       doc.text(`[${labelMap[h.type] || h.type}]`, 19, y);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8.5);
-      doc.setTextColor(15, 10, 40);
+      doc.setTextColor(30, 41, 59);
       doc.text(`${h.book}  #${h.number}  \u2014  \u201c${h.title}\u201d`, 49, y);
       y += 7;
     });
@@ -151,26 +153,26 @@ function exportBulletinPDF(l: Liturgy) {
     if (y > 248) { doc.addPage(); y = 18; }
     y += 4;
     const sH = l.sermon.summary ? 38 : 22;
-    doc.setFillColor(245, 243, 255);
+    doc.setFillColor(240, 247, 251);
     doc.roundedRect(14, y - 1, W - 28, sH, 2, 2, 'F');
-    doc.setDrawColor(167, 139, 250);
+    doc.setDrawColor(184, 213, 232);
     doc.roundedRect(14, y - 1, W - 28, sH, 2, 2, 'S');
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
-    doc.setTextColor(88, 28, 135);
+    doc.setTextColor(20, 79, 107);
     doc.text('KHOTBAH', 20, y + 5);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.setTextColor(22, 14, 64);
+    doc.setTextColor(30, 41, 59);
     const stLines = doc.splitTextToSize(l.sermon.title, W - 44);
     doc.text(stLines, 20, y + 12);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
-    doc.setTextColor(75, 55, 120);
+    doc.setTextColor(51, 65, 85);
     doc.text(`Pengkhotbah: ${l.sermon.preacher}`, 20, y + 12 + stLines.length * 6);
     if (l.sermon.summary) {
       doc.setFontSize(8);
-      doc.setTextColor(80, 60, 100);
+      doc.setTextColor(100, 116, 139);
       const sumLines = doc.splitTextToSize(l.sermon.summary, W - 44);
       doc.text(sumLines, 20, y + 12 + stLines.length * 6 + 6);
     }
@@ -181,13 +183,13 @@ function exportBulletinPDF(l: Liturgy) {
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
-    doc.setFillColor(245, 243, 255);
+    doc.setFillColor(240, 247, 251);
     doc.rect(0, 286, W, 11, 'F');
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(109, 40, 217);
-    doc.text('GPIB Bahtera Kasih \u2022 Dokumen Internal', W / 2, 292, { align: 'center' });
-    doc.setTextColor(160, 130, 200);
+    doc.setTextColor(20, 79, 107);
+    doc.text('GPIB Trinitas \u2022 Dokumen Internal', W / 2, 292, { align: 'center' });
+    doc.setTextColor(148, 163, 184);
     doc.text(`Hal. ${i} / ${totalPages}`, W - 16, 292, { align: 'right' });
   }
 
@@ -202,11 +204,11 @@ const MONTHS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agu
 const WORSHIP_TYPES: WorshipType[] = ['Minggu','Keluarga','PJJ','Kategorial','Khusus'];
 
 const TYPE_CONFIG: Record<WorshipType, { gradient: string; bg: string; text: string; border: string }> = {
-  Minggu:    { gradient: 'from-blue-600 to-indigo-600',   bg: 'bg-[#f0f7fb]',   text: 'text-[#144f6b]',   border: 'border-[#b8d5e8]' },
-  Keluarga:  { gradient: 'from-[#144f6b] to-[#144f6b]', bg: 'bg-green-50',  text: 'text-green-700',  border: 'border-green-200' },
-  PJJ:       { gradient: 'from-purple-600 to-violet-600', bg: 'bg-[#f0f7fb]', text: 'text-[#3a7fa0]', border: 'border-[#b8d5e8]' },
+  Minggu:    { gradient: 'from-[#144f6b] to-[#1A77A3]',   bg: 'bg-[#f0f7fb]',   text: 'text-[#144f6b]',   border: 'border-[#b8d5e8]' },
+  Keluarga:  { gradient: 'from-[#2f8f5b] to-[#2f8f5b]', bg: 'bg-[#f0f9f4]',  text: 'text-[#2f8f5b]',  border: 'border-[#bfe3cf]' },
+  PJJ:       { gradient: 'from-[#8b6bb1] to-[#6d5590]', bg: 'bg-[#f0f7fb]', text: 'text-[#3a7fa0]', border: 'border-[#b8d5e8]' },
   Kategorial:{ gradient: 'from-[#144f6b] to-[#3a7fa0]',  bg: 'bg-[#f6f4f0]',  text: 'text-[#144f6b]',  border: 'border-[#e8e4d8]' },
-  Khusus:    { gradient: 'from-red-600 to-rose-600',      bg: 'bg-red-50',    text: 'text-red-700',    border: 'border-red-200' },
+  Khusus:    { gradient: 'from-[#d1553f] to-[#d1553f]',      bg: 'bg-[#fdf1ef]',    text: 'text-[#d1553f]',    border: 'border-[#f3c7bb]' },
 };
 
 // Data lama/tidak dikenal (worshipType kosong atau di luar 5 tipe di atas) jatuh ke sini
@@ -218,7 +220,7 @@ const HYMN_TYPE_LABEL: Record<string, { label: string; color: string; bg: string
   opening:   { label: 'Pembukaan', color: 'text-[#144f6b]', bg: 'bg-[#f0f7fb]' },
   offering:  { label: 'Persembahan', color: 'text-[#144f6b]', bg: 'bg-[#f6f4f0]' },
   communion: { label: 'Komuni', color: 'text-[#3a7fa0]', bg: 'bg-[#f0f7fb]' },
-  closing:   { label: 'Penutup', color: 'text-green-700', bg: 'bg-green-50' },
+  closing:   { label: 'Penutup', color: 'text-[#2f8f5b]', bg: 'bg-[#f0f9f4]' },
 };
 
 const EMPTY_FORM = {
@@ -246,11 +248,12 @@ const EMPTY_FORM = {
     { order: 12, title: 'Postlude', content: '' },
   ] as { order: number; title: string; content?: string }[],
   sermon: { title: '', preacher: '', summary: '' },
+  worshipScheduleId: '',
 };
 
 // ─── Komponen Utama ────────────────────────────────────────────────────────────
 export function LiturgyDigital() {
-  const { liturgies, addLiturgy, updateLiturgy, deleteLiturgy, currentUser, can, getMasterDataByCategory } = useApp();
+  const { liturgies, addLiturgy, updateLiturgy, deleteLiturgy, currentUser, can, getMasterDataByCategory, worshipSchedules } = useApp();
   const pelayanList = getMasterDataByCategory('daftar_pelayan').map(m => m.value);
   const bukuNyanyianList = getMasterDataByCategory('buku_nyanyian').map(m => m.value);
   const BUKU_NYANYIAN = bukuNyanyianList.length ? bukuNyanyianList : ['Kidung Jemaat','Gita Bakti','Lainnya'];
@@ -315,6 +318,7 @@ export function LiturgyDigital() {
       hymns: [{ type: 'opening', book: 'Kidung Jemaat', number: '', title: '' }],
       liturgyOrder: EMPTY_FORM.liturgyOrder.map(o => ({ ...o })),
       sermon: { title: '', preacher: '', summary: '' },
+      worshipScheduleId: '',
     });
     setShowForm(true);
   };
@@ -329,6 +333,7 @@ export function LiturgyDigital() {
       hymns: l.hymns.map(h => ({ ...h })),
       liturgyOrder: l.liturgyOrder.map(o => ({ ...o })),
       sermon: l.sermon ? { ...l.sermon } : { title: '', preacher: '', summary: '' },
+      worshipScheduleId: l.worshipScheduleId || '',
     });
     setShowForm(true);
     setView('grid');
@@ -344,6 +349,7 @@ export function LiturgyDigital() {
       hymns: l.hymns.map(h => ({ ...h })),
       liturgyOrder: l.liturgyOrder.map(o => ({ ...o })),
       sermon: { title: '', preacher: l.sermon?.preacher || '', summary: '' },
+      worshipScheduleId: '',
     });
     setShowTemplateModal(false);
     setShowForm(true);
@@ -363,6 +369,7 @@ export function LiturgyDigital() {
       hymns: formData.hymns.filter(h => h.number.trim() || h.title.trim()),
       liturgyOrder: formData.liturgyOrder.filter(o => o.title.trim()),
       sermon: formData.sermon.title.trim() ? formData.sermon : undefined,
+      worshipScheduleId: formData.worshipScheduleId || undefined,
     };
     if (editingId) {
       updateLiturgy(editingId, basePayload);
@@ -405,9 +412,37 @@ export function LiturgyDigital() {
   const removeOrder = (i: number) => setFormData(p => ({ ...p, liturgyOrder: p.liturgyOrder.filter((_, idx) => idx !== i).map((o, idx) => ({ ...o, order: idx + 1 })) }));
   const updateOrder = (i: number, field: string, value: string) =>
     setFormData(p => { const o = [...p.liturgyOrder]; o[i] = { ...o[i], [field]: value } as any; return { ...p, liturgyOrder: o }; });
+  const moveOrder = (i: number, dir: -1 | 1) =>
+    setFormData(p => {
+      const j = i + dir;
+      if (j < 0 || j >= p.liturgyOrder.length) return p;
+      const o = [...p.liturgyOrder];
+      [o[i], o[j]] = [o[j], o[i]];
+      return { ...p, liturgyOrder: o.map((item, idx) => ({ ...item, order: idx + 1 })) };
+    });
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const formatShort = (d: string) => new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+
+  const handleScheduleLink = (scheduleId: string) => {
+    const ws = worshipSchedules.find(w => w.id === scheduleId);
+    setFormData(prev => {
+      const next = { ...prev, worshipScheduleId: scheduleId };
+      if (ws) {
+        if (!next.date) next.date = ws.date;
+        if (!next.theme.trim() && ws.sermon_theme) next.theme = ws.sermon_theme;
+        const preacher = getOfficerNamesByKeyword(ws, 'pengkhotbah', 'preacher');
+        if (!next.sermon.title.trim() && !next.sermon.preacher.trim() && preacher) {
+          next.sermon = { ...next.sermon, preacher };
+        }
+      }
+      return next;
+    });
+  };
+
+  const linkedScheduleForForm = formData.worshipScheduleId ? worshipSchedules.find(w => w.id === formData.worshipScheduleId) : undefined;
+  const linkedScheduleForDetail = selectedLiturgy?.worshipScheduleId ? worshipSchedules.find(w => w.id === selectedLiturgy.worshipScheduleId) : undefined;
+  const hasOrphanLinkDetail = !!selectedLiturgy?.worshipScheduleId && !linkedScheduleForDetail;
 
   // ══════════════════════════════════════════════════════════════════════════
   return (
@@ -416,7 +451,7 @@ export function LiturgyDigital() {
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-violet-600 rounded-xl flex items-center justify-center shadow">
+          <div className="w-10 h-10 bg-gradient-to-br from-[#144f6b] to-[#1A77A3] rounded-xl flex items-center justify-center shadow">
             <BookOpen className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -427,7 +462,7 @@ export function LiturgyDigital() {
         {canCreate && (
           <div className="flex gap-2">
             <button onClick={() => setShowTemplateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 border border-purple-300 text-[#3a7fa0] bg-[#f0f7fb] rounded-lg hover:bg-[#f0ede5] transition-colors text-sm">
+              className="flex items-center gap-2 px-4 py-2 border border-[#b8d5e8] text-[#3a7fa0] bg-[#f0f7fb] rounded-lg hover:bg-[#f0ede5] transition-colors text-sm">
               <Copy className="w-4 h-4" /> Salin Template
             </button>
             <button onMouseDown={e=>e.preventDefault()} onClick={openAdd}
@@ -436,6 +471,28 @@ export function LiturgyDigital() {
             </button>
           </div>
         )}
+      </div>
+
+      {/* ── Ringkasan Statistik ──────────────────────────────────────────── */}
+      <div className="flex flex-wrap gap-3">
+        <div className="flex-1 min-w-[140px] bg-white rounded-xl border border-gray-200 p-3">
+          <p className="text-xs text-gray-400">Total Liturgi</p>
+          <p className="text-xl font-bold text-[#144f6b] mt-0.5">{stats.total}</p>
+        </div>
+        <div className="flex-1 min-w-[140px] bg-white rounded-xl border border-gray-200 p-3">
+          <p className="text-xs text-gray-400">Bulan Ini</p>
+          <p className="text-xl font-bold text-[#144f6b] mt-0.5">{stats.thisMonth}</p>
+        </div>
+        <div className="flex-[2] min-w-[220px] bg-white rounded-xl border border-gray-200 p-3">
+          <p className="text-xs text-gray-400 mb-1.5">Per Jenis Ibadah</p>
+          <div className="flex flex-wrap gap-1.5">
+            {WORSHIP_TYPES.filter(t => stats.byType[t] > 0).map(t => (
+              <span key={t} className={`px-2 py-0.5 rounded-full text-xs font-medium ${TYPE_CONFIG[t].bg} ${TYPE_CONFIG[t].text}`}>
+                {t}: {stats.byType[t]}
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* ── Filter & Search ──────────────────────────────────────────────── */}
@@ -480,7 +537,7 @@ export function LiturgyDigital() {
             <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500">Belum ada data liturgi</p>
             {canCreate && (
-              <button onMouseDown={e=>e.preventDefault()} onClick={openAdd} className="mt-4 px-4 py-2 bg-[#f0ede5] text-[#3a7fa0] rounded-lg text-sm hover:bg-purple-200 transition-colors">
+              <button onMouseDown={e=>e.preventDefault()} onClick={openAdd} className="mt-4 px-4 py-2 bg-[#f0ede5] text-[#3a7fa0] rounded-lg text-sm hover:bg-[#8b6bb1]/15 transition-colors">
                 + Buat Liturgi Baru
               </button>
             )}
@@ -560,7 +617,7 @@ export function LiturgyDigital() {
                       )}
                       {canDelete && (
                         <button onClick={() => setShowDeleteConfirm(l)} data-tooltip="Hapus"
-                          className="px-3 py-1.5 border border-red-200 text-red-500 rounded-lg text-xs hover:bg-red-50 transition-colors">
+                          className="px-3 py-1.5 border border-[#d1553f]/30 text-[#d1553f] rounded-lg text-xs hover:bg-[#d1553f]/10 transition-colors">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       )}
@@ -617,6 +674,21 @@ export function LiturgyDigital() {
               </div>
             </div>
 
+            {linkedScheduleForDetail && (
+              <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600 bg-[#f0f7fb] border-b border-[#b8d5e8] px-6 py-2.5">
+                <span className="flex items-center gap-1 font-medium text-[#144f6b]"><Church className="w-3.5 h-3.5" />Jadwal Ibadah Terkait:</span>
+                <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{formatShort(linkedScheduleForDetail.date)}</span>
+                <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{linkedScheduleForDetail.location}</span>
+                <span className="truncate">{linkedScheduleForDetail.title}</span>
+              </div>
+            )}
+            {hasOrphanLinkDetail && (
+              <div className="flex items-start gap-2 text-xs px-6 py-2.5" style={{ background: 'rgba(209,85,63,0.08)', color: '#b8442f' }}>
+                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                <span>Jadwal ibadah yang tertaut ke liturgi ini sudah dihapus dari Jadwal Ibadah.</span>
+              </div>
+            )}
+
             {/* Tabs */}
             <div className="flex border-b border-gray-200 bg-gray-50">
               {([
@@ -628,7 +700,7 @@ export function LiturgyDigital() {
                 <button key={tab.key} onClick={() => setActiveDetailTab(tab.key)}
                   className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
                     activeDetailTab === tab.key
-                      ? 'border-purple-600 text-[#3a7fa0] bg-white'
+                      ? 'border-[#1A77A3] text-[#3a7fa0] bg-white'
                       : 'border-transparent text-gray-500 hover:text-gray-700'
                   }`}>
                   <tab.icon className="w-4 h-4" />{tab.label}
@@ -641,7 +713,7 @@ export function LiturgyDigital() {
               {activeDetailTab === 'urutan' && (
                 <div>
                   <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <List className="w-4 h-4 text-purple-600" /> Tata Urutan Ibadah
+                    <List className="w-4 h-4 text-[#8b6bb1]" /> Tata Urutan Ibadah
                   </h3>
                   <div className="space-y-2">
                     {l.liturgyOrder.map((o, i) => (
@@ -661,7 +733,7 @@ export function LiturgyDigital() {
               {activeDetailTab === 'nyanyian' && (
                 <div>
                   <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <Music className="w-4 h-4 text-purple-600" /> Nyanyian Jemaat
+                    <Music className="w-4 h-4 text-[#8b6bb1]" /> Nyanyian Jemaat
                   </h3>
                   {l.hymns.length === 0 ? (
                     <p className="text-gray-400 text-sm text-center py-8">Belum ada nyanyian</p>
@@ -688,7 +760,7 @@ export function LiturgyDigital() {
               {activeDetailTab === 'alkitab' && (
                 <div>
                   <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <BookMarked className="w-4 h-4 text-purple-600" /> Bacaan Alkitab
+                    <BookMarked className="w-4 h-4 text-[#8b6bb1]" /> Bacaan Alkitab
                   </h3>
                   {l.scripture.length === 0 ? (
                     <p className="text-gray-400 text-sm text-center py-8">Belum ada bacaan Alkitab</p>
@@ -712,7 +784,7 @@ export function LiturgyDigital() {
               {activeDetailTab === 'khotbah' && (
                 <div>
                   <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <Mic2 className="w-4 h-4 text-purple-600" /> Informasi Khotbah
+                    <Mic2 className="w-4 h-4 text-[#8b6bb1]" /> Informasi Khotbah
                   </h3>
                   {!l.sermon?.title ? (
                     <p className="text-gray-400 text-sm text-center py-8">Belum ada informasi khotbah</p>
@@ -751,7 +823,7 @@ export function LiturgyDigital() {
             <div className="px-6 py-4 flex items-center justify-between flex-shrink-0" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',cursor:'move'}} onMouseDown={onMouseDownTemplate}>
               <div>
                 <h2 className="text-lg font-bold text-white">Salin sebagai Template</h2>
-                <p className="text-purple-200 text-sm">Pilih liturgi untuk dijadikan dasar</p>
+                <p className="text-[#c9bfe0] text-sm">Pilih liturgi untuk dijadikan dasar</p>
               </div>
               <button onClick={() => setShowTemplateModal(false)} data-tooltip="Tutup" className="p-2 hover:bg-white/20 rounded-lg transition-colors">
                 <X className="w-5 h-5 text-white" />
@@ -762,14 +834,14 @@ export function LiturgyDigital() {
                 const cfg = TYPE_CONFIG[l.worshipType] ?? DEFAULT_TYPE_CONFIG;
                 return (
                   <button key={l.id} onClick={() => useAsTemplate(l)}
-                    className="w-full text-left p-3 rounded-xl border border-gray-200 hover:border-purple-300 hover:bg-[#f0f7fb] transition-all group">
+                    className="w-full text-left p-3 rounded-xl border border-gray-200 hover:border-[#b8d5e8] hover:bg-[#f0f7fb] transition-all group">
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 bg-gradient-to-br ${cfg.gradient} rounded-lg flex-shrink-0`} />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-gray-800 text-sm truncate">{l.theme}</p>
                         <p className="text-xs text-gray-400">{l.worshipType} · {formatShort(l.date)}</p>
                       </div>
-                      <Copy className="w-4 h-4 text-gray-300 group-hover:text-purple-500 transition-colors flex-shrink-0" />
+                      <Copy className="w-4 h-4 text-gray-300 group-hover:text-[#8b6bb1] transition-colors flex-shrink-0" />
                     </div>
                   </button>
                 );
@@ -787,7 +859,7 @@ export function LiturgyDigital() {
             <div className="px-6 py-5 flex items-center justify-between flex-shrink-0" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',cursor:'move'}} onMouseDown={onMouseDownForm}>
               <div>
                 <h2 className="text-xl font-bold text-white">{editingId ? 'Edit Liturgi' : 'Buat Liturgi Baru'}</h2>
-                <p className="text-purple-200 text-sm mt-0.5">Tata Ibadah Gereja GPIB Bahtera Kasih</p>
+                <p className="text-[#c9bfe0] text-sm mt-0.5">Tata Ibadah Gereja GPIB Trinitas</p>
               </div>
               <button onClick={() => setShowForm(false)} data-tooltip="Tutup" className="p-2 hover:bg-white/20 rounded-lg transition-colors">
                 <X className="w-5 h-5 text-white" />
@@ -799,19 +871,30 @@ export function LiturgyDigital() {
                 {/* Info Dasar */}
                 <section className="bg-[#f0f7fb] rounded-xl p-4 border border-[#f0ede5] space-y-4">
                   <div className="flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-purple-600" />
+                    <BookOpen className="w-4 h-4 text-[#8b6bb1]" />
                     <span className="font-semibold text-gray-800 text-sm">Informasi Dasar</span>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Jadwal Ibadah Terkait</label>
+                    <select value={formData.worshipScheduleId} onChange={e => handleScheduleLink(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
+                      <option value="">— Tidak ditautkan —</option>
+                      {[...worshipSchedules].sort((a, b) => b.date.localeCompare(a.date)).map(ws => (
+                        <option key={ws.id} value={ws.id}>{formatShort(ws.date)} — {ws.title}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-400 mt-1">Menautkan mengisi otomatis tanggal, tema &amp; pengkhotbah dari jadwal ibadah tersebut (bila masih kosong).</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Tanggal Ibadah *</label>
                       <input type="date" value={formData.date} onChange={e => setFormData(p => ({ ...p, date: e.target.value }))} required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Jenis Ibadah *</label>
                       <select autoFocus value={formData.worshipType} onChange={e => setFormData(p => ({ ...p, worshipType: e.target.value as WorshipType }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
                         {WORSHIP_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                       </select>
                     </div>
@@ -820,29 +903,29 @@ export function LiturgyDigital() {
                     <label className="block text-xs font-medium text-gray-700 mb-1">Tema Ibadah *</label>
                     <input type="text" value={formData.theme} onChange={e => setFormData(p => ({ ...p, theme: e.target.value }))}
                       placeholder="Misal: Kasih yang Sempurna" required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
                   </div>
                 </section>
 
                 {/* Bacaan Alkitab */}
                 <section className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2"><BookMarked className="w-4 h-4 text-blue-600" /><span className="font-semibold text-gray-800 text-sm">Bacaan Alkitab</span></div>
+                    <div className="flex items-center gap-2"><BookMarked className="w-4 h-4 text-[#8b6bb1]" /><span className="font-semibold text-gray-800 text-sm">Bacaan Alkitab</span></div>
                     <button type="button" onClick={addScripture}
-                      className="flex items-center gap-1 px-2.5 py-1.5 bg-[#f0ede5] text-[#144f6b] rounded-lg text-xs hover:bg-blue-200 transition-colors">
+                      className="flex items-center gap-1 px-2.5 py-1.5 bg-[#f0ede5] text-[#144f6b] rounded-lg text-xs hover:bg-[#8b6bb1]/15 transition-colors">
                       <Plus className="w-3.5 h-3.5" /> Tambah
                     </button>
                   </div>
                   {formData.scripture.map((s, i) => (
                     <div key={i} className="flex gap-2 items-center">
                       <input type="text" value={s.book} onChange={e => updateScripture(i, 'book', e.target.value)} placeholder="Kitab"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
                       <input type="number" value={s.chapter} onChange={e => updateScripture(i, 'chapter', parseInt(e.target.value) || 1)} min={1} placeholder="Ps."
-                        className="w-16 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        className="w-16 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
                       <input type="text" value={s.verse} onChange={e => updateScripture(i, 'verse', e.target.value)} placeholder="Ay. 1-5"
-                        className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
                       {formData.scripture.length > 1 && (
-                        <button type="button" onClick={() => removeScripture(i)} data-tooltip="Hapus bacaan" className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                        <button type="button" onClick={() => removeScripture(i)} data-tooltip="Hapus bacaan" className="p-2 text-[#d1553f]/70 hover:text-[#d1553f] hover:bg-[#d1553f]/10 rounded-lg transition-colors">
                           <X className="w-4 h-4" />
                         </button>
                       )}
@@ -875,7 +958,7 @@ export function LiturgyDigital() {
                         <input type="text" value={h.title} onChange={e => updateHymn(i, 'title', e.target.value)} placeholder="Judul"
                           className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
                         {formData.hymns.length > 1 && (
-                          <button type="button" onClick={() => removeHymn(i)} data-tooltip="Hapus nyanyian" className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                          <button type="button" onClick={() => removeHymn(i)} data-tooltip="Hapus nyanyian" className="p-2 text-[#d1553f]/70 hover:text-[#d1553f] hover:bg-[#d1553f]/10 rounded-lg transition-colors">
                             <X className="w-4 h-4" />
                           </button>
                         )}
@@ -887,22 +970,32 @@ export function LiturgyDigital() {
                 {/* Urutan Liturgi */}
                 <section className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2"><List className="w-4 h-4 text-green-600" /><span className="font-semibold text-gray-800 text-sm">Urutan Tata Ibadah</span></div>
+                    <div className="flex items-center gap-2"><List className="w-4 h-4 text-[#8b6bb1]" /><span className="font-semibold text-gray-800 text-sm">Urutan Tata Ibadah</span></div>
                     <button type="button" onClick={addOrder}
-                      className="flex items-center gap-1 px-2.5 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs hover:bg-green-200 transition-colors">
+                      className="flex items-center gap-1 px-2.5 py-1.5 bg-[#f0ede5] text-[#144f6b] rounded-lg text-xs hover:bg-[#e8e4d8] transition-colors">
                       <Plus className="w-3.5 h-3.5" /> Tambah
                     </button>
                   </div>
                   <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                     {formData.liturgyOrder.map((o, i) => (
                       <div key={i} className="flex gap-2 items-center bg-gray-50 rounded-xl p-2">
-                        <span className="w-6 h-6 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">{o.order}</span>
+                        <span className="w-6 h-6 bg-[#f0f7fb] text-[#144f6b] rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">{o.order}</span>
+                        <div className="flex flex-col flex-shrink-0">
+                          <button type="button" onClick={() => moveOrder(i, -1)} disabled={i === 0} data-tooltip="Naikkan urutan"
+                            className="p-0.5 text-gray-400 hover:text-[#144f6b] disabled:opacity-30 disabled:pointer-events-none">
+                            <ChevronUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button type="button" onClick={() => moveOrder(i, 1)} disabled={i === formData.liturgyOrder.length - 1} data-tooltip="Turunkan urutan"
+                            className="p-0.5 text-gray-400 hover:text-[#144f6b] disabled:opacity-30 disabled:pointer-events-none">
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                         <input type="text" value={o.title} onChange={e => updateOrder(i, 'title', e.target.value)} placeholder="Judul bagian..."
-                          className="flex-1 px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                          className="flex-1 px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
                         <input type="text" value={o.content || ''} onChange={e => updateOrder(i, 'content', e.target.value)} placeholder="Keterangan (opsional)"
-                          className="flex-1 px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                          className="flex-1 px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
                         {formData.liturgyOrder.length > 3 && (
-                          <button type="button" onClick={() => removeOrder(i)} data-tooltip="Hapus urutan" className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                          <button type="button" onClick={() => removeOrder(i)} data-tooltip="Hapus urutan" className="p-1.5 text-[#d1553f]/70 hover:text-[#d1553f] hover:bg-[#d1553f]/10 rounded-lg transition-colors">
                             <X className="w-3.5 h-3.5" />
                           </button>
                         )}
@@ -916,21 +1009,21 @@ export function LiturgyDigital() {
                   <div className="flex items-center gap-2"><Mic2 className="w-4 h-4 text-gray-600" /><span className="font-semibold text-gray-800 text-sm">Informasi Khotbah</span></div>
                   <input type="text" value={formData.sermon.title} onChange={e => setFormData(p => ({ ...p, sermon: { ...p.sermon, title: e.target.value } }))}
                     placeholder="Judul khotbah"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
                   {pelayanList.length > 0 ? (
                     <select value={formData.sermon.preacher} onChange={e => setFormData(p => ({ ...p, sermon: { ...p.sermon, preacher: e.target.value } }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
                       <option value="">— Pilih Pengkhotbah —</option>
                       {pelayanList.map(n => <option key={n} value={n}>{n}</option>)}
                     </select>
                   ) : (
                     <input type="text" value={formData.sermon.preacher} onChange={e => setFormData(p => ({ ...p, sermon: { ...p.sermon, preacher: e.target.value } }))}
                       placeholder="Nama pengkhotbah"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
                   )}
                   <textarea value={formData.sermon.summary} onChange={e => setFormData(p => ({ ...p, sermon: { ...p.sermon, summary: e.target.value } }))}
                     placeholder="Ringkasan khotbah (opsional)" rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none" />
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none" />
                 </section>
               </div>
 
@@ -956,21 +1049,21 @@ export function LiturgyDigital() {
         <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowDeleteConfirm(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e=>e.stopPropagation()} style={{ transform: `translate(${offsetDeleteLiturgy.x}px, ${offsetDeleteLiturgy.y}px)` }}>
             <div className="flex items-center gap-4 mb-4" onMouseDown={onMouseDownDeleteLiturgy} style={{ cursor: 'move' }}>
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <Trash2 className="w-6 h-6 text-red-600" />
+              <div className="w-12 h-12 bg-[#d1553f]/15 rounded-full flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-[#d1553f]" />
               </div>
               <div>
                 <h3 className="font-bold text-gray-900">Hapus Liturgi</h3>
                 <p className="text-sm text-gray-500">Tindakan tidak dapat dibatalkan</p>
               </div>
             </div>
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-5">
+            <div className="bg-[#d1553f]/10 border border-[#d1553f]/30 rounded-lg p-3 mb-5">
               <p className="text-sm font-medium text-gray-800">{showDeleteConfirm.theme}</p>
               <p className="text-xs text-gray-500 mt-0.5">{formatShort(showDeleteConfirm.date)} · {showDeleteConfirm.worshipType}</p>
             </div>
             <div className="flex gap-3">
               <button onClick={() => setShowDeleteConfirm(null)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition-colors">Batal</button>
-              <button onClick={() => handleDelete(showDeleteConfirm)} className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors">Hapus</button>
+              <button onClick={() => handleDelete(showDeleteConfirm)} className="flex-1 px-4 py-2 bg-[#d1553f] text-white rounded-lg text-sm hover:bg-[#b8442f] transition-colors">Hapus</button>
             </div>
           </div>
         </div>

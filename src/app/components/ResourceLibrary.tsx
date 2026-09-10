@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { toast } from 'sonner';
 import { Resource, ResourceType, ResourceCategory } from '../types';
+import { getOfficerNamesByKeyword } from '../lib/worshipOfficers';
 import { 
   Video, Download, Eye, FileText, Upload, X, Play, Music,
   File, Image, Plus, Pencil, Trash2, Calendar, User, ExternalLink,
@@ -14,7 +15,7 @@ import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 
 export function ResourceLibrary() {
-  const { resources, addResource, updateResource, deleteResource } = useApp();
+  const { resources, addResource, updateResource, deleteResource, worshipSchedules } = useApp();
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -37,6 +38,7 @@ export function ResourceLibrary() {
     uploadDate: new Date().toISOString().split('T')[0],
     bibleVerse: '',
     fullTranscript: '',
+    worshipScheduleId: '',
     tagsInput: ''
   });
 
@@ -89,6 +91,7 @@ export function ResourceLibrary() {
       uploadDate: new Date().toISOString().split('T')[0],
       bibleVerse: '',
       fullTranscript: '',
+      worshipScheduleId: '',
       tagsInput: ''
     });
     setSelectedFile(null);
@@ -97,6 +100,18 @@ export function ResourceLibrary() {
 
   const parseTags = (input: string) =>
     input.split(',').map(t => t.trim()).filter(Boolean);
+
+  const handleScheduleSelect = (scheduleId: string) => {
+    const ws = worshipSchedules.find(w => w.id === scheduleId);
+    setFormData(prev => {
+      const next = { ...prev, worshipScheduleId: scheduleId };
+      if (ws) {
+        if (!next.bibleVerse) next.bibleVerse = ws.bible_verse || '';
+        if (!next.author) next.author = getOfficerNamesByKeyword(ws, 'pengkhotbah', 'preacher') || prev.author;
+      }
+      return next;
+    });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,6 +136,7 @@ export function ResourceLibrary() {
       views: 0,
       bibleVerse: formData.bibleVerse,
       fullTranscript: formData.fullTranscript,
+      worshipScheduleId: formData.worshipScheduleId || undefined,
     });
     resetForm();
     setIsUploadDialogOpen(false);
@@ -144,6 +160,7 @@ export function ResourceLibrary() {
       uploadDate: resource.uploadDate || new Date().toISOString().split('T')[0],
       bibleVerse: resource.bibleVerse || '',
       fullTranscript: resource.fullTranscript || '',
+      worshipScheduleId: resource.worshipScheduleId || '',
       tagsInput: (resource.tags || []).join(', ')
     });
     setIsUploadDialogOpen(true);
@@ -171,6 +188,7 @@ export function ResourceLibrary() {
         tags: parseTags(formData.tagsInput),
         bibleVerse: formData.bibleVerse,
         fullTranscript: formData.fullTranscript,
+        worshipScheduleId: formData.worshipScheduleId || undefined,
       });
     }
     resetForm();
@@ -640,6 +658,24 @@ export function ResourceLibrary() {
                       <h3 className="font-semibold text-gray-900">Detail Khotbah</h3>
                     </div>
                     <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="worshipScheduleId">Jadwal Ibadah Terkait</Label>
+                        <select
+                          id="worshipScheduleId"
+                          name="worshipScheduleId"
+                          value={formData.worshipScheduleId}
+                          onChange={e => handleScheduleSelect(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                        >
+                          <option value="">— Tidak ditautkan —</option>
+                          {[...worshipSchedules].sort((a, b) => b.date.localeCompare(a.date)).map(ws => (
+                            <option key={ws.id} value={ws.id}>
+                              {new Date(ws.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} — {ws.title}
+                            </option>
+                          ))}
+                        </select>
+                        <p className="text-xs text-gray-400 mt-1">Menautkan mengisi otomatis Nats Alkitab &amp; Pelayan Firman dari jadwal ibadah tersebut (bila masih kosong).</p>
+                      </div>
                       <div>
                         <Label htmlFor="bibleVerse">Nats Alkitab</Label>
                         <Input
