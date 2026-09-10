@@ -389,7 +389,7 @@ export function OfferingsQRIS() {
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle,rgba(255,255,255,0.8) 1px,transparent 1px)', backgroundSize: '20px 20px' }} />
         <div className="relative flex items-center justify-between flex-wrap gap-4">
           <div>
-            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)', marginBottom: '4px' }}>Modul 3 · Keuangan & Persembahan (Modul Klasik)</p>
+            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)', marginBottom: '4px' }}>Modul 3 · Finance</p>
             <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '24px', fontWeight: 800, color: 'white', lineHeight: 1.2 }}>Pencatatan Persembahan</h1>
             <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.75)', marginTop: '4px' }}>Tunai · Transfer · QRIS</p>
           </div>

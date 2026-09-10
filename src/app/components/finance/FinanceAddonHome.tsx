@@ -176,7 +176,7 @@ export function FinanceAddonHome({ onNavigate }: { onNavigate?: (page: string) =
           <li>• Skema <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">finance</code> terpisah dari data GEMAS yang ada (23 tabel, 10 enum, fungsi &amp; view validasi)</li>
           <li>• Modul permission baru <strong>"Finance Add-on (Standar Akuntansi)"</strong> — akses diatur lewat menu Peran &amp; Hak Akses seperti modul lain</li>
           <li>• Endpoint <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">/api/v1/finance/*</code> terdaftar terpisah dari <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">/api/data</code> generic</li>
-          <li>• Modul Keuangan &amp; Persembahan yang lama tetap berjalan seperti biasa selama masa transisi</li>
+          <li>• Modul klasik "Keuangan &amp; Persembahan" (kas/bank/RAPB manual) sudah dihapus — persembahan digital kini tercatat langsung di sini, di bawah kategori Finance</li>
         </ul>
       </div>
 

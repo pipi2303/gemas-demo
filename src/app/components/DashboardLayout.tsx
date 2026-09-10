@@ -57,9 +57,7 @@ export const PAGE_LABELS: Record<string, { title: string; category: string }> = 
   livestream:            { title: 'Livestream & Pengingat', category: 'Peribadahan & Kegiatan' },
   attendance:            { title: 'Presensi Ibadah & QR', category: 'Peribadahan & Kegiatan' },
   announcements:         { title: 'Warta & Pengumuman', category: 'Peribadahan & Kegiatan' },
-  'church-finance':      { title: 'Kas & Rekening Gereja', category: 'Keuangan & Persembahan (Modul Klasik)' },
-  offerings:             { title: 'Persembahan & QRIS', category: 'Keuangan & Persembahan (Modul Klasik)' },
-  financial:             { title: 'Jurnal Transaksi & Laporan Keuangan', category: 'Keuangan & Persembahan (Modul Klasik)' },
+  offerings:             { title: 'Persembahan & QRIS', category: 'Finance' },
   assets:                { title: 'Manajemen Aset & Inventaris', category: 'Fasilitas & Inventaris' },
   'room-booking':        { title: 'Peminjaman Ruangan & Fasilitas', category: 'Fasilitas & Inventaris' },
   'resource-library':    { title: 'Perpustakaan Digital', category: 'Fasilitas & Inventaris' },
@@ -152,7 +150,6 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     jemaat: true,
     peribadahan: false,
-    keuangan: false,
     'finance-addon': false,
     fasilitas: false,
     diakonia: false,
@@ -212,21 +209,12 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
       ],
     },
     {
-      id: 'keuangan',
-      label: 'Keuangan & Persembahan (Modul Klasik)',
-      icon: DollarSign,
-      items: [
-        { id: 'church-finance', label: 'Kas & Rekening Gereja', page: 'church-finance', icon: DollarSign },
-        { id: 'offerings',      label: 'Persembahan Digital',   page: 'offerings',      icon: Heart },
-        { id: 'financial',      label: 'Jurnal & Neraca Kas',   page: 'financial',      icon: BarChart3 },
-      ],
-    },
-    {
       id: 'finance-addon',
       label: 'Finance',
       icon: Landmark,
       items: [
         { id: 'finance-addon',       label: 'Ringkasan Finance',     page: 'finance-addon',       icon: Landmark },
+        { id: 'offerings',           label: 'Persembahan Digital',   page: 'offerings',           icon: Heart },
         { id: 'finance-dashboard',   label: 'Dashboard Finance',     page: 'finance-dashboard',   icon: LayoutDashboard },
         { id: 'finance-master-data', label: 'Master Data Finance',   page: 'finance-master-data', icon: Layers },
         { id: 'finance-budget',      label: 'Budget / RKA',          page: 'finance-budget',      icon: ClipboardList },

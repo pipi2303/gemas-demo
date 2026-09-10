@@ -9,7 +9,6 @@ import { PrayerRequests } from './components/PrayerRequests';
 import { UserManagement } from './components/UserManagement';
 import { ActivityLog } from './components/ActivityLog';
 import { AttendanceStatsQR } from './components/AttendanceStatsQR';
-import { FinancialManagement } from './components/FinancialManagement';
 import { AnnouncementManagement } from './components/AnnouncementManagement';
 import { DataManager } from './components/DataManager';
 import { RolesManagement } from './components/RolesManagement';
@@ -22,7 +21,6 @@ import { OfferingsQRIS } from './components/OfferingsQRIS';
 import { ServiceRequestsComponent } from './components/ServiceRequests';
 // NEW IMPORTS: Fitur Pengembangan
 import { LivestreamReminder } from './components/LivestreamReminder';
-import { ChurchFinanceHub } from './components/ChurchFinanceHub';
 // NEW: Enhanced database components
 import { MemberDatabase } from './components/MemberDatabase';
 import { FamilyDatabase } from './components/FamilyDatabase';
@@ -150,13 +148,9 @@ function AppContent() {
       case 'attendance':
         return <AttendanceStatsQR />;
         
-      // Modul 3: Keuangan & Persembahan
-      case 'church-finance':
-        return <ChurchFinanceHub />;
+      // Modul 3: Finance
       case 'offerings':
         return <OfferingsQRIS />;
-      case 'financial':
-        return <FinancialManagement />;
       case 'finance-addon':
         return <FinanceAddonHome onNavigate={navigate} />;
       case 'finance-master-data':

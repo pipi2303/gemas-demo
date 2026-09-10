@@ -95,9 +95,12 @@ export function BackupRestore() {
   const [restoring, setRestoring] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // financeDocuments & attendanceCheckins bukan bagian dari state AppContext
-  // (masing-masing dimuat langsung di ChurchFinanceHub.tsx / AttendanceStatsQR.tsx),
+  // financeDocuments & attendanceCheckins bukan bagian dari state AppContext,
   // jadi diambil terpisah di sini hanya untuk ditampilkan di tabel status ini.
+  // Catatan: financeDocuments sudah tidak punya UI penulis sejak modul klasik
+  // "Keuangan & Persembahan" (ChurchFinanceHub.tsx) dihapus — datanya (jika ada)
+  // tetap dihitung & bisa di-backup/restore di sini untuk keperluan arsip.
+  // attendanceCheckins masih dimuat langsung di AttendanceStatsQR.tsx.
   const [otherCounts, setOtherCounts] = useState<Record<string, number>>({});
   useEffect(() => {
     let cancelled = false;

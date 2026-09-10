@@ -67,11 +67,7 @@ export function ReportCenter() {
     sidis,
     marriages,
     attestations,
-    financialRecords,
-    financialSummary,
-    bankAccounts,
-    pettyCash,
-    budgets,
+    offerings,
     churchAssets,
     worshipSchedules,
     events,
@@ -124,9 +120,9 @@ export function ReportCenter() {
     },
     {
       id: 'keuangan',
-      name: 'Keuangan & Perbendaharaan',
+      name: 'Persembahan & Kas Jemaat',
       category: 'Bidang Perbendaharaan',
-      description: 'Rekapitulasi kas dan bank, ringkasan penerimaan vs pengeluaran, saldo berjalan, kas kecil, dan serapan RAPB.',
+      description: 'Rekapitulasi persembahan (offerings) per periode & jenis. Modul klasik Keuangan & Perbendaharaan (kas/bank/RAPB) sudah dihapus — lihat Finance Add-on untuk laporan neraca & RAPB.',
       icon: DollarSign,
       color: '#2f8f5b', // hijau (house palette)
       selected: true,
@@ -227,7 +223,7 @@ export function ReportCenter() {
   // di judul dokumen — bukan data sepanjang masa (all-time) seperti sebelumnya.
   const periodRange = useMemo(() => getPeriodRange(selectedYear, selectedPeriod), [selectedYear, selectedPeriod]);
 
-  const periodFinancialRecords = useMemo(() => financialRecords.filter(t => inPeriod(t.date, periodRange)), [financialRecords, periodRange]);
+  const periodOfferings = useMemo(() => offerings.filter(o => inPeriod(o.date, periodRange)), [offerings, periodRange]);
   const periodBaptisms = useMemo(() => baptisms.filter(b => inPeriod(b.baptismDate, periodRange)), [baptisms, periodRange]);
   const periodSidis = useMemo(() => sidis.filter(s => inPeriod(s.sidiDate, periodRange)), [sidis, periodRange]);
   const periodMarriages = useMemo(() => marriages.filter(m => inPeriod(m.marriageDate, periodRange)), [marriages, periodRange]);
@@ -254,24 +250,15 @@ export function ReportCenter() {
   const pkbPkpCount = filteredMembers.filter(m => liveAge(m) >= 36 && liveAge(m) <= 59).length;
   const pkluCount = filteredMembers.filter(m => liveAge(m) >= 60).length;
 
-  // Keuangan metrics
-  const totalIncome = useMemo(() => {
-    return periodFinancialRecords.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
-  }, [periodFinancialRecords]);
-
-  const totalExpense = useMemo(() => {
-    return periodFinancialRecords.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
-  }, [periodFinancialRecords]);
-
-  const totalBankBalance = useMemo(() => {
-    return bankAccounts.reduce((s, b) => s + (b.balance || 0), 0);
-  }, [bankAccounts]);
-
-  const totalPettyCash = useMemo(() => {
-    return pettyCash.reduce((s, p) => s + (p.amount || 0), 0);
-  }, [pettyCash]);
-
-  const totalCashBalance = (financialSummary?.totalBalance || 0) || (totalIncome - totalExpense) || totalBankBalance;
+  // Persembahan (Keuangan) metrics — sumber data live, bukan lagi financialRecords/
+  // bankAccounts/pettyCash. Modul klasik "Keuangan & Persembahan" (ChurchFinanceHub/
+  // FinancialManagement) sudah dihapus dan tidak lagi punya UI penulis, sehingga
+  // figur kas/bank/petty-cash lama akan beku selamanya jika tetap ditampilkan.
+  // Laporan ini sekarang melaporkan persembahan (offerings) apa adanya — data yang
+  // masih real-time — bukan neraca kas gereja secara penuh (lihat Finance Add-on).
+  const totalOfferings = useMemo(() => {
+    return periodOfferings.reduce((s, o) => s + (o.amount || 0), 0);
+  }, [periodOfferings]);
 
   // Inventaris metrics
   const totalAssetsCount = churchAssets.length;
@@ -415,15 +402,15 @@ export function ReportCenter() {
         const kpiRows = [
           [
             'Total Warga Jemaat Terdata', `${formatNumber(totalMembersCount)} Jiwa`,
-            'Total Posisi Kas & Bank', formatRp(totalCashBalance)
+            'Total Persembahan (Periode)', formatRp(totalOfferings)
           ],
           [
             'Total Kepala Keluarga (KK)', `${formatNumber(totalFamiliesCount)} KK`,
-            'Realisasi Penerimaan Kas', formatRp(totalIncome)
+            'Tingkat Kehadiran Ibadah', `${attendanceRate}% (${attendanceServiceDatesCount} kali ibadah)`
           ],
           [
             'Status Anggota Sudah Sidi', `${formatNumber(sidiCount)} (${totalMembersCount > 0 ? Math.round((sidiCount / totalMembersCount) * 100) : 0}%)`,
-            'Realisasi Pengeluaran Kas', formatRp(totalExpense)
+            'Permohonan Doa (Periode)', `${formatNumber(prayerRequestsCount)} Permohonan`
           ],
           [
             'Total Aset & Inventaris', `${formatNumber(totalAssetsCount)} Unit (${formatRp(totalAssetBookValue)})`,
@@ -433,7 +420,7 @@ export function ReportCenter() {
 
         autoTable(doc, {
           startY: y,
-          head: [['Indikator Kunci', 'Nilai / Status', 'Indikator Finansial & Sosial', 'Nilai / Status']],
+          head: [['Indikator Kunci', 'Nilai / Status', 'Indikator Persembahan & Sosial', 'Nilai / Status']],
           body: kpiRows,
           theme: 'grid',
           headStyles: {
@@ -532,23 +519,24 @@ export function ReportCenter() {
         }
       }
 
-      // ── MODULE 2: KEUANGAN & PERBENDAHARAAN ──
+      // ── MODULE 2: PERSEMBAHAN & KAS JEMAAT ──
+      // Modul klasik "Keuangan & Perbendaharaan" (kas/bank/RAPB) sudah dihapus
+      // beserta UI-nya (ChurchFinanceHub/FinancialManagement); bagian ini sekarang
+      // melaporkan persembahan (offerings), satu-satunya data kas yang masih
+      // real-time. Untuk neraca kas, RAPB & rekonsiliasi bank gunakan Finance Add-on.
       const keuanganModule = modules.find(m => m.id === 'keuangan');
       if (keuanganModule?.selected) {
-        addSectionTitle('III. KEUANGAN, KAS & REKENING GEREJA', 'PERBENDAHARAAN');
+        addSectionTitle('III. PERSEMBAHAN & KAS JEMAAT (PERIODE)', 'PERSEMBAHAN');
 
+        const avgOfferingPerTx = periodOfferings.length > 0 ? totalOfferings / periodOfferings.length : 0;
         const finRows = [
-          ['Total Saldo Kas & Bank Berjalan', formatRp(totalCashBalance), 'Posisi Likuiditas Gereja'],
-          ['Total Pemasukan / Penerimaan Transaksi', formatRp(totalIncome), 'Penerimaan Kas Berjalan'],
-          ['Total Pengeluaran / Beban Operasional', formatRp(totalExpense), 'Beban Kas Operasional'],
-          ['Surplus / (Defisit) Bersih Berjalan', formatRp(totalIncome - totalExpense), totalIncome >= totalExpense ? 'Surplus Kas' : 'Defisit Kas'],
-          ['Total Saldo pada Rekening Bank', formatRp(totalBankBalance), `${bankAccounts.length} Rekening Aktif`],
-          ['Total Saldo Kas Kecil (Petty Cash)', formatRp(totalPettyCash), 'Dana Operasional Mendesak'],
+          ['Total Persembahan Periode Ini', formatRp(totalOfferings), `${periodOfferings.length} Transaksi`],
+          ['Rata-rata per Transaksi', formatRp(avgOfferingPerTx), 'Persembahan & Kolekte'],
         ];
 
         autoTable(doc, {
           startY: y,
-          head: [['Komponen Keuangan', 'Nominal (Rupiah)', 'Keterangan Finansial']],
+          head: [['Komponen Persembahan', 'Nominal (Rupiah)', 'Keterangan']],
           body: finRows,
           theme: 'striped',
           headStyles: { fillColor: [4, 120, 87], textColor: [255, 255, 255], fontSize: 7.5, fontStyle: 'bold' },
@@ -560,30 +548,34 @@ export function ReportCenter() {
         // @ts-ignore
         y = doc.lastAutoTable.finalY + 6;
 
-        // Bank Accounts detail
-        if (includeDetailTables && bankAccounts.length > 0) {
+        // Rincian per jenis persembahan
+        if (includeDetailTables && periodOfferings.length > 0) {
           checkPageBreak(25);
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(8);
           doc.setTextColor(30, 41, 59);
-          doc.text('Rincian Saldo Rekening Bank & Kas Resmi:', 14, y);
+          doc.text('Rincian Persembahan per Jenis:', 14, y);
           y += 4;
 
-          const bankRows = bankAccounts.map(b => [
-            b.bankName,
-            b.accountNumber || '-',
-            b.accountHolder || 'GPIB Jemaat Trinitas',
-            formatRp(b.balance || 0),
+          const offeringTypeMap = new Map<string, { count: number; total: number }>();
+          periodOfferings.forEach(o => {
+            const cur = offeringTypeMap.get(o.type) || { count: 0, total: 0 };
+            cur.count += 1;
+            cur.total += o.amount || 0;
+            offeringTypeMap.set(o.type, cur);
+          });
+          const offeringTypeRows = Array.from(offeringTypeMap.entries()).map(([type, v]) => [
+            type, String(v.count), formatRp(v.total),
           ]);
 
           autoTable(doc, {
             startY: y,
-            head: [['Nama Bank', 'Nomor Rekening', 'Atas Nama', 'Saldo Terkini']],
-            body: bankRows,
+            head: [['Jenis Persembahan', 'Jumlah Transaksi', 'Total Nominal']],
+            body: offeringTypeRows,
             theme: 'grid',
             headStyles: { fillColor: [51, 65, 85], textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold' },
             bodyStyles: { fontSize: 6.8, cellPadding: 1.5 },
-            columnStyles: { 0: { cellWidth: 50 }, 1: { cellWidth: 45 }, 2: { cellWidth: 45 }, 3: { cellWidth: 42, halign: 'right' } },
+            columnStyles: { 0: { cellWidth: 70 }, 1: { cellWidth: 55, halign: 'center' }, 2: { cellWidth: 57, halign: 'right' } },
             margin: { left: 14, right: 14 },
           });
 
@@ -736,11 +728,16 @@ export function ReportCenter() {
       if (lastReportSnapshot) {
         addSectionTitle(`IX. PERBANDINGAN DENGAN PERIODE ${selectedPeriod.toUpperCase()} TAHUN ${lastReportSnapshot.year}`, 'ARSIP TAHUN KE TAHUN');
 
+        // Catatan: snapshot arsip lama (sebelum modul klasik dihapus) menyimpan
+        // `totalIncome` sebagai total pemasukan kas klasik, sedangkan snapshot baru
+        // menyimpan total persembahan (offerings) di field yang sama — lihat komentar
+        // pada handleArchiveSnapshot. Baris "Total Persembahan" di bawah ini karenanya
+        // membandingkan dua definisi berbeda untuk arsip lintas migrasi; ini tak
+        // terhindarkan tapi tetap lebih baik daripada menampilkan kas beku.
         const compareRows = [
           ['Total Warga Jemaat', formatNumber(lastReportSnapshot.totalMembers), formatNumber(totalMembersCount), formatNumber(totalMembersCount - lastReportSnapshot.totalMembers)],
           ['Total Kepala Keluarga', formatNumber(lastReportSnapshot.totalFamilies), formatNumber(totalFamiliesCount), formatNumber(totalFamiliesCount - lastReportSnapshot.totalFamilies)],
-          ['Realisasi Penerimaan Kas', formatRp(lastReportSnapshot.totalIncome), formatRp(totalIncome), formatRp(totalIncome - lastReportSnapshot.totalIncome)],
-          ['Realisasi Pengeluaran Kas', formatRp(lastReportSnapshot.totalExpense), formatRp(totalExpense), formatRp(totalExpense - lastReportSnapshot.totalExpense)],
+          ['Total Persembahan', formatRp(lastReportSnapshot.totalIncome), formatRp(totalOfferings), formatRp(totalOfferings - lastReportSnapshot.totalIncome)],
           ['Nilai Buku Aset', formatRp(lastReportSnapshot.totalAssetBookValue), formatRp(totalAssetBookValue), formatRp(totalAssetBookValue - lastReportSnapshot.totalAssetBookValue)],
           ['Pelayanan Sakramen (Baptis+Sidi+Nikah)', formatNumber(lastReportSnapshot.baptisEvents + lastReportSnapshot.sidiEvents + lastReportSnapshot.marriageEvents), formatNumber(baptisEvents + sidiEvents + marriageEvents), formatNumber((baptisEvents + sidiEvents + marriageEvents) - (lastReportSnapshot.baptisEvents + lastReportSnapshot.sidiEvents + lastReportSnapshot.marriageEvents))],
           ['Penyaluran Diakonia/Bantuan', formatRp(lastReportSnapshot.aidTotalDistributed), formatRp(aidTotalDistributed), formatRp(aidTotalDistributed - lastReportSnapshot.aidTotalDistributed)],
@@ -880,9 +877,14 @@ export function ReportCenter() {
         moduleIds: modules.filter(m => m.selected).map(m => m.id),
         totalMembers: totalMembersCount,
         totalFamilies: totalFamiliesCount,
-        totalIncome,
-        totalExpense,
-        totalCashBalance,
+        // totalIncome sekarang diisi dari totalOfferings (persembahan) — modul
+        // klasik yang dulu mengisi field ini sudah dihapus. totalExpense &
+        // totalCashBalance dipertahankan sbg 0 hanya demi kompatibilitas skema
+        // ConsolidatedReportSnapshot (dibaca oleh arsip lama); tidak ditampilkan
+        // lagi ke pengguna untuk periode berjalan.
+        totalIncome: totalOfferings,
+        totalExpense: 0,
+        totalCashBalance: 0,
         totalAssetBookValue,
         baptisEvents,
         sidiEvents,
@@ -920,9 +922,7 @@ export function ReportCenter() {
         ['Indikator Kunci', 'Nilai / Status'],
         ['Total Warga Jemaat Terdata', totalMembersCount],
         ['Total Kepala Keluarga (KK)', totalFamiliesCount],
-        ['Total Posisi Kas & Bank', totalCashBalance],
-        ['Realisasi Penerimaan Kas', totalIncome],
-        ['Realisasi Pengeluaran Kas', totalExpense],
+        ['Total Persembahan (Periode)', totalOfferings],
         ['Total Aset & Inventaris (Nilai Buku)', totalAssetBookValue],
         ['Penyaluran Diakonia/Bantuan', aidTotalDistributed],
       ];
@@ -952,13 +952,10 @@ export function ReportCenter() {
 
       if (modules.find(m => m.id === 'keuangan')?.selected) {
         const keuanganRows: any[][] = [
-          ['Komponen Keuangan', 'Nominal (Rupiah)'],
-          ['Total Saldo Kas & Bank Berjalan', totalCashBalance],
-          ['Total Pemasukan/Penerimaan (Periode)', totalIncome],
-          ['Total Pengeluaran/Beban (Periode)', totalExpense],
-          ['Surplus / (Defisit) Bersih', totalIncome - totalExpense],
-          ['Total Saldo Rekening Bank', totalBankBalance],
-          ['Total Saldo Kas Kecil', totalPettyCash],
+          ['Komponen Persembahan', 'Nominal (Rupiah)'],
+          ['Total Persembahan Periode Ini', totalOfferings],
+          ['Jumlah Transaksi', periodOfferings.length],
+          ['Rata-rata per Transaksi', periodOfferings.length > 0 ? totalOfferings / periodOfferings.length : 0],
         ];
         const wsKeuangan = XLSX.utils.aoa_to_sheet(keuanganRows);
         wsKeuangan['!cols'] = [{ wch: 36 }, { wch: 18 }];
@@ -1040,8 +1037,7 @@ export function ReportCenter() {
           ['Indikator', `${selectedPeriod.toUpperCase()} ${lastReportSnapshot.year}`, `${selectedPeriod.toUpperCase()} ${selectedYear}`, 'Selisih'],
           ['Total Warga Jemaat', lastReportSnapshot.totalMembers, totalMembersCount, totalMembersCount - lastReportSnapshot.totalMembers],
           ['Total Kepala Keluarga', lastReportSnapshot.totalFamilies, totalFamiliesCount, totalFamiliesCount - lastReportSnapshot.totalFamilies],
-          ['Realisasi Penerimaan Kas', lastReportSnapshot.totalIncome, totalIncome, totalIncome - lastReportSnapshot.totalIncome],
-          ['Realisasi Pengeluaran Kas', lastReportSnapshot.totalExpense, totalExpense, totalExpense - lastReportSnapshot.totalExpense],
+          ['Total Persembahan', lastReportSnapshot.totalIncome, totalOfferings, totalOfferings - lastReportSnapshot.totalIncome],
           ['Nilai Buku Aset', lastReportSnapshot.totalAssetBookValue, totalAssetBookValue, totalAssetBookValue - lastReportSnapshot.totalAssetBookValue],
           ['Penyaluran Diakonia/Bantuan', lastReportSnapshot.aidTotalDistributed, aidTotalDistributed, aidTotalDistributed - lastReportSnapshot.aidTotalDistributed],
         ];
@@ -1269,7 +1265,7 @@ export function ReportCenter() {
                       <span className="text-slate-500">Data Terkini:</span>
                       <span className="font-semibold text-slate-800 dark:text-slate-200">
                         {mod.id === 'sensus' && `${totalMembersCount} Jiwa (${totalFamiliesCount} KK)`}
-                        {mod.id === 'keuangan' && `Saldo: ${formatRp(totalCashBalance)}`}
+                        {mod.id === 'keuangan' && `Persembahan: ${formatRp(totalOfferings)}`}
                         {mod.id === 'inventaris' && `${totalAssetsCount} Aset (${formatRp(totalAssetBookValue)})`}
                         {mod.id === 'sakramen' && `${periodBaptisms.length + periodSidis.length + periodMarriages.length} Sakramen, ${periodAttestations.length} Atestasi`}
                         {mod.id === 'peribadahan' && `${worshipCount} Ibadah, ${eventsCount} Acara`}
@@ -1459,9 +1455,9 @@ export function ReportCenter() {
                 <span className="text-[11px] text-slate-500 block mt-0.5">{totalFamiliesCount} Kepala Keluarga</span>
               </div>
               <div className="p-4 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/40">
-                <span className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold block">Posisi Kas & Bank</span>
-                <span className="text-xl font-bold text-slate-900 dark:text-white">{formatRp(totalCashBalance)}</span>
-                <span className="text-[11px] text-slate-500 block mt-0.5">Penerimaan: {formatRp(totalIncome)}</span>
+                <span className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold block">Persembahan (Periode)</span>
+                <span className="text-xl font-bold text-slate-900 dark:text-white">{formatRp(totalOfferings)}</span>
+                <span className="text-[11px] text-slate-500 block mt-0.5">{periodOfferings.length} Transaksi</span>
               </div>
               <div className="p-4 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-800/40">
                 <span className="text-xs text-amber-700 dark:text-amber-300 font-semibold block">Total Nilai Aset</span>

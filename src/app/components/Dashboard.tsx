@@ -182,35 +182,6 @@ function MiniHorizontalBar({ data, color = '#144f6b' }: { data: { name: string; 
   );
 }
 
-function MiniStackedBar({ data, color1 = '#2f8f5b', color2 = '#d1553f', label1 = 'Pemasukan', label2 = 'Pengeluaran' }: {
-  data: { name: string; v1: number; v2: number }[]; color1?: string; color2?: string; label1?: string; label2?: string;
-}) {
-  if (!data.length) return null;
-  const W = 480, H = 130;
-  const pad = { t: 10, r: 8, b: 26, l: 8 };
-  const iW = W - pad.l - pad.r, iH = H - pad.t - pad.b;
-  const maxV = Math.max(...data.map(d => d.v1 + d.v2)) || 1;
-  const slotW = iW / data.length, barW = slotW * 0.6, barGap = (slotW - barW) / 2;
-  const f = (n: number) => n.toFixed(1);
-  return (
-    <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
-      {[0, 0.5, 1].map((t, gi) => <line key={gi} x1={pad.l} y1={pad.t + t * iH} x2={W - pad.r} y2={pad.t + t * iH} stroke="#f1f5f9" strokeWidth={1} />)}
-      {data.map((d, i) => {
-        const x = pad.l + i * slotW + barGap;
-        const h1 = (d.v1 / maxV) * iH, h2 = (d.v2 / maxV) * iH;
-        const y1 = pad.t + iH - h1 - h2, y2 = pad.t + iH - h2;
-        const r = Math.min(4, barW / 2);
-        return (
-          <g key={i}>
-            {h1 > 0 && <path d={`M${f(x)},${f(y1 + h1)} L${f(x)},${f(y1 + r)} Q${f(x)},${f(y1)} ${f(x + r)},${f(y1)} L${f(x + barW - r)},${f(y1)} Q${f(x + barW)},${f(y1)} ${f(x + barW)},${f(y1 + r)} L${f(x + barW)},${f(y1 + h1)} Z`} fill={color1} opacity="0.85" />}
-            {h2 > 0 && <path d={`M${f(x)},${f(y2 + h2)} L${f(x)},${f(y2)} L${f(x + barW)},${f(y2)} L${f(x + barW)},${f(y2 + h2)} Z`} fill={color2} opacity="0.7" />}
-            <text x={f(x + barW / 2)} y={H - 6} textAnchor="middle" fontSize={9} fill="#94a3b8">{d.name}</text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
 
 // ── Reusable UI primitives ─────────────────────────────────────────────────────
 function ModuleHeader({ icon: Icon, title, subtitle, gradient, action, onAction }: {
@@ -585,7 +556,7 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
 const QUICK_NAV = [
   { label: 'Database & Anggota',      icon: Users,     page: 'members',          color: '#1A77A3', bg: '#f0f7fb',                     emoji: '👥' },
   { label: 'Jadwal & Peribadahan',    icon: Church,    page: 'worship-schedules', color: '#8b6bb1', bg: 'rgba(139,107,177,0.08)',      emoji: '⛪' },
-  { label: 'Keuangan & Kas',          icon: DollarSign,page: 'church-finance',    color: '#144f6b', bg: '#f0f7fb',                    emoji: '💰' },
+  { label: 'Finance & Persembahan',   icon: DollarSign,page: 'finance-addon',     color: '#144f6b', bg: '#f0f7fb',                    emoji: '💰' },
   { label: 'Laporan Jemaat',          icon: BarChart3,  page: 'sensus-report',    color: '#144f6b', bg: 'rgba(20,79,107,0.08)',        emoji: '📋' },
   { label: 'Pusat Laporan PDF',       icon: Printer,    page: 'report-center',    color: '#caa04a', bg: 'rgba(202,160,74,0.08)',        emoji: '📄' },
   { label: 'Layanan & Bantuan',       icon: Heart,      page: 'service-requests', color: '#d1553f', bg: 'rgba(209,85,63,0.08)',        emoji: '❤️' },
@@ -609,7 +580,6 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
   const {
     members, families, sectors, offerings,
     attestations,
-    financialRecords,
     baptisms, sidis, marriages,
     currentUser, can,
     worshipSchedules, events, prayerRequests, announcements, attendance,
@@ -669,7 +639,13 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
   // memandang izin modul masing-masing (lihat DEFAULT_PERMISSIONS di
   // src/lib/permissions.ts). Sekarang widget-widget tsb disembunyikan untuk
   // role yang memang NONE pada modul terkait (mis. Operator/Ketua Sektor).
-  const canViewFinanceClassic = can('church-finance', 'view');
+  //
+  // Catatan migrasi: modul "Keuangan & Persembahan (Modul Klasik)"
+  // (ChurchFinanceHub/FinancialManagement) sudah dihapus beserta kartu
+  // finIncome/finExpense yang datanya sudah beku. Submenu Persembahan
+  // Digital kini ada di bawah kategori Finance dan izinnya mengikuti
+  // can('offerings', ...).
+  const canViewOfferings = can('offerings', 'view');
   const canViewDiakonia = can('service-requests', 'view');
   const canViewFinanceAddon = can('finance-dashboard', 'view');
   const canViewSensusReport = can('sensus-report', 'view');
@@ -775,22 +751,11 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
       return d.getMonth() === curM && d.getFullYear() === curY;
     }).reduce((s, o) => s + o.amount, 0);
     const offeringsByType  = offerings.reduce((acc, o) => { acc[o.type] = (acc[o.type] || 0) + o.amount; return acc; }, {} as Record<string, number>);
-    const finIncome  = financialRecords.filter(r => r.type === 'income').reduce((s, r) => s + r.amount, 0);
-    const finExpense = financialRecords.filter(r => r.type === 'expense').reduce((s, r) => s + r.amount, 0);
     const MONTH_NAMES = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
     const monthlyOfferings = MONTH_NAMES.map((name, i) => ({
       name,
       persembahan: offerings.filter(o => { const d = new Date(o.date); return d.getMonth() === i && d.getFullYear() === curY; }).reduce((s, o) => s + o.amount, 0),
     }));
-    const last6Months = Array.from({ length: 6 }, (_, k) => {
-      const d = new Date(curY, curM - 5 + k, 1);
-      const m = d.getMonth(), y = d.getFullYear();
-      return {
-        name: MONTH_NAMES[m],
-        v1: financialRecords.filter(r => r.type === 'income'  && new Date(r.date).getMonth() === m && new Date(r.date).getFullYear() === y).reduce((s, r) => s + r.amount, 0),
-        v2: financialRecords.filter(r => r.type === 'expense' && new Date(r.date).getMonth() === m && new Date(r.date).getFullYear() === y).reduce((s, r) => s + r.amount, 0),
-      };
-    });
 
     // ── M4: Diakonia & Layanan ──
     const srList = serviceRequests || [];
@@ -831,7 +796,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
       upcomingWorship, worshipThisWeek,
       upcomingEvents, eventsThisWeek,
       attendanceThisMonth, attendanceDates,
-      offeringsTotal, offeringsThisMonth, offeringsByType, finIncome, finExpense, monthlyOfferings, last6Months,
+      offeringsTotal, offeringsThisMonth, offeringsByType, monthlyOfferings,
       activePrayers: activePrayers.length, activePrayersList: activePrayers.slice(0, 3),
       activeAnnouncements,
       pendingAttestations, recentActivities,
@@ -840,7 +805,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
       srByType, recentSR,
       worshipByType,
     };
-  }, [currentDate, members, families, sectors, offerings, financialRecords, recentActivitiesData, attestations,
+  }, [currentDate, members, families, sectors, offerings, recentActivitiesData, attestations,
       baptisms, sidis, marriages, worshipSchedules, events, prayerRequests, announcements, attendance,
       serviceRequests, aidDistributions]);
 
@@ -1013,15 +978,10 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
         <KPICard label="Atestasi Pending" value={s.pendingAttestations} sub="menunggu proses"
           icon={FileText} gradient="#144f6b" trend={{ value: `${s.totalAttestations} total`, up: false }}
           onClick={() => setActiveKPI('attestations')} />
-        {canViewFinanceClassic && (
+        {canViewOfferings && (
         <KPICard label="Persembahan Bulan Ini" value={formatRp(s.offeringsThisMonth)} sub={`${offerings.length} transaksi`}
           icon={DollarSign} gradient="linear-gradient(135deg,#144f6b,#1A77A3)"
-          trend={{ value: 'Bulan ini', up: true }} onClick={() => nav('church-finance')} />
-        )}
-        {canViewFinanceClassic && (
-        <KPICard label="Saldo Kas Gereja" value={formatRp(s.finIncome - s.finExpense)} sub="pemasukan – pengeluaran"
-          icon={TrendingUp} gradient="#2f8f5b" trend={{ value: 'Total bersih', up: s.finIncome >= s.finExpense }}
-          onClick={() => nav('church-finance')} />
+          trend={{ value: 'Bulan ini', up: true }} onClick={() => nav('offerings')} />
         )}
       </div>
 
@@ -1327,16 +1287,19 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
         </div>
       </div>
 
-      {/* ══ MODUL 3: KEUANGAN & PERSEMBAHAN ════════════════════════════════════ */}
-      {canViewFinanceClassic && (
+      {/* ══ MODUL 3: PERSEMBAHAN DIGITAL (FINANCE) ══════════════════════════════ */}
+      {/* Catatan migrasi: modul klasik "Keuangan & Persembahan" (ChurchFinanceHub/
+          FinancialManagement) sudah dihapus. Kartu Total Pemasukan/Pengeluaran &
+          "Kas Masuk vs Keluar" yang sebelumnya tampil di sini dihapus karena datanya
+          (financialRecords) sudah beku sejak modul klasik tidak lagi punya UI penulis.
+          Persembahan (offerings) tetap real-time dan kini berada di kategori Finance. */}
+      {canViewOfferings && (
       <div className="rounded-2xl p-6" style={{ background: 'white', border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-        <ModuleHeader icon={DollarSign} title="Keuangan & Persembahan (Modul Klasik)" subtitle="Modul 3 · Persembahan & laporan keuangan gereja (terpisah dari Finance Add-on)"
-          gradient="linear-gradient(135deg,#144f6b,#1A77A3)" action="Keuangan Gereja" onAction={() => nav('church-finance')} />
+        <ModuleHeader icon={DollarSign} title="Persembahan Digital" subtitle="Modul 3 · Finance — persembahan jemaat real-time"
+          gradient="linear-gradient(135deg,#144f6b,#1A77A3)" action="Persembahan Digital" onAction={() => nav('offerings')} />
         <div className="flex gap-3 flex-wrap mb-5">
           <StatChip label="Total Persembahan" value={formatRp(s.offeringsTotal)}     color="#144f6b" bg="#f0f7fb" icon={DollarSign}    trend={`${offerings.length} transaksi`} />
           <StatChip label="Bulan Ini"          value={formatRp(s.offeringsThisMonth)} color="#144f6b" bg="#f0f9ff" icon={TrendingUp} />
-          <StatChip label="Total Pemasukan"    value={formatRp(s.finIncome)}          color="#2f8f5b" bg="#f0f9f4" icon={ArrowUpRight} />
-          <StatChip label="Total Pengeluaran"  value={formatRp(s.finExpense)}         color="#d1553f" bg="#fdf2f0" icon={ArrowDownRight} />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-2 space-y-4">
@@ -1345,37 +1308,11 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
               <p style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '8px' }}>Data real per bulan</p>
               <MiniSparkline data={s.monthlyOfferings} color="#144f6b" />
             </div>
-            <div>
-              <p style={{ fontSize: '12.5px', fontWeight: 700, color: '#374151', marginBottom: '4px' }}>Kas Masuk vs Keluar (6 Bulan)</p>
-              <div className="flex items-center gap-4 mb-2">
-                <span className="flex items-center gap-1.5 text-xs text-gray-500"><span className="w-3 h-2 rounded-sm inline-block" style={{ background: '#2f8f5b' }} />Pemasukan</span>
-                <span className="flex items-center gap-1.5 text-xs text-gray-500"><span className="w-3 h-2 rounded-sm inline-block" style={{ background: '#d1553f' }} />Pengeluaran</span>
-              </div>
-              <MiniStackedBar data={s.last6Months} color1="#2f8f5b" color2="#d1553f" />
-            </div>
           </div>
           <div>
-            <p style={{ fontSize: '12.5px', fontWeight: 700, color: '#374151', marginBottom: '10px' }}>Ringkasan Keuangan</p>
-            <div className="space-y-3">
-              <div className="rounded-xl p-3" style={{ background: '#f8fafc', border: '1px solid #f1f5f9' }}>
-                <p style={{ fontSize: '10.5px', color: '#94a3b8', fontWeight: 600, marginBottom: '8px' }}>NERACA KAS</p>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1.5" style={{ fontSize: '11.5px', color: '#475569' }}><ArrowUpRight className="w-3 h-3 text-[#2f8f5b]" />Pemasukan</span>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#144f6b' }}>{formatRp(s.finIncome)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1.5" style={{ fontSize: '11.5px', color: '#475569' }}><ArrowDownRight className="w-3 h-3 text-red-400" />Pengeluaran</span>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#d1553f' }}>{formatRp(s.finExpense)}</span>
-                  </div>
-                  <div className="h-px bg-gray-200 my-1" />
-                  <div className="flex items-center justify-between">
-                    <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#374151' }}>Saldo Bersih</span>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: s.finIncome >= s.finExpense ? '#144f6b' : '#d1553f', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{formatRp(s.finIncome - s.finExpense)}</span>
-                  </div>
-                </div>
-              </div>
-              {Object.keys(s.offeringsByType).length > 0 && (
+            {Object.keys(s.offeringsByType).length > 0 && (
+              <div>
+                <p style={{ fontSize: '12.5px', fontWeight: 700, color: '#374151', marginBottom: '10px' }}>Ringkasan Persembahan</p>
                 <div className="rounded-xl p-3" style={{ background: '#f8fafc', border: '1px solid #f1f5f9' }}>
                   <p style={{ fontSize: '10.5px', color: '#94a3b8', fontWeight: 600, marginBottom: '8px' }}>JENIS PERSEMBAHAN</p>
                   {Object.entries(s.offeringsByType).slice(0, 4).map(([type, amount]) => (
@@ -1385,14 +1322,13 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
                     </div>
                   ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
         <div className="flex gap-2 mt-4 pt-4 border-t border-gray-50 flex-wrap">
           {[
-            { label: 'Keuangan Gereja', page: 'church-finance' }, { label: 'Pencatatan Persembahan', page: 'offerings' },
-            { label: 'Proyek Pembangunan', page: 'building-projects' },
+            { label: 'Pencatatan Persembahan', page: 'offerings' }, { label: 'Finance Add-on', page: 'finance-addon' },
           ].map(item => (
             <button key={item.page} onClick={() => nav(item.page)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-[#f0f7fb] transition-colors" style={{ fontSize: '12px', fontWeight: 500, color: '#144f6b', background: '#f0f7fb' }}>
               {item.label} <ChevronRight className="w-3 h-3" />

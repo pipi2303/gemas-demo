@@ -2716,10 +2716,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       { id: 'events', label: 'Kalender Acara', keywords: ['acara', 'event', 'kalender', 'kegiatan'], icon: 'calendar-days', page: 'events' },
       { id: 'ministries', label: 'Komisi & Pelayanan', keywords: ['komisi', 'pelayanan', 'ministry', 'panitia'], icon: 'users-2', page: 'ministries' },
       { id: 'livestream', label: 'Livestream Reminder', keywords: ['livestream', 'siaran langsung', 'youtube', 'live'], icon: 'video', page: 'livestream' },
-      { id: 'church-finance', label: 'Manajemen Keuangan', keywords: ['keuangan', 'finance', 'kas', 'pemasukan', 'pengeluaran'], icon: 'landmark', page: 'church-finance' },
       { id: 'offerings', label: 'Persembahan & QRIS', keywords: ['persembahan', 'qris', 'offering', 'donasi', 'kolekte'], icon: 'qr-code', page: 'offerings' },
-      { id: 'building-projects', label: 'Proyek Pembangunan', keywords: ['proyek', 'pembangunan', 'gedung', 'renovasi'], icon: 'building', page: 'church-finance' },
-      { id: 'budget-planning', label: 'Perencanaan Anggaran', keywords: ['anggaran', 'budget', 'rapb', 'rencana keuangan'], icon: 'calculator', page: 'financial' },
       { id: 'offering-per-member', label: 'Persembahan per Jemaat', keywords: ['persembahan jemaat', 'kontribusi jemaat'], icon: 'hand-heart', page: 'offerings' },
       { id: 'assets', label: 'Manajemen Aset', keywords: ['aset', 'inventaris', 'barang', 'harta'], icon: 'package', page: 'assets' },
       { id: 'sensus-report', label: 'Laporan Jemaat', keywords: ['sensus', 'laporan', 'statistik', 'report'], icon: 'bar-chart', page: 'sensus-report' },
@@ -2842,30 +2839,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Keuangan — financialRecords
-    financialRecords.forEach(fr => {
-      if (fr.description.toLowerCase().includes(lowerQuery) ||
-          fr.category.toLowerCase().includes(lowerQuery) ||
-          fr.reference?.toLowerCase().includes(lowerQuery)) {
-        const typeLabel = fr.type === 'income' ? 'Pemasukan' : 'Pengeluaran';
-        results.push({ type: 'financial', group: 'Keuangan', page: 'church-finance', title: fr.description, subtitle: `${typeLabel} · ${fr.date} · Rp${fr.amount.toLocaleString('id-ID')}`, data: fr });
-      }
-    });
-
     // Keuangan — offerings
     offerings.forEach(o => {
       if (o.donorName?.toLowerCase().includes(lowerQuery) ||
           o.type?.toLowerCase().includes(lowerQuery) ||
           o.description?.toLowerCase().includes(lowerQuery)) {
         results.push({ type: 'offering', group: 'Keuangan', page: 'offerings', title: `Persembahan ${o.type}`, subtitle: `${o.donorName ?? 'Anonim'} · Rp${o.amount.toLocaleString('id-ID')} · ${o.date}`, data: o });
-      }
-    });
-
-    // Keuangan — buildingProjects
-    buildingProjects.forEach(bp => {
-      if (bp.name.toLowerCase().includes(lowerQuery) ||
-          bp.description?.toLowerCase().includes(lowerQuery)) {
-        results.push({ type: 'building', group: 'Keuangan', page: 'church-finance', title: bp.name, subtitle: `${bp.status} · ${bp.progress}% tercapai`, data: bp });
       }
     });
 

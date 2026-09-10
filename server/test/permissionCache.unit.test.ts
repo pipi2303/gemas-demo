@@ -100,18 +100,17 @@ describe('checkPermission (berbasis collection) — server-side untuk /api/data/
     expect(await checkPermission('Operator Sakramen', 'sacramentDocuments', 'POST', customRoles)).toBe(true);
   });
 
-  it('cluster Keuangan & Persembahan: collection digabung OR lintas 3 submenu (church-finance/offerings/financial)', async () => {
-    // Role ini cuma dikasih akses ke submenu 'financial' (Jurnal & Neraca Kas) saja —
-    // TAPI collection 'offerings' & 'pettyCash' tetap harus bisa diakses, karena
-    // ketiga submenu itu sengaja digabung OR di server (lihat komentar di
-    // COLLECTION_PAGE, permissionCache.ts) — bukan bug, kompromi yang didokumentasikan.
-    const customRoles = [{ name: 'Bendahara Jurnal', modulePermissions: { financial: ['view', 'create', 'edit'] } }];
-    expect(await checkPermission('Bendahara Jurnal', 'offerings', 'POST', customRoles)).toBe(true);
-    expect(await checkPermission('Bendahara Jurnal', 'pettyCash', 'PUT', customRoles)).toBe(true);
-    expect(await checkPermission('Bendahara Jurnal', 'financialTransactions', 'GET', customRoles)).toBe(true);
+  it('collection kas/keuangan lama (peninggalan modul klasik yang sudah dihapus) mengikuti izin submenu offerings', async () => {
+    // Modul klasik "Keuangan & Persembahan" (church-finance/financial) sudah dihapus —
+    // collection financialTransactions/pettyCash/dll kini hanya dipetakan ke submenu
+    // 'offerings' yang masih hidup (lihat COLLECTION_PAGE, permissionCache.ts).
+    const customRoles = [{ name: 'Bendahara Persembahan', modulePermissions: { offerings: ['view', 'create', 'edit'] } }];
+    expect(await checkPermission('Bendahara Persembahan', 'offerings', 'POST', customRoles)).toBe(true);
+    expect(await checkPermission('Bendahara Persembahan', 'pettyCash', 'PUT', customRoles)).toBe(true);
+    expect(await checkPermission('Bendahara Persembahan', 'financialTransactions', 'GET', customRoles)).toBe(true);
   });
 
-  it('role custom tanpa akses ke satupun dari 3 submenu finance ditolak di semua collection cluster itu', async () => {
+  it('role custom tanpa akses ke submenu offerings ditolak di semua collection kas/keuangan lama', async () => {
     const customRoles = [{ name: 'Tanpa Akses Keuangan', modulePermissions: { liturgy: ['view'] } }];
     expect(await checkPermission('Tanpa Akses Keuangan', 'offerings', 'POST', customRoles)).toBe(false);
     expect(await checkPermission('Tanpa Akses Keuangan', 'pettyCash', 'GET', customRoles)).toBe(false);

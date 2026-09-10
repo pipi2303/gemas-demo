@@ -23,7 +23,6 @@ export const DEFAULT_MATRIX: MatrixEntry[] = [
   { module: 'Sektor Pelayanan',             admin: A, majelis: CRD,   ketuaSektor: CRD,  operator: R    },
   { module: 'Sakramen & Atestasi',          admin: A, majelis: CRDA,  ketuaSektor: NONE, operator: NONE },
   { module: 'Peribadahan & Kegiatan',       admin: A, majelis: CRDA,  ketuaSektor: R,    operator: R    },
-  { module: 'Keuangan & Persembahan',       admin: A, majelis: CRDAX, ketuaSektor: NONE, operator: NONE },
   { module: 'Laporan & Direktori',          admin: A, majelis: REX,   ketuaSektor: REX,  operator: NONE },
   { module: 'Pelayanan Kasih & Komunikasi', admin: A, majelis: CRD,   ketuaSektor: R,    operator: NONE },
   { module: 'Manajemen Aset',               admin: A, majelis: CRD,   ketuaSektor: NONE, operator: NONE },
@@ -54,9 +53,7 @@ export const PAGE_MODULE: Record<string, string> = {
   ministries:            'Peribadahan & Kegiatan',
   livestream:            'Peribadahan & Kegiatan',
   attendance:            'Peribadahan & Kegiatan',
-  'church-finance':      'Keuangan & Persembahan',
-  offerings:             'Keuangan & Persembahan',
-  financial:             'Keuangan & Persembahan',
+  offerings:             'Keuangan (Finance Add-on)',
   assets:                'Manajemen Aset',
   'room-booking':        'Manajemen Aset',
   'resource-library':    'Laporan & Direktori',
@@ -87,12 +84,11 @@ export const PAGE_MODULE: Record<string, string> = {
 };
 
 // Collection → submenu (page). Kebanyakan collection punya SATU submenu pemilik
-// yang jelas (array 1 elemen). Pengecualian: cluster collection di bawah modul
-// "Keuangan & Persembahan" (church-finance / offerings / financial) berbagi
-// handler & state yang sama di AppContext.tsx frontend, jadi validasi server
-// untuk collection-collection itu sengaja digabung OR — cukup salah satu dari
-// ketiga submenu itu yang diizinkan. Ini bukan kelonggaran baru: persis sama
-// dengan perilaku sebelum fitur granular submenu ini ada (modul tunggal).
+// yang jelas (array 1 elemen). Modul klasik "Keuangan & Persembahan" (church-finance
+// / financial) sudah dihapus — collection kas/keuangan lama di bawah ini kini
+// hanya dipetakan ke 'offerings' (satu-satunya submenu yang masih hidup dari
+// cluster ini). Data lama tetap dapat dibaca lewat DataManager/BackupRestore,
+// namun tidak ada lagi UI untuk menulis ke financialTransactions/pettyCash/dll.
 export const COLLECTION_PAGE: Record<string, string[]> = {
   members:               ['members'],
   memberDocuments:       ['members'],
@@ -112,13 +108,13 @@ export const COLLECTION_PAGE: Record<string, string[]> = {
   ministries:            ['ministries'],
   attendance:            ['attendance'],
   announcements:         ['announcements'],
-  financialTransactions: ['church-finance', 'offerings', 'financial'],
-  financialCategories:   ['church-finance', 'offerings', 'financial'],
-  offerings:             ['church-finance', 'offerings', 'financial'],
-  pettyCash:             ['church-finance', 'offerings', 'financial'],
-  pettyAccounts:         ['church-finance', 'offerings', 'financial'],
-  pettyCashTopUps:       ['church-finance', 'offerings', 'financial'],
-  financeDocuments:      ['church-finance', 'offerings', 'financial'],
+  financialTransactions: ['offerings'],
+  financialCategories:   ['offerings'],
+  offerings:             ['offerings'],
+  pettyCash:             ['offerings'],
+  pettyAccounts:         ['offerings'],
+  pettyCashTopUps:       ['offerings'],
+  financeDocuments:      ['offerings'],
   assets:                ['assets'],
   roomBookings:          ['room-booking'],
   assetDocuments:        ['assets'],
