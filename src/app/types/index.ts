@@ -141,6 +141,7 @@ export interface Family {
   address: string;
   memberCount: number;
   members: string[]; // Array of member IDs
+  createdAt?: string; // Dipakai sbg "Dikeluarkan Tanggal" yg TETAP di Kartu Keluarga (tidak boleh ikut tanggal hari ini)
 }
 
 export interface Sector {

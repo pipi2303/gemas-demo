@@ -49,6 +49,26 @@ const formatFamilyRole = (role: string) => {
   return mapping[role] || role || 'Anggota Keluarga';
 };
 
+// Warna identitas dipakai konsisten di preview layar, print, dan PDF
+const KK_NAVY = '#144f6b';
+const KK_GOLD = '#dfb774';
+const KK_TINT = '#f0f7fb';
+
+// No. KK resmi (format sama dgn yg dipakai di fitur Atestasi: FAM_KK_TRIN_S{sektor}_{urut}),
+// diambil dari familyCode kepala keluarga — bukan lagi id internal (fam_...).
+const familyKKNumber = (headMember: any) => headMember?.familyCode || '-';
+
+const formatIssuedDate = (family: any) =>
+  family.createdAt
+    ? new Date(family.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+    : '-';
+
+const birthPlaceDate = (m: any) => {
+  const place = m.birthPlace || '-';
+  const date = m.birthDate ? new Date(m.birthDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
+  return `${place}, ${date}`;
+};
+
 // Preview kartu keluarga bergaya Kartu Keluarga (KK) tradisional
 function FamilyCardPreview({ family, members, sectors }: { family: any; members: any[]; sectors: any[] }) {
   const sector = sectors.find(s => s.id === family.sectorId);
@@ -57,76 +77,74 @@ function FamilyCardPreview({ family, members, sectors }: { family: any; members:
   const sectorLeaderName = (sector?.leaderId && members.find((m: any) => m.id === sector.leaderId)?.fullName) || sector?.leader || '';
 
   return (
-    <div className="w-full bg-white border-2 border-gray-800 p-6 font-mono text-[10px] text-gray-900 shadow-sm overflow-x-auto">
-      <div className="text-center border-b-2 border-gray-800 pb-4 mb-4">
-        <h2 className="text-lg font-bold uppercase tracking-widest">Kartu Keluarga Jemaat</h2>
-        <h3 className="text-sm font-bold uppercase">GPIB Trinitas</h3>
-        <p className="mt-2 font-bold">No. {family.id.toUpperCase()}</p>
+    <div className="w-full bg-white border rounded-xl p-6 text-[11px] text-gray-800 shadow-sm overflow-x-auto" style={{borderColor:KK_NAVY}}>
+      <div className="text-center pb-4 mb-4" style={{borderBottom:`3px solid ${KK_NAVY}`}}>
+        <h2 className="text-lg font-bold uppercase tracking-widest" style={{color:KK_NAVY}}>Kartu Keluarga Jemaat</h2>
+        <h3 className="text-sm font-bold uppercase text-gray-700">GPIB Trinitas</h3>
+        <div className="mx-auto mt-2 mb-2" style={{width:56,height:2,background:KK_GOLD}}/>
+        <p className="font-mono font-bold" style={{color:KK_NAVY}}>No. {familyKKNumber(headMember)}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-8 mb-4">
         <div className="space-y-1">
           <div className="flex">
-            <span className="w-28 font-bold">Keluarga</span>
+            <span className="w-28 font-semibold" style={{color:KK_NAVY}}>Keluarga</span>
             <span className="mx-2">:</span>
             <span className="font-bold uppercase">{family.headOfFamily}</span>
           </div>
           <div className="flex">
-            <span className="w-28">Alamat</span>
+            <span className="w-28" style={{color:KK_NAVY}}>Alamat</span>
             <span className="mx-2">:</span>
             <span>{family.address || '-'}</span>
           </div>
         </div>
         <div className="space-y-1">
           <div className="flex">
-            <span className="w-28">Sektor</span>
+            <span className="w-28" style={{color:KK_NAVY}}>Sektor</span>
             <span className="mx-2">:</span>
             <span>{sector?.name || '-'}</span>
           </div>
           <div className="flex">
-            <span className="w-28">Kabupaten/Kota</span>
+            <span className="w-28" style={{color:KK_NAVY}}>Kabupaten/Kota</span>
             <span className="mx-2">:</span>
             <span>{family.address?.split(',').slice(-1)[0]?.trim() || '-'}</span>
           </div>
         </div>
       </div>
 
-      <table className="w-full border-collapse border border-gray-800 mb-6">
+      <table className="w-full border-collapse rounded-lg overflow-hidden mb-6" style={{border:`1px solid ${KK_NAVY}`}}>
         <thead>
-          <tr className="bg-gray-50">
-            <th className="border border-gray-800 p-1 text-center w-6">No</th>
-            <th className="border border-gray-800 p-1 text-center w-20">No. Induk</th>
-            <th className="border border-gray-800 p-1 text-left">Nama Lengkap</th>
-            <th className="border border-gray-800 p-1 text-center w-24">Hubungan</th>
-            <th className="border border-gray-800 p-1 text-center w-10">L/P</th>
-            <th className="border border-gray-800 p-1 text-left w-24">Tempat Lahir</th>
-            <th className="border border-gray-800 p-1 text-center w-20">Tgl Lahir</th>
-            <th className="border border-gray-800 p-1 text-center w-16">Status</th>
+          <tr style={{background:KK_NAVY}}>
+            <th className="p-2 text-center w-8 text-white font-semibold">No</th>
+            <th className="p-2 text-center w-28 text-white font-semibold">No. Induk</th>
+            <th className="p-2 text-left text-white font-semibold">Nama Lengkap</th>
+            <th className="p-2 text-center w-28 text-white font-semibold">Hubungan</th>
+            <th className="p-2 text-center w-10 text-white font-semibold">L/P</th>
+            <th className="p-2 text-left w-32 text-white font-semibold">Tempat, Tgl Lahir</th>
+            <th className="p-2 text-center w-16 text-white font-semibold">Status</th>
           </tr>
         </thead>
         <tbody>
           {familyMembers.map((m, i) => (
-            <tr key={m.id}>
-              <td className="border border-gray-800 p-1 text-center">{i + 1}</td>
-              <td className="border border-gray-800 p-1 font-mono text-[9px] text-center">{m.memberNumber || m.id.slice(0, 8).toUpperCase()}</td>
-              <td className="border border-gray-800 p-1 font-bold">{m.fullName.toUpperCase()}</td>
-              <td className="border border-gray-800 p-1 text-center">{formatFamilyRole(m.familyRole)}</td>
-              <td className="border border-gray-800 p-1 text-center">{m.gender === 'Laki-laki' ? 'L' : 'P'}</td>
-              <td className="border border-gray-800 p-1">{m.birthPlace || '-'}</td>
-              <td className="border border-gray-800 p-1 text-center">{m.birthDate}</td>
-              <td className="border border-gray-800 p-1 text-center">{m.membershipStatus || 'Aktif'}</td>
+            <tr key={m.id} style={{background: i % 2 === 1 ? KK_TINT : '#fff'}}>
+              <td className="p-2 text-center border-t" style={{borderColor:'#e2e8f0'}}>{i + 1}</td>
+              <td className="p-2 font-mono text-[10px] text-center border-t" style={{borderColor:'#e2e8f0'}}>{m.memberNumber || m.id.slice(0, 8).toUpperCase()}</td>
+              <td className="p-2 font-bold border-t" style={{borderColor:'#e2e8f0'}}>{m.fullName.toUpperCase()}</td>
+              <td className="p-2 text-center border-t" style={{borderColor:'#e2e8f0'}}>{formatFamilyRole(m.familyRole)}</td>
+              <td className="p-2 text-center border-t" style={{borderColor:'#e2e8f0'}}>{m.gender === 'Laki-laki' ? 'L' : 'P'}</td>
+              <td className="p-2 border-t" style={{borderColor:'#e2e8f0'}}>{birthPlaceDate(m)}</td>
+              <td className="p-2 text-center border-t" style={{borderColor:'#e2e8f0'}}>{m.membershipStatus || 'Aktif'}</td>
             </tr>
           ))}
           {Array.from({ length: Math.max(0, 5 - familyMembers.length) }).map((_, i) => (
-            <tr key={`empty-${i}`} className="h-6">
-              <td className="border border-gray-800 p-1"></td>
-              <td className="border border-gray-800 p-1"></td>
-              <td className="border border-gray-800 p-1"></td>
-              <td className="border border-gray-800 p-1"></td>
-              <td className="border border-gray-800 p-1"></td>
-              <td className="border border-gray-800 p-1"></td>
-              <td className="border border-gray-800 p-1"></td>
-              <td className="border border-gray-800 p-1"></td>
+            <tr key={`empty-${i}`} className="h-7" style={{background: (familyMembers.length + i) % 2 === 1 ? KK_TINT : '#fff'}}>
+              <td className="border-t" style={{borderColor:'#e2e8f0'}}></td>
+              <td className="border-t" style={{borderColor:'#e2e8f0'}}></td>
+              <td className="border-t" style={{borderColor:'#e2e8f0'}}></td>
+              <td className="border-t" style={{borderColor:'#e2e8f0'}}></td>
+              <td className="border-t" style={{borderColor:'#e2e8f0'}}></td>
+              <td className="border-t" style={{borderColor:'#e2e8f0'}}></td>
+              <td className="border-t" style={{borderColor:'#e2e8f0'}}></td>
             </tr>
           ))}
         </tbody>
@@ -135,9 +153,9 @@ function FamilyCardPreview({ family, members, sectors }: { family: any; members:
       <div className="flex justify-between items-start mt-8 px-4">
         <div className="text-center">
           <p>Dikeluarkan Tanggal:</p>
-          <p className="font-bold border-b border-gray-800 pb-1">{new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' })}</p>
+          <p className="font-bold pb-1" style={{borderBottom:`1px solid ${KK_NAVY}`}}>{formatIssuedDate(family)}</p>
           <p className="mt-12 font-bold">( {sectorLeaderName ? sectorLeaderName.toUpperCase() : '..................................'} )</p>
-          <p className="text-[8px]">Ketua Sektor / Majelis</p>
+          <p className="text-[9px]">Ketua Majelis Jemaat</p>
         </div>
         <div className="text-center">
           <p className="mb-14">Kepala Keluarga,</p>
@@ -158,15 +176,14 @@ function handlePrintFamilyCard(family: any, members: any[], sectors: any[]) {
   const sectorLeaderName = (sector?.leaderId && members.find((m: any) => m.id === sector.leaderId)?.fullName) || sector?.leader || '';
 
   const rows = familyMembers.map((m, i) => `
-    <tr>
-      <td style="border: 1px solid black; padding: 4px; text-align: center;">${i + 1}</td>
-      <td style="border: 1px solid black; padding: 4px; font-family: monospace; font-size: 10px; text-align: center;">${m.memberNumber || m.id.slice(0, 8).toUpperCase()}</td>
-      <td style="border: 1px solid black; padding: 4px; font-weight: bold;">${m.fullName.toUpperCase()}</td>
-      <td style="border: 1px solid black; padding: 4px; text-align: center;">${formatFamilyRole(m.familyRole)}</td>
-      <td style="border: 1px solid black; padding: 4px; text-align: center;">${m.gender === 'Laki-laki' ? 'L' : 'P'}</td>
-      <td style="border: 1px solid black; padding: 4px;">${m.birthPlace || '-'}</td>
-      <td style="border: 1px solid black; padding: 4px; text-align: center;">${m.birthDate}</td>
-      <td style="border: 1px solid black; padding: 4px; text-align: center;">${m.membershipStatus || 'Aktif'}</td>
+    <tr style="background:${i % 2 === 1 ? KK_TINT : '#fff'};">
+      <td style="border-top: 1px solid #e2e8f0; padding: 6px; text-align: center;">${i + 1}</td>
+      <td style="border-top: 1px solid #e2e8f0; padding: 6px; font-family: monospace; font-size: 11px; text-align: center;">${m.memberNumber || m.id.slice(0, 8).toUpperCase()}</td>
+      <td style="border-top: 1px solid #e2e8f0; padding: 6px; font-weight: bold;">${m.fullName.toUpperCase()}</td>
+      <td style="border-top: 1px solid #e2e8f0; padding: 6px; text-align: center;">${formatFamilyRole(m.familyRole)}</td>
+      <td style="border-top: 1px solid #e2e8f0; padding: 6px; text-align: center;">${m.gender === 'Laki-laki' ? 'L' : 'P'}</td>
+      <td style="border-top: 1px solid #e2e8f0; padding: 6px;">${birthPlaceDate(m)}</td>
+      <td style="border-top: 1px solid #e2e8f0; padding: 6px; text-align: center;">${m.membershipStatus || 'Aktif'}</td>
     </tr>
   `).join('');
 
@@ -175,12 +192,17 @@ function handlePrintFamilyCard(family: any, members: any[], sectors: any[]) {
     <head>
       <title>Kartu Keluarga - ${family.headOfFamily}</title>
       <style>
-        body { font-family: 'Courier New', Courier, monospace; padding: 40px; color: black; font-size: 12px; }
-        .header { text-align: center; border-bottom: 2px solid black; margin-bottom: 20px; padding-bottom: 10px; }
+        body { font-family: Arial, Helvetica, sans-serif; padding: 40px; color: #1e293b; font-size: 12px; }
+        .header { text-align: center; border-bottom: 3px solid ${KK_NAVY}; margin-bottom: 20px; padding-bottom: 10px; }
+        .header h2 { color: ${KK_NAVY}; }
+        .gold-divider { width: 56px; height: 2px; background: ${KK_GOLD}; margin: 8px auto; }
         .info { display: flex; justify-content: space-between; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-        th, td { border: 1px solid black; padding: 6px; }
+        .info strong { color: ${KK_NAVY}; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 1px solid ${KK_NAVY}; border-radius: 8px; overflow: hidden; }
+        th { padding: 8px 6px; background: ${KK_NAVY}; color: #fff; }
+        td { padding: 6px; }
         .footer { display: flex; justify-content: space-between; margin-top: 50px; }
+        .footer p:nth-child(2) { border-bottom: 1px solid ${KK_NAVY}; }
         @media print { body { padding: 0; } }
       </style>
     </head>
@@ -188,7 +210,8 @@ function handlePrintFamilyCard(family: any, members: any[], sectors: any[]) {
       <div class="header">
         <h2 style="margin: 0; text-transform: uppercase; letter-spacing: 2px;">Kartu Keluarga Jemaat</h2>
         <h3 style="margin: 5px 0; text-transform: uppercase;">GPIB Trinitas</h3>
-        <p style="margin: 10px 0; font-weight: bold;">No. ${family.id.toUpperCase()}</p>
+        <div class="gold-divider"></div>
+        <p style="margin: 10px 0; font-weight: bold; font-family: monospace; color: ${KK_NAVY};">No. ${familyKKNumber(headMember)}</p>
       </div>
 
       <div class="info">
@@ -203,15 +226,18 @@ function handlePrintFamilyCard(family: any, members: any[], sectors: any[]) {
       </div>
 
       <table>
+        <colgroup>
+          <col style="width:6%"><col style="width:16%"><col style="width:26%">
+          <col style="width:14%"><col style="width:7%"><col style="width:20%"><col style="width:11%">
+        </colgroup>
         <thead>
-          <tr style="background-color: #f0f0f0;">
+          <tr>
             <th>No</th>
             <th>No. Induk</th>
             <th>Nama Lengkap</th>
             <th>Hubungan</th>
             <th>L/P</th>
-            <th>Tempat Lahir</th>
-            <th>Tgl Lahir</th>
+            <th>Tempat, Tgl Lahir</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -222,10 +248,11 @@ function handlePrintFamilyCard(family: any, members: any[], sectors: any[]) {
 
       <div class="footer">
         <div style="text-align: center;">
-          <p>Dikeluarkan Tanggal: ${new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' })}</p>
+          <p>Dikeluarkan Tanggal:</p>
+          <p style="font-weight:bold; display:inline-block; padding-bottom:2px;">${formatIssuedDate(family)}</p>
           <br><br><br>
           <p style="font-weight: bold;">( ${sectorLeaderName ? sectorLeaderName.toUpperCase() : '..................................'} )</p>
-          <p style="font-size: 10px;">Ketua Sektor / Majelis</p>
+          <p style="font-size: 10px;">Ketua Majelis Jemaat</p>
         </div>
         <div style="text-align: center;">
           <p>Kepala Keluarga,</p>
@@ -249,19 +276,30 @@ function generateFamilyCardPDF(family: any, members: any[], sectors: any[]) {
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const W = doc.internal.pageSize.getWidth();
+  const NAVY: [number, number, number] = [20, 79, 107]; // #144f6b
+  const GOLD: [number, number, number] = [223, 183, 116]; // #dfb774
+  const TINT: [number, number, number] = [240, 247, 251]; // #f0f7fb
 
+  doc.setTextColor(...NAVY);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
   doc.text('KARTU KELUARGA JEMAAT', W / 2, 18, { align: 'center' });
+  doc.setTextColor(60, 60, 60);
   doc.setFontSize(11);
   doc.text('GPIB TRINITAS', W / 2, 25, { align: 'center' });
-  doc.setLineWidth(0.4);
-  doc.line(15, 30, W - 15, 30);
-  doc.setFont('helvetica', 'normal');
+  doc.setDrawColor(...GOLD);
+  doc.setLineWidth(1);
+  doc.line(W / 2 - 10, 28.5, W / 2 + 10, 28.5);
+  doc.setDrawColor(...NAVY);
+  doc.setLineWidth(0.6);
+  doc.line(15, 32, W - 15, 32);
+  doc.setTextColor(...NAVY);
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
-  doc.text(`No. ${family.id.toUpperCase()}`, W / 2, 36, { align: 'center' });
+  doc.text(`No. ${familyKKNumber(headMember)}`, W / 2, 38, { align: 'center' });
 
-  let y = 46;
+  let y = 48;
+  doc.setTextColor(30, 30, 30);
   doc.setFont('helvetica', 'normal');
   doc.text('Keluarga', 15, y);
   doc.text(':', 45, y);
@@ -286,29 +324,38 @@ function generateFamilyCardPDF(family: any, members: any[], sectors: any[]) {
     m.fullName.toUpperCase(),
     formatFamilyRole(m.familyRole),
     m.gender === 'Laki-laki' ? 'L' : 'P',
-    m.birthPlace || '-',
-    m.birthDate || '-',
+    birthPlaceDate(m),
     m.membershipStatus || 'Aktif',
   ]);
   autoTable(doc, {
     startY: y + 8,
-    head: [['No', 'No. Induk', 'Nama Lengkap', 'Hubungan', 'L/P', 'Tempat Lahir', 'Tgl Lahir', 'Status']],
+    head: [['No', 'No. Induk', 'Nama Lengkap', 'Hubungan', 'L/P', 'Tempat, Tgl Lahir', 'Status']],
     body: rows,
-    styles: { fontSize: 8, cellPadding: 2 },
-    headStyles: { fillColor: [20, 79, 107] },
+    styles: { fontSize: 8, cellPadding: 2.5 },
+    headStyles: { fillColor: NAVY, textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: TINT },
+    columnStyles: {
+      0: { cellWidth: 8, halign: 'center' },
+      1: { cellWidth: 26, halign: 'center', font: 'courier', fontSize: 7.5 },
+      3: { cellWidth: 24, halign: 'center' },
+      4: { cellWidth: 10, halign: 'center' },
+      6: { cellWidth: 16, halign: 'center' },
+    },
   });
 
   const finalY = (doc as any).lastAutoTable.finalY + 20;
+  doc.setTextColor(30, 30, 30);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.text('Dikeluarkan Tanggal:', 37, finalY, { align: 'center' });
   doc.setFont('helvetica', 'bold');
-  doc.text(new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }), 37, finalY + 5, { align: 'center' });
+  doc.text(formatIssuedDate(family), 37, finalY + 5, { align: 'center' });
+  doc.setDrawColor(...NAVY);
   doc.line(15, finalY + 16, 62, finalY + 16);
   doc.text(sectorLeaderName ? sectorLeaderName.toUpperCase() : '..........................', 38.5, finalY + 20, { align: 'center' });
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.text('Ketua Sektor / Majelis', 38.5, finalY + 24, { align: 'center' });
+  doc.text('Ketua Majelis Jemaat', 38.5, finalY + 24, { align: 'center' });
 
   doc.setFontSize(9);
   doc.text('Kepala Keluarga,', W - 40, finalY, { align: 'center' });
@@ -323,6 +370,21 @@ export function FamilyCardModal({ family, members, sectors, onClose }: {
   family: Family; members: Member[]; sectors: any[]; onClose: () => void;
 }) {
   const { offset, onMouseDown } = useDraggable();
+  const { families, updateFamily } = useApp();
+  // Pakai data keluarga TERBARU dari context (bukan cuma snapshot props), supaya
+  // begitu createdAt di-backfill di bawah, kartu ini langsung ikut update.
+  const liveFamily = families.find((f: any) => f.id === family.id) || family;
+
+  // "Dikeluarkan Tanggal" harus TETAP, tidak boleh ikut tanggal hari ini setiap
+  // kartu dibuka. Kalau keluarga ini belum pernah punya createdAt (data lama,
+  // dibuat sebelum field ini ada), kunci sekali di sini — sesudahnya tidak
+  // akan berubah lagi.
+  React.useEffect(() => {
+    if (!liveFamily.createdAt) {
+      updateFamily(liveFamily.id, { createdAt: new Date().toISOString() });
+    }
+  }, [liveFamily.id, liveFamily.createdAt]);
+
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
       <div className="w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'90vh', transform:`translate(${offset.x}px,${offset.y}px)`}} onClick={e=>e.stopPropagation()}>
@@ -333,19 +395,19 @@ export function FamilyCardModal({ family, members, sectors, onClose }: {
             </div>
             <div>
               <h3 className="text-white font-bold" style={{fontSize:'16px'}}>Kartu Keluarga Jemaat</h3>
-              <p style={{fontSize:'12px',color:'rgba(255,255,255,0.6)'}}>Keluarga {family.headOfFamily}</p>
+              <p style={{fontSize:'12px',color:'rgba(255,255,255,0.6)'}}>Keluarga {liveFamily.headOfFamily}</p>
             </div>
           </div>
           <button onClick={onClose} data-tooltip="Tutup" className="p-2 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-colors"><X className="w-5 h-5"/></button>
         </div>
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
-          <FamilyCardPreview family={family} members={members} sectors={sectors} />
+          <FamilyCardPreview family={liveFamily} members={members} sectors={sectors} />
           <div className="flex gap-3 justify-end">
-            <button onClick={()=>handlePrintFamilyCard(family, members, sectors)}
+            <button onClick={()=>handlePrintFamilyCard(liveFamily, members, sectors)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium hover:bg-gray-50 transition-colors" style={{borderColor:'#e2e8f0',color:'#4b5563'}}>
               <Printer className="w-4 h-4"/> Cetak Kartu
             </button>
-            <button onClick={()=>generateFamilyCardPDF(family, members, sectors)}
+            <button onClick={()=>generateFamilyCardPDF(liveFamily, members, sectors)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition-colors" style={{background:'linear-gradient(135deg,#3a7fa0,#1A77A3)'}}>
               <Download className="w-4 h-4"/> Unduh PDF
             </button>

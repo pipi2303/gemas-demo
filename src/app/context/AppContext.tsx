@@ -1349,7 +1349,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const addFamily = (familyData: Omit<Family, 'id'> & { id?: string }) => {
-    const newFamily: Family = { ...familyData, id: familyData.id || `f${Date.now()}` };
+    const newFamily: Family = { ...familyData, id: familyData.id || `f${Date.now()}`, createdAt: familyData.createdAt || new Date().toISOString() };
     setFamilies([...families, newFamily]);
     apiSave('families', newFamily.id, newFamily);
     if (currentUser) {
