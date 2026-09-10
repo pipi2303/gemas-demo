@@ -259,7 +259,7 @@ export function LivestreamReminder() {
               <Card key={reminder.id} className="p-4">
                 <div className="flex items-center gap-4">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${reminder.enabled ? 'bg-[#f0ede5]' : 'bg-gray-100'}`}>
-                    <Bell className={`w-5 h-5 ${reminder.enabled ? 'text-[#1A77A3]' : 'text-gray-400'}`} />
+                    <Bell className={`w-5 h-5 ${reminder.enabled ? 'text-[#144f6b]' : 'text-gray-400'}`} />
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -278,7 +278,7 @@ export function LivestreamReminder() {
                     <Button variant="outline" size="sm" className="gap-1 text-xs"
                       onClick={() => sendTestNotification(reminder.id)}>
                       {sentNotifications.includes(reminder.id)
-                        ? <><CheckCircle className="w-3 h-3 text-[#1A77A3]" />Terkirim!</>
+                        ? <><CheckCircle className="w-3 h-3 text-[#144f6b]" />Terkirim!</>
                         : <><Send className="w-3 h-3" />Test</>}
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => openEditReminder(reminder)}>
@@ -310,7 +310,7 @@ export function LivestreamReminder() {
               <div className="space-y-2">
                 {activeReminders.map(r => (
                   <div key={r.id} className="flex items-center gap-2 text-sm">
-                    <div className="w-2 h-2 rounded-full bg-[#1A77A3]" />
+                    <div className="w-2 h-2 rounded-full bg-[#144f6b]" />
                     <span className="text-gray-700">{r.timing} – {r.name}</span>
                     <Badge className="ml-auto bg-[#f0ede5] text-[#144f6b] text-xs">Aktif</Badge>
                   </div>

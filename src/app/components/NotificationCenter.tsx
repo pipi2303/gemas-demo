@@ -25,7 +25,7 @@ function relativeTime(dateStr: string): string {
 const TYPE_CFG: Record<string, { icon: React.ReactNode; color: string; bg: string; border: string; label: string }> = {
   birthday:     { icon: <Gift          style={{ width: 16, height: 16 }} />, color: '#7c3aed', bg: '#f5f3ff', border: '#c4b5fd', label: 'Ulang Tahun' },
   event:        { icon: <Calendar      style={{ width: 16, height: 16 }} />, color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd', label: 'Acara' },
-  announcement: { icon: <MessageSquare style={{ width: 16, height: 16 }} />, color: '#1A77A3', bg: '#f0f7fb', border: '#b8d5e8', label: 'Pengumuman' },
+  announcement: { icon: <MessageSquare style={{ width: 16, height: 16 }} />, color: '#144f6b', bg: '#f0f7fb', border: '#b8d5e8', label: 'Pengumuman' },
   prayer:       { icon: <Heart         style={{ width: 16, height: 16 }} />, color: '#be185d', bg: '#fdf2f8', border: '#f9a8d4', label: 'Doa' },
   attendance:   { icon: <AlertTriangle  style={{ width: 16, height: 16 }} />, color: '#9c9486', bg: '#f6f4f0', border: '#e8e4d8', label: 'Kehadiran' },
   system:       { icon: <Info           style={{ width: 16, height: 16 }} />, color: '#6b7280', bg: '#f9fafb', border: '#e5e7eb', label: 'Sistem' },
@@ -211,9 +211,9 @@ export function NotificationCenter({ isOpen, onClose }: { isOpen: boolean; onClo
                 style={{
                   padding: '5px 11px', borderRadius: 8, fontSize: 11, fontWeight: 600,
                   border: 'none', cursor: 'pointer', transition: 'all .15s',
-                  background: filter === f.key ? '#1A77A3' : '#fff',
+                  background: filter === f.key ? '#144f6b' : '#fff',
                   color: filter === f.key ? '#fff' : '#374151',
-                  boxShadow: filter === f.key ? '0 2px 8px rgba(26,119,163,0.3)' : '0 1px 3px rgba(0,0,0,0.08)',
+                  boxShadow: filter === f.key ? '0 2px 8px rgba(20,79,107,0.3)' : '0 1px 3px rgba(0,0,0,0.08)',
                 }}
               >
                 {f.label}
@@ -226,7 +226,7 @@ export function NotificationCenter({ isOpen, onClose }: { isOpen: boolean; onClo
                 onClick={markAllNotificationsRead}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5,
-                  fontSize: 11, color: '#1A77A3', fontWeight: 600,
+                  fontSize: 11, color: '#144f6b', fontWeight: 600,
                   background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                 }}
               >
@@ -313,7 +313,7 @@ export function NotificationCenter({ isOpen, onClose }: { isOpen: boolean; onClo
                         {!notif.read && (
                           <span style={{
                             width: 7, height: 7, borderRadius: '50%',
-                            background: '#1A77A3', flexShrink: 0, marginTop: 5,
+                            background: '#144f6b', flexShrink: 0, marginTop: 5,
                           }} />
                         )}
                       </div>
@@ -417,7 +417,7 @@ export function NotificationBell({ dark = false }: { dark?: boolean }) {
         }}
         data-tooltip={`Notifikasi${unreadCount > 0 ? ` (${unreadCount})` : ''}`}
       >
-        <Bell style={{ width: 18, height: 18, color: dark ? '#ffffff' : (isOpen ? '#1A77A3' : '#374151') }} />
+        <Bell style={{ width: 18, height: 18, color: dark ? '#ffffff' : (isOpen ? '#144f6b' : '#374151') }} />
         {unreadCount > 0 && (
           <span style={{
             position: 'absolute', top: -2, right: -2,

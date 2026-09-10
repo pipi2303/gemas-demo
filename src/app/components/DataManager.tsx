@@ -42,7 +42,7 @@ export function DataManager() {
         </p>
         <button
           onClick={handleBackupAll}
-          className="flex items-center gap-2 px-6 py-3 bg-[#1A77A3] text-white rounded-lg hover:bg-[#144f6b]"
+          className="flex items-center gap-2 px-6 py-3 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b]"
         >
           <Download className="w-5 h-5" />
           Backup 4 Data Inti (Excel)

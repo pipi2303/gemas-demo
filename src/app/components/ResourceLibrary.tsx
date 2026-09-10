@@ -238,7 +238,7 @@ export function ResourceLibrary() {
             setSelectedResource(null);
             setIsUploadDialogOpen(true);
           }}
-          className="px-4 py-2 bg-[#1A77A3] text-white rounded-lg hover:bg-[#144f6b] transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors flex items-center gap-2"
         >
           <Upload className="w-5 h-5" />
           Upload Materi
@@ -247,7 +247,7 @@ export function ResourceLibrary() {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-[#1A77A3] rounded-lg shadow-sm border border-blue-400 p-5 text-white">
+        <div className="bg-[#144f6b] rounded-lg shadow-sm border border-blue-400 p-5 text-white">
           <p className="text-blue-100 text-sm mb-1">Total Materi</p>
           <p className="text-3xl font-bold">{stats.total}</p>
         </div>
@@ -324,7 +324,7 @@ export function ResourceLibrary() {
                 'bg-gradient-to-br from-gray-100 to-gray-200'
               }`}>
                 <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
-                  resource.type === 'Khotbah' ? 'bg-[#1A77A3]' :
+                  resource.type === 'Khotbah' ? 'bg-[#144f6b]' :
                   resource.type === 'Video' ? 'bg-red-500' :
                   resource.type === 'Audio' ? 'bg-[#3a7fa0]' :
                   resource.type === 'Artikel' ? 'bg-green-500' :
@@ -384,7 +384,7 @@ export function ResourceLibrary() {
               <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                 <button 
                   onClick={() => handleViewDetail(resource)}
-                  className="flex-1 px-3 py-2 bg-[#1A77A3] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm flex items-center justify-center gap-2"
+                  className="flex-1 px-3 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm flex items-center justify-center gap-2"
                 >
                   <Eye className="w-4 h-4" />
                   Lihat
@@ -432,7 +432,7 @@ export function ResourceLibrary() {
                 {/* Informasi Dasar */}
                 <div className="bg-[#f0f7fb] rounded-lg p-4 border border-blue-100">
                   <div className="flex items-center gap-2 mb-4">
-                    <div className="w-8 h-8 bg-[#1A77A3] rounded-lg flex items-center justify-center">
+                    <div className="w-8 h-8 bg-[#144f6b] rounded-lg flex items-center justify-center">
                       <FileText className="w-4 h-4 text-white" />
                     </div>
                     <h3 className="font-semibold text-gray-900">Informasi Dasar</h3>
@@ -635,7 +635,7 @@ export function ResourceLibrary() {
                   <div className="bg-white rounded-lg p-4 border border-gray-200">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="w-8 h-8 bg-[#f0ede5] rounded-lg flex items-center justify-center">
-                        <BookOpen className="w-4 h-4 text-[#1A77A3]" />
+                        <BookOpen className="w-4 h-4 text-[#144f6b]" />
                       </div>
                       <h3 className="font-semibold text-gray-900">Detail Khotbah</h3>
                     </div>
@@ -738,7 +738,7 @@ export function ResourceLibrary() {
                   'bg-gradient-to-br from-gray-100 to-gray-200'
                 } border border-gray-200`}>
                   <div className={`w-24 h-24 rounded-full flex items-center justify-center ${
-                    selectedResource?.type === 'Khotbah' ? 'bg-[#1A77A3]' :
+                    selectedResource?.type === 'Khotbah' ? 'bg-[#144f6b]' :
                     selectedResource?.type === 'Video' ? 'bg-red-500' :
                     selectedResource?.type === 'Audio' ? 'bg-[#3a7fa0]' :
                     selectedResource?.type === 'Artikel' ? 'bg-green-500' :

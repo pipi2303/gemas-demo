@@ -50,7 +50,7 @@ async function callApiPaged<T = any>(url: string): Promise<{ data: T; meta?: Pag
 
 const btnPrimary = 'flex items-center gap-1.5 text-sm font-medium text-white px-3 py-1.5 rounded-lg disabled:opacity-50';
 const btnSecondary = 'flex items-center gap-1.5 text-sm font-medium text-slate-600 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-50';
-const inputCls = 'w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]';
+const inputCls = 'w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]';
 const labelCls = 'block text-xs font-medium text-slate-600 mb-1';
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string; border: string }> = {
@@ -132,7 +132,7 @@ function NewStatementModal({ bankAccountId, onClose, onCreated }: { bankAccountI
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className="text-xs font-medium text-slate-600">Baris Mutasi</label>
-            <button onClick={() => setLines(prev => [...prev, emptyLine()])} className="flex items-center gap-1 text-xs text-[#1A77A3] font-medium">
+            <button onClick={() => setLines(prev => [...prev, emptyLine()])} className="flex items-center gap-1 text-xs text-[#144f6b] font-medium">
               <Plus className="w-3.5 h-3.5" /> Tambah Baris
             </button>
           </div>
@@ -178,7 +178,7 @@ function NewStatementModal({ bankAccountId, onClose, onCreated }: { bankAccountI
 
         <div className="flex justify-end gap-2 pt-2">
           <button onClick={onClose} disabled={saving} className={btnSecondary}>Batal</button>
-          <button onClick={handleSave} disabled={saving} className={btnPrimary} style={{ background: '#1A77A3' }}>
+          <button onClick={handleSave} disabled={saving} className={btnPrimary} style={{ background: '#144f6b' }}>
             {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Simpan Rekening Koran
           </button>
         </div>
@@ -240,7 +240,7 @@ function NewSessionModal({ bankAccountId, statements, periods, onClose, onCreate
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <button onClick={onClose} disabled={saving} className={btnSecondary}>Batal</button>
-          <button onClick={handleSave} disabled={saving} className={btnPrimary} style={{ background: '#1A77A3' }}>
+          <button onClick={handleSave} disabled={saving} className={btnPrimary} style={{ background: '#144f6b' }}>
             {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Buat Sesi
           </button>
         </div>
@@ -280,7 +280,7 @@ function ManualMatchModal({ line, candidates, onClose, onMatched }: {
             const amount = Number(c.debit) > 0 ? Number(c.debit) : Number(c.credit);
             const isSelected = selected === c.transaction_id;
             return (
-              <label key={c.transaction_id} className={`flex items-center justify-between gap-2 p-2 rounded-lg border cursor-pointer text-xs ${isSelected ? 'border-[#1A77A3] bg-blue-50/40' : 'border-slate-200 hover:bg-slate-50'}`}>
+              <label key={c.transaction_id} className={`flex items-center justify-between gap-2 p-2 rounded-lg border cursor-pointer text-xs ${isSelected ? 'border-[#144f6b] bg-blue-50/40' : 'border-slate-200 hover:bg-slate-50'}`}>
                 <div className="flex items-center gap-2">
                   <input type="radio" name="match-candidate" checked={isSelected} onChange={() => setSelected(c.transaction_id)} />
                   <div>
@@ -295,7 +295,7 @@ function ManualMatchModal({ line, candidates, onClose, onMatched }: {
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <button onClick={onClose} disabled={saving} className={btnSecondary}>Batal</button>
-          <button onClick={handleConfirm} disabled={saving || !selected} className={btnPrimary} style={{ background: '#1A77A3' }}>
+          <button onClick={handleConfirm} disabled={saving || !selected} className={btnPrimary} style={{ background: '#144f6b' }}>
             {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Cocokkan
           </button>
         </div>
@@ -384,7 +384,7 @@ function SessionDetail({ sessionId, canApprove, currentUserId, onBack, onChanged
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <button onClick={onBack} className="text-xs text-slate-400 hover:text-[#1A77A3]">&larr; Kembali ke daftar sesi</button>
+        <button onClick={onBack} className="text-xs text-slate-400 hover:text-[#144f6b]">&larr; Kembali ke daftar sesi</button>
         <StatusBadge status={session.status} />
       </div>
 
@@ -435,7 +435,7 @@ function SessionDetail({ sessionId, canApprove, currentUserId, onBack, onChanged
                         <Unlink className="w-3.5 h-3.5" /> Lepas
                       </button>
                     ) : (
-                      <button onClick={() => setMatchLine(l)} disabled={busy !== null} className="flex items-center gap-1 text-[#1A77A3] whitespace-nowrap" title="Cocokkan manual">
+                      <button onClick={() => setMatchLine(l)} disabled={busy !== null} className="flex items-center gap-1 text-[#144f6b] whitespace-nowrap" title="Cocokkan manual">
                         <Link2 className="w-3.5 h-3.5" /> Cocokkan
                       </button>
                     )
@@ -476,7 +476,7 @@ function SessionDetail({ sessionId, canApprove, currentUserId, onBack, onChanged
           <button
             onClick={() => runStatusAction('complete')} disabled={busy !== null || !balanced}
             title={!balanced ? 'Selisih setelah penyesuaian harus nol dulu' : ''}
-            className={btnPrimary} style={{ background: '#1A77A3' }}
+            className={btnPrimary} style={{ background: '#144f6b' }}
           >
             {busy === 'complete' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />} Selesaikan Sesi
           </button>
@@ -706,7 +706,7 @@ export function FinanceReconciliation({ onNavigate }: { onNavigate?: (page: stri
           <select
             value={bankAccountId}
             onChange={e => setBankAccountId(e.target.value)}
-            className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3] min-w-[240px] bg-white font-medium text-slate-700"
+            className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] min-w-[240px] bg-white font-medium text-slate-700"
           >
             {bankAccounts.map(a => (
               <option key={a.id} value={a.id}>
@@ -751,7 +751,7 @@ export function FinanceReconciliation({ onNavigate }: { onNavigate?: (page: stri
         {sessionsMeta && sessionsMeta.page < sessionsMeta.totalPages && (
           <div className="flex items-center justify-center py-3 border-t border-slate-100">
             <button onClick={loadMoreSessions} disabled={loadingMoreSessions}
-              className="text-xs font-medium text-[#1A77A3] hover:underline disabled:opacity-50 flex items-center gap-1.5">
+              className="text-xs font-medium text-[#144f6b] hover:underline disabled:opacity-50 flex items-center gap-1.5">
               {loadingMoreSessions && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Muat Lebih Banyak ({sessions.length} dari {sessionsMeta.total})
             </button>
@@ -789,7 +789,7 @@ export function FinanceReconciliation({ onNavigate }: { onNavigate?: (page: stri
         {statementsMeta && statementsMeta.page < statementsMeta.totalPages && (
           <div className="flex items-center justify-center py-3 border-t border-slate-100">
             <button onClick={loadMoreStatements} disabled={loadingMoreStatements}
-              className="text-xs font-medium text-[#1A77A3] hover:underline disabled:opacity-50 flex items-center gap-1.5">
+              className="text-xs font-medium text-[#144f6b] hover:underline disabled:opacity-50 flex items-center gap-1.5">
               {loadingMoreStatements && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Muat Lebih Banyak ({statements.length} dari {statementsMeta.total})
             </button>

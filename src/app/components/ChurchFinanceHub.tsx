@@ -87,14 +87,14 @@ function MonthlyBarChart({ data }: { data: { name: string; income: number; expen
       {data.map((d,i)=>{
         const x=pad.l+i*slotW+groupOff, iH2=d.income>0?(d.income/maxV)*iH:0, eH2=d.expense>0?(d.expense/maxV)*iH:0, r=3;
         return(<g key={i}>
-          {iH2>0&&<path d={`M${f(x)},${f(yOf(d.income)+iH2)} L${f(x)},${f(yOf(d.income)+r)} Q${f(x)},${f(yOf(d.income))} ${f(x+r)},${f(yOf(d.income))} L${f(x+barW-r)},${f(yOf(d.income))} Q${f(x+barW)},${f(yOf(d.income))} ${f(x+barW)},${f(yOf(d.income)+r)} L${f(x+barW)},${f(yOf(d.income)+iH2)} Z`} fill="#1A77A3"/>}
-          {eH2>0&&<path d={`M${f(x+barW+2)},${f(yOf(d.expense)+eH2)} L${f(x+barW+2)},${f(yOf(d.expense)+r)} Q${f(x+barW+2)},${f(yOf(d.expense))} ${f(x+barW+r+2)},${f(yOf(d.expense))} L${f(x+2*barW+1)},${f(yOf(d.expense))} Q${f(x+2*barW+3)},${f(yOf(d.expense))} ${f(x+2*barW+3)},${f(yOf(d.expense)+r)} L${f(x+2*barW+3)},${f(yOf(d.expense)+eH2)} Z`} fill="#ef4444"/>}
+          {iH2>0&&<path d={`M${f(x)},${f(yOf(d.income)+iH2)} L${f(x)},${f(yOf(d.income)+r)} Q${f(x)},${f(yOf(d.income))} ${f(x+r)},${f(yOf(d.income))} L${f(x+barW-r)},${f(yOf(d.income))} Q${f(x+barW)},${f(yOf(d.income))} ${f(x+barW)},${f(yOf(d.income)+r)} L${f(x+barW)},${f(yOf(d.income)+iH2)} Z`} fill="#2f8f5b"/>}
+          {eH2>0&&<path d={`M${f(x+barW+2)},${f(yOf(d.expense)+eH2)} L${f(x+barW+2)},${f(yOf(d.expense)+r)} Q${f(x+barW+2)},${f(yOf(d.expense))} ${f(x+barW+r+2)},${f(yOf(d.expense))} L${f(x+2*barW+1)},${f(yOf(d.expense))} Q${f(x+2*barW+3)},${f(yOf(d.expense))} ${f(x+2*barW+3)},${f(yOf(d.expense)+r)} L${f(x+2*barW+3)},${f(yOf(d.expense)+eH2)} Z`} fill="#d1553f"/>}
           <text x={pad.l+i*slotW+slotW/2} y={H-7} textAnchor="middle" fontSize={9} fill="#94a3b8">{d.name}</text>
         </g>);
       })}
       <g transform={`translate(${pad.l+4},${H-10})`}>
-        <rect x={0} y={-7} width={8} height={8} fill="#1A77A3" rx={2}/><text x={12} y={1} fontSize={9} fill="#64748b">Pemasukan</text>
-        <rect x={78} y={-7} width={8} height={8} fill="#ef4444" rx={2}/><text x={90} y={1} fontSize={9} fill="#64748b">Pengeluaran</text>
+        <rect x={0} y={-7} width={8} height={8} fill="#2f8f5b" rx={2}/><text x={12} y={1} fontSize={9} fill="#64748b">Pemasukan</text>
+        <rect x={78} y={-7} width={8} height={8} fill="#d1553f" rx={2}/><text x={90} y={1} fontSize={9} fill="#64748b">Pengeluaran</text>
       </g>
     </svg>
   );
@@ -155,40 +155,40 @@ function TransactionForm({ initial, onSave, onClose, bankAccounts }: { initial?:
           <div className="grid grid-cols-2 gap-3">
             {(['income','expense'] as const).map(t=>(
               <button key={t} onClick={()=>handle('type',t)} className="py-2.5 rounded-xl border-2 transition-all"
-                style={{borderColor:form.type===t?(t==='income'?'#1A77A3':'#ef4444'):'#e2e8f0',background:form.type===t?(t==='income'?'#f0fdf4':'#fef2f2'):'#fff',color:form.type===t?(t==='income'?'#1A77A3':'#ef4444'):'#64748b',fontSize:'13px',fontWeight:600}}>
+                style={{borderColor:form.type===t?(t==='income'?'#144f6b':'#ef4444'):'#e2e8f0',background:form.type===t?(t==='income'?'#f0fdf4':'#fef2f2'):'#fff',color:form.type===t?(t==='income'?'#144f6b':'#ef4444'):'#64748b',fontSize:'13px',fontWeight:600}}>
                 {t==='income'?'↑ Kas Masuk':'↓ Kas Keluar'}
               </button>
             ))}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Tanggal</label>
-              <input type="date" value={form.date} onChange={e=>handle('date',e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/>
+              <input type="date" value={form.date} onChange={e=>handle('date',e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/>
             </div>
             <div><label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Rekening</label>
-              <select autoFocus value={form.account} onChange={e=>handle('account',e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}>
+              <select autoFocus value={form.account} onChange={e=>handle('account',e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}>
                 {bankAccounts.map(a=><option key={a.id} value={a.type}>{a.type} – {a.bankName}</option>)}
               </select>
             </div>
           </div>
           <div><label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Kategori</label>
-            <select value={form.category} onChange={e=>handle('category',e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}>
+            <select value={form.category} onChange={e=>handle('category',e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}>
               <option value="">-- Pilih Kategori --</option>{cats.map(c=><option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div><label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Jumlah (Rp)</label>
-            <input type="number" value={form.amount} onChange={e=>handle('amount',e.target.value)} placeholder="0" min="0" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/>
+            <input type="number" value={form.amount} onChange={e=>handle('amount',e.target.value)} placeholder="0" min="0" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/>
           </div>
           <div><label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Keterangan</label>
-            <textarea value={form.description} onChange={e=>handle('description',e.target.value)} rows={2} placeholder="Keterangan transaksi..." className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3] resize-none" style={{borderColor:'#e2e8f0'}}/>
+            <textarea value={form.description} onChange={e=>handle('description',e.target.value)} rows={2} placeholder="Keterangan transaksi..." className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none" style={{borderColor:'#e2e8f0'}}/>
           </div>
           <div><label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>No. Referensi <span style={{fontWeight:400,color:'#94a3b8'}}>(opsional)</span></label>
-            <input type="text" value={form.reference} onChange={e=>handle('reference',e.target.value)} placeholder="No. bukti / referensi" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/>
+            <input type="text" value={form.reference} onChange={e=>handle('reference',e.target.value)} placeholder="No. bukti / referensi" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/>
           </div>
           {err&&<div className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm" style={{background:'#fef2f2',color:'#dc2626'}}><AlertCircle className="w-4 h-4 flex-shrink-0"/>{err}</div>}
         </div>
         <div className="px-6 pb-6 flex justify-end gap-3">
           <button onClick={onClose} className="px-4 py-2 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors" style={{borderColor:'#e2e8f0'}}>Batal</button>
-          <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90" style={{background:'#1A77A3'}}>Simpan</button>
+          <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90" style={{background:'#144f6b'}}>Simpan</button>
         </div>
       </div>
     </div>
@@ -223,32 +223,32 @@ function PettyCashForm({ initial, onSave, onClose }: { initial?: Partial<PCFormD
         <div className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div><label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Tanggal</label>
-              <input type="date" value={form.date} onChange={e=>h('date',e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/>
+              <input type="date" value={form.date} onChange={e=>h('date',e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/>
             </div>
             <div><label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Status</label>
-              <select value={form.status} onChange={e=>h('status',e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}>
+              <select value={form.status} onChange={e=>h('status',e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}>
                 {PC_STATUS.map(s=><option key={s} value={s}>{s}</option>)}
               </select>
             </div>
           </div>
           <div><label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Kategori</label>
-            <select value={form.category} onChange={e=>h('category',e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}>
+            <select value={form.category} onChange={e=>h('category',e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}>
               <option value="">-- Pilih Kategori --</option>{PC_CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div><label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Keterangan</label>
-            <textarea value={form.description} onChange={e=>h('description',e.target.value)} rows={2} placeholder="Detail pengeluaran..." className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3] resize-none" style={{borderColor:'#e2e8f0'}}/>
+            <textarea value={form.description} onChange={e=>h('description',e.target.value)} rows={2} placeholder="Detail pengeluaran..." className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none" style={{borderColor:'#e2e8f0'}}/>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Jumlah (Rp)</label>
-              <input type="number" value={form.amount} onChange={e=>h('amount',e.target.value)} placeholder="0" min="0" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/>
+              <input type="number" value={form.amount} onChange={e=>h('amount',e.target.value)} placeholder="0" min="0" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/>
             </div>
             <div><label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Dibayar Ke</label>
-              <input type="text" value={form.payTo} onChange={e=>h('payTo',e.target.value)} placeholder="Nama penerima" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/>
+              <input type="text" value={form.payTo} onChange={e=>h('payTo',e.target.value)} placeholder="Nama penerima" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/>
             </div>
           </div>
           <div><label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>No. Bukti / Kwitansi <span style={{fontWeight:400,color:'#94a3b8'}}>(opsional)</span></label>
-            <input type="text" value={form.receiptNo} onChange={e=>h('receiptNo',e.target.value)} placeholder="KK/001/III/26" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/>
+            <input type="text" value={form.receiptNo} onChange={e=>h('receiptNo',e.target.value)} placeholder="KK/001/III/26" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/>
           </div>
           {err&&<div className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm" style={{background:'#fef2f2',color:'#dc2626'}}><AlertCircle className="w-4 h-4 flex-shrink-0"/>{err}</div>}
         </div>
@@ -310,7 +310,7 @@ function TopUpModal({ onSave, onClose, bankAccounts: ba }: { onSave:(d:TopUpForm
                   className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all border"
                   style={{
                     background: form.amount===String(a) ? '#f0fdf4' : '#f8fafc',
-                    color: form.amount===String(a) ? '#1A77A3' : '#64748b',
+                    color: form.amount===String(a) ? '#144f6b' : '#64748b',
                     borderColor: form.amount===String(a) ? '#b8d5e8' : '#e2e8f0',
                     fontWeight: form.amount===String(a) ? 700 : 500,
                   }}>
@@ -326,11 +326,11 @@ function TopUpModal({ onSave, onClose, bankAccounts: ba }: { onSave:(d:TopUpForm
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium" style={{color:'#64748b'}}>Rp</span>
               <input type="number" value={form.amount} onChange={e=>h('amount',e.target.value)} placeholder="0" min="0"
-                className="w-full pl-10 pr-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                className="w-full pl-10 pr-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                 style={{borderColor:'#e2e8f0',fontWeight:600,fontSize:'15px'}}/>
             </div>
             {form.amount && !isNaN(parseFloat(form.amount)) && (
-              <p className="mt-1" style={{fontSize:'11px',color:'#1A77A3',fontWeight:500}}>
+              <p className="mt-1" style={{fontSize:'11px',color:'#144f6b',fontWeight:500}}>
                 {formatRp(parseFloat(form.amount))}
               </p>
             )}
@@ -341,13 +341,13 @@ function TopUpModal({ onSave, onClose, bankAccounts: ba }: { onSave:(d:TopUpForm
             <div>
               <label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Tanggal Top Up</label>
               <input type="date" value={form.date} onChange={e=>h('date',e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/>
+                className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/>
             </div>
             {/* Approved by */}
             <div>
               <label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Disetujui Oleh</label>
               <input type="text" value={form.approvedBy} onChange={e=>h('approvedBy',e.target.value)} placeholder="Nama majelis/bendahara"
-                className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/>
+                className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/>
             </div>
           </div>
 
@@ -355,7 +355,7 @@ function TopUpModal({ onSave, onClose, bankAccounts: ba }: { onSave:(d:TopUpForm
           <div>
             <label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Sumber Dana</label>
             <select value={form.source} onChange={e=>h('source',e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}>
+              className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}>
               {pcSources.map(s=><option key={s} value={s}>{s}</option>)}
             </select>
           </div>
@@ -365,7 +365,7 @@ function TopUpModal({ onSave, onClose, bankAccounts: ba }: { onSave:(d:TopUpForm
             <label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Keterangan</label>
             <textarea value={form.description} onChange={e=>h('description',e.target.value)} rows={2}
               placeholder="Contoh: Pengisian ulang kas kecil April 2026..."
-              className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3] resize-none" style={{borderColor:'#e2e8f0'}}/>
+              className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none" style={{borderColor:'#e2e8f0'}}/>
           </div>
 
           {err && (
@@ -378,7 +378,7 @@ function TopUpModal({ onSave, onClose, bankAccounts: ba }: { onSave:(d:TopUpForm
         <div className="px-6 pb-6 flex gap-3">
           <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors" style={{borderColor:'#e2e8f0'}}>Batal</button>
           <button onClick={submit} className="flex-1 py-2.5 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90 flex items-center justify-center gap-2"
-            style={{background:'#1A77A3'}}>
+            style={{background:'#144f6b'}}>
             <PlusCircle className="w-4 h-4"/> Konfirmasi Top Up
           </button>
         </div>
@@ -412,13 +412,13 @@ function ExportModal({ curMonth, curYear, onExportPDF, onExportExcel, onClose, l
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Bulan</label>
-                <select value={selMonth} onChange={e=>setSelMonth(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}>
+                <select value={selMonth} onChange={e=>setSelMonth(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}>
                   {MONTH_FULL.map((m,i)=><option key={i} value={i}>{m}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Tahun</label>
-                <select value={selYear} onChange={e=>setSelYear(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}>
+                <select value={selYear} onChange={e=>setSelYear(Number(e.target.value))} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}>
                   {[2024,2025,2026].map(y=><option key={y} value={y}>{y}</option>)}
                 </select>
               </div>
@@ -438,7 +438,7 @@ function ExportModal({ curMonth, curYear, onExportPDF, onExportExcel, onClose, l
           </button>
           <button onClick={()=>onExportExcel(selMonth,selYear)} disabled={loading}
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-60"
-            style={{background:'#1A77A3'}}>
+            style={{background:'#144f6b'}}>
             <FileSpreadsheet className="w-4 h-4"/> {loading?'Memproses...':'Export Excel (.xlsx)'}
           </button>
           <button onClick={onClose} className="w-full py-2.5 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors" style={{borderColor:'#e2e8f0'}}>Batal</button>
@@ -453,13 +453,13 @@ type BudgetWithActual = Budget & { actual: number };
 function BudgetBar({ item, onEdit, onDelete, canEdit, canDelete }: { item: BudgetWithActual; onEdit?:()=>void; onDelete?:()=>void; canEdit?:boolean; canDelete?:boolean }) {
   const pct=Math.min(100,item.budgeted>0?(item.actual/item.budgeted)*100:0);
   const over=item.actual>item.budgeted;
-  const color=item.type==='income'?(pct>=80?'#1A77A3':pct>=50?'#c2baaa':'#ef4444'):(over?'#ef4444':pct>=80?'#c2baaa':'#1A77A3');
+  const color=item.type==='income'?(pct>=80?'#2f8f5b':pct>=50?'#c2baaa':'#d1553f'):(over?'#d1553f':pct>=80?'#c2baaa':'#1A77A3');
   return(
     <div className="flex items-center gap-3 py-2.5 border-b last:border-0" style={{borderColor:'#f1f5f9'}}>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{background:item.type==='income'?'#1A77A3':'#ef4444'}}/>
+            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{background:item.type==='income'?'#2f8f5b':'#d1553f'}}/>
             <span className="truncate" style={{fontSize:'12.5px',fontWeight:500,color:'#4b5563'}}>{item.category}</span>
           </div>
           <span style={{fontSize:'11px',color:'#64748b',flexShrink:0,marginLeft:8}}>{compactRp(item.actual)} / {compactRp(item.budgeted)}</span>
@@ -468,7 +468,7 @@ function BudgetBar({ item, onEdit, onDelete, canEdit, canDelete }: { item: Budge
           <div className="h-full rounded-full transition-all" style={{width:`${pct}%`,background:color}}/>
         </div>
       </div>
-      <span className="flex-shrink-0 px-2 py-0.5 rounded-full" style={{fontSize:'10.5px',fontWeight:600,background:over&&item.type==='expense'?'#fef2f2':pct>=90?'#f0fdf4':'#f6f4f0',color:over&&item.type==='expense'?'#dc2626':pct>=90?'#1A77A3':'#9c9486'}}>{pct.toFixed(0)}%</span>
+      <span className="flex-shrink-0 px-2 py-0.5 rounded-full" style={{fontSize:'10.5px',fontWeight:600,background:over&&item.type==='expense'?'#fef2f2':pct>=90?'#f0fdf4':'#f6f4f0',color:over&&item.type==='expense'?'#dc2626':pct>=90?'#144f6b':'#9c9486'}}>{pct.toFixed(0)}%</span>
       {canEdit&&<button onClick={onEdit} className="p-1 rounded hover:bg-gray-100 transition-colors flex-shrink-0"><Pencil className="w-3 h-3 text-gray-400"/></button>}
       {canDelete&&<button onClick={onDelete} className="p-1 rounded hover:bg-red-50 transition-colors flex-shrink-0"><Trash2 className="w-3 h-3 text-red-400"/></button>}
     </div>
@@ -673,7 +673,7 @@ function FinanceDocumentsModal({ item, label, onClose }: { item: any; label: str
           {canEditDocs && (
             <button onClick={handleUploadDocClick} disabled={uploadingDoc}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed text-sm font-semibold transition-colors disabled:opacity-60 mb-3"
-              style={{borderColor:'#b8d5e8',color:'#1A77A3',background:'#f0fdf4'}}>
+              style={{borderColor:'#b8d5e8',color:'#144f6b',background:'#f0fdf4'}}>
               {uploadingDoc ? <Loader2 className="w-4 h-4 animate-spin"/> : <Upload className="w-4 h-4"/>}
               {uploadingDoc ? 'Mengunggah...' : 'Unggah Dokumen PDF'}
             </button>
@@ -692,7 +692,7 @@ function FinanceDocumentsModal({ item, label, onClose }: { item: any; label: str
                     <p style={{fontSize:'11px',color:'#94a3b8'}}>{formatBytes(doc.fileSize)} · {new Date(doc.uploadedAt).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})} · {doc.uploadedBy}</p>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    <button data-tooltip="Lihat" onClick={()=>handleViewDocument(doc)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#1A77A3] transition-colors"><Eye className="w-4 h-4"/></button>
+                    <button data-tooltip="Lihat" onClick={()=>handleViewDocument(doc)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#144f6b] transition-colors"><Eye className="w-4 h-4"/></button>
                     {canDeleteDocs && (
                       <button data-tooltip="Hapus" onClick={()=>handleDeleteDocument(doc)} className="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4"/></button>
                     )}
@@ -855,11 +855,11 @@ export function ChurchFinanceHub() {
   const pagedPCSorted = sortedPC.slice((pcPage-1)*PC_PAGE_SIZE, pcPage*PC_PAGE_SIZE);
   const SortIconTx = ({col}:{col:string}) => {
     if(skTx!==col) return <ArrowUpDown className="w-3 h-3 opacity-40"/>;
-    return sdTx==='asc'?<ArrowUp className="w-3 h-3 text-[#1A77A3]"/>:<ArrowDown className="w-3 h-3 text-[#1A77A3]"/>;
+    return sdTx==='asc'?<ArrowUp className="w-3 h-3 text-[#144f6b]"/>:<ArrowDown className="w-3 h-3 text-[#144f6b]"/>;
   };
   const SortIconPC = ({col}:{col:string}) => {
     if(skPC!==col) return <ArrowUpDown className="w-3 h-3 opacity-40"/>;
-    return sdPC==='asc'?<ArrowUp className="w-3 h-3 text-[#1A77A3]"/>:<ArrowDown className="w-3 h-3 text-[#1A77A3]"/>;
+    return sdPC==='asc'?<ArrowUp className="w-3 h-3 text-[#144f6b]"/>:<ArrowDown className="w-3 h-3 text-[#144f6b]"/>;
   };
 
   const pcThisMonth=pettyCash.filter(r=>new Date(r.date).getMonth()===curMonth&&new Date(r.date).getFullYear()===curYear);
@@ -1175,8 +1175,8 @@ export function ChurchFinanceHub() {
     finally{setExportLoading(false);setShowExport(false);}
   };
 
-  const COLORS_INC=['#1A77A3','#3a7fa0','#f0ede5','#b8d5e8','#0d9488'];
-  const COLORS_EXP=['#ef4444','#9c9486','#c2baaa','#ec4899','#3a7fa0'];
+  const COLORS_INC=['#1A77A3','#2f8f5b','#caa04a','#8b6bb1','#9c9486'];
+  const COLORS_EXP=['#d1553f','#caa04a','#8b6bb1','#9c9486','#3a7fa0'];
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -1185,7 +1185,7 @@ export function ChurchFinanceHub() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2.5" style={{fontSize:'22px',fontWeight:700,color:'#0f172a',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{background:'#1A77A3'}}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{background:'#144f6b'}}>
               <Landmark className="w-5 h-5 text-white"/>
             </div>
             Keuangan Gereja
@@ -1194,7 +1194,7 @@ export function ChurchFinanceHub() {
         </div>
         <div className="flex items-center gap-2">
           {canCreate && (
-            <button onMouseDown={e=>e.preventDefault()} onClick={()=>{setEditRec(null);setShowForm(true);}} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold shadow transition-all hover:opacity-90" style={{background:'#1A77A3'}}>
+            <button onMouseDown={e=>e.preventDefault()} onClick={()=>{setEditRec(null);setShowForm(true);}} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold shadow transition-all hover:opacity-90" style={{background:'#144f6b'}}>
               <Plus className="w-4 h-4"/> Tambah Transaksi
             </button>
           )}
@@ -1212,9 +1212,9 @@ export function ChurchFinanceHub() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           {label:'Total Saldo Bank',value:compactRp(totalBankBalance),sub:`${(bankAccounts||[]).length} rekening aktif`,icon:Building2,color:'#2563eb',bg:'#eff6ff',border:'#bfdbfe'},
-          {label:'Kas Masuk Bulan Ini',value:compactRp(totalIncome),sub:MONTH_FULL[curMonth],icon:TrendingUp,color:'#1A77A3',bg:'#f0fdf4',border:'#b8d5e8'},
+          {label:'Kas Masuk Bulan Ini',value:compactRp(totalIncome),sub:MONTH_FULL[curMonth],icon:TrendingUp,color:'#144f6b',bg:'#f0fdf4',border:'#b8d5e8'},
           {label:'Kas Keluar Bulan Ini',value:compactRp(totalExpense),sub:MONTH_FULL[curMonth],icon:TrendingDown,color:'#dc2626',bg:'#fef2f2',border:'#fecaca'},
-          {label:'Saldo Bersih Bulan Ini',value:compactRp(Math.abs(netBalance)),sub:netBalance>=0?'Surplus':'Defisit',icon:netBalance>=0?ArrowUpRight:ArrowDownRight,color:netBalance>=0?'#1A77A3':'#dc2626',bg:netBalance>=0?'#f0fdf4':'#fef2f2',border:netBalance>=0?'#b8d5e8':'#fecaca'},
+          {label:'Saldo Bersih Bulan Ini',value:compactRp(Math.abs(netBalance)),sub:netBalance>=0?'Surplus':'Defisit',icon:netBalance>=0?ArrowUpRight:ArrowDownRight,color:netBalance>=0?'#144f6b':'#dc2626',bg:netBalance>=0?'#f0fdf4':'#fef2f2',border:netBalance>=0?'#b8d5e8':'#fecaca'},
         ].map((card,i)=>(
           <div key={i} className="rounded-2xl p-3 border" style={{background:card.bg,borderColor:card.border}}>
             <div className="flex items-start justify-between mb-2">
@@ -1253,7 +1253,7 @@ export function ChurchFinanceHub() {
             <div className="flex items-center justify-between mb-4">
               <h3 style={{fontSize:'14px',fontWeight:600,color:'#0f172a'}}>Arus Kas 6 Bulan Terakhir</h3>
               <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 rounded-lg text-xs" style={{background:'#f0fdf4',color:'#1A77A3',fontWeight:500}}>{MONTH_FULL[curMonth]} {curYear}</span>
+                <span className="px-2.5 py-1 rounded-lg text-xs" style={{background:'#f0fdf4',color:'#144f6b',fontWeight:500}}>{MONTH_FULL[curMonth]} {curYear}</span>
                 <button onClick={()=>setShowExport(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all hover:bg-gray-50" style={{borderColor:'#e2e8f0',color:'#64748b'}}>
                   <Download className="w-3 h-3"/> Export
                 </button>
@@ -1269,7 +1269,7 @@ export function ChurchFinanceHub() {
               </button>
               <button onClick={()=>exportToExcel(curMonth,curYear)} disabled={exportLoading}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 disabled:opacity-60"
-                style={{background:'#f0fdf4',color:'#1A77A3',border:'1px solid #b8d5e8'}}>
+                style={{background:'#f0fdf4',color:'#144f6b',border:'1px solid #b8d5e8'}}>
                 <FileSpreadsheet className="w-3.5 h-3.5"/> Excel Bulan Ini
               </button>
               <button onClick={()=>setShowExport(true)}
@@ -1287,7 +1287,7 @@ export function ChurchFinanceHub() {
               {balanceData.map((d,i)=>(
                 <div key={i} className="flex items-center justify-between">
                   <span style={{fontSize:'11.5px',color:'#64748b'}}>{d.name}</span>
-                  <span style={{fontSize:'12px',fontWeight:600,color:d.balance>=0?'#1A77A3':'#ef4444'}}>{d.balance>=0?'+':''}{compactRp(d.balance)}</span>
+                  <span style={{fontSize:'12px',fontWeight:600,color:d.balance>=0?'#144f6b':'#ef4444'}}>{d.balance>=0?'+':''}{compactRp(d.balance)}</span>
                 </div>
               ))}
             </div>
@@ -1296,7 +1296,7 @@ export function ChurchFinanceHub() {
           <div className="rounded-2xl border bg-white p-5" style={{borderColor:'#e2e8f0'}}>
             <div className="flex items-center justify-between mb-4">
               <h3 style={{fontSize:'14px',fontWeight:600,color:'#0f172a'}}>Pemasukan per Kategori</h3>
-              <span className="px-2.5 py-1 rounded-lg text-xs font-medium" style={{background:'#f0fdf4',color:'#1A77A3'}}>{categoryChartData.period}</span>
+              <span className="px-2.5 py-1 rounded-lg text-xs font-medium" style={{background:'#f0fdf4',color:'#144f6b'}}>{categoryChartData.period}</span>
             </div>
             <DonutPieChart data={incomeByCategory} total={categoryChartData.totalIncome} colors={COLORS_INC} emptyMsg="Belum ada data pemasukan"/>
           </div>
@@ -1312,19 +1312,19 @@ export function ChurchFinanceHub() {
           <div className="rounded-2xl border bg-white p-5" style={{borderColor:'#e2e8f0'}}>
             <div className="flex items-center justify-between mb-4">
               <h3 style={{fontSize:'14px',fontWeight:600,color:'#0f172a'}}>Transaksi Terbaru</h3>
-              <button onClick={()=>setTab('transaksi')} style={{fontSize:'12px',color:'#1A77A3',fontWeight:500}}>Lihat Semua</button>
+              <button onClick={()=>setTab('transaksi')} style={{fontSize:'12px',color:'#144f6b',fontWeight:500}}>Lihat Semua</button>
             </div>
             <div className="space-y-2.5">
               {allRecords.slice(0,6).map((r:any,i:number)=>(
                 <div key={i} className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{background:r.type==='income'?'#f0fdf4':'#fef2f2'}}>
-                    {r.type==='income'?<ArrowUpRight className="w-4 h-4" style={{color:'#1A77A3'}}/>:<ArrowDownRight className="w-4 h-4" style={{color:'#ef4444'}}/>}
+                    {r.type==='income'?<ArrowUpRight className="w-4 h-4" style={{color:'#144f6b'}}/>:<ArrowDownRight className="w-4 h-4" style={{color:'#ef4444'}}/>}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="truncate" style={{fontSize:'12px',fontWeight:500,color:'#4b5563'}}>{r.description}</p>
                     <p style={{fontSize:'10.5px',color:'#94a3b8'}}>{r.category} · {new Date(r.date).toLocaleDateString('id-ID',{day:'numeric',month:'short'})}</p>
                   </div>
-                  <span style={{fontSize:'12.5px',fontWeight:600,color:r.type==='income'?'#1A77A3':'#ef4444',flexShrink:0}}>
+                  <span style={{fontSize:'12.5px',fontWeight:600,color:r.type==='income'?'#144f6b':'#ef4444',flexShrink:0}}>
                     {r.type==='income'?'+':'-'}{compactRp(r.amount)}
                   </span>
                 </div>
@@ -1340,7 +1340,7 @@ export function ChurchFinanceHub() {
                 <p style={{fontSize:'11px',color:'#94a3b8',marginTop:2}}>Realisasi dihitung otomatis dari transaksi</p>
               </div>
               {canCreate&&(
-                <button onClick={()=>{setEditBudget(null);setShowBudgetForm(true);}} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white text-xs font-semibold" style={{background:'#1A77A3'}}>
+                <button onClick={()=>{setEditBudget(null);setShowBudgetForm(true);}} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white text-xs font-semibold" style={{background:'#144f6b'}}>
                   <Plus className="w-3.5 h-3.5"/>Tambah Anggaran
                 </button>
               )}
@@ -1350,7 +1350,7 @@ export function ChurchFinanceHub() {
             ):(
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
                 <div>
-                  <p className="mb-2" style={{fontSize:'11.5px',fontWeight:600,color:'#1A77A3'}}>Pemasukan</p>
+                  <p className="mb-2" style={{fontSize:'11.5px',fontWeight:600,color:'#144f6b'}}>Pemasukan</p>
                   {budgetsWithActual.filter((b:BudgetWithActual)=>b.type==='income').map((b:BudgetWithActual)=>(
                     <BudgetBar key={b.id} item={b} canEdit={canEdit} canDelete={canDelete} onEdit={()=>{setEditBudget(b);setShowBudgetForm(true);}} onDelete={()=>setDeleteBudgetConfirm(b.id)}/>
                   ))}
@@ -1379,7 +1379,7 @@ export function ChurchFinanceHub() {
             <div className="flex gap-1">
               {([['semua','Semua'],['income','Masuk'],['expense','Keluar']] as const).map(([v,l])=>(
                 <button key={v} onClick={()=>{setTxFilter(v);setPage(1);}} className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                  style={{background:txFilter===v?(v==='income'?'#f0fdf4':v==='expense'?'#fef2f2':'#0a1e2c'):'#f1f5f9',color:txFilter===v?(v==='income'?'#1A77A3':v==='expense'?'#dc2626':'#fff'):'#64748b',border:txFilter===v?`1px solid ${v==='income'?'#b8d5e8':v==='expense'?'#fecaca':'transparent'}`:'1px solid transparent'}}>
+                  style={{background:txFilter===v?(v==='income'?'#f0fdf4':v==='expense'?'#fef2f2':'#0a1e2c'):'#f1f5f9',color:txFilter===v?(v==='income'?'#144f6b':v==='expense'?'#dc2626':'#fff'):'#64748b',border:txFilter===v?`1px solid ${v==='income'?'#b8d5e8':v==='expense'?'#fecaca':'transparent'}`:'1px solid transparent'}}>
                   {l}
                 </button>
               ))}
@@ -1419,7 +1419,7 @@ export function ChurchFinanceHub() {
                   <tr key={r.id} className="border-b hover:bg-gray-50 transition-colors" style={{borderColor:'#f8fafc'}}>
                     <td className="px-4 py-3 text-sm" style={{color:'#4b5563',whiteSpace:'nowrap'}}>{new Date(r.date).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'})}</td>
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:r.type==='income'?'#f0fdf4':'#fef2f2',color:r.type==='income'?'#1A77A3':'#dc2626'}}>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:r.type==='income'?'#f0fdf4':'#fef2f2',color:r.type==='income'?'#144f6b':'#dc2626'}}>
                         {r.type==='income'?<ArrowUpRight className="w-3 h-3"/>:<ArrowDownRight className="w-3 h-3"/>}
                         {r.type==='income'?'Masuk':'Keluar'}
                       </span>
@@ -1428,7 +1428,7 @@ export function ChurchFinanceHub() {
                     <td className="px-4 py-3 text-sm max-w-xs truncate" style={{color:'#4b5563'}}>{r.description}</td>
                     <td className="px-4 py-3 text-xs" style={{color:'#94a3b8'}}>{r.reference||'—'}</td>
                     <td className="px-4 py-3 text-xs" style={{color:'#64748b'}}>{r.recordedBy}</td>
-                    <td className="px-4 py-3 text-sm font-semibold whitespace-nowrap" style={{color:r.type==='income'?'#1A77A3':'#ef4444'}}>{r.type==='income'?'+':'-'}{formatRp(r.amount)}</td>
+                    <td className="px-4 py-3 text-sm font-semibold whitespace-nowrap" style={{color:r.type==='income'?'#144f6b':'#ef4444'}}>{r.type==='income'?'+':'-'}{formatRp(r.amount)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         <button onClick={()=>setShowDocsFor(r)} data-tooltip="Dokumen" className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><FileText className="w-3.5 h-3.5 text-gray-400"/></button>
@@ -1542,7 +1542,7 @@ export function ChurchFinanceHub() {
               {label:'Total Dana Masuk',value:formatRp(pcTotalTopUp),sub:`${pcTopUpsThisMonth.length}x top up`,color:'#2563eb',bg:'#eff6ff',border:'#bfdbfe',icon:PlusCircle},
               {label:'Total Dipakai',value:formatRp(pcTotalSpent),sub:`${pcThisMonth.filter(r=>r.status==='Lunas').length} transaksi lunas`,color:'#dc2626',bg:'#fef2f2',border:'#fecaca',icon:ShoppingCart},
               {label:'Pending Pembayaran',value:formatRp(pcTotalPending),sub:`${pcThisMonth.filter(r=>r.status==='Pending').length} transaksi`,color:'#9c9486',bg:'#f6f4f0',border:'#e8e4d8',icon:Clock},
-              {label:'Sisa Saldo',value:formatRp(Math.abs(pcBalance)),sub:pcBalance>=0?'Tersedia':'Overbudget!',color:pcBalance>=0?'#1A77A3':'#dc2626',bg:pcBalance>=0?'#f0fdf4':'#fef2f2',border:pcBalance>=0?'#b8d5e8':'#fecaca',icon:Coins},
+              {label:'Sisa Saldo',value:formatRp(Math.abs(pcBalance)),sub:pcBalance>=0?'Tersedia':'Overbudget!',color:pcBalance>=0?'#144f6b':'#dc2626',bg:pcBalance>=0?'#f0fdf4':'#fef2f2',border:pcBalance>=0?'#b8d5e8':'#fecaca',icon:Coins},
             ].map((c,i)=>(
               <div key={i} className="rounded-2xl p-4 border" style={{background:c.bg,borderColor:c.border}}>
                 <div className="flex items-start justify-between mb-2">
@@ -1600,7 +1600,7 @@ export function ChurchFinanceHub() {
                 </div>
                 <div className="flex justify-between items-center py-2 border-b" style={{borderColor:'#f1f5f9'}}>
                   <span style={{fontSize:'12px',color:'#64748b'}}>Sudah Lunas</span>
-                  <span style={{fontSize:'13px',fontWeight:600,color:'#1A77A3'}}>{pcThisMonth.filter(r=>r.status==='Lunas').length} transaksi</span>
+                  <span style={{fontSize:'13px',fontWeight:600,color:'#144f6b'}}>{pcThisMonth.filter(r=>r.status==='Lunas').length} transaksi</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b" style={{borderColor:'#f1f5f9'}}>
                   <span style={{fontSize:'12px',color:'#64748b'}}>Masih Pending</span>
@@ -1619,7 +1619,7 @@ export function ChurchFinanceHub() {
               <div className="mt-4 pt-4 border-t" style={{borderColor:'#f1f5f9'}}>
                 <div className="flex justify-between mb-1.5">
                   <span style={{fontSize:'11.5px',color:'#64748b'}}>Penggunaan Kas Kecil</span>
-                  <span style={{fontSize:'11.5px',fontWeight:600,color:pcTotalTopUp>0&&pcTotalSpent/pcTotalTopUp>0.8?'#ef4444':'#1A77A3'}}>{pcTotalTopUp>0?((pcTotalSpent/pcTotalTopUp)*100).toFixed(0):0}%</span>
+                  <span style={{fontSize:'11.5px',fontWeight:600,color:pcTotalTopUp>0&&pcTotalSpent/pcTotalTopUp>0.8?'#ef4444':'#144f6b'}}>{pcTotalTopUp>0?((pcTotalSpent/pcTotalTopUp)*100).toFixed(0):0}%</span>
                 </div>
                 <div className="h-2.5 rounded-full overflow-hidden" style={{background:'#f1f5f9'}}>
                   <div className="h-full rounded-full transition-all" style={{width:`${pcTotalTopUp>0?Math.min(100,(pcTotalSpent/pcTotalTopUp)*100):0}%`,background:pcTotalTopUp>0&&pcTotalSpent/pcTotalTopUp>0.8?'#ef4444':'#c2baaa'}}/>
@@ -1639,7 +1639,7 @@ export function ChurchFinanceHub() {
               <div className="relative flex-1 min-w-40">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"/>
                 <input value={pcSearch} onChange={e=>{setPcSearch(e.target.value);setPcPage(1);}} placeholder="Cari keterangan / penerima..."
-                  className="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/>
+                  className="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/>
               </div>
               <select value={pcMonthFilter} onChange={e=>{setPcMonthFilter(Number(e.target.value));setPcPage(1);}} className="px-3 py-1.5 text-xs rounded-lg border focus:outline-none" style={{borderColor:'#e2e8f0',color:'#4b5563'}}>
                 {MONTH_FULL.map((m,i)=><option key={i} value={i}>{m}</option>)}
@@ -1686,7 +1686,7 @@ export function ChurchFinanceHub() {
                       <td className="px-4 py-3 text-xs font-mono" style={{color:'#64748b'}}>{r.receiptNo||'—'}</td>
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
-                          style={{background:r.status==='Lunas'?'#f0fdf4':'#f6f4f0',color:r.status==='Lunas'?'#1A77A3':'#9c9486',border:`1px solid ${r.status==='Lunas'?'#b8d5e8':'#e8e4d8'}`}}>
+                          style={{background:r.status==='Lunas'?'#f0fdf4':'#f6f4f0',color:r.status==='Lunas'?'#144f6b':'#9c9486',border:`1px solid ${r.status==='Lunas'?'#b8d5e8':'#e8e4d8'}`}}>
                           {r.status==='Lunas'?<CheckCircle2 className="w-3 h-3"/>:<Clock className="w-3 h-3"/>}{r.status}
                         </span>
                       </td>
@@ -1751,7 +1751,7 @@ export function ChurchFinanceHub() {
                     <div><p style={{fontSize:'13.5px',fontWeight:600,color:'#0f172a'}}>{acc.bankName}</p><p style={{fontSize:'11px',color:'#94a3b8'}}>{acc.accountNumber}</p></div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="px-2.5 py-1 rounded-full text-xs font-medium" style={{background:'#f0fdf4',color:'#1A77A3',border:'1px solid #b8d5e8'}}>{acc.type}</span>
+                    <span className="px-2.5 py-1 rounded-full text-xs font-medium" style={{background:'#f0fdf4',color:'#144f6b',border:'1px solid #b8d5e8'}}>{acc.type}</span>
                     {canEdit&&<button onClick={()=>{setEditBa(acc);setShowBaForm(true);}} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors ml-1"><Pencil className="w-3.5 h-3.5 text-gray-400"/></button>}
                     {canDelete&&<button onClick={()=>setDeleteBaConfirm(acc.id)} className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5 text-red-400"/></button>}
                   </div>
@@ -1842,7 +1842,7 @@ export function ChurchFinanceHub() {
       {deletePCConfirm&&(
         <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.45)'}} onClick={()=>setDeletePCConfirm(null)}>
           <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 text-center" onClick={e=>e.stopPropagation()} style={{transform:`translate(${offsetDelPC.x}px,${offsetDelPC.y}px)`}}>
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{background:'#f6f4f0',cursor:'move'}} onMouseDown={onMouseDownDelPC}><Trash2 className="w-6 h-6 text-[#1A77A3]"/></div>
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{background:'#f6f4f0',cursor:'move'}} onMouseDown={onMouseDownDelPC}><Trash2 className="w-6 h-6 text-[#144f6b]"/></div>
             <h3 style={{fontSize:'16px',fontWeight:700,color:'#0f172a',marginBottom:8}}>Hapus Entri Kas Kecil?</h3>
             <p style={{fontSize:'13px',color:'#64748b',marginBottom:24}}>Entri kas kecil ini akan dihapus dan tidak dapat dikembalikan.</p>
             <div className="flex gap-3">
@@ -1921,18 +1921,18 @@ function BankAccountForm({ initial, onSave, onClose }: { initial: BankAccount|nu
         <div className="p-6 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div><label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Nama Bank</label>
-              <input value={form.bankName} onChange={e=>h('bankName',e.target.value)} placeholder="BCA, BNI, Mandiri..." className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/></div>
+              <input value={form.bankName} onChange={e=>h('bankName',e.target.value)} placeholder="BCA, BNI, Mandiri..." className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/></div>
             <div><label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Jenis Rekening</label>
-              <select value={form.type} onChange={e=>h('type',e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}>
+              <select value={form.type} onChange={e=>h('type',e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}>
                 {TIPE_REKENING.map((t: string)=><option key={t} value={t}>{t}</option>)}
               </select></div>
           </div>
           <div><label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Nama Pemilik Rekening</label>
-            <input value={form.accountName} onChange={e=>h('accountName',e.target.value)} placeholder="GPIB Trinitas - Operasional" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/></div>
+            <input value={form.accountName} onChange={e=>h('accountName',e.target.value)} placeholder="GPIB Trinitas - Operasional" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/></div>
           <div><label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Nomor Rekening</label>
-            <input value={form.accountNumber} onChange={e=>h('accountNumber',e.target.value)} placeholder="1234-5678-90" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/></div>
+            <input value={form.accountNumber} onChange={e=>h('accountNumber',e.target.value)} placeholder="1234-5678-90" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/></div>
           <div><label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Saldo Saat Ini (Rp)</label>
-            <input type="number" value={form.balance} onChange={e=>h('balance',e.target.value)} placeholder="0" min="0" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/></div>
+            <input type="number" value={form.balance} onChange={e=>h('balance',e.target.value)} placeholder="0" min="0" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/></div>
           <div><label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Warna Identitas</label>
             <div className="flex gap-2 flex-wrap mt-1">
               {BANK_COLORS.map(c=><button key={c} onClick={()=>h('color',c)} className="w-7 h-7 rounded-full border-2 transition-all" style={{background:c,borderColor:form.color===c?'#0f172a':'transparent',transform:form.color===c?'scale(1.2)':'scale(1)'}}/>)}
@@ -1942,7 +1942,7 @@ function BankAccountForm({ initial, onSave, onClose }: { initial: BankAccount|nu
         </div>
         <div className="px-6 pb-6 flex justify-end gap-3">
           <button onClick={onClose} className="px-4 py-2 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50" style={{borderColor:'#e2e8f0'}}>Batal</button>
-          <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#1A77A3'}}>Simpan</button>
+          <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#144f6b'}}>Simpan</button>
         </div>
       </div>
     </div>
@@ -1975,24 +1975,24 @@ function BudgetFormModal({ initial, curYear, onSave, onClose }: { initial: Budge
           <div className="grid grid-cols-2 gap-3">
             {(['income','expense'] as const).map(t=>(
               <button key={t} onClick={()=>h('type',t)} className="py-2.5 rounded-xl border-2 transition-all"
-                style={{borderColor:form.type===t?(t==='income'?'#1A77A3':'#ef4444'):'#e2e8f0',background:form.type===t?(t==='income'?'#f0fdf4':'#fef2f2'):'#fff',color:form.type===t?(t==='income'?'#1A77A3':'#ef4444'):'#64748b',fontSize:'13px',fontWeight:600}}>
+                style={{borderColor:form.type===t?(t==='income'?'#144f6b':'#ef4444'):'#e2e8f0',background:form.type===t?(t==='income'?'#f0fdf4':'#fef2f2'):'#fff',color:form.type===t?(t==='income'?'#144f6b':'#ef4444'):'#64748b',fontSize:'13px',fontWeight:600}}>
                 {t==='income'?'↑ Pemasukan':'↓ Pengeluaran'}
               </button>
             ))}
           </div>
           <div><label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Kategori</label>
-            <input value={form.category} onChange={e=>h('category',e.target.value)} placeholder="Persembahan Minggu, Gaji & Tunjangan..." className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/></div>
+            <input value={form.category} onChange={e=>h('category',e.target.value)} placeholder="Persembahan Minggu, Gaji & Tunjangan..." className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/></div>
           <div><label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Jumlah Anggaran (Rp)</label>
-            <input type="number" value={form.budgeted} onChange={e=>h('budgeted',e.target.value)} placeholder="0" min="0" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/></div>
+            <input type="number" value={form.budgeted} onChange={e=>h('budgeted',e.target.value)} placeholder="0" min="0" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/></div>
           <div><label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Tahun</label>
-            <select value={form.year} onChange={e=>h('year',Number(e.target.value))} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}>
+            <select value={form.year} onChange={e=>h('year',Number(e.target.value))} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}>
               {[curYear-1,curYear,curYear+1].map(y=><option key={y} value={y}>{y}</option>)}
             </select></div>
           {err&&<div className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm" style={{background:'#fef2f2',color:'#dc2626'}}><AlertCircle className="w-4 h-4 flex-shrink-0"/>{err}</div>}
         </div>
         <div className="px-6 pb-6 flex justify-end gap-3">
           <button onClick={onClose} className="px-4 py-2 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50" style={{borderColor:'#e2e8f0'}}>Batal</button>
-          <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#1A77A3'}}>Simpan</button>
+          <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#144f6b'}}>Simpan</button>
         </div>
       </div>
     </div>

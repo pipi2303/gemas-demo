@@ -490,7 +490,7 @@ function EntitySection({ config, canEdit, onMutated }: { config: EntityConfig; c
           <button
             onClick={openCreate}
             className="flex items-center gap-1.5 text-sm font-medium text-white px-3 py-1.5 rounded-lg hover:opacity-90"
-            style={{ background: '#1A77A3' }}
+            style={{ background: '#144f6b' }}
           >
             <Plus className="w-3.5 h-3.5" /> Tambah {config.label}
           </button>
@@ -532,7 +532,7 @@ function EntitySection({ config, canEdit, onMutated }: { config: EntityConfig; c
                   ))}
                   {canEdit && (
                     <td className="px-4 py-2.5 text-right whitespace-nowrap">
-                      <button onClick={() => openEdit(row)} className="text-slate-400 hover:text-[#1A77A3] p-1" title="Edit">
+                      <button onClick={() => openEdit(row)} className="text-slate-400 hover:text-[#144f6b] p-1" title="Edit">
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button onClick={() => setDeleteTarget(row)} className="text-slate-400 hover:text-red-500 p-1" title="Nonaktifkan">
@@ -570,7 +570,7 @@ function EntitySection({ config, canEdit, onMutated }: { config: EntityConfig; c
                     <select
                       value={form[f.key] ?? ''}
                       onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                     >
                       <option value="">— pilih —</option>
                       {f.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -581,7 +581,7 @@ function EntitySection({ config, canEdit, onMutated }: { config: EntityConfig; c
                       value={form[f.key] ?? ''}
                       onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
                       rows={2}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                     />
                   )}
                   {f.type === 'checkbox' && (
@@ -603,7 +603,7 @@ function EntitySection({ config, canEdit, onMutated }: { config: EntityConfig; c
                       value={form[f.key] ?? ''}
                       placeholder={f.placeholder}
                       onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value === '' ? '' : Number(e.target.value) }))}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                     />
                   )}
                   {f.type === 'text' && (
@@ -612,7 +612,7 @@ function EntitySection({ config, canEdit, onMutated }: { config: EntityConfig; c
                       value={form[f.key] ?? ''}
                       placeholder={f.placeholder}
                       onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                     />
                   )}
                 </div>
@@ -626,7 +626,7 @@ function EntitySection({ config, canEdit, onMutated }: { config: EntityConfig; c
                 onClick={handleSubmit}
                 disabled={saving}
                 className="px-3 py-1.5 rounded-lg text-sm text-white flex items-center gap-1.5 disabled:opacity-60"
-                style={{ background: '#1A77A3' }}
+                style={{ background: '#144f6b' }}
               >
                 {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Simpan
               </button>
@@ -743,7 +743,7 @@ function FiscalYearSection({ canEdit }: { canEdit: boolean }) {
           <button
             onClick={() => setModalOpen(true)}
             className="flex items-center gap-1.5 text-sm font-medium text-white px-3 py-1.5 rounded-lg hover:opacity-90"
-            style={{ background: '#1A77A3' }}
+            style={{ background: '#144f6b' }}
           >
             <Plus className="w-3.5 h-3.5" /> Tambah Tahun Fiskal
           </button>
@@ -778,7 +778,7 @@ function FiscalYearSection({ canEdit }: { canEdit: boolean }) {
                 <React.Fragment key={fy.id}>
                   <tr className="border-b border-slate-50 hover:bg-slate-50/60">
                     <td className="px-4 py-2.5">
-                      <button onClick={() => toggleExpand(fy)} className="text-slate-400 hover:text-[#1A77A3]">
+                      <button onClick={() => toggleExpand(fy)} className="text-slate-400 hover:text-[#144f6b]">
                         {expanded === fy.id ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                       </button>
                     </td>
@@ -798,7 +798,7 @@ function FiscalYearSection({ canEdit }: { canEdit: boolean }) {
                         <button
                           onClick={() => handleSetCurrent(fy)}
                           disabled={settingCurrent === fy.id}
-                          className="text-xs font-medium text-[#1A77A3] hover:underline disabled:opacity-50"
+                          className="text-xs font-medium text-[#144f6b] hover:underline disabled:opacity-50"
                         >
                           {settingCurrent === fy.id ? 'Memproses…' : 'Jadikan Aktif'}
                         </button>
@@ -846,7 +846,7 @@ function FiscalYearSection({ canEdit }: { canEdit: boolean }) {
                 <input
                   type="text" value={form.code} placeholder="2026-2027"
                   onChange={e => setForm(prev => ({ ...prev, code: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                 />
               </div>
               <div>
@@ -854,7 +854,7 @@ function FiscalYearSection({ canEdit }: { canEdit: boolean }) {
                 <input
                   type="text" value={form.name} placeholder="Tahun Fiskal 2026/2027"
                   onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                 />
               </div>
               <div>
@@ -862,7 +862,7 @@ function FiscalYearSection({ canEdit }: { canEdit: boolean }) {
                 <input
                   type="date" value={form.startDate}
                   onChange={e => setForm(prev => ({ ...prev, startDate: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                 />
               </div>
             </div>
@@ -872,7 +872,7 @@ function FiscalYearSection({ canEdit }: { canEdit: boolean }) {
                 onClick={handleCreate}
                 disabled={saving}
                 className="px-3 py-1.5 rounded-lg text-sm text-white flex items-center gap-1.5 disabled:opacity-60"
-                style={{ background: '#1A77A3' }}
+                style={{ background: '#144f6b' }}
               >
                 {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Simpan
               </button>
@@ -970,7 +970,7 @@ export function FinanceMasterData({ onNavigate }: { onNavigate?: (page: string) 
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg transition-colors"
-              style={active ? { background: '#1A77A3', color: '#fff' } : { color: '#475569' }}
+              style={active ? { background: '#144f6b', color: '#fff' } : { color: '#475569' }}
             >
               <Icon className="w-3.5 h-3.5" /> {tab.label}
             </button>

@@ -191,9 +191,9 @@ export function FinanceAddonHome({ onNavigate }: { onNavigate?: (page: string) =
             <button
               key={m.page}
               onClick={() => onNavigate?.(m.page)}
-              className="text-left flex items-start gap-3 p-3 rounded-lg border border-slate-200 hover:border-[#1A77A3] hover:bg-slate-50 transition-colors"
+              className="text-left flex items-start gap-3 p-3 rounded-lg border border-slate-200 hover:border-[#144f6b] hover:bg-slate-50 transition-colors"
             >
-              <m.icon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: '#1A77A3' }} />
+              <m.icon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: '#144f6b' }} />
               <div className="min-w-0">
                 <p className="text-sm font-medium text-slate-700">{m.title}</p>
                 <p className="text-xs text-slate-500 mt-0.5">{m.desc}</p>

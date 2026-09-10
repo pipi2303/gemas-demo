@@ -408,7 +408,7 @@ export function FamilyCardModal({ family, members, sectors, onClose }: {
               <Printer className="w-4 h-4"/> Cetak Kartu
             </button>
             <button onClick={()=>generateFamilyCardPDF(liveFamily, members, sectors)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition-colors" style={{background:'linear-gradient(135deg,#3a7fa0,#1A77A3)'}}>
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition-colors" style={{background:'linear-gradient(135deg,#3a7fa0,#144f6b)'}}>
               <Download className="w-4 h-4"/> Unduh PDF
             </button>
           </div>
@@ -536,7 +536,7 @@ function FamilyDetail({ family, members, sectors, onClose, onEdit, onDelete, onV
             </button>
           )}
           {detailCanEdit && (
-            <button onClick={onEdit} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold" style={{background:'linear-gradient(135deg,#3a7fa0,#1A77A3)'}}>
+            <button onClick={onEdit} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold" style={{background:'linear-gradient(135deg,#3a7fa0,#144f6b)'}}>
               <Pencil className="w-3.5 h-3.5"/> Edit Keluarga
             </button>
           )}
@@ -638,7 +638,7 @@ function FamilyForm({ mode, initial, sectors, members, onSave, onClose }: {
           <div>
             <label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Nama Kepala Keluarga <span className="text-red-400">*</span></label>
             <input autoFocus value={form.headOfFamily||''} onChange={e=>handleHeadOfFamily(e.target.value)} placeholder="Contoh: Keluarga Bpk. Johannes Tan"
-              className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/>
+              className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/>
           </div>
           <div>
             <label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Kode Keluarga</label>
@@ -648,7 +648,7 @@ function FamilyForm({ mode, initial, sectors, members, onSave, onClose }: {
           <div>
             <label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Sektor <span className="text-red-400">*</span></label>
             <select value={form.sectorId||''} onChange={e=>h('sectorId',e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}>
+              className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}>
               <option value="">— Pilih Sektor —</option>
               {[...sectors].sort((a,b)=>a.name.localeCompare(b.name,'id',{numeric:true})).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
@@ -657,7 +657,7 @@ function FamilyForm({ mode, initial, sectors, members, onSave, onClose }: {
             <div>
               <label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Kepala Keluarga (Anggota)</label>
               <select value={form.headMemberId||''} onChange={e=>h('headMemberId',e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}>
+                className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}>
                 <option value="">— Pilih dari anggota —</option>
                 {[...sectorMembers].sort((a,b)=>a.fullName.localeCompare(b.fullName,'id')).map(m=><option key={m.id} value={m.id}>{m.fullName}</option>)}
               </select>
@@ -666,13 +666,13 @@ function FamilyForm({ mode, initial, sectors, members, onSave, onClose }: {
           <div>
             <label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Alamat</label>
             <textarea value={form.address||''} onChange={e=>h('address',e.target.value)} rows={3}
-              className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3] resize-none" style={{borderColor:'#e2e8f0'}}/>
+              className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none" style={{borderColor:'#e2e8f0'}}/>
           </div>
           {err && <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm" style={{background:'#fef2f2',color:'#dc2626'}}><AlertCircle className="w-4 h-4"/>{err}</div>}
         </div>
         <div className="px-6 pb-6 flex justify-end gap-3">
           <button onClick={onClose} className="px-4 py-2 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors" style={{borderColor:'#e2e8f0'}}>Batal</button>
-          <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'linear-gradient(135deg,#3a7fa0,#1A77A3)'}}>
+          <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'linear-gradient(135deg,#3a7fa0,#144f6b)'}}>
             {mode==='add'?'Simpan Keluarga':'Perbarui'}
           </button>
         </div>
@@ -825,7 +825,7 @@ export function FamilyDatabase() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2.5" style={{fontSize:'22px',fontWeight:700,color:'#0f172a',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{background:'linear-gradient(135deg,#3a7fa0,#1A77A3)'}}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{background:'linear-gradient(135deg,#3a7fa0,#144f6b)'}}>
               <Home className="w-5 h-5 text-white"/>
             </div>
             Data Keluarga Jemaat
@@ -837,7 +837,7 @@ export function FamilyDatabase() {
             <RefreshCw className={`w-4 h-4 ${syncing?'animate-spin':''}`}/> Sinkronisasi
           </button>
           {canCreate && (
-            <button onMouseDown={e=>e.preventDefault()} onClick={()=>{setFormMode('add');setSelected(null);setShowForm(true);}} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold shadow hover:opacity-90 transition-all" style={{background:'linear-gradient(135deg,#3a7fa0,#1A77A3)'}}>
+            <button onMouseDown={e=>e.preventDefault()} onClick={()=>{setFormMode('add');setSelected(null);setShowForm(true);}} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold shadow hover:opacity-90 transition-all" style={{background:'linear-gradient(135deg,#3a7fa0,#144f6b)'}}>
               <Plus className="w-4 h-4"/> Tambah Keluarga
             </button>
           )}
@@ -939,18 +939,18 @@ export function FamilyDatabase() {
               {val:sizeF,set:(v:string)=>{setSizeF(v);setPage(1);},opts:[{v:'all',l:'Semua Ukuran'},{v:'single',l:'1 Orang'},{v:'small',l:'2–3 Orang'},{v:'medium',l:'4–5 Orang'},{v:'large',l:'6+ Orang'}]},
             ] as {val:string;set:(v:string)=>void;opts:{v:string;l:string}[]}[]).map((f,i)=>{
               const active=f.val!=='all';
-              return <select key={i} value={f.val} onChange={e=>f.set(e.target.value)} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#1A77A3':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#1A77A3':'#64748b',fontWeight:active?600:400}}>{f.opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>;
+              return <select key={i} value={f.val} onChange={e=>f.set(e.target.value)} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#144f6b':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#144f6b':'#64748b',fontWeight:active?600:400}}>{f.opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>;
             })}
           </div>
         </div>
         {(searchQ||sectorF!=='all'||sizeF!=='all') ? (
           <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-t" style={{borderColor:'#f1f5f9',background:'#fafbfc'}}>
             <span style={{fontSize:'11px',color:'#94a3b8',fontWeight:500,whiteSpace:'nowrap'}}>Filter aktif:</span>
-            {searchQ && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}><Search className="w-3 h-3"/>"{searchQ.length>18?searchQ.slice(0,18)+'…':searchQ}"<button onClick={()=>{setSearchQ('');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
-            {sectorF!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}><MapPin className="w-3 h-3"/>{sectors.find(s=>s.id===sectorF)?.name||sectorF}<button onClick={()=>{setSectorF('all');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
-            {sizeF!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}><Users className="w-3 h-3"/>{{single:'1 Orang',small:'2–3 Orang',medium:'4–5 Orang',large:'6+ Orang'}[sizeF]||sizeF}<button onClick={()=>{setSizeF('all');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+            {searchQ && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}><Search className="w-3 h-3"/>"{searchQ.length>18?searchQ.slice(0,18)+'…':searchQ}"<button onClick={()=>{setSearchQ('');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+            {sectorF!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}><MapPin className="w-3 h-3"/>{sectors.find(s=>s.id===sectorF)?.name||sectorF}<button onClick={()=>{setSectorF('all');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+            {sizeF!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}><Users className="w-3 h-3"/>{{single:'1 Orang',small:'2–3 Orang',medium:'4–5 Orang',large:'6+ Orang'}[sizeF]||sizeF}<button onClick={()=>{setSizeF('all');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
             <button onClick={()=>{setSearchQ('');setSectorF('all');setSizeF('all');setPage(1);}} className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border transition-all hover:bg-red-50" style={{borderColor:'#fca5a5',color:'#ef4444'}}><X className="w-3 h-3"/>Reset Semua</button>
-            <span className="ml-auto text-xs font-semibold" style={{color:'#1A77A3'}}>{filtered.length} keluarga ditemukan</span>
+            <span className="ml-auto text-xs font-semibold" style={{color:'#144f6b'}}>{filtered.length} keluarga ditemukan</span>
           </div>
         ) : (
           <div className="px-3 pb-2 flex justify-end"><span style={{fontSize:'12px',color:'#94a3b8',fontWeight:500}}>{filtered.length} keluarga total</span></div>
@@ -963,8 +963,8 @@ export function FamilyDatabase() {
         <div className="grid px-4 py-2.5 border-b" style={{gridTemplateColumns:'2fr 1fr 1.6fr 1fr 148px',borderColor:'#f1f5f9',background:'#f8fafc'}}>
           {[{label:'Keluarga',col:'headOfFamily'},{label:'Sektor',col:'sectorId'},{label:'Anggota',col:''},{label:'Alamat',col:'address'},{label:'Aksi',col:''}].map(h=>(
             <button key={h.col||h.label} onClick={()=>h.col&&setSort(s=>({col:h.col,dir:s.col===h.col&&s.dir==='asc'?'desc':'asc'}))}
-              className={`flex items-center gap-1 ${h.label==='Aksi'?'justify-end text-right':'text-left'} ${h.col?'cursor-pointer hover:text-[#1A77A3]':''}`}
-              style={{fontSize:'11px',fontWeight:700,letterSpacing:'0.05em',textTransform:'uppercase',color:sort.col===h.col?'#1A77A3':'#94a3b8'}}>
+              className={`flex items-center gap-1 ${h.label==='Aksi'?'justify-end text-right':'text-left'} ${h.col?'cursor-pointer hover:text-[#144f6b]':''}`}
+              style={{fontSize:'11px',fontWeight:700,letterSpacing:'0.05em',textTransform:'uppercase',color:sort.col===h.col?'#144f6b':'#94a3b8'}}>
               {h.label}
               {h.col && (sort.col===h.col ? (sort.dir==='asc'?<ArrowUp className="w-3 h-3"/>:<ArrowDown className="w-3 h-3"/>):<ArrowUpDown className="w-3 h-3 opacity-40"/>)}
             </button>
@@ -992,7 +992,7 @@ export function FamilyDatabase() {
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform"
                   style={{background:'linear-gradient(135deg,#e8f4fb,#d0eaf8)'}}>
-                  <Home className="w-5 h-5" style={{color:'#1A77A3'}}/>
+                  <Home className="w-5 h-5" style={{color:'#144f6b'}}/>
                 </div>
                 <div className="min-w-0">
                   <p className="truncate" style={{fontSize:'13.5px',fontWeight:700,color:'#1e293b'}} data-tooltip={`Keluarga ${f.headOfFamily}`} data-tooltip-truncate>
@@ -1009,7 +1009,7 @@ export function FamilyDatabase() {
               {/* Col 2: Sektor */}
               <div>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
-                  style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #d0eaf8'}}>
+                  style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #d0eaf8'}}>
                   <MapPin className="w-2.5 h-2.5"/>
                   {sec?.name?.replace(/Sektor \d+ - /,'')||'—'}
                 </span>
@@ -1060,12 +1060,12 @@ export function FamilyDatabase() {
               <div className="flex gap-1 justify-end" onClick={e=>e.stopPropagation()}>
                 <button onClick={()=>{setSelected(f);setShowDetail(true);}} data-tooltip="Lihat Detail"
                   className="p-1.5 rounded-lg hover:bg-[#e8f4fb] transition-colors opacity-0 group-hover:opacity-100">
-                  <Eye className="w-3.5 h-3.5" style={{color:'#1A77A3'}}/>
+                  <Eye className="w-3.5 h-3.5" style={{color:'#144f6b'}}/>
                 </button>
                 {canExport && (
                   <button onClick={()=>setCardFamily(f)} data-tooltip="Lihat/Cetak Kartu Keluarga"
                     className="p-1.5 rounded-lg hover:bg-[#e8f4fb] transition-colors opacity-0 group-hover:opacity-100">
-                    <IdCard className="w-3.5 h-3.5" style={{color:'#1A77A3'}}/>
+                    <IdCard className="w-3.5 h-3.5" style={{color:'#144f6b'}}/>
                   </button>
                 )}
                 {canEdit && (
@@ -1167,7 +1167,7 @@ export function FamilyDatabase() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"/>
                   <input value={kpiSearch} onChange={e=>setKpiSearch(e.target.value)} placeholder="Cari nama kepala keluarga / alamat..."
-                    className="w-full pl-9 pr-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/>
+                    className="w-full pl-9 pr-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/>
                 </div>
               </div>
               {/* List */}
@@ -1181,7 +1181,7 @@ export function FamilyDatabase() {
                     <div key={f.id} className="flex items-center gap-3 p-3 rounded-xl border hover:bg-[#f2f0ea] cursor-pointer transition-colors" style={{borderColor:'#f1f5f9'}}
                       onClick={()=>{setKpiDetail(null);setSelected(f);setShowDetail(true);}}>
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{background:'#f6f4f0'}}>
-                        <Home className="w-5 h-5 #1A77A3"/>
+                        <Home className="w-5 h-5 #144f6b"/>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p style={{fontSize:'13px',fontWeight:600,color:'#334155'}}>Kel. {f.headOfFamily}</p>

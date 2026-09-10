@@ -55,11 +55,11 @@ const TYPE_ICON: Record<string, React.ReactNode> = {
 };
 
 const TYPE_COLOR: Record<string, string> = {
-  feature:     '#1A77A3',
+  feature:     '#144f6b',
   member:      '#16a34a',
   family:      '#0891b2',
   sector:      '#7c3aed',
-  worship:     '#1A77A3',
+  worship:     '#144f6b',
   warta:       '#0891b2',
   liturgy:     '#7c3aed',
   event:       '#9333ea',
@@ -69,8 +69,8 @@ const TYPE_COLOR: Record<string, string> = {
   offering:    '#0891b2',
   building:    '#b45309',
   service:     '#e11d48',
-  baptism:     '#1A77A3',
-  sidi:        '#1A77A3',
+  baptism:     '#144f6b',
+  sidi:        '#144f6b',
   marriage:    '#db2777',
   attestation: '#6366f1',
   ministry:    '#0d9488',
@@ -193,8 +193,8 @@ export function GlobalSearch({ onNavigate, variant = 'light', placeholder = 'Car
           onChange={e => setQuery(e.target.value)}
           onFocus={e => {
             if (query.length >= 2) setIsOpen(true);
-            e.target.style.borderColor = isDark ? '#d4af37' : '#1A77A3';
-            e.target.style.boxShadow = isDark ? '0 0 0 2px rgba(212,175,55,0.25)' : '0 0 0 2px rgba(26,119,163,0.12)';
+            e.target.style.borderColor = isDark ? '#d4af37' : '#144f6b';
+            e.target.style.boxShadow = isDark ? '0 0 0 2px rgba(212,175,55,0.25)' : '0 0 0 2px rgba(20,79,107,0.12)';
           }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
@@ -287,7 +287,7 @@ export function GlobalSearch({ onNavigate, variant = 'light', placeholder = 'Car
                       style={{ background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}
                     >
                       <span style={{
-                        color: '#1A77A3',
+                        color: '#144f6b',
                         fontSize: '10px',
                         fontWeight: 700,
                         textTransform: 'uppercase',
@@ -306,7 +306,7 @@ export function GlobalSearch({ onNavigate, variant = 'light', placeholder = 'Car
                     {items.map((result, i) => {
                       const currentFlat = flatIdx++;
                       const isActive = activeIndex === currentFlat;
-                      const iconColor = TYPE_COLOR[result.type] ?? '#1A77A3';
+                      const iconColor = TYPE_COLOR[result.type] ?? '#144f6b';
                       const icon = TYPE_ICON[result.type] ?? <Search className="w-4 h-4" />;
 
                       return (
@@ -317,7 +317,7 @@ export function GlobalSearch({ onNavigate, variant = 'light', placeholder = 'Car
                           className="w-full text-left flex items-center gap-3 px-3 py-2 transition-all"
                           style={{
                             background: isActive ? '#f0f7fb' : '#ffffff',
-                            borderLeft: `2px solid ${isActive ? '#1A77A3' : 'transparent'}`,
+                            borderLeft: `2px solid ${isActive ? '#144f6b' : 'transparent'}`,
                             borderBottom: '1px solid #f8fafc',
                           }}
                         >
@@ -350,7 +350,7 @@ export function GlobalSearch({ onNavigate, variant = 'light', placeholder = 'Car
                           {/* Arrow */}
                           <ChevronRight
                             className="w-3.5 h-3.5 flex-shrink-0"
-                            style={{ color: isActive ? '#1A77A3' : '#cbd5e1' }}
+                            style={{ color: isActive ? '#144f6b' : '#cbd5e1' }}
                           />
                         </button>
                       );

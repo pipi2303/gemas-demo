@@ -27,7 +27,7 @@ function formatLongDate(d: string) {
 }
 
 const TYPE_COLOR: Record<string, string> = {
-  Minggu: '#3a7fa0', Keluarga: '#1A77A3', PJJ: '#3b82f6', Kategorial: '#c2baaa', Khusus: '#ef4444'
+  Minggu: '#3a7fa0', Keluarga: '#144f6b', PJJ: '#3b82f6', Kategorial: '#c2baaa', Khusus: '#ef4444'
 };
 const TYPE_BG: Record<string, string> = {
   Minggu: '#f5f3ff', Keluarga: '#f0f7fb', PJJ: '#eff6ff', Kategorial: '#fef3c7', Khusus: '#fef2f2'
@@ -286,7 +286,7 @@ export function EWarta() {
       {/* ── Header ────────────────────────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#1A77A3] rounded-xl flex items-center justify-center shadow">
+          <div className="w-10 h-10 bg-[#144f6b] rounded-xl flex items-center justify-center shadow">
             <FileText className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -306,7 +306,7 @@ export function EWarta() {
             <button
               onMouseDown={e=>e.preventDefault()}
               onClick={openAdd}
-              className="flex items-center gap-2 px-4 py-2 bg-[#1A77A3] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm"
             >
               <Plus className="w-4 h-4" />
               Buat Warta Baru
@@ -320,7 +320,7 @@ export function EWarta() {
         {(['all', 'published', 'draft'] as const).map(f => (
           <button key={f} onClick={() => setFilterStatus(f)}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              filterStatus === f ? 'bg-[#1A77A3] text-white' : 'text-gray-600 hover:bg-gray-100'
+              filterStatus === f ? 'bg-[#144f6b] text-white' : 'text-gray-600 hover:bg-gray-100'
             }`}>
             {f === 'all' ? 'Semua' : f === 'published' ? 'Published' : 'Draft'}
           </button>
@@ -358,7 +358,7 @@ export function EWarta() {
                       </div>
                     )}
                     {!warta.coverImage && (
-                      <div className="h-24 bg-[#1A77A3] flex items-center justify-center">
+                      <div className="h-24 bg-[#144f6b] flex items-center justify-center">
                         <FileText className="w-10 h-10 text-white/40" />
                       </div>
                     )}
@@ -376,7 +376,7 @@ export function EWarta() {
                         </span>
                       </div>
 
-                      <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 group-hover:text-[#1A77A3] transition-colors">{warta.title}</h3>
+                      <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 group-hover:text-[#144f6b] transition-colors">{warta.title}</h3>
                       <p className="text-xs text-gray-400 mb-3">{formatShortDate(warta.date)}</p>
 
                       {/* Linked schedules badges */}
@@ -409,7 +409,7 @@ export function EWarta() {
                       {/* Actions */}
                       <div className="flex gap-2 pt-3 border-t border-gray-100" onClick={(e) => e.stopPropagation()}>
                         <button onClick={() => { setSelectedWarta(warta); setView('detail'); }}
-                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#1A77A3] text-white rounded-lg text-xs hover:bg-[#144f6b] transition-colors">
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#144f6b] text-white rounded-lg text-xs hover:bg-[#144f6b] transition-colors">
                           <Eye className="w-3.5 h-3.5" /> Lihat
                         </button>
                         {canEdit && (
@@ -516,7 +516,7 @@ export function EWarta() {
                 {selectedWarta.sections.map((section, i) => (
                   <div key={section.id} className="border border-gray-200 rounded-xl overflow-hidden">
                     <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
-                      <span className="w-5 h-5 bg-[#1A77A3] text-white rounded-full flex items-center justify-center text-xs font-bold">{i + 1}</span>
+                      <span className="w-5 h-5 bg-[#144f6b] text-white rounded-full flex items-center justify-center text-xs font-bold">{i + 1}</span>
                       <h4 className="font-semibold text-gray-800 text-sm">{section.title}</h4>
                     </div>
                     {section.content ? (
@@ -537,13 +537,13 @@ export function EWarta() {
             {selectedWarta.announcements.filter(a => a.trim()).length > 0 && (
               <div className="bg-[#f6f4f0] rounded-xl border border-[#e8e4d8] p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <MessageSquare className="w-4 h-4 text-[#1A77A3]" />
+                  <MessageSquare className="w-4 h-4 text-[#144f6b]" />
                   <h4 className="font-semibold text-gray-800 text-sm">Pengumuman</h4>
                 </div>
                 <ul className="space-y-2">
                   {selectedWarta.announcements.filter(a => a.trim()).map((ann, i) => (
                     <li key={i} className="flex gap-2 text-sm text-gray-700">
-                      <span className="text-[#1A77A3] flex-shrink-0">•</span>
+                      <span className="text-[#144f6b] flex-shrink-0">•</span>
                       <span>{ann}</span>
                     </li>
                   ))}
@@ -682,7 +682,7 @@ export function EWarta() {
                 {/* Info Warta */}
                 <div className="bg-[#f0f7fb] rounded-xl p-4 border border-[#f0ede5] space-y-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 bg-[#1A77A3] rounded-lg flex items-center justify-center">
+                    <div className="w-7 h-7 bg-[#144f6b] rounded-lg flex items-center justify-center">
                       <FileText className="w-3.5 h-3.5 text-white" />
                     </div>
                     <span className="font-semibold text-gray-800 text-sm">Informasi Warta</span>
@@ -789,11 +789,11 @@ export function EWarta() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <MessageSquare className="w-4 h-4 text-[#1A77A3]" />
+                      <MessageSquare className="w-4 h-4 text-[#144f6b]" />
                       <span className="font-semibold text-gray-800 text-sm">Pengumuman</span>
                     </div>
                     <button type="button" onClick={addAnnouncement}
-                      className="flex items-center gap-1 px-2.5 py-1.5 bg-[#f0ede5] text-[#1A77A3] rounded-lg text-xs hover:bg-[#e8e4d8] transition-colors">
+                      className="flex items-center gap-1 px-2.5 py-1.5 bg-[#f0ede5] text-[#144f6b] rounded-lg text-xs hover:bg-[#e8e4d8] transition-colors">
                       <Plus className="w-3.5 h-3.5" /> Tambah
                     </button>
                   </div>
@@ -803,7 +803,7 @@ export function EWarta() {
                         onChange={e => updateAnnouncement(idx, e.target.value)}
                         rows={2}
                         placeholder={`Pengumuman ${idx + 1}...`}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3] resize-none" />
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none" />
                       {formData.announcements.length > 1 && (
                         <button type="button" onClick={() => removeAnnouncement(idx)} data-tooltip="Hapus Pengumuman"
                           className="p-2 text-red-400 hover:text-red-600 self-start hover:bg-red-50 rounded-lg transition-colors">
@@ -822,7 +822,7 @@ export function EWarta() {
                   Batal
                 </button>
                 <button type="submit"
-                  className="flex items-center gap-2 px-5 py-2 bg-[#1A77A3] text-white rounded-lg text-sm hover:bg-[#144f6b] transition-colors">
+                  className="flex items-center gap-2 px-5 py-2 bg-[#144f6b] text-white rounded-lg text-sm hover:bg-[#144f6b] transition-colors">
                   <CheckCircle className="w-4 h-4" />
                   {editingId ? 'Simpan Perubahan' : 'Simpan Warta'}
                 </button>

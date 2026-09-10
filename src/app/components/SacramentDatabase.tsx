@@ -59,8 +59,8 @@ function normStatusSakramen(status: string): 'Terjadwal' | 'Selesai' | 'Ditunda'
 
 function StatusPill({ status }: { status: string }) {
   const cfg: Record<string, { bg: string; color: string; icon: React.ReactNode }> = {
-    'Terjadwal': { bg:'#f0ede5', color:'#1A77A3', icon:<Clock className="w-3 h-3"/> },
-    'Selesai':   { bg:'#f0fdf4', color:'#1A77A3', icon:<CheckCircle className="w-3 h-3"/> },
+    'Terjadwal': { bg:'#f0ede5', color:'#144f6b', icon:<Clock className="w-3 h-3"/> },
+    'Selesai':   { bg:'#f0fdf4', color:'#144f6b', icon:<CheckCircle className="w-3 h-3"/> },
     'Ditunda':   { bg:'#f6f4f0', color:'#9c9486', icon:<Clock className="w-3 h-3"/> },
     'Dibatalkan':{ bg:'#fef2f2', color:'#dc2626', icon:<Ban className="w-3 h-3"/> },
   };
@@ -73,7 +73,7 @@ function StatusPill({ status }: { status: string }) {
 }
 
 // ── Shared Field — didefinisikan di module level agar tidak re-mount tiap render ──
-function SacramentField({ label, value, onChange, type='text', opts, autoFocus, ring='ring-[#1A77A3]' }: {
+function SacramentField({ label, value, onChange, type='text', opts, autoFocus, ring='ring-[#144f6b]' }: {
   label:string; value:string; onChange:(v:string)=>void;
   type?:string; opts?:string[]; autoFocus?:boolean; ring?:string;
 }) {
@@ -176,14 +176,14 @@ function BaptismForm({ initial, onSave, onClose }: { initial?: Partial<Baptism>;
             <SacramentField label="Status" value={f.status} onChange={v=>h('status',v)} opts={STATUS_OPTS}/>
             <div className="col-span-2">
               <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Catatan</label>
-              <textarea value={f.notes} onChange={e=>h('notes',e.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3] resize-none" style={{borderColor:'#e2e8f0'}}/>
+              <textarea value={f.notes} onChange={e=>h('notes',e.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none" style={{borderColor:'#e2e8f0'}}/>
             </div>
           </div>
           {err&&<div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg text-sm" style={{background:'#fef2f2',color:'#dc2626'}}><AlertCircle className="w-4 h-4"/>{err}</div>}
         </div>
         <div className="px-6 pb-5 flex justify-end gap-3 flex-shrink-0">
           <button onClick={onClose} className="px-4 py-2 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50" style={{borderColor:'#e2e8f0'}}>Batal</button>
-          <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#1A77A3'}}>Simpan</button>
+          <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#144f6b'}}>Simpan</button>
         </div>
       </div>
     </div>
@@ -266,13 +266,13 @@ function SidiForm({ initial, onSave, onClose }: { initial?: Partial<Sidi>; onSav
             <SacramentField label="No. Surat Sidi" value={f.certificateNumber} onChange={v=>h('certificateNumber',v)}/>
             <SacramentField label="Status" value={f.status} onChange={v=>h('status',v)} opts={STATUS_OPTS}/>
             <div className="col-span-2"><label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Catatan</label>
-              <textarea value={f.notes} onChange={e=>h('notes',e.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3] resize-none" style={{borderColor:'#e2e8f0'}}/></div>
+              <textarea value={f.notes} onChange={e=>h('notes',e.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none" style={{borderColor:'#e2e8f0'}}/></div>
           </div>
           {err&&<div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg text-sm" style={{background:'#fef2f2',color:'#dc2626'}}><AlertCircle className="w-4 h-4"/>{err}</div>}
         </div>
         <div className="px-6 pb-5 flex justify-end gap-3 flex-shrink-0">
           <button onClick={onClose} className="px-4 py-2 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50" style={{borderColor:'#e2e8f0'}}>Batal</button>
-          <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#1A77A3'}}>Simpan</button>
+          <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#144f6b'}}>Simpan</button>
         </div>
       </div>
     </div>
@@ -314,7 +314,7 @@ function MarriageForm({ initial, onSave, onClose }: { initial?: Partial<Marriage
         <div className="p-5 flex-1 overflow-y-auto">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 p-3 rounded-xl" style={{background:'#fdf2f8',border:'1px solid #fbcfe8'}}>
-              <p style={{fontSize:'11.5px',color:'#1A77A3',fontWeight:600,marginBottom:8}}>DATA MEMPELAI PRIA</p>
+              <p style={{fontSize:'11.5px',color:'#144f6b',fontWeight:600,marginBottom:8}}>DATA MEMPELAI PRIA</p>
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label style={{display:'block',marginBottom:4,fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Nama Mempelai Pria*</label>
@@ -332,7 +332,7 @@ function MarriageForm({ initial, onSave, onClose }: { initial?: Partial<Marriage
               </div>
             </div>
             <div className="col-span-2 p-3 rounded-xl" style={{background:'#fdf2f8',border:'1px solid #fbcfe8'}}>
-              <p style={{fontSize:'11.5px',color:'#1A77A3',fontWeight:600,marginBottom:8}}>DATA MEMPELAI WANITA</p>
+              <p style={{fontSize:'11.5px',color:'#144f6b',fontWeight:600,marginBottom:8}}>DATA MEMPELAI WANITA</p>
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label style={{display:'block',marginBottom:4,fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Nama Mempelai Wanita*</label>
@@ -381,7 +381,7 @@ function MarriageForm({ initial, onSave, onClose }: { initial?: Partial<Marriage
         </div>
         <div className="px-6 pb-5 flex justify-end gap-3 flex-shrink-0">
           <button onClick={onClose} className="px-4 py-2 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50" style={{borderColor:'#e2e8f0'}}>Batal</button>
-          <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#1A77A3'}}>Simpan</button>
+          <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#144f6b'}}>Simpan</button>
         </div>
       </div>
     </div>
@@ -487,7 +487,7 @@ function SacramentDocumentsModal({ item, label, onClose }: { item: any; label: s
           {canEditDocs && (
             <button onClick={handleUploadDocClick} disabled={uploadingDoc}
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed text-sm font-semibold transition-colors disabled:opacity-60 mb-3"
-              style={{borderColor:'#b8d5e8',color:'#1A77A3',background:'#f0fdf4'}}>
+              style={{borderColor:'#b8d5e8',color:'#144f6b',background:'#f0fdf4'}}>
               {uploadingDoc ? <Loader2 className="w-4 h-4 animate-spin"/> : <Upload className="w-4 h-4"/>}
               {uploadingDoc ? 'Mengunggah...' : 'Unggah Dokumen PDF'}
             </button>
@@ -506,7 +506,7 @@ function SacramentDocumentsModal({ item, label, onClose }: { item: any; label: s
                     <p style={{fontSize:'11px',color:'#94a3b8'}}>{formatBytes(doc.fileSize)} · {fmtDate(doc.uploadedAt)} · {doc.uploadedBy}</p>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    <button data-tooltip="Lihat" onClick={()=>handleViewDocument(doc)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#1A77A3] transition-colors"><Eye className="w-4 h-4"/></button>
+                    <button data-tooltip="Lihat" onClick={()=>handleViewDocument(doc)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#144f6b] transition-colors"><Eye className="w-4 h-4"/></button>
                     {canDeleteDocs && (
                       <button data-tooltip="Hapus" onClick={()=>handleDeleteDocument(doc)} className="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4"/></button>
                     )}
@@ -589,7 +589,7 @@ export function SacramentDatabase({ onNavigate }: { onNavigate?: (page: string) 
 
   const SortIcon = ({col}:{col:string}) => {
     if(sortKey!==col) return <ArrowUpDown className="w-3 h-3 opacity-40"/>;
-    return sortDir==='asc'?<ArrowUp className="w-3 h-3 text-[#1A77A3]"/>:<ArrowDown className="w-3 h-3 text-[#1A77A3]"/>;
+    return sortDir==='asc'?<ArrowUp className="w-3 h-3 text-[#144f6b]"/>:<ArrowDown className="w-3 h-3 text-[#144f6b]"/>;
   };
 
   const totalPages = Math.max(1,Math.ceil(data.length/ITEMS));
@@ -677,9 +677,9 @@ export function SacramentDatabase({ onNavigate }: { onNavigate?: (page: string) 
   };
 
   const TAB_CFG = {
-    baptism: {label:'Baptisan',color:'#1A77A3',bg:'#1A77A3',light:'#ecfeff',border:'#a5f3fc',icon:<Droplet className="w-4 h-4"/>},
-    sidi:    {label:'Sidi',    color:'#1A77A3',bg:'#1A77A3',light:'#f0fdf4',border:'#b8d5e8',icon:<CheckCircle2 className="w-4 h-4"/>},
-    marriage:{label:'Pernikahan',color:'#1A77A3',bg:'#1A77A3',light:'#fdf2f8',border:'#fbcfe8',icon:<Heart className="w-4 h-4"/>},
+    baptism: {label:'Baptisan',color:'#144f6b',bg:'#144f6b',light:'#ecfeff',border:'#a5f3fc',icon:<Droplet className="w-4 h-4"/>},
+    sidi:    {label:'Sidi',    color:'#144f6b',bg:'#144f6b',light:'#f0fdf4',border:'#b8d5e8',icon:<CheckCircle2 className="w-4 h-4"/>},
+    marriage:{label:'Pernikahan',color:'#144f6b',bg:'#144f6b',light:'#fdf2f8',border:'#fbcfe8',icon:<Heart className="w-4 h-4"/>},
   };
   const tc = TAB_CFG[tab];
 
@@ -689,7 +689,7 @@ export function SacramentDatabase({ onNavigate }: { onNavigate?: (page: string) 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2.5" style={{fontSize:'22px',fontWeight:700,color:'#0f172a',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{background:'#1A77A3'}}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{background:'#144f6b'}}>
               <Droplet className="w-5 h-5 text-white"/>
             </div>
             Catatan Sakramen
@@ -712,11 +712,11 @@ export function SacramentDatabase({ onNavigate }: { onNavigate?: (page: string) 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
           {l:'Total Baptisan',v:stats.baptisms,sub:'semua tipe',c:'#3a7fa0',bg:'#ecfeff',bo:'#a5f3fc', type:'baptism' as const, items:baptisms},
-          {l:'Baptisan Selesai',v:stats.baptismsSelesai,sub:`${stats.baptismsSelesaiAnak} anak, ${stats.baptismsSelesaiDewasa} dewasa`,c:'#1A77A3',bg:'#f0fdf4',bo:'#b8d5e8', type:'baptism' as const, items:baptisms.filter(b=>normStatusSakramen(b.status)==='Selesai')},
-          {l:'Total Sidi',v:stats.sidis,sub:'semua status',c:'#1A77A3',bg:'#f0fdf4',bo:'#b8d5e8', type:'sidi' as const, items:sidis},
-          {l:'Sidi Selesai',v:stats.sidisSelesai,sub:'sudah sidi',c:'#1A77A3',bg:'#f0fdf4',bo:'#b8d5e8', type:'sidi' as const, items:sidis.filter(s=>normStatusSakramen(s.status)==='Selesai')},
-          {l:'Total Pernikahan',v:stats.marriages,sub:'semua status',c:'#1A77A3',bg:'#fdf2f8',bo:'#fbcfe8', type:'marriage' as const, items:marriages},
-          {l:'Nikah Selesai',v:stats.marriagesSelesai,sub:'sudah diberkati',c:'#1A77A3',bg:'#fdf2f8',bo:'#fbcfe8', type:'marriage' as const, items:marriages.filter(m=>normStatusSakramen(m.status)==='Selesai')},
+          {l:'Baptisan Selesai',v:stats.baptismsSelesai,sub:`${stats.baptismsSelesaiAnak} anak, ${stats.baptismsSelesaiDewasa} dewasa`,c:'#144f6b',bg:'#f0fdf4',bo:'#b8d5e8', type:'baptism' as const, items:baptisms.filter(b=>normStatusSakramen(b.status)==='Selesai')},
+          {l:'Total Sidi',v:stats.sidis,sub:'semua status',c:'#144f6b',bg:'#f0fdf4',bo:'#b8d5e8', type:'sidi' as const, items:sidis},
+          {l:'Sidi Selesai',v:stats.sidisSelesai,sub:'sudah sidi',c:'#144f6b',bg:'#f0fdf4',bo:'#b8d5e8', type:'sidi' as const, items:sidis.filter(s=>normStatusSakramen(s.status)==='Selesai')},
+          {l:'Total Pernikahan',v:stats.marriages,sub:'semua status',c:'#144f6b',bg:'#fdf2f8',bo:'#fbcfe8', type:'marriage' as const, items:marriages},
+          {l:'Nikah Selesai',v:stats.marriagesSelesai,sub:'sudah diberkati',c:'#144f6b',bg:'#fdf2f8',bo:'#fbcfe8', type:'marriage' as const, items:marriages.filter(m=>normStatusSakramen(m.status)==='Selesai')},
         ].map((s,i)=>(
           <div key={i} className="rounded-xl p-3 border text-center cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all" style={{background:s.bg,borderColor:s.bo}} onClick={()=>{setKpiDetail({label:s.l,type:s.type,items:s.items});setKpiSearch('');}}>
             <p style={{fontSize:'20px',fontWeight:700,color:s.c,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{s.v}</p>
@@ -774,18 +774,18 @@ export function SacramentDatabase({ onNavigate }: { onNavigate?: (page: string) 
               {val:yearF,set:(v:string)=>{setYearF(v);setPage(1);},opts:YEARS.map(y=>({v:y,l:y==='all'?'Semua Tahun':y}))},
             ] as {val:string;set:(v:string)=>void;opts:{v:string;l:string}[]}[]).map((f,i)=>{
               const active=f.val!=='all';
-              return <select key={i} value={f.val} onChange={e=>f.set(e.target.value)} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#1A77A3':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#1A77A3':'#64748b',fontWeight:active?600:400}}>{f.opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>;
+              return <select key={i} value={f.val} onChange={e=>f.set(e.target.value)} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#144f6b':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#144f6b':'#64748b',fontWeight:active?600:400}}>{f.opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>;
             })}
           </div>
         </div>
         {(searchQ||statusF!=='all'||yearF!=='all') ? (
           <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-t" style={{borderColor:'#f1f5f9',background:'#fafbfc'}}>
             <span style={{fontSize:'11px',color:'#94a3b8',fontWeight:500,whiteSpace:'nowrap'}}>Filter aktif:</span>
-            {searchQ && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}><Search className="w-3 h-3"/>"{searchQ.length>15?searchQ.slice(0,15)+'…':searchQ}"<button onClick={()=>{setSearchQ('');setPage(1);}} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
-            {statusF!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>{statusF}<button onClick={()=>{setStatusF('all');setPage(1);}} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
-            {yearF!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>{yearF}<button onClick={()=>{setYearF('all');setPage(1);}} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+            {searchQ && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}><Search className="w-3 h-3"/>"{searchQ.length>15?searchQ.slice(0,15)+'…':searchQ}"<button onClick={()=>{setSearchQ('');setPage(1);}} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+            {statusF!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>{statusF}<button onClick={()=>{setStatusF('all');setPage(1);}} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+            {yearF!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>{yearF}<button onClick={()=>{setYearF('all');setPage(1);}} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
             <button onClick={()=>{setSearchQ('');setStatusF('all');setYearF('all');setPage(1);}} className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border transition-all hover:bg-red-50" style={{borderColor:'#fca5a5',color:'#ef4444'}}><X className="w-3 h-3"/>Reset Semua</button>
-            <span className="ml-auto text-xs font-semibold" style={{color:'#1A77A3'}}>{data.length} catatan ditemukan</span>
+            <span className="ml-auto text-xs font-semibold" style={{color:'#144f6b'}}>{data.length} catatan ditemukan</span>
           </div>
         ) : (
           <div className="px-3 pb-2 flex justify-end"><span style={{fontSize:'12px',color:'#94a3b8',fontWeight:500}}>{data.length} catatan total</span></div>
@@ -855,11 +855,11 @@ export function SacramentDatabase({ onNavigate }: { onNavigate?: (page: string) 
                   {tab==='baptism' && <>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg flex items-center justify-center group-hover:bg-white transition-colors" style={{background:'#ecfeff'}}><Droplet className="w-3.5 h-3.5 text-[#1A77A3]"/></div>
-                        <span style={{fontSize:'13px',fontWeight:600,color:'#334155'}} className="group-hover:text-[#1A77A3] transition-colors">{item.memberName}</span>
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center group-hover:bg-white transition-colors" style={{background:'#ecfeff'}}><Droplet className="w-3.5 h-3.5 text-[#144f6b]"/></div>
+                        <span style={{fontSize:'13px',fontWeight:600,color:'#334155'}} className="group-hover:text-[#144f6b] transition-colors">{item.memberName}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3"><span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{background:item.type==='Anak'?'#f0ede5':'#fdf2f8',color:item.type==='Anak'?'#1A77A3':'#1A77A3'}}>{item.type}</span></td>
+                    <td className="px-4 py-3"><span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{background:item.type==='Anak'?'#f0ede5':'#fdf2f8',color:item.type==='Anak'?'#144f6b':'#144f6b'}}>{item.type}</span></td>
                     <td className="px-4 py-3 text-sm" style={{color:'#4b5563',whiteSpace:'nowrap'}}>{fmtDate(item.baptismDate)}</td>
                     <td className="px-4 py-3 text-sm" style={{color:'#64748b'}}>{item.baptismPlace}</td>
                     <td className="px-4 py-3 text-sm" style={{color:'#4b5563'}}>{item.minister}</td>
@@ -869,8 +869,8 @@ export function SacramentDatabase({ onNavigate }: { onNavigate?: (page: string) 
                   {tab==='sidi' && <>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg flex items-center justify-center group-hover:bg-white transition-colors" style={{background:'#f0fdf4'}}><CheckCircle2 className="w-3.5 h-3.5 text-[#1A77A3]"/></div>
-                        <span style={{fontSize:'13px',fontWeight:600,color:'#334155'}} className="group-hover:text-[#1A77A3] transition-colors">{item.memberName}</span>
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center group-hover:bg-white transition-colors" style={{background:'#f0fdf4'}}><CheckCircle2 className="w-3.5 h-3.5 text-[#144f6b]"/></div>
+                        <span style={{fontSize:'13px',fontWeight:600,color:'#334155'}} className="group-hover:text-[#144f6b] transition-colors">{item.memberName}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm" style={{color:'#4b5563',whiteSpace:'nowrap'}}>{fmtDate(item.sidiDate)}</td>
@@ -947,8 +947,8 @@ export function SacramentDatabase({ onNavigate }: { onNavigate?: (page: string) 
       {/* KPI Detail Modal */}
       {kpiDetail && (()=>{
         const typeLabel = kpiDetail.type==='baptism'?'Baptisan':kpiDetail.type==='sidi'?'Sidi':'Pernikahan';
-        const typeColor = kpiDetail.type==='baptism'?'#1A77A3':kpiDetail.type==='sidi'?'#1A77A3':'#1A77A3';
-        const typeGradient = kpiDetail.type==='baptism'?'#1A77A3':kpiDetail.type==='sidi'?'#1A77A3':'#1A77A3';
+        const typeColor = kpiDetail.type==='baptism'?'#144f6b':kpiDetail.type==='sidi'?'#144f6b':'#144f6b';
+        const typeGradient = kpiDetail.type==='baptism'?'#144f6b':kpiDetail.type==='sidi'?'#144f6b':'#144f6b';
         const list = kpiSearch
           ? kpiDetail.items.filter((x:any)=>{
               const q = kpiSearch.toLowerCase();
@@ -988,7 +988,7 @@ export function SacramentDatabase({ onNavigate }: { onNavigate?: (page: string) 
                   <div key={item.id} className="flex items-center gap-3 p-3 rounded-xl border hover:bg-gray-50/80 transition-colors" style={{borderColor:'#f1f5f9'}}>
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                       style={{background:kpiDetail.type==='baptism'?'#ecfeff':kpiDetail.type==='sidi'?'#f0fdf4':'#fdf2f8'}}>
-                      {kpiDetail.type==='baptism'?<Droplet className="w-5 h-5 text-[#1A77A3]"/>:kpiDetail.type==='sidi'?<CheckCircle2 className="w-5 h-5 text-[#1A77A3]"/>:<Heart className="w-5 h-5 text-pink-500"/>}
+                      {kpiDetail.type==='baptism'?<Droplet className="w-5 h-5 text-[#144f6b]"/>:kpiDetail.type==='sidi'?<CheckCircle2 className="w-5 h-5 text-[#144f6b]"/>:<Heart className="w-5 h-5 text-pink-500"/>}
                     </div>
                     <div className="flex-1 min-w-0">
                       {kpiDetail.type==='marriage' ? (
@@ -1001,7 +1001,7 @@ export function SacramentDatabase({ onNavigate }: { onNavigate?: (page: string) 
                           <p style={{fontSize:'13px',fontWeight:600,color:'#334155'}}>{item.memberName}</p>
                           <p style={{fontSize:'11.5px',color:'#64748b'}}>
                             {kpiDetail.type==='baptism'?fmtDate(item.baptismDate):fmtDate(item.sidiDate)} · {kpiDetail.type==='baptism'?item.baptismPlace:item.sidiPlace}
-                            {kpiDetail.type==='baptism'&&item.type&&<span className="ml-1.5 px-1.5 py-0.5 rounded text-xs font-medium" style={{background:'#f0ede5',color:'#1A77A3'}}>{item.type}</span>}
+                            {kpiDetail.type==='baptism'&&item.type&&<span className="ml-1.5 px-1.5 py-0.5 rounded text-xs font-medium" style={{background:'#f0ede5',color:'#144f6b'}}>{item.type}</span>}
                           </p>
                         </>
                       )}

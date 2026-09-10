@@ -65,9 +65,9 @@ interface AssetDocument {
 
 // ── Colors & Constants ────────────────────────────────────────────────────────
 const CAT_COLOR: Record<AssetCategory, string> = {
-  'Tanah': '#3a7fa0', 'Bangunan': '#3b82f6', 'Kendaraan': '#c2baaa',
-  'Inventaris': '#64748b', 'Elektronik': '#06b6d4',
-  'Peralatan Ibadah': '#1A77A3', 'Lainnya': '#ec4899',
+  'Tanah': '#1A77A3', 'Bangunan': '#8b6bb1', 'Kendaraan': '#caa04a',
+  'Inventaris': '#64748b', 'Elektronik': '#2f8f5b',
+  'Peralatan Ibadah': '#d1553f', 'Lainnya': '#9c9486',
 };
 const CAT_BG: Record<AssetCategory, string> = {
   'Tanah': '#f5f3ff', 'Bangunan': '#eff6ff', 'Kendaraan': '#f6f4f0',
@@ -75,7 +75,7 @@ const CAT_BG: Record<AssetCategory, string> = {
   'Peralatan Ibadah': '#f0fdf4', 'Lainnya': '#fdf4ff',
 };
 const COND_CFG: Record<AssetCondition, { text: string; bg: string; border: string }> = {
-  'Baik':         { text: '#1A77A3', bg: '#f0fdf4', border: '#b8d5e8' },
+  'Baik':         { text: '#144f6b', bg: '#f0fdf4', border: '#b8d5e8' },
   'Cukup Baik':   { text: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
   'Rusak Ringan': { text: '#9c9486', bg: '#f6f4f0', border: '#e8e4d8' },
   'Rusak Berat':  { text: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
@@ -87,12 +87,12 @@ const ACQ_METHODS: AcquisitionMethod[] = ['Pembelian', 'Donasi', 'Hibah', 'Pemba
 const MAINT_TYPES: MaintenanceType[] = ['Perawatan Rutin', 'Perbaikan', 'Penggantian Komponen', 'Inspeksi'];
 const MAINT_RESULTS: MaintenanceResult[] = ['Selesai', 'Dalam Proses', 'Perlu Tindak Lanjut'];
 const RESULT_CFG: Record<MaintenanceResult, { text: string; bg: string }> = {
-  'Selesai':             { text: '#1A77A3', bg: '#f0fdf4' },
+  'Selesai':             { text: '#144f6b', bg: '#f0fdf4' },
   'Dalam Proses':        { text: '#9c9486', bg: '#f6f4f0' },
   'Perlu Tindak Lanjut': { text: '#dc2626', bg: '#fef2f2' },
 };
 const LOAN_STATUS_CFG: Record<AssetLoanStatus, { text: string; bg: string; border: string }> = {
-  'Tersedia':          { text: '#1A77A3', bg: '#f0fdf4', border: '#b8d5e8' },
+  'Tersedia':          { text: '#144f6b', bg: '#f0fdf4', border: '#b8d5e8' },
   'Dipinjam':          { text: '#9c9486', bg: '#f6f4f0', border: '#e8e4d8' },
   'Dalam Pemeliharaan':{ text: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
 };
@@ -592,12 +592,12 @@ export function AssetManagement() {
                 <FileText style={{ width:13,height:13 }} /> PDF
               </button>
               <button onClick={exportExcel} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all hover:opacity-80"
-                style={{ borderColor:'#e2e8f0', color:'#1A77A3', background:'#f0fdf4' }}>
+                style={{ borderColor:'#e2e8f0', color:'#144f6b', background:'#f0fdf4' }}>
                 <FileSpreadsheet style={{ width:13,height:13 }} /> Excel
               </button>
               {canCreate && (
                 <button onClick={openAdd} className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white transition-all hover:opacity-90"
-                  style={{ background:'#1A77A3' }}>
+                  style={{ background:'#144f6b' }}>
                   <Plus style={{ width:14,height:14 }} /> Tambah Aset
                 </button>
               )}
@@ -611,7 +611,7 @@ export function AssetManagement() {
               return (
                 <button key={t.id} onClick={() => setTab(t.id)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                  style={{ background: active ? '#1A77A3' : 'transparent', color: active ? '#f0ede5' : '#64748b',
+                  style={{ background: active ? '#144f6b' : 'transparent', color: active ? '#f0ede5' : '#64748b',
                     fontWeight: active ? 700 : 500 }}>
                   <Icon style={{ width:13,height:13 }} /> {t.label}
                 </button>
@@ -629,7 +629,7 @@ export function AssetManagement() {
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
               {[
                 { label:'Total Aset', value:assets.length+' unit', sub:'Terdaftar aktif', color:'#2563eb', bg:'#eff6ff', icon:Package, overdueMark:false },
-                { label:'Nilai Perolehan', value:compactRp(totalAcqValue), sub:'Total investasi aset', color:'#1A77A3', bg:'#f0fdf4', icon:DollarSign, overdueMark:false },
+                { label:'Nilai Perolehan', value:compactRp(totalAcqValue), sub:'Total investasi aset', color:'#144f6b', bg:'#f0fdf4', icon:DollarSign, overdueMark:false },
                 { label:'Total Nilai Buku', value:compactRp(totalBookValue), sub:'Setelah penyusutan', color:'#7c3aed', bg:'#f5f3ff', icon:TrendingDown, overdueMark:false },
                 { label:'Dipinjam Jemaat', value:loanedAssets.length+' aset', sub:'Sedang di luar gereja', color:'#9c9486', bg:'#f6f4f0', icon:Users, overdueMark:false },
                 { label:'Jatuh Tempo', value:overdueAssets.length+' aset', sub:'Melebihi batas kembali', color:'#dc2626', bg:'#fef2f2', icon:AlertTriangle, overdueMark: overdueAssets.length > 0 },
@@ -660,7 +660,7 @@ export function AssetManagement() {
                 <div style={{ height:180, position:'relative' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={74} paddingAngle={2} dataKey="value" stroke="none" isAnimationActive={false} />
+                      <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={74} paddingAngle={2} dataKey="value" stroke="none" animationDuration={450} animationEasing="ease-out" />
                       <Tooltip content={<CustomTooltip />} />
                     </PieChart>
                   </ResponsiveContainer>
@@ -807,7 +807,7 @@ export function AssetManagement() {
                         <div className="flex-shrink-0 text-right">
                           <CondBadge cond={a.condition} />
                           <button onClick={() => openMaint(a)} className="mt-1.5 flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all hover:opacity-80"
-                            style={{ background:'#1A77A3',color:'white' }}>
+                            style={{ background:'#144f6b',color:'white' }}>
                             <Wrench style={{ width:10,height:10 }} /> Catat
                           </button>
                         </div>
@@ -844,7 +844,7 @@ export function AssetManagement() {
                         <td style={{ paddingRight:12 }}><span className="px-2 py-0.5 rounded-full text-xs font-semibold" style={{ background:CAT_BG[cat as AssetCategory],color:CAT_COLOR[cat as AssetCategory] }}>{d.count}</span></td>
                         <td style={{ paddingRight:12,color:'#4b5563',fontWeight:600 }}>{compactRp(d.value)}</td>
                         <td style={{ paddingRight:12,color:'#dc2626' }}>{compactRp(d.value - d.bookValue)}</td>
-                        <td style={{ fontWeight:700,color:'#1A77A3' }}>{compactRp(d.bookValue)}</td>
+                        <td style={{ fontWeight:700,color:'#144f6b' }}>{compactRp(d.bookValue)}</td>
                       </tr>
                     ))}
                     <tr style={{ borderTop:'2px solid #f1f5f9', background:'#f8fafc' }}>
@@ -852,7 +852,7 @@ export function AssetManagement() {
                       <td style={{ paddingRight:12,fontWeight:800,color:'#1e293b' }}>{assets.length}</td>
                       <td style={{ paddingRight:12,fontWeight:800,color:'#1e293b' }}>{compactRp(totalAcqValue)}</td>
                       <td style={{ paddingRight:12,fontWeight:800,color:'#dc2626' }}>{compactRp(totalAcqValue - totalBookValue)}</td>
-                      <td style={{ fontWeight:800,color:'#1A77A3' }}>{compactRp(totalBookValue)}</td>
+                      <td style={{ fontWeight:800,color:'#144f6b' }}>{compactRp(totalBookValue)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -871,7 +871,7 @@ export function AssetManagement() {
                   <Search style={{width:14,height:14,color:'#94a3b8',position:'absolute',left:10,top:'50%',transform:'translateY(-50%)'}}/>
                   <input value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder="Cari nama, kode, lokasi aset..."
                     className="w-full pl-9 pr-8 py-2 text-sm rounded-xl border focus:outline-none transition-all"
-                    style={{borderColor:search?'#1A77A3':'#e2e8f0',background:'#fafafa',fontSize:13}}/>
+                    style={{borderColor:search?'#144f6b':'#e2e8f0',background:'#fafafa',fontSize:13}}/>
                   {search && <button onClick={()=>{setSearch('');setPage(1);}} data-tooltip="Hapus pencarian" className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-gray-200 transition-all" style={{color:'#94a3b8'}}><X style={{width:14,height:14}}/></button>}
                 </div>
               </div>
@@ -885,20 +885,20 @@ export function AssetManagement() {
                     {val:filterLoan,set:(v:string)=>{setFilterLoan(v);setPage(1);},opts:[{v:'',l:'Semua Posisi Aset'},...LOAN_STATUSES.map(s=>({v:s,l:s}))]},
                   ] as {val:string;set:(v:string)=>void;opts:{v:string;l:string}[]}[]).map((f,i)=>{
                     const active=f.val!=='';
-                    return <select key={i} value={f.val} onChange={e=>f.set(e.target.value)} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#1A77A3':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#1A77A3':'#64748b',fontWeight:active?600:400,fontSize:12}}>{f.opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>;
+                    return <select key={i} value={f.val} onChange={e=>f.set(e.target.value)} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#144f6b':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#144f6b':'#64748b',fontWeight:active?600:400,fontSize:12}}>{f.opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>;
                   })}
                 </div>
               </div>
               {(search||filterCat||filterCond||filterMinistry||filterLoan) ? (
                 <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-t" style={{borderColor:'#f1f5f9',background:'#fafbfc'}}>
                   <span style={{fontSize:'11px',color:'#94a3b8',fontWeight:500,whiteSpace:'nowrap'}}>Filter aktif:</span>
-                  {search && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}><Search style={{width:10,height:10}}/>"{search.length>15?search.slice(0,15)+'…':search}"<button onClick={()=>{setSearch('');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X style={{width:10,height:10}}/></button></span>}
-                  {filterCat && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>{filterCat}<button onClick={()=>{setFilterCat('');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X style={{width:10,height:10}}/></button></span>}
-                  {filterCond && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>{filterCond}<button onClick={()=>{setFilterCond('');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X style={{width:10,height:10}}/></button></span>}
-                  {filterMinistry && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>{filterMinistry.length>12?filterMinistry.slice(0,12)+'…':filterMinistry}<button onClick={()=>{setFilterMinistry('');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X style={{width:10,height:10}}/></button></span>}
-                  {filterLoan && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>{filterLoan}<button onClick={()=>{setFilterLoan('');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X style={{width:10,height:10}}/></button></span>}
+                  {search && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}><Search style={{width:10,height:10}}/>"{search.length>15?search.slice(0,15)+'…':search}"<button onClick={()=>{setSearch('');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X style={{width:10,height:10}}/></button></span>}
+                  {filterCat && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>{filterCat}<button onClick={()=>{setFilterCat('');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X style={{width:10,height:10}}/></button></span>}
+                  {filterCond && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>{filterCond}<button onClick={()=>{setFilterCond('');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X style={{width:10,height:10}}/></button></span>}
+                  {filterMinistry && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>{filterMinistry.length>12?filterMinistry.slice(0,12)+'…':filterMinistry}<button onClick={()=>{setFilterMinistry('');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X style={{width:10,height:10}}/></button></span>}
+                  {filterLoan && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>{filterLoan}<button onClick={()=>{setFilterLoan('');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X style={{width:10,height:10}}/></button></span>}
                   <button onClick={()=>{setSearch('');setFilterCat('');setFilterCond('');setFilterMinistry('');setFilterLoan('');setPage(1);}} className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border transition-all hover:bg-red-50" style={{borderColor:'#fca5a5',color:'#ef4444'}}><X style={{width:10,height:10}}/>Reset Semua</button>
-                  <span className="ml-auto text-xs font-semibold" style={{color:'#1A77A3'}}>{filteredAssets.length} aset ditemukan</span>
+                  <span className="ml-auto text-xs font-semibold" style={{color:'#144f6b'}}>{filteredAssets.length} aset ditemukan</span>
                 </div>
               ) : (
                 <div className="px-3 pb-2 flex justify-end"><span style={{fontSize:'12px',color:'#94a3b8',fontWeight:500}}>{filteredAssets.length} aset total</span></div>
@@ -939,7 +939,7 @@ export function AssetManagement() {
                           Kode
                           {aSortKey === 'assetCode'
                             ? (aSortDir === 'asc' ? <ArrowUp style={{width:10,height:10,color:'#144f6b'}} /> : <ArrowDown style={{width:10,height:10,color:'#144f6b'}} />)
-                            : <ArrowUpDown style={{width:10,height:10,color:'#1A77A3',opacity:0.5}} />}
+                            : <ArrowUpDown style={{width:10,height:10,color:'#144f6b',opacity:0.5}} />}
                         </div>
                         <ColResizeHandle onMouseDown={daftarStartResize('assetCode')} />
                       </th>
@@ -948,7 +948,7 @@ export function AssetManagement() {
                           Nama Aset
                           {aSortKey === 'name'
                             ? (aSortDir === 'asc' ? <ArrowUp style={{width:10,height:10,color:'#144f6b'}} /> : <ArrowDown style={{width:10,height:10,color:'#144f6b'}} />)
-                            : <ArrowUpDown style={{width:10,height:10,color:'#1A77A3',opacity:0.5}} />}
+                            : <ArrowUpDown style={{width:10,height:10,color:'#144f6b',opacity:0.5}} />}
                         </div>
                         <ColResizeHandle onMouseDown={daftarStartResize('name')} />
                       </th>
@@ -957,7 +957,7 @@ export function AssetManagement() {
                           Kategori
                           {aSortKey === 'category'
                             ? (aSortDir === 'asc' ? <ArrowUp style={{width:10,height:10,color:'#144f6b'}} /> : <ArrowDown style={{width:10,height:10,color:'#144f6b'}} />)
-                            : <ArrowUpDown style={{width:10,height:10,color:'#1A77A3',opacity:0.5}} />}
+                            : <ArrowUpDown style={{width:10,height:10,color:'#144f6b',opacity:0.5}} />}
                         </div>
                         <ColResizeHandle onMouseDown={daftarStartResize('category')} />
                       </th>
@@ -966,7 +966,7 @@ export function AssetManagement() {
                           Kondisi
                           {aSortKey === 'condition'
                             ? (aSortDir === 'asc' ? <ArrowUp style={{width:10,height:10,color:'#144f6b'}} /> : <ArrowDown style={{width:10,height:10,color:'#144f6b'}} />)
-                            : <ArrowUpDown style={{width:10,height:10,color:'#1A77A3',opacity:0.5}} />}
+                            : <ArrowUpDown style={{width:10,height:10,color:'#144f6b',opacity:0.5}} />}
                         </div>
                         <ColResizeHandle onMouseDown={daftarStartResize('condition')} />
                       </th>
@@ -975,7 +975,7 @@ export function AssetManagement() {
                           Posisi
                           {aSortKey === 'loanStatus'
                             ? (aSortDir === 'asc' ? <ArrowUp style={{width:10,height:10,color:'#144f6b'}} /> : <ArrowDown style={{width:10,height:10,color:'#144f6b'}} />)
-                            : <ArrowUpDown style={{width:10,height:10,color:'#1A77A3',opacity:0.5}} />}
+                            : <ArrowUpDown style={{width:10,height:10,color:'#144f6b',opacity:0.5}} />}
                         </div>
                         <ColResizeHandle onMouseDown={daftarStartResize('loanStatus')} />
                       </th>
@@ -984,7 +984,7 @@ export function AssetManagement() {
                           Nilai Perolehan
                           {aSortKey === 'acquisitionValue'
                             ? (aSortDir === 'asc' ? <ArrowUp style={{width:10,height:10,color:'#144f6b'}} /> : <ArrowDown style={{width:10,height:10,color:'#144f6b'}} />)
-                            : <ArrowUpDown style={{width:10,height:10,color:'#1A77A3',opacity:0.5}} />}
+                            : <ArrowUpDown style={{width:10,height:10,color:'#144f6b',opacity:0.5}} />}
                         </div>
                         <ColResizeHandle onMouseDown={daftarStartResize('acquisitionValue')} />
                       </th>
@@ -997,7 +997,7 @@ export function AssetManagement() {
                           Lokasi
                           {aSortKey === 'location'
                             ? (aSortDir === 'asc' ? <ArrowUp style={{width:10,height:10,color:'#144f6b'}} /> : <ArrowDown style={{width:10,height:10,color:'#144f6b'}} />)
-                            : <ArrowUpDown style={{width:10,height:10,color:'#1A77A3',opacity:0.5}} />}
+                            : <ArrowUpDown style={{width:10,height:10,color:'#144f6b',opacity:0.5}} />}
                         </div>
                         <ColResizeHandle onMouseDown={daftarStartResize('location')} />
                       </th>
@@ -1006,7 +1006,7 @@ export function AssetManagement() {
                           Penanggungjawab
                           {aSortKey === 'responsiblePerson'
                             ? (aSortDir === 'asc' ? <ArrowUp style={{width:10,height:10,color:'#144f6b'}} /> : <ArrowDown style={{width:10,height:10,color:'#144f6b'}} />)
-                            : <ArrowUpDown style={{width:10,height:10,color:'#1A77A3',opacity:0.5}} />}
+                            : <ArrowUpDown style={{width:10,height:10,color:'#144f6b',opacity:0.5}} />}
                         </div>
                         <ColResizeHandle onMouseDown={daftarStartResize('responsiblePerson')} />
                       </th>
@@ -1045,7 +1045,7 @@ export function AssetManagement() {
                             )}
                           </td>
                           <td style={{ padding:'10px 12px' }}>
-                            <span style={{ fontSize:11,fontFamily:'monospace',color:'#1A77A3',fontWeight:700 }}>{a.assetCode}</span>
+                            <span style={{ fontSize:11,fontFamily:'monospace',color:'#144f6b',fontWeight:700 }}>{a.assetCode}</span>
                             {hasAlert && <AlertCircle style={{ width:10,height:10,color:'#dc2626',display:'inline',marginLeft:4 }} />}
                           </td>
                           <td style={{ padding:'10px 12px' }}>
@@ -1078,7 +1078,7 @@ export function AssetManagement() {
                             </div>
                           </td>
                           <td style={{ padding:'10px 12px',fontWeight:600,color:'#4b5563',whiteSpace:'nowrap' }}>{compactRp(a.acquisitionValue)}</td>
-                          <td style={{ padding:'10px 12px',fontWeight:700,color:'#1A77A3',whiteSpace:'nowrap' }}>{compactRp(dep.bookValue)}</td>
+                          <td style={{ padding:'10px 12px',fontWeight:700,color:'#144f6b',whiteSpace:'nowrap' }}>{compactRp(dep.bookValue)}</td>
                           <td data-tooltip={a.location} data-tooltip-truncate style={{ padding:'10px 12px',color:'#64748b',fontSize:11.5,maxWidth:140 }} className="truncate">{a.location}</td>
                           <td style={{ padding:'10px 12px',color:'#64748b',fontSize:11.5 }}>{a.responsiblePerson||'-'}</td>
                           <td style={{ padding:'10px 12px' }}>
@@ -1098,7 +1098,7 @@ export function AssetManagement() {
                               {canEdit && (
                                 <button onClick={()=>openMaint(a)} data-tooltip="Catat Pemeliharaan"
                                   className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-green-50 transition-all"
-                                  style={{ color:'#1A77A3' }}>
+                                  style={{ color:'#144f6b' }}>
                                   <Wrench style={{ width:13,height:13 }} />
                                 </button>
                               )}
@@ -1126,7 +1126,7 @@ export function AssetManagement() {
                   </button>
                   {Array.from({length:totalPages},(_,i)=>i+1).map(n=>(
                     <button key={n} onClick={()=>setPage(n)} className="w-7 h-7 rounded-lg text-xs font-medium transition-all"
-                      style={{ background:n===page?'#1A77A3':'transparent', color:n===page?'white':'#64748b', border: n===page?'none':'1px solid #e2e8f0' }}>{n}</button>
+                      style={{ background:n===page?'#144f6b':'transparent', color:n===page?'white':'#64748b', border: n===page?'none':'1px solid #e2e8f0' }}>{n}</button>
                   ))}
                   <button disabled={page===totalPages||totalPages===0} onClick={()=>setPage(p=>p+1)} data-tooltip="Halaman Berikutnya" className="w-7 h-7 rounded-lg flex items-center justify-center border disabled:opacity-40 hover:bg-gray-50" style={{ borderColor:'#e2e8f0' }}>
                     <ChevronRight style={{ width:13,height:13 }} />
@@ -1156,7 +1156,7 @@ export function AssetManagement() {
             {/* Summary row */}
             <div className="grid grid-cols-3 gap-3">
               {[
-                { label:'Selesai', count:maintenances.filter(m=>m.result==='Selesai').length, color:'#1A77A3', bg:'#f0fdf4' },
+                { label:'Selesai', count:maintenances.filter(m=>m.result==='Selesai').length, color:'#144f6b', bg:'#f0fdf4' },
                 { label:'Dalam Proses', count:maintenances.filter(m=>m.result==='Dalam Proses').length, color:'#9c9486', bg:'#f6f4f0' },
                 { label:'Perlu Tindak Lanjut', count:maintenances.filter(m=>m.result==='Perlu Tindak Lanjut').length, color:'#dc2626', bg:'#fef2f2' },
               ].map(s => (
@@ -1234,7 +1234,7 @@ export function AssetManagement() {
                   <button disabled={maintPage===1} onClick={()=>setMaintPage(p=>p-1)} data-tooltip="Halaman Sebelumnya" className="w-7 h-7 rounded-lg flex items-center justify-center border disabled:opacity-40 hover:bg-gray-50" style={{ borderColor:'#e2e8f0' }}><ChevronLeft style={{ width:13,height:13 }} /></button>
                   {Array.from({length:maintTotalPages},(_,i)=>i+1).map(n=>(
                     <button key={n} onClick={()=>setMaintPage(n)} className="w-7 h-7 rounded-lg text-xs font-medium"
-                      style={{ background:n===maintPage?'#1A77A3':'transparent',color:n===maintPage?'white':'#64748b',border:n===maintPage?'none':'1px solid #e2e8f0' }}>{n}</button>
+                      style={{ background:n===maintPage?'#144f6b':'transparent',color:n===maintPage?'white':'#64748b',border:n===maintPage?'none':'1px solid #e2e8f0' }}>{n}</button>
                   ))}
                   <button disabled={maintPage===maintTotalPages||maintTotalPages===0} onClick={()=>setMaintPage(p=>p+1)} data-tooltip="Halaman Berikutnya" className="w-7 h-7 rounded-lg flex items-center justify-center border disabled:opacity-40 hover:bg-gray-50" style={{ borderColor:'#e2e8f0' }}><ChevronRight style={{ width:13,height:13 }} /></button>
                 </div>
@@ -1251,7 +1251,7 @@ export function AssetManagement() {
               {[
                 { label:'Total Penyusutan/Thn', value:compactRp(totalAnnualDep), color:'#7c3aed', bg:'#f5f3ff' },
                 { label:'Total Akum. Penyusutan', value:compactRp(totalAcqValue - totalBookValue), color:'#dc2626', bg:'#fef2f2' },
-                { label:'Total Nilai Buku', value:compactRp(totalBookValue), color:'#1A77A3', bg:'#f0fdf4' },
+                { label:'Total Nilai Buku', value:compactRp(totalBookValue), color:'#144f6b', bg:'#f0fdf4' },
                 { label:'Aset Tersusut Penuh', value:assets.filter(a=>calcDep(a).bookValue===0&&a.usefulLifeYears>0).length+' unit', color:'#64748b', bg:'#f8fafc' },
               ].map((k,i) => (
                 <div key={i} className="rounded-2xl border p-4 bg-white" style={{ borderColor:'#e2e8f0' }}>
@@ -1297,7 +1297,7 @@ export function AssetManagement() {
                       return (
                         <tr key={a.id} onClick={() => { setSelectedAsset(a); setShowDetailModal(true); }} style={{ borderBottom:'1px solid #f1f5f9', background: fullyDep ? '#f6f4f0' : 'white' }}
                           className="hover:bg-slate-50">
-                          <td style={{ padding:'9px 10px',fontFamily:'monospace',color:'#1A77A3',fontWeight:700,fontSize:11 }}>{a.assetCode}</td>
+                          <td style={{ padding:'9px 10px',fontFamily:'monospace',color:'#144f6b',fontWeight:700,fontSize:11 }}>{a.assetCode}</td>
                           <td style={{ padding:'9px 10px',maxWidth:160 }} className="truncate">
                             <p data-tooltip={a.name} data-tooltip-truncate style={{ fontWeight:600,color:'#1e293b' }} className="truncate max-w-40">{a.name}</p>
                           </td>
@@ -1310,7 +1310,7 @@ export function AssetManagement() {
                           <td style={{ padding:'9px 10px',color:'#7c3aed',fontWeight:600 }}>{dep.rate > 0 ? dep.rate.toFixed(1)+'%' : '–'}</td>
                           <td style={{ padding:'9px 10px',color:'#dc2626',fontWeight:600,whiteSpace:'nowrap' }}>{dep.annual > 0 ? compactRp(dep.annual) : '–'}</td>
                           <td style={{ padding:'9px 10px',color:'#ef4444',fontWeight:700,whiteSpace:'nowrap' }}>{dep.accumulated > 0 ? compactRp(dep.accumulated) : '–'}</td>
-                          <td style={{ padding:'9px 10px',fontWeight:800,color:fullyDep?'#dc2626':'#1A77A3',whiteSpace:'nowrap' }}>
+                          <td style={{ padding:'9px 10px',fontWeight:800,color:fullyDep?'#dc2626':'#144f6b',whiteSpace:'nowrap' }}>
                             {compactRp(dep.bookValue)}
                             {fullyDep && <span style={{ fontSize:9,background:'#f2f0ea',color:'#854d0e',padding:'1px 4px',borderRadius:4,marginLeft:4 }}>Habis</span>}
                           </td>
@@ -1328,7 +1328,7 @@ export function AssetManagement() {
                       <td colSpan={2} />
                       <td style={{ padding:'10px',fontWeight:800,color:'#dc2626',whiteSpace:'nowrap' }}>{compactRp(totalAnnualDep)}/thn</td>
                       <td style={{ padding:'10px',fontWeight:800,color:'#ef4444',whiteSpace:'nowrap' }}>{compactRp(totalAcqValue-totalBookValue)}</td>
-                      <td style={{ padding:'10px',fontWeight:800,color:'#1A77A3',whiteSpace:'nowrap' }}>{compactRp(totalBookValue)}</td>
+                      <td style={{ padding:'10px',fontWeight:800,color:'#144f6b',whiteSpace:'nowrap' }}>{compactRp(totalBookValue)}</td>
                       <td />
                     </tr>
                   </tfoot>
@@ -1366,14 +1366,14 @@ export function AssetManagement() {
                     <p style={{ fontSize:10.5, color:'rgba(255,255,255,0.4)', marginTop:6 }}>{assets.length} aset terdaftar · {maintenances.length} catatan pemeliharaan</p>
                   </div>
                 </div>
-                <div className="h-1" style={{ background:'linear-gradient(90deg,#1A77A3,#f0ede5,#0d9488)' }} />
+                <div className="h-1" style={{ background:'linear-gradient(90deg,#144f6b,#f0ede5,#0d9488)' }} />
               </div>
 
               {/* ── KPI Ringkasan ── */}
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 {[
                   { label:'Total Aset', value:`${assets.length} unit`, sub:'Unit terdaftar aktif', color:'#2563eb', bg:'#eff6ff', icon:Package, border:'#bfdbfe' },
-                  { label:'Nilai Perolehan', value:compactRp(totalAcqValue), sub:'Total investasi aset', color:'#1A77A3', bg:'#f0fdf4', icon:DollarSign, border:'#b8d5e8' },
+                  { label:'Nilai Perolehan', value:compactRp(totalAcqValue), sub:'Total investasi aset', color:'#144f6b', bg:'#f0fdf4', icon:DollarSign, border:'#b8d5e8' },
                   { label:'Nilai Buku', value:compactRp(totalBookValue), sub:`Penyusutan ${depPct}%`, color:'#7c3aed', bg:'#f5f3ff', icon:TrendingDown, border:'#ddd6fe' },
                   { label:'Biaya Pemeliharaan', value:compactRp(totalMaintCost), sub:`${maintenances.length} catatan`, color:'#9c9486', bg:'#f6f4f0', icon:Wrench, border:'#e8e4d8' },
                 ].map((k,i) => {
@@ -1438,7 +1438,7 @@ export function AssetManagement() {
                               <td className="px-3 py-2.5 text-right" style={{ color:'#4b5563' }}>{compactRp(d.value)}</td>
                               <td className="px-4 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
                                 <div className="flex items-center justify-end gap-1.5">
-                                  <span style={{ color:'#1A77A3',fontWeight:600 }}>{compactRp(d.bookValue)}</span>
+                                  <span style={{ color:'#144f6b',fontWeight:600 }}>{compactRp(d.bookValue)}</span>
                                   <Eye style={{ width:12,height:12,color:'#94a3b8',flexShrink:0 }} />
                                 </div>
                               </td>
@@ -1451,7 +1451,7 @@ export function AssetManagement() {
                           <td className="px-4 py-2.5" style={{ fontSize:12,fontWeight:700,color:'#1e293b' }}>TOTAL</td>
                           <td className="px-3 py-2.5 text-right" style={{ fontSize:12,fontWeight:700,color:'#1e293b' }}>{assets.length}</td>
                           <td className="px-3 py-2.5 text-right" style={{ fontSize:12,fontWeight:700,color:'#1e293b' }}>{compactRp(totalAcqValue)}</td>
-                          <td className="px-4 py-2.5 text-right" style={{ fontSize:12,fontWeight:700,color:'#1A77A3' }}>{compactRp(totalBookValue)}</td>
+                          <td className="px-4 py-2.5 text-right" style={{ fontSize:12,fontWeight:700,color:'#144f6b' }}>{compactRp(totalBookValue)}</td>
                         </tr>
                       </tfoot>
                     </table>
@@ -1463,7 +1463,7 @@ export function AssetManagement() {
                   <div className="px-5 py-3.5 border-b flex items-center justify-between" style={{ borderColor:'#f1f5f9', background:'#fafafa' }}>
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background:'#f0fdf4' }}>
-                        <Shield style={{ width:14,height:14,color:'#1A77A3' }} />
+                        <Shield style={{ width:14,height:14,color:'#144f6b' }} />
                       </div>
                       <span style={{ fontSize:13,fontWeight:700,color:'#0f172a' }}>Sebaran Kondisi Aset</span>
                     </div>
@@ -1608,7 +1608,7 @@ export function AssetManagement() {
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       {[
-                        { label:'Selesai', count:maintenances.filter(m=>m.result==='Selesai').length, color:'#1A77A3', bg:'#f0fdf4' },
+                        { label:'Selesai', count:maintenances.filter(m=>m.result==='Selesai').length, color:'#144f6b', bg:'#f0fdf4' },
                         { label:'Dalam Proses', count:maintenances.filter(m=>m.result==='Dalam Proses').length, color:'#2563eb', bg:'#eff6ff' },
                         { label:'Tindak Lanjut', count:maintenances.filter(m=>m.result==='Perlu Tindak Lanjut').length, color:'#dc2626', bg:'#fef2f2' },
                       ].map(s => (
@@ -1699,7 +1699,7 @@ export function AssetManagement() {
                   <div className="space-y-1.5 mb-4">
                     {[`${assets.length} aset terdaftar`,`Nilai Perolehan: ${compactRp(totalAcqValue)}`,`Nilai Buku: ${compactRp(totalBookValue)}`,`Penyusutan/Thn: ${compactRp(totalAnnualDep)}`].map((s,i) => (
                       <div key={i} className="flex items-center gap-2">
-                        <CheckCircle2 style={{ width:12,height:12,color:'#1A77A3',flexShrink:0 }} />
+                        <CheckCircle2 style={{ width:12,height:12,color:'#144f6b',flexShrink:0 }} />
                         <p style={{ fontSize:11.5,color:'#4b5563' }}>{s}</p>
                       </div>
                     ))}
@@ -1712,7 +1712,7 @@ export function AssetManagement() {
                 <div className="rounded-2xl border bg-white p-5" style={{ borderColor:'#e2e8f0' }}>
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background:'#f0fdf4' }}>
-                      <FileSpreadsheet style={{ width:20,height:20,color:'#1A77A3' }} />
+                      <FileSpreadsheet style={{ width:20,height:20,color:'#144f6b' }} />
                     </div>
                     <div>
                       <h3 style={{ fontSize:13,fontWeight:700,color:'#0f172a' }}>Unduh Rekap Excel</h3>
@@ -1722,13 +1722,13 @@ export function AssetManagement() {
                   <div className="space-y-1.5 mb-4">
                     {['Sheet 1: Daftar Aset lengkap','Sheet 2: Riwayat Pemeliharaan',`${maintenances.length} catatan pemeliharaan`,`Biaya: ${compactRp(totalMaintCost)}`].map((s,i) => (
                       <div key={i} className="flex items-center gap-2">
-                        <CheckCircle2 style={{ width:12,height:12,color:'#1A77A3',flexShrink:0 }} />
+                        <CheckCircle2 style={{ width:12,height:12,color:'#144f6b',flexShrink:0 }} />
                         <p style={{ fontSize:11.5,color:'#4b5563' }}>{s}</p>
                       </div>
                     ))}
                   </div>
                   <button onClick={exportExcel} className="w-full py-2.5 rounded-xl font-semibold text-white flex items-center justify-center gap-2 hover:opacity-90 transition-all"
-                    style={{ background:'#1A77A3', fontSize:13 }}>
+                    style={{ background:'#144f6b', fontSize:13 }}>
                     <FileSpreadsheet style={{ width:14,height:14 }} /> Unduh Excel
                   </button>
                 </div>
@@ -1796,7 +1796,7 @@ export function AssetManagement() {
                 <div className="grid grid-cols-3 border-b flex-shrink-0" style={{ borderColor:'#f1f5f9' }}>
                   {[
                     { label:'Nilai Perolehan', value:compactRp(totalCatAcq), color:catColor },
-                    { label:'Nilai Buku', value:compactRp(totalCatBook), color:'#1A77A3' },
+                    { label:'Nilai Buku', value:compactRp(totalCatBook), color:'#144f6b' },
                     { label:'Penyusutan/Thn', value:compactRp(totalCatDep), color:'#9c9486' },
                   ].map((k,i) => (
                     <div key={i} className="px-5 py-3 border-r last:border-r-0" style={{ borderColor:'#f1f5f9' }}>
@@ -1843,7 +1843,7 @@ export function AssetManagement() {
                             </td>
                             <td className="px-4 py-2.5 text-right whitespace-nowrap" style={{ color:'#4b5563',fontWeight:500 }}>{compactRp(a.acquisitionValue)}</td>
                             <td className="px-4 py-2.5 text-right whitespace-nowrap" style={{ color:'#9c9486' }}>{dep.annual>0?compactRp(dep.annual):'-'}</td>
-                            <td className="px-4 py-2.5 text-right whitespace-nowrap" style={{ color:'#1A77A3',fontWeight:700 }}>{compactRp(dep.bookValue)}</td>
+                            <td className="px-4 py-2.5 text-right whitespace-nowrap" style={{ color:'#144f6b',fontWeight:700 }}>{compactRp(dep.bookValue)}</td>
                             <td className="px-4 py-2.5" style={{ color:'#64748b',maxWidth:150 }}>
                               <span data-tooltip={a.location} data-tooltip-truncate className="truncate block">{a.location}</span>
                             </td>
@@ -1856,7 +1856,7 @@ export function AssetManagement() {
                         <td className="px-4 py-2.5" colSpan={4} style={{ fontSize:12,fontWeight:700,color:'#1e293b' }}>TOTAL ({catAssets.length} aset)</td>
                         <td className="px-4 py-2.5 text-right" style={{ fontSize:12,fontWeight:700,color:'#4b5563' }}>{compactRp(totalCatAcq)}</td>
                         <td className="px-4 py-2.5 text-right" style={{ fontSize:12,fontWeight:700,color:'#9c9486' }}>{compactRp(totalCatDep)}</td>
-                        <td className="px-4 py-2.5 text-right" style={{ fontSize:12,fontWeight:700,color:'#1A77A3' }}>{compactRp(totalCatBook)}</td>
+                        <td className="px-4 py-2.5 text-right" style={{ fontSize:12,fontWeight:700,color:'#144f6b' }}>{compactRp(totalCatBook)}</td>
                         <td />
                       </tr>
                     </tfoot>
@@ -1902,7 +1902,7 @@ export function AssetManagement() {
                   {[
                     { label:'Jumlah Aset', value:`${condAssets.length} unit`, color:cfg.text },
                     { label:'Total Nilai Perolehan', value:compactRp(totalCondAcq), color:'#4b5563' },
-                    { label:'Total Nilai Buku', value:compactRp(totalCondBook), color:'#1A77A3' },
+                    { label:'Total Nilai Buku', value:compactRp(totalCondBook), color:'#144f6b' },
                   ].map((k,i) => (
                     <div key={i} className="px-5 py-3 border-r last:border-r-0" style={{ borderColor:'#f1f5f9' }}>
                       <p style={{ fontSize:10.5,color:'#94a3b8',marginBottom:2 }}>{k.label}</p>
@@ -1952,7 +1952,7 @@ export function AssetManagement() {
                               {new Date(a.acquisitionDate).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})}
                             </td>
                             <td className="px-4 py-2.5 text-right whitespace-nowrap" style={{ color:'#4b5563',fontWeight:500 }}>{compactRp(a.acquisitionValue)}</td>
-                            <td className="px-4 py-2.5 text-right whitespace-nowrap" style={{ color:'#1A77A3',fontWeight:700 }}>{compactRp(dep.bookValue)}</td>
+                            <td className="px-4 py-2.5 text-right whitespace-nowrap" style={{ color:'#144f6b',fontWeight:700 }}>{compactRp(dep.bookValue)}</td>
                             <td className="px-4 py-2.5" style={{ color:'#4b5563',maxWidth:130 }}>
                               <span data-tooltip={a.responsiblePerson||'-'} data-tooltip-truncate className="truncate block">{a.responsiblePerson||'-'}</span>
                             </td>
@@ -1967,7 +1967,7 @@ export function AssetManagement() {
                       <tr style={{ background:'#f0fdf4', borderTop:'2px solid #b8d5e8' }}>
                         <td className="px-4 py-2.5" colSpan={4} style={{ fontSize:12,fontWeight:700,color:'#1e293b' }}>TOTAL ({condAssets.length} aset)</td>
                         <td className="px-4 py-2.5 text-right" style={{ fontSize:12,fontWeight:700,color:'#4b5563' }}>{compactRp(totalCondAcq)}</td>
-                        <td className="px-4 py-2.5 text-right" style={{ fontSize:12,fontWeight:700,color:'#1A77A3' }}>{compactRp(totalCondBook)}</td>
+                        <td className="px-4 py-2.5 text-right" style={{ fontSize:12,fontWeight:700,color:'#144f6b' }}>{compactRp(totalCondBook)}</td>
                         <td colSpan={2} />
                       </tr>
                     </tfoot>
@@ -2023,7 +2023,7 @@ export function AssetManagement() {
                   <div className="grid grid-cols-2 gap-px border-b" style={{ background:'#f1f5f9', borderColor:'#f1f5f9' }}>
                     {[
                       { label:'Nilai Perolehan', value:compactRp(asset.acquisitionValue), color:'#4b5563' },
-                      { label:'Nilai Buku', value:compactRp(dep.bookValue), color:'#1A77A3' },
+                      { label:'Nilai Buku', value:compactRp(dep.bookValue), color:'#144f6b' },
                       { label:'Penyusutan/Tahun', value:dep.annual>0?compactRp(dep.annual):'-', color:'#9c9486' },
                       { label:'Rasio Penyusutan', value:`${depPctAsset}%`, color:'#7c3aed' },
                     ].map((k,i) => (
@@ -2042,7 +2042,7 @@ export function AssetManagement() {
                         <span style={{ fontSize:11,color:'#64748b' }}>{depPctAsset}% dari nilai perolehan</span>
                       </div>
                       <div className="h-3 rounded-full overflow-hidden" style={{ background:'#e2e8f0' }}>
-                        <div className="h-full rounded-full" style={{ width:`${Math.min(100,parseFloat(depPctAsset))}%`, background:`linear-gradient(90deg,#1A77A3,#1A77A3)` }} />
+                        <div className="h-full rounded-full" style={{ width:`${Math.min(100,parseFloat(depPctAsset))}%`, background:`linear-gradient(90deg,#144f6b,#144f6b)` }} />
                       </div>
                       <div className="flex justify-between mt-1">
                         <span style={{ fontSize:10,color:'#94a3b8' }}>Perolehan: {compactRp(asset.acquisitionValue)}</span>
@@ -2214,7 +2214,7 @@ export function AssetManagement() {
                           <p style={{ fontSize:11,color:'#64748b',marginTop:2 }}>{asset.category} · {asset.location}</p>
                           {dep && (
                             <div className="flex items-center gap-4 mt-2 flex-wrap">
-                              <span style={{ fontSize:11,color:'#4b5563' }}>Nilai Buku: <strong style={{ color:'#1A77A3' }}>{compactRp(dep.bookValue)}</strong></span>
+                              <span style={{ fontSize:11,color:'#4b5563' }}>Nilai Buku: <strong style={{ color:'#144f6b' }}>{compactRp(dep.bookValue)}</strong></span>
                               <span style={{ fontSize:11,color:'#4b5563' }}>Perolehan: <strong>{compactRp(asset.acquisitionValue)}</strong></span>
                             </div>
                           )}
@@ -2315,7 +2315,7 @@ export function AssetManagement() {
                 <div>
                   <label style={{ fontSize:11,fontWeight:700,color:'#4b5563',display:'block',marginBottom:4 }}>
                     Nilai Perolehan (Rp)
-                    {form.acquisitionMethod==='Pembelian' && !editAsset && <span style={{ color:'#1A77A3',fontSize:9.5,marginLeft:4 }}>→ otomatis ke Keuangan</span>}
+                    {form.acquisitionMethod==='Pembelian' && !editAsset && <span style={{ color:'#144f6b',fontSize:9.5,marginLeft:4 }}>→ otomatis ke Keuangan</span>}
                   </label>
                   <input type="number" value={form.acquisitionValue||''} onChange={e=>setForm(f=>({...f,acquisitionValue:Number(e.target.value)}))} placeholder="0"
                     className="w-full px-3 py-2 rounded-xl border outline-none text-sm" style={{ borderColor:'#e2e8f0', fontSize:13 }} />
@@ -2401,7 +2401,7 @@ export function AssetManagement() {
                     <img src={form.photo} alt="Preview" className="w-24 h-20 rounded-xl object-cover border" style={{ borderColor:'#e2e8f0' }}
                       onError={e => { (e.target as HTMLImageElement).style.display='none'; }} />
                     <div>
-                      <p style={{ fontSize:11,color:'#1A77A3',fontWeight:600 }}>✓ Foto tersedia</p>
+                      <p style={{ fontSize:11,color:'#144f6b',fontWeight:600 }}>✓ Foto tersedia</p>
                       <button type="button" onClick={() => setForm(f => ({ ...f, photo: '' }))}
                         className="mt-1 text-xs text-red-500 hover:text-red-700">Hapus foto</button>
                     </div>
@@ -2484,7 +2484,7 @@ export function AssetManagement() {
               {/* Preview depreciation */}
               {form.acquisitionValue > 0 && form.usefulLifeYears > 0 && (
                 <div className="rounded-xl p-3" style={{ background:'#f0fdf4',border:'1px solid #b8d5e8' }}>
-                  <p style={{ fontSize:11,fontWeight:700,color:'#1A77A3',marginBottom:4 }}>Estimasi Penyusutan (Garis Lurus)</p>
+                  <p style={{ fontSize:11,fontWeight:700,color:'#144f6b',marginBottom:4 }}>Estimasi Penyusutan (Garis Lurus)</p>
                   <div className="flex gap-4 flex-wrap">
                     <span style={{ fontSize:11.5,color:'#4b5563' }}>Rate: <strong>{((1/form.usefulLifeYears)*100).toFixed(1)}%/thn</strong></span>
                     <span style={{ fontSize:11.5,color:'#4b5563' }}>Penyusutan/thn: <strong style={{ color:'#dc2626' }}>{compactRp(form.acquisitionValue/form.usefulLifeYears)}</strong></span>
@@ -2496,7 +2496,7 @@ export function AssetManagement() {
               <button onClick={()=>setShowAssetModal(false)} className="flex-1 py-2.5 rounded-xl border text-sm font-medium hover:bg-gray-50" style={{ borderColor:'#e2e8f0', color:'#64748b' }}>Batal</button>
               <button onClick={saveAsset} disabled={!form.name.trim()}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
-                style={{ background:'#1A77A3' }}>
+                style={{ background:'#144f6b' }}>
                 {editAsset ? 'Simpan Perubahan' : 'Tambah Aset'}
               </button>
             </div>
@@ -2581,7 +2581,7 @@ export function AssetManagement() {
                   { label:'Tanggal Perolehan', value:new Date(selectedAsset.acquisitionDate).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'}) },
                   { label:'Masa Manfaat', value:selectedAsset.usefulLifeYears > 0 ? selectedAsset.usefulLifeYears+' tahun' : 'Tidak disusutkan' },
                   { label:'Nilai Perolehan', value:<span style={{ color:'#4b5563',fontWeight:700 }}>{formatRp(selectedAsset.acquisitionValue)}</span> },
-                  { label:'Nilai Buku', value:<span style={{ color:'#1A77A3',fontWeight:700 }}>{formatRp(calcDep(selectedAsset).bookValue)}</span> },
+                  { label:'Nilai Buku', value:<span style={{ color:'#144f6b',fontWeight:700 }}>{formatRp(calcDep(selectedAsset).bookValue)}</span> },
                   { label:'Lokasi', value:selectedAsset.location },
                   { label:'Penanggungjawab', value:selectedAsset.responsiblePerson||'-' },
                   { label:'Unit Pelayanan', value:selectedAsset.ministryUnit||'-' },
@@ -2608,7 +2608,7 @@ export function AssetManagement() {
                 {canEdit && (
                   <button onClick={handleUploadDocClick} disabled={uploadingDoc}
                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed text-sm font-semibold transition-colors disabled:opacity-60 mb-3"
-                    style={{ borderColor:'#b8d5e8',color:'#1A77A3',background:'#f0fdf4' }}>
+                    style={{ borderColor:'#b8d5e8',color:'#144f6b',background:'#f0fdf4' }}>
                     {uploadingDoc ? <Loader2 style={{ width:14,height:14 }} className="animate-spin"/> : <Upload style={{ width:14,height:14 }}/>}
                     {uploadingDoc ? 'Mengunggah...' : 'Unggah Dokumen PDF'}
                   </button>
@@ -2627,7 +2627,7 @@ export function AssetManagement() {
                           <p style={{ fontSize:11,color:'#94a3b8' }}>{formatBytes(doc.fileSize)} · {fmtDateShort(doc.uploadedAt)} · {doc.uploadedBy}</p>
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
-                          <button data-tooltip="Lihat" onClick={()=>handleViewDocument(doc)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#1A77A3] transition-colors"><Eye style={{ width:14,height:14 }}/></button>
+                          <button data-tooltip="Lihat" onClick={()=>handleViewDocument(doc)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#144f6b] transition-colors"><Eye style={{ width:14,height:14 }}/></button>
                           {canDelete && (
                             <button data-tooltip="Hapus" onClick={()=>handleDeleteDocument(doc)} className="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"><Trash2 style={{ width:14,height:14 }}/></button>
                           )}
@@ -2681,7 +2681,7 @@ export function AssetManagement() {
                     {getAssetLoanHistory(selectedAsset.id).map((h, idx) => {
                       const LOAN_HIST_CFG = {
                         'Aktif':        { bg:'#f6f4f0',border:'#e8e4d8',color:'#9c9486',label:'Aktif' },
-                        'Dikembalikan': { bg:'#f0fdf4',border:'#b8d5e8',color:'#1A77A3',label:'Dikembalikan' },
+                        'Dikembalikan': { bg:'#f0fdf4',border:'#b8d5e8',color:'#144f6b',label:'Dikembalikan' },
                         'Terlambat':    { bg:'#fef2f2',border:'#fecaca',color:'#dc2626',label:'Terlambat' },
                       };
                       const cfg = LOAN_HIST_CFG[h.status];
@@ -2697,7 +2697,7 @@ export function AssetManagement() {
                               <div className="flex gap-3 mt-1 flex-wrap">
                                 <span style={{ fontSize:10.5,color:'#64748b' }}>Pinjam: {fmtDateShort(h.loanDate)}</span>
                                 {h.expectedReturnDate && <span style={{ fontSize:10.5,color:'#64748b' }}>Est. kembali: {fmtDateShort(h.expectedReturnDate)}</span>}
-                                {h.actualReturnDate && <span style={{ fontSize:10.5,color:'#1A77A3',fontWeight:600 }}>✓ Kembali: {fmtDateShort(h.actualReturnDate)}</span>}
+                                {h.actualReturnDate && <span style={{ fontSize:10.5,color:'#144f6b',fontWeight:600 }}>✓ Kembali: {fmtDateShort(h.actualReturnDate)}</span>}
                               </div>
                               {h.loanNotes && <p style={{ fontSize:10.5,color:'#64748b',marginTop:2,fontStyle:'italic' }}>{h.loanNotes}</p>}
                             </div>
@@ -2713,7 +2713,7 @@ export function AssetManagement() {
               {canEdit && (
                 <button onClick={()=>{ openMaint(selectedAsset); setShowDetailModal(false); }}
                   className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90"
-                  style={{ background:'#1A77A3' }}>
+                  style={{ background:'#144f6b' }}>
                   <Wrench style={{ width:14,height:14,display:'inline',marginRight:6 }} />Catat Pemeliharaan
                 </button>
               )}
@@ -2784,7 +2784,7 @@ export function AssetManagement() {
                 <button onClick={()=>setShowMaintModal(false)} className="flex-1 py-2.5 rounded-xl border text-sm font-medium hover:bg-gray-50" style={{ borderColor:'#e2e8f0',color:'#64748b' }}>Batal</button>
                 <button onClick={saveMaintenance} disabled={!maintForm.description.trim()}
                   className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
-                  style={{ background:'#1A77A3' }}>Simpan</button>
+                  style={{ background:'#144f6b' }}>Simpan</button>
               </div>
             </div>
           </div>

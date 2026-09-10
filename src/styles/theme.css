@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    GEMAS Design System v2 — Color Token System
-   Primary:   #1A77A3  (Steel Blue)
+   Primary:   #144f6b  (Navy)
    Secondary: #f0ede5  (Warm Light Cream)
 ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -15,7 +15,7 @@
   --ds-primary-300: #a5b4bf;
   --ds-primary-400: #7290a0;
   --ds-primary-500: #3a7fa0;
-  --ds-primary-600: #1A77A3;
+  --ds-primary-600: #144f6b;
   --ds-primary-700: #144f6b;
   --ds-primary-800: #0f2d41;
   --ds-primary-900: #0a1e2c;
@@ -66,15 +66,15 @@
   --ds-info-900: #0d3354;
 
   /* Gradients */
-  --ds-gradient-primary:        linear-gradient(135deg, #3a7fa0 0%, #1A77A3 60%, #144f6b 100%);
+  --ds-gradient-primary:        linear-gradient(135deg, #3a7fa0 0%, #144f6b 60%, #144f6b 100%);
   --ds-gradient-sidebar:        linear-gradient(180deg, #144f6b 0%, #0f2d41 60%, #0a1e2c 100%);
   --ds-gradient-secondary:      linear-gradient(135deg, #f6f4f0 0%, #f0ede5 60%, #e8e4d8 100%);
   --ds-gradient-warm:           linear-gradient(135deg, #f6f4f0 0%, #f5f7f9 100%);
   --ds-gradient-card:           linear-gradient(180deg, #ffffff 0%, #f5f7f9 100%);
   --ds-gradient-hero:           linear-gradient(135deg, #144f6b 0%, #0a1e2c 100%);
-  --ds-gradient-primary-glow:   linear-gradient(135deg, #3a7fa0 0%, #1A77A3 100%);
+  --ds-gradient-primary-glow:   linear-gradient(135deg, #3a7fa0 0%, #144f6b 100%);
   --ds-gradient-secondary-glow: linear-gradient(135deg, #f0ede5 0%, #d6d0c0 100%);
-  --ds-gradient-contrast:       linear-gradient(135deg, #1A77A3 0%, #f0ede5 150%);
+  --ds-gradient-contrast:       linear-gradient(135deg, #144f6b 0%, #f0ede5 150%);
 }
 
 /* ── Component Semantic Tokens — Light Mode ───────────────────────────────── */
@@ -90,18 +90,18 @@
   --popover-foreground: #0a1e2c;
 
   /* Brand */
-  --primary:            #1A77A3;
+  --primary:            #144f6b;
   --primary-foreground: #ffffff;
 
   /* Secondary accent */
   --secondary:            #f0ede5;
-  --secondary-foreground: #1A77A3;
+  --secondary-foreground: #144f6b;
 
   /* Supporting */
   --muted:            #e8ecf0;
   --muted-foreground: #3a7fa0;
   --accent:           #f6f4f0;
-  --accent-foreground: #1A77A3;
+  --accent-foreground: #144f6b;
 
   /* Semantic */
   --destructive:            #dc2626;
@@ -114,15 +114,15 @@
   --switch-background: #a5b4bf;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring:   #1A77A3;
+  --ring:   #144f6b;
   --radius: 0.75rem;
 
   /* Charts */
   --chart-1: #1A77A3;
-  --chart-2: #c2baaa;
-  --chart-3: #22c55e;
-  --chart-4: #3b9ed9;
-  --chart-5: #ef4444;
+  --chart-2: #caa04a;
+  --chart-3: #2f8f5b;
+  --chart-4: #d1553f;
+  --chart-5: #8b6bb1;
 
   /* Sidebar */
   --sidebar:                    #144f6b;
@@ -152,16 +152,16 @@
 
   --muted:            #144f6b;
   --muted-foreground: #a5b4bf;
-  --accent:           #1A77A3;
+  --accent:           #144f6b;
   --accent-foreground: #f0ede5;
 
   --destructive:            #ef4444;
   --destructive-foreground: #ffffff;
 
-  --border:           #1A77A3;
+  --border:           #144f6b;
   --input:            #0f2d41;
   --input-background: #0f2d41;
-  --switch-background: #1A77A3;
+  --switch-background: #144f6b;
   --ring: #f0ede5;
 
   --font-weight-medium: 500;

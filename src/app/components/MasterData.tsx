@@ -10,7 +10,7 @@ import {
 // ── Grup kategori per modul ───────────────────────────────────────────────────
 const GROUPS = [
   {
-    id: 'jemaat', label: 'Data Jemaat', icon: Users, color: '#1A77A3',
+    id: 'jemaat', label: 'Data Jemaat', icon: Users, color: '#144f6b',
     categories: ['jabatan_pelayanan','pelkat','pendidikan','golongan_darah','status_pernikahan','tipe_keanggotaan'],
   },
   {
@@ -41,7 +41,7 @@ const GROUPS = [
 
 // Flat map category id → group color
 const CAT_META: Record<string, { label: string; description: string; color: string }> = {
-  jabatan_pelayanan:         { label: 'Jabatan Pelayanan',          description: 'Posisi pelayanan jemaat (Penatua, Diaken, dst)',             color: '#1A77A3' },
+  jabatan_pelayanan:         { label: 'Jabatan Pelayanan',          description: 'Posisi pelayanan jemaat (Penatua, Diaken, dst)',             color: '#144f6b' },
   pelkat:                    { label: 'Unit Kategorial (Pelkat)',   description: 'PA, PT, GP, PKB, dll',                                       color: '#7c3aed' },
   pendidikan:                { label: 'Pendidikan Terakhir',        description: 'Jenjang pendidikan anggota',                                 color: '#0f766e' },
   golongan_darah:            { label: 'Golongan Darah',             description: 'A, B, AB, O, dll',                                           color: '#dc2626' },
@@ -151,7 +151,7 @@ export function MasterData() {
   const [newLabel, setNewLabel] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
 
-  const activeMeta = CAT_META[activeCategory] ?? { label: activeCategory, description: '', color: '#1A77A3' };
+  const activeMeta = CAT_META[activeCategory] ?? { label: activeCategory, description: '', color: '#144f6b' };
 
   const items = useMemo(() => {
     if (globalSearch) {
@@ -185,7 +185,7 @@ export function MasterData() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2.5" style={{ fontSize: '22px', fontWeight: 700, color: '#0f172a', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #384959, #1A77A3)' }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #384959, #144f6b)' }}>
               <Layers className="w-5 h-5 text-white" />
             </div>
             Master Data
@@ -200,7 +200,7 @@ export function MasterData() {
           <input
             value={globalSearch} onChange={e => setGlobalSearch(e.target.value)}
             placeholder="Cari di semua kategori..."
-            className="pl-9 pr-4 py-2 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+            className="pl-9 pr-4 py-2 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
             style={{ borderColor: '#e2e8f0', width: 220 }}
           />
           {globalSearch && (
@@ -224,7 +224,7 @@ export function MasterData() {
               const meta = CAT_META[item.category];
               return (
                 <div key={item.id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border"
-                  style={{ background: `${meta?.color ?? '#1A77A3'}12`, borderColor: `${meta?.color ?? '#1A77A3'}40` }}>
+                  style={{ background: `${meta?.color ?? '#144f6b'}12`, borderColor: `${meta?.color ?? '#144f6b'}40` }}>
                   <span style={{ fontSize: '11px', color: '#94a3b8' }}>{meta?.label}</span>
                   <span style={{ fontSize: '13px', fontWeight: 500, color: '#1e293b' }}>{item.label}</span>
                 </div>

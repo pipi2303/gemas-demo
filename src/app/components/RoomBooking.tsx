@@ -276,7 +276,7 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
             setSelectedBooking(null);
             setIsCreateDialogOpen(true);
           }}
-          className="px-4 py-2 bg-[#1A77A3] text-white rounded-lg hover:bg-[#144f6b] transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
           Booking Ruangan
@@ -285,12 +285,12 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-[#1A77A3] rounded-lg shadow-sm border border-blue-400 p-5 text-white">
+        <div className="bg-[#144f6b] rounded-lg shadow-sm border border-blue-400 p-5 text-white">
           <p className="text-blue-100 text-sm mb-1">Total Booking</p>
           <p className="text-3xl font-bold">{stats.total}</p>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-[#e8e4d8] p-5">
-          <p className="text-[#1A77A3] text-sm mb-1">Pending</p>
+          <p className="text-[#144f6b] text-sm mb-1">Pending</p>
           <p className="text-3xl font-bold text-[#144f6b]">{stats.pending}</p>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-green-200 p-5">
@@ -411,7 +411,7 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
                 <>
                   <button 
                     onClick={() => handleStatusChange(booking, 'Approved')}
-                    className="px-4 py-2 bg-[#1A77A3] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm flex items-center gap-2"
+                    className="px-4 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm flex items-center gap-2"
                   >
                     <CheckCircle className="w-4 h-4" />
                     Setujui
@@ -428,7 +428,7 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
               {booking.status === 'Approved' && (
                 <button 
                   onClick={() => handleStatusChange(booking, 'Completed')}
-                  className="px-4 py-2 bg-[#1A77A3] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm"
+                  className="px-4 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm"
                 >
                   Tandai Selesai
                 </button>
@@ -474,7 +474,7 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
                 {/* Informasi Ruangan */}
                 <div className="bg-[#f0f7fb] rounded-lg p-4 border border-blue-100">
                   <div className="flex items-center gap-2 mb-4">
-                    <div className="w-8 h-8 bg-[#1A77A3] rounded-lg flex items-center justify-center">
+                    <div className="w-8 h-8 bg-[#144f6b] rounded-lg flex items-center justify-center">
                       <Building className="w-4 h-4 text-white" />
                     </div>
                     <h3 className="font-semibold text-gray-900">Informasi Ruangan</h3>
@@ -662,7 +662,7 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
                 <div className="bg-white rounded-lg p-4 border border-gray-200">
                   <div className="flex items-center gap-2 mb-4">
                     <div className="w-8 h-8 bg-[#f0ede5] rounded-lg flex items-center justify-center">
-                      <DoorOpen className="w-4 h-4 text-[#1A77A3]" />
+                      <DoorOpen className="w-4 h-4 text-[#144f6b]" />
                     </div>
                     <h3 className="font-semibold text-gray-900">Fasilitas yang Dibutuhkan</h3>
                   </div>
@@ -830,7 +830,7 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
               {selectedBooking?.facilities && selectedBooking.facilities.length > 0 && (
                 <div className="bg-white rounded-lg p-4 border border-gray-200">
                   <div className="flex items-center gap-2 mb-3">
-                    <DoorOpen className="w-5 h-5 text-[#1A77A3]" />
+                    <DoorOpen className="w-5 h-5 text-[#144f6b]" />
                     <h3 className="font-semibold text-gray-900">Fasilitas yang Dibutuhkan</h3>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -850,7 +850,7 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
               {selectedBooking?.notes && (
                 <div className="bg-[#f6f4f0] border border-[#e8e4d8] rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <FileText className="w-5 h-5 text-[#1A77A3]" />
+                    <FileText className="w-5 h-5 text-[#144f6b]" />
                     <h3 className="font-semibold text-[#144f6b]">Catatan</h3>
                   </div>
                   <p className="text-sm text-[#144f6b] whitespace-pre-wrap">{selectedBooking.notes}</p>

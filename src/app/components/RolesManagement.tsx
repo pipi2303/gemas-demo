@@ -53,7 +53,7 @@ const ROLE_CONFIG: Record<UserRole, {
     label: 'Majelis',
     desc: 'Akses ke hampir semua modul kecuali Admin Sistem. Dapat mengelola data jemaat, pelayanan, keuangan gereja, dan menyetujui proses administrasi penting seperti perpindahan jemaat dan sakramen.',
     tanggung: 'Anggota Majelis Jemaat',
-    warna: '#1A77A3', bg: 'rgba(26,119,163,0.08)', icon: Church,
+    warna: '#144f6b', bg: 'rgba(20,79,107,0.08)', icon: Church,
   },
   'Ketua Sektor': {
     label: 'Ketua Sektor',
@@ -72,7 +72,7 @@ const ROLE_CONFIG: Record<UserRole, {
 const ROLES: UserRole[] = ['Admin', 'Majelis', 'Ketua Sektor', 'Operator'];
 
 const ROLE_COLORS = [
-  { value: '#1A77A3', label: 'Biru'    },
+  { value: '#144f6b', label: 'Biru'    },
   { value: '#7c3aed', label: 'Ungu'    },
   { value: '#16a34a', label: 'Hijau'   },
   { value: '#ea580c', label: 'Oranye'  },
@@ -80,7 +80,7 @@ const ROLE_COLORS = [
   { value: '#0d9488', label: 'Teal'    },
 ];
 
-const EMPTY_ROLE_FORM = { name: '', description: '', tanggung: '', warna: '#1A77A3' };
+const EMPTY_ROLE_FORM = { name: '', description: '', tanggung: '', warna: '#144f6b' };
 const EMPTY_USER_FORM = { name: '', username: '', password: '', email: '', role: 'Operator' as UserRole };
 
 // ─── SortTh ──────────────────────────────────────────────────────────────────
@@ -96,7 +96,7 @@ function SortTh({ label, sortK, active, dir, onSort, className = '', style, resi
       <div className="flex items-center gap-1">
         {label}
         {active
-          ? (dir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#1A77A3]" /> : <ArrowDown className="w-3 h-3 text-[#1A77A3]" />)
+          ? (dir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#144f6b]" /> : <ArrowDown className="w-3 h-3 text-[#144f6b]" />)
           : <ArrowUpDown className="w-3 h-3 text-[#c2baaa]" />}
       </div>
       {resizeHandle}
@@ -311,20 +311,20 @@ export function RolesManagement() {
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
             style={{ background: '#f0f7fb', border: '1px solid #b8d5e8' }}>
-            <ShieldCheck className="w-4 h-4 text-[#1A77A3]" />
+            <ShieldCheck className="w-4 h-4 text-[#144f6b]" />
             <span className="text-sm font-medium text-[#144f6b]">{allRoleNames.length} Roles · {users.length} Pengguna</span>
           </div>
           {activeTab === 'kelola' && (
             <button onMouseDown={e=>e.preventDefault()} onClick={() => { setAddUserForm(EMPTY_USER_FORM); setAddUserError(''); setShowAddUserModal(true); }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
-              style={{ background: '#1A77A3', color: '#fff' }}>
+              style={{ background: '#144f6b', color: '#fff' }}>
               <Plus className="w-4 h-4" /> Tambah Pengguna
             </button>
           )}
           {activeTab === 'deskripsi' && (
             <button onClick={openAddRole}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
-              style={{ background: '#1A77A3', color: '#fff' }}>
+              style={{ background: '#144f6b', color: '#fff' }}>
               <Plus className="w-4 h-4" /> Tambah Role
             </button>
           )}
@@ -353,7 +353,7 @@ export function RolesManagement() {
               <button key={r} onClick={() => setFilterRole(r)}
                 className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
                 style={filterRole === r
-                  ? { background: '#1A77A3', color: '#fff' }
+                  ? { background: '#144f6b', color: '#fff' }
                   : { background: '#f1f5f9', color: '#64748b' }}>
                 {r === 'all' ? `Semua (${users.length})` : `${r} (${countByRole(r as UserRole)})`}
               </button>
@@ -373,7 +373,7 @@ export function RolesManagement() {
                       onClick={() => uReqSort('isActive')}>
                       <div className="flex items-center justify-center gap-1">
                         Status
-                        {uSortKey === 'isActive' ? (uSortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#1A77A3]" /> : <ArrowDown className="w-3 h-3 text-[#1A77A3]" />) : <ArrowUpDown className="w-3 h-3 text-[#c2baaa]" />}
+                        {uSortKey === 'isActive' ? (uSortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#144f6b]" /> : <ArrowDown className="w-3 h-3 text-[#144f6b]" />) : <ArrowUpDown className="w-3 h-3 text-[#c2baaa]" />}
                       </div>
                       <ColResizeHandle onMouseDown={startResize('isActive')} />
                     </th>
@@ -401,7 +401,7 @@ export function RolesManagement() {
                             </div>
                             <div>
                               <p className="text-sm font-medium text-gray-900">{u.name}</p>
-                              {isSelf && <span className="text-[10px] text-[#1A77A3] font-medium">(Anda)</span>}
+                              {isSelf && <span className="text-[10px] text-[#144f6b] font-medium">(Anda)</span>}
                             </div>
                           </div>
                         </td>
@@ -437,7 +437,7 @@ export function RolesManagement() {
                           <div className="flex items-center justify-center gap-1">
                             <button onClick={() => openEditUser(u as User)} data-tooltip="Edit Pengguna"
                               className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-blue-50"
-                              style={{ color: '#1A77A3' }}>
+                              style={{ color: '#144f6b' }}>
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
                             <button onClick={() => { setResetPwConfirm(u.id); setNewPassword(''); }} data-tooltip="Ubah Password"
@@ -496,7 +496,7 @@ export function RolesManagement() {
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <button onClick={() => openEditBuiltIn(role)} data-tooltip="Edit Role"
                           className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-blue-50"
-                          style={{ color: '#1A77A3' }}>
+                          style={{ color: '#144f6b' }}>
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                         <button onClick={() => toast.error('Role bawaan sistem tidak dapat dihapus')} data-tooltip="Hapus Role"
@@ -553,7 +553,7 @@ export function RolesManagement() {
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <button onClick={() => openEditRole(role)} data-tooltip="Edit Role"
                           className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-blue-50"
-                          style={{ color: '#1A77A3' }}>
+                          style={{ color: '#144f6b' }}>
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                         <button onClick={() => handleDeleteCustomRole(role.id)} data-tooltip="Hapus Role"
@@ -610,7 +610,7 @@ export function RolesManagement() {
             <div className="flex items-center justify-between mb-5" onMouseDown={onMouseDownRole} style={{ cursor: 'move' }}>
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: '#f0f7fb' }}>
-                  {roleModalMode === 'edit' ? <Pencil className="w-5 h-5 text-[#1A77A3]" /> : <Tag className="w-5 h-5 text-[#1A77A3]" />}
+                  {roleModalMode === 'edit' ? <Pencil className="w-5 h-5 text-[#144f6b]" /> : <Tag className="w-5 h-5 text-[#144f6b]" />}
                 </div>
                 <h3 className="font-semibold text-gray-900">
                   {roleModalMode === 'edit' ? 'Edit Role' : 'Tambah Role Baru'}
@@ -632,7 +632,7 @@ export function RolesManagement() {
                     readOnly={editingBuiltIn}
                     onChange={e => !editingBuiltIn && setRoleForm(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="Contoh: Diaken, Pemuda, Bendahara"
-                    className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                    className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                     style={{ borderColor: '#e2e8f0', background: editingBuiltIn ? '#f8fafc' : undefined, color: editingBuiltIn ? '#64748b' : undefined }} />
                   {editingBuiltIn && (
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[10px] text-gray-400">
@@ -646,7 +646,7 @@ export function RolesManagement() {
                 <textarea value={roleForm.description} rows={2}
                   onChange={e => setRoleForm(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Hak akses dan tanggung jawab role ini..."
-                  className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3] resize-none"
+                  className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none"
                   style={{ borderColor: '#e2e8f0' }} />
               </div>
               <div>
@@ -654,7 +654,7 @@ export function RolesManagement() {
                 <input type="text" value={roleForm.tanggung}
                   onChange={e => setRoleForm(prev => ({ ...prev, tanggung: e.target.value }))}
                   placeholder="Contoh: Komisi Diakonia / Tim Pelayanan"
-                  className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                  className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                   style={{ borderColor: '#e2e8f0' }} />
               </div>
               <div>
@@ -700,7 +700,7 @@ export function RolesManagement() {
                           const active = detectPreset(perms);
                           const PRESET_STYLES: Record<ModulePreset, { sel: string; unsel: string }> = {
                             none:   { sel: '#94a3b8', unsel: '#cbd5e1' },
-                            lihat:  { sel: '#1A77A3', unsel: '#cbd5e1' },
+                            lihat:  { sel: '#144f6b', unsel: '#cbd5e1' },
                             kelola: { sel: '#16a34a', unsel: '#cbd5e1' },
                             semua:  { sel: '#7c3aed', unsel: '#cbd5e1' },
                           };
@@ -752,7 +752,7 @@ export function RolesManagement() {
               </button>
               <button onClick={handleSaveRole}
                 className="flex-1 py-2 rounded-lg text-sm font-medium"
-                style={{ background: '#1A77A3', color: '#fff' }}>
+                style={{ background: '#144f6b', color: '#fff' }}>
                 {roleModalMode === 'edit' ? 'Simpan Perubahan' : 'Tambah Role'}
               </button>
             </div>
@@ -769,7 +769,7 @@ export function RolesManagement() {
             <div className="flex items-center justify-between mb-5" onMouseDown={onMouseDownAddUser} style={{ cursor: 'move' }}>
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: '#f0f7fb' }}>
-                  <UserCheck className="w-5 h-5 text-[#1A77A3]" />
+                  <UserCheck className="w-5 h-5 text-[#144f6b]" />
                 </div>
                 <h3 className="font-semibold text-gray-900">Tambah Pengguna Baru</h3>
               </div>
@@ -791,7 +791,7 @@ export function RolesManagement() {
                     onChange={e => setAddUserForm(prev => ({ ...prev, [f.key]: e.target.value }))}
                     placeholder={f.placeholder}
                     autoFocus={fi === 0}
-                    className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                    className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                     style={{ borderColor: '#e2e8f0' }} />
                 </div>
               ))}
@@ -799,7 +799,7 @@ export function RolesManagement() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                 <select value={addUserForm.role}
                   onChange={e => setAddUserForm(prev => ({ ...prev, role: e.target.value as UserRole }))}
-                  className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                  className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                   style={{ borderColor: '#e2e8f0' }}>
                   {allRoleNames.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
@@ -820,7 +820,7 @@ export function RolesManagement() {
               </button>
               <button onClick={handleAddUser}
                 className="flex-1 py-2 rounded-lg text-sm font-medium"
-                style={{ background: '#1A77A3', color: '#fff' }}>
+                style={{ background: '#144f6b', color: '#fff' }}>
                 Tambah Pengguna
               </button>
             </div>
@@ -837,7 +837,7 @@ export function RolesManagement() {
             <div className="flex items-center justify-between mb-5" onMouseDown={onMouseDownEditUser} style={{ cursor: 'move' }}>
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: '#f0f7fb' }}>
-                  <Pencil className="w-5 h-5 text-[#1A77A3]" />
+                  <Pencil className="w-5 h-5 text-[#144f6b]" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">Edit Pengguna</h3>
@@ -860,7 +860,7 @@ export function RolesManagement() {
                   <input type={f.type} value={(editUserForm as any)[f.key]}
                     onChange={e => setEditUserForm(prev => ({ ...prev, [f.key]: e.target.value }))}
                     placeholder={f.placeholder}
-                    className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                    className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                     style={{ borderColor: '#e2e8f0' }} />
                 </div>
               ))}
@@ -868,7 +868,7 @@ export function RolesManagement() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                 <select value={editUserForm.role}
                   onChange={e => setEditUserForm(prev => ({ ...prev, role: e.target.value as UserRole }))}
-                  className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                  className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                   style={{ borderColor: '#e2e8f0' }}>
                   {allRoleNames.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
@@ -894,7 +894,7 @@ export function RolesManagement() {
               </button>
               <button onClick={handleSaveEditUser}
                 className="flex-1 py-2 rounded-lg text-sm font-medium"
-                style={{ background: '#1A77A3', color: '#fff' }}>
+                style={{ background: '#144f6b', color: '#fff' }}>
                 Simpan Perubahan
               </button>
             </div>
@@ -912,7 +912,7 @@ export function RolesManagement() {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" style={{ transform: `translate(${offsetResetPw.x}px, ${offsetResetPw.y}px)` }}>
               <div className="flex items-center gap-3 mb-4" onMouseDown={onMouseDownResetPw} style={{ cursor: 'move' }}>
                 <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: '#f0f7fb' }}>
-                  <KeyRound className="w-5 h-5 text-[#1A77A3]" />
+                  <KeyRound className="w-5 h-5 text-[#144f6b]" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">Ubah Password</h3>
@@ -922,7 +922,7 @@ export function RolesManagement() {
               <input type="password" value={newPassword} autoFocus
                 onChange={e => setNewPassword(e.target.value)}
                 placeholder="Password baru (min. 6 karakter)"
-                className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3] mb-4"
+                className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] mb-4"
                 style={{ borderColor: '#e2e8f0' }} />
               <div className="flex gap-3">
                 <button onClick={() => setResetPwConfirm(null)}
@@ -932,7 +932,7 @@ export function RolesManagement() {
                 </button>
                 <button onClick={() => handleResetPassword(resetPwConfirm)}
                   className="flex-1 py-2 rounded-lg text-sm font-medium"
-                  style={{ background: '#1A77A3', color: '#fff' }}>
+                  style={{ background: '#144f6b', color: '#fff' }}>
                   Simpan
                 </button>
               </div>

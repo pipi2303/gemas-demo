@@ -189,7 +189,7 @@ export function ServiceRequestsComponent({ onNavigate }: { onNavigate?: (page: s
             setSelectedRequest(null);
             setIsCreateDialogOpen(true);
           }}
-          className="px-4 py-2 bg-[#1A77A3] text-white rounded-lg hover:bg-[#144f6b] transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
           Permohonan Baru
@@ -198,12 +198,12 @@ export function ServiceRequestsComponent({ onNavigate }: { onNavigate?: (page: s
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-[#1A77A3] rounded-lg shadow-sm border border-blue-400 p-5 text-white">
+        <div className="bg-[#144f6b] rounded-lg shadow-sm border border-blue-400 p-5 text-white">
           <p className="text-blue-100 text-sm mb-1">Total Permohonan</p>
           <p className="text-3xl font-bold">{stats.total}</p>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-[#e8e4d8] p-5">
-          <p className="text-[#1A77A3] text-sm mb-1">Pending</p>
+          <p className="text-[#144f6b] text-sm mb-1">Pending</p>
           <p className="text-3xl font-bold text-[#144f6b]">{stats.pending}</p>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-[#b8d5e8] p-5">
@@ -276,7 +276,7 @@ export function ServiceRequestsComponent({ onNavigate }: { onNavigate?: (page: s
                 <>
                   <button 
                     onClick={() => handleStatusChange(request, 'Scheduled')}
-                    className="flex-1 px-3 py-2 bg-[#1A77A3] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm"
+                    className="flex-1 px-3 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm"
                   >
                     Jadwalkan
                   </button>
@@ -291,7 +291,7 @@ export function ServiceRequestsComponent({ onNavigate }: { onNavigate?: (page: s
               {request.status === 'Scheduled' && (
                 <button 
                   onClick={() => handleStatusChange(request, 'Completed')}
-                  className="flex-1 px-3 py-2 bg-[#1A77A3] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm"
+                  className="flex-1 px-3 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm"
                 >
                   Tandai Selesai
                 </button>
@@ -326,7 +326,7 @@ export function ServiceRequestsComponent({ onNavigate }: { onNavigate?: (page: s
                         });
                         toast.success('Draf Distribusi Bantuan dibuat — lengkapi jenis & jumlah bantuan di menu Distribusi Bantuan.');
                       }}
-                      className="flex-1 px-3 py-2 border border-[#1A77A3] text-[#1A77A3] rounded-lg hover:bg-[#f0f7fb] transition-colors text-sm"
+                      className="flex-1 px-3 py-2 border border-[#144f6b] text-[#144f6b] rounded-lg hover:bg-[#f0f7fb] transition-colors text-sm"
                     >
                       Buat Distribusi Bantuan
                     </button>
@@ -334,7 +334,7 @@ export function ServiceRequestsComponent({ onNavigate }: { onNavigate?: (page: s
                   {can('letters-outgoing', 'create') && (
                     <button
                       onClick={() => handleBuatSurat(request)}
-                      className="flex-1 px-3 py-2 border border-[#1A77A3] text-[#1A77A3] rounded-lg hover:bg-[#f0f7fb] transition-colors text-sm"
+                      className="flex-1 px-3 py-2 border border-[#144f6b] text-[#144f6b] rounded-lg hover:bg-[#f0f7fb] transition-colors text-sm"
                     >
                       Buat Surat
                     </button>
@@ -529,7 +529,7 @@ export function ServiceRequestsComponent({ onNavigate }: { onNavigate?: (page: s
                 <div className="bg-white rounded-lg p-4 border border-gray-200">
                   <div className="flex items-center gap-2 mb-4">
                     <div className="w-8 h-8 bg-[#f0ede5] rounded-lg flex items-center justify-center">
-                      <FileText className="w-4 h-4 text-[#1A77A3]" />
+                      <FileText className="w-4 h-4 text-[#144f6b]" />
                     </div>
                     <h3 className="font-semibold text-gray-900">Detail Permohonan</h3>
                   </div>

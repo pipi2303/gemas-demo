@@ -327,7 +327,7 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
             setSelectedAid(null);
             setIsCreateDialogOpen(true);
           }}
-          className="px-4 py-2 bg-[#1A77A3] text-white rounded-lg hover:bg-[#144f6b] transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
           Pengajuan Bantuan
@@ -336,12 +336,12 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div className="bg-[#1A77A3] rounded-lg shadow-sm border border-blue-400 p-4 text-white">
+        <div className="bg-[#144f6b] rounded-lg shadow-sm border border-blue-400 p-4 text-white">
           <p className="text-blue-100 text-xs mb-1">Total Pengajuan</p>
           <p className="text-2xl font-bold">{stats.total}</p>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-[#e8e4d8] p-4">
-          <p className="text-[#1A77A3] text-xs mb-1">Pengajuan</p>
+          <p className="text-[#144f6b] text-xs mb-1">Pengajuan</p>
           <p className="text-2xl font-bold text-[#144f6b]">{stats.pengajuan}</p>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-[#b8d5e8] p-4">
@@ -356,7 +356,7 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
           <p className="text-[#3a7fa0] text-xs mb-1">Disalurkan</p>
           <p className="text-2xl font-bold text-purple-900">{stats.disalurkan}</p>
         </div>
-        <div className="bg-[#1A77A3] rounded-lg shadow-sm border border-[#7290a0] p-4 text-white">
+        <div className="bg-[#144f6b] rounded-lg shadow-sm border border-[#7290a0] p-4 text-white">
           <p className="text-[#f0ede5] text-xs mb-1">Total Bantuan</p>
           <p className="text-lg font-bold">Rp {(stats.totalAmount / 1000000).toFixed(1)}M</p>
         </div>
@@ -377,21 +377,21 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
                 <th className="px-6 py-3 text-left" style={{fontSize:'11.5px',fontWeight:600,color:'#144f6b',textTransform:'uppercase',whiteSpace:'nowrap',cursor:'pointer',userSelect:'none',width:colW.recipientName,position:'relative'}} onClick={() => requestSort('recipientName')}>
                   <div className="flex items-center gap-1">
                     Penerima
-                    {sortKey === 'recipientName' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#1A77A3]" /> : <ArrowDown className="w-3 h-3 text-[#1A77A3]" />) : <ArrowUpDown className="w-3 h-3 text-[#c2baaa]" />}
+                    {sortKey === 'recipientName' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#144f6b]" /> : <ArrowDown className="w-3 h-3 text-[#144f6b]" />) : <ArrowUpDown className="w-3 h-3 text-[#c2baaa]" />}
                   </div>
                   <ColResizeHandle onMouseDown={startResize('recipientName')} />
                 </th>
                 <th className="px-6 py-3 text-left" style={{fontSize:'11.5px',fontWeight:600,color:'#144f6b',textTransform:'uppercase',whiteSpace:'nowrap',cursor:'pointer',userSelect:'none',width:colW.type,position:'relative'}} onClick={() => requestSort('type')}>
                   <div className="flex items-center gap-1">
                     Tipe
-                    {sortKey === 'type' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#1A77A3]" /> : <ArrowDown className="w-3 h-3 text-[#1A77A3]" />) : <ArrowUpDown className="w-3 h-3 text-[#c2baaa]" />}
+                    {sortKey === 'type' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#144f6b]" /> : <ArrowDown className="w-3 h-3 text-[#144f6b]" />) : <ArrowUpDown className="w-3 h-3 text-[#c2baaa]" />}
                   </div>
                   <ColResizeHandle onMouseDown={startResize('type')} />
                 </th>
                 <th className="px-6 py-3 text-left" style={{fontSize:'11.5px',fontWeight:600,color:'#144f6b',textTransform:'uppercase',whiteSpace:'nowrap',cursor:'pointer',userSelect:'none',width:colW.amount,position:'relative'}} onClick={() => requestSort('amount')}>
                   <div className="flex items-center gap-1">
                     Jumlah
-                    {sortKey === 'amount' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#1A77A3]" /> : <ArrowDown className="w-3 h-3 text-[#1A77A3]" />) : <ArrowUpDown className="w-3 h-3 text-[#c2baaa]" />}
+                    {sortKey === 'amount' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#144f6b]" /> : <ArrowDown className="w-3 h-3 text-[#144f6b]" />) : <ArrowUpDown className="w-3 h-3 text-[#c2baaa]" />}
                   </div>
                   <ColResizeHandle onMouseDown={startResize('amount')} />
                 </th>
@@ -402,14 +402,14 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
                 <th className="px-6 py-3 text-left" style={{fontSize:'11.5px',fontWeight:600,color:'#144f6b',textTransform:'uppercase',whiteSpace:'nowrap',cursor:'pointer',userSelect:'none',width:colW.requestedDate,position:'relative'}} onClick={() => requestSort('requestedDate')}>
                   <div className="flex items-center gap-1">
                     Tanggal
-                    {sortKey === 'requestedDate' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#1A77A3]" /> : <ArrowDown className="w-3 h-3 text-[#1A77A3]" />) : <ArrowUpDown className="w-3 h-3 text-[#c2baaa]" />}
+                    {sortKey === 'requestedDate' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#144f6b]" /> : <ArrowDown className="w-3 h-3 text-[#144f6b]" />) : <ArrowUpDown className="w-3 h-3 text-[#c2baaa]" />}
                   </div>
                   <ColResizeHandle onMouseDown={startResize('requestedDate')} />
                 </th>
                 <th className="px-6 py-3 text-left" style={{fontSize:'11.5px',fontWeight:600,color:'#144f6b',textTransform:'uppercase',whiteSpace:'nowrap',cursor:'pointer',userSelect:'none',width:colW.status,position:'relative'}} onClick={() => requestSort('status')}>
                   <div className="flex items-center gap-1">
                     Status
-                    {sortKey === 'status' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#1A77A3]" /> : <ArrowDown className="w-3 h-3 text-[#1A77A3]" />) : <ArrowUpDown className="w-3 h-3 text-[#c2baaa]" />}
+                    {sortKey === 'status' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3 text-[#144f6b]" /> : <ArrowDown className="w-3 h-3 text-[#144f6b]" />) : <ArrowUpDown className="w-3 h-3 text-[#c2baaa]" />}
                   </div>
                   <ColResizeHandle onMouseDown={startResize('status')} />
                 </th>
@@ -516,7 +516,7 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
                 {/* Jenis Bantuan */}
                 <div className="bg-[#f0f7fb] rounded-lg p-4 border border-blue-100">
                   <div className="flex items-center gap-2 mb-4">
-                    <div className="w-8 h-8 bg-[#1A77A3] rounded-lg flex items-center justify-center">
+                    <div className="w-8 h-8 bg-[#144f6b] rounded-lg flex items-center justify-center">
                       <HandHeart className="w-4 h-4 text-white" />
                     </div>
                     <h3 className="font-semibold text-gray-900">Jenis Bantuan</h3>
@@ -659,7 +659,7 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
                 <div className="bg-white rounded-lg p-4 border border-gray-200">
                   <div className="flex items-center gap-2 mb-4">
                     <div className="w-8 h-8 bg-[#f0ede5] rounded-lg flex items-center justify-center">
-                      <FileText className="w-4 h-4 text-[#1A77A3]" />
+                      <FileText className="w-4 h-4 text-[#144f6b]" />
                     </div>
                     <h3 className="font-semibold text-gray-900">Detail Pengajuan</h3>
                   </div>
@@ -803,7 +803,7 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
               {/* Alasan */}
               <div className="bg-white rounded-lg p-4 border border-gray-200">
                 <div className="flex items-center gap-2 mb-2">
-                  <AlertCircle className="w-5 h-5 text-[#1A77A3]" />
+                  <AlertCircle className="w-5 h-5 text-[#144f6b]" />
                   <h3 className="font-semibold text-gray-900">Alasan Pengajuan</h3>
                 </div>
                 <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedAid?.reason}</p>
@@ -841,7 +841,7 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
                 {canEditDocs && (
                   <button onClick={handleUploadDocClick} disabled={uploadingDoc}
                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed text-sm font-semibold transition-colors disabled:opacity-60 mb-3"
-                    style={{ borderColor:'#b8d5e8',color:'#1A77A3',background:'#f0fdf4' }}>
+                    style={{ borderColor:'#b8d5e8',color:'#144f6b',background:'#f0fdf4' }}>
                     {uploadingDoc ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <Upload className="w-3.5 h-3.5"/>}
                     {uploadingDoc ? 'Mengunggah...' : 'Unggah Bukti Serah Terima (PDF)'}
                   </button>
@@ -860,7 +860,7 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
                           <p className="text-[11px] text-gray-400">{formatBytes(doc.fileSize)} · {new Date(doc.uploadedAt).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})} · {doc.uploadedBy}</p>
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
-                          <button title="Lihat" onClick={()=>handleViewDocument(doc)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#1A77A3] transition-colors"><Eye className="w-3.5 h-3.5"/></button>
+                          <button title="Lihat" onClick={()=>handleViewDocument(doc)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#144f6b] transition-colors"><Eye className="w-3.5 h-3.5"/></button>
                           {canDeleteDocs && (
                             <button title="Hapus" onClick={()=>handleDeleteDocument(doc)} className="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"><Trash2 className="w-3.5 h-3.5"/></button>
                           )}

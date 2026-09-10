@@ -65,7 +65,7 @@ const DOCUMENT_CHECKLIST_ITEMS: { id: string; label: string }[] = [
 const STATUS_CFG: Record<string, { bg:string; color:string; label:string; icon: React.ReactNode }> = {
   'Diajukan':  { bg:'#f6f4f0', color:'#9c9486', label:'Diajukan',  icon:<Clock className="w-3 h-3"/> },
   'Diproses':  { bg:'#eff6ff', color:'#2563eb', label:'Diproses',  icon:<RefreshCw className="w-3 h-3"/> },
-  'Selesai':   { bg:'#f0fdf4', color:'#1A77A3', label:'Selesai',   icon:<CheckCircle2 className="w-3 h-3"/> },
+  'Selesai':   { bg:'#f0fdf4', color:'#144f6b', label:'Selesai',   icon:<CheckCircle2 className="w-3 h-3"/> },
   'Ditolak':   { bg:'#fef2f2', color:'#dc2626', label:'Ditolak',   icon:<Ban className="w-3 h-3"/> },
 };
 
@@ -102,12 +102,12 @@ function StatusStepper({ status }: { status: string }) {
         <React.Fragment key={s}>
           <div className="flex flex-col items-center">
             <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
-              style={{background:i<=curr?'#1A77A3':'#e2e8f0',color:i<=curr?'#fff':'#94a3b8'}}>
+              style={{background:i<=curr?'#144f6b':'#e2e8f0',color:i<=curr?'#fff':'#94a3b8'}}>
               {i<curr?'✓':i+1}
             </div>
-            <p style={{fontSize:'9px',color:i<=curr?'#1A77A3':'#94a3b8',marginTop:3,textAlign:'center',width:56}}>{s}</p>
+            <p style={{fontSize:'9px',color:i<=curr?'#144f6b':'#94a3b8',marginTop:3,textAlign:'center',width:56}}>{s}</p>
           </div>
-          {i<STEPS.length-1 && <div className="h-0.5 w-8 flex-shrink-0 mb-3" style={{background:i<curr?'#1A77A3':'#e2e8f0'}}/>}
+          {i<STEPS.length-1 && <div className="h-0.5 w-8 flex-shrink-0 mb-3" style={{background:i<curr?'#144f6b':'#e2e8f0'}}/>}
         </React.Fragment>
       ))}
     </div>
@@ -215,7 +215,7 @@ function AttestationDetail({ att, onClose, onEdit, onUpdateStatus, onBuatSurat, 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
       <div className="w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'90vh', transform:`translate(${offset.x}px,${offset.y}px)`}} onClick={e=>e.stopPropagation()}>
-        <div className="px-6 py-5 flex-shrink-0" style={{background:isIn?'#1A77A3':'#9c9486',cursor:'move'}} onMouseDown={onMouseDown}>
+        <div className="px-6 py-5 flex-shrink-0" style={{background:isIn?'#144f6b':'#9c9486',cursor:'move'}} onMouseDown={onMouseDown}>
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -283,11 +283,11 @@ function AttestationDetail({ att, onClose, onEdit, onUpdateStatus, onBuatSurat, 
                     <div key={item.id} className="flex items-center gap-2 p-2 rounded-lg border bg-white" style={{borderColor: checked?'#bbf7d0':'#f1f5f9'}}>
                       <input type="checkbox" checked={checked} disabled={!canEditDocs}
                         onChange={e=>onUpdateChecklist(att.id, { ...(att.documentChecklist||{}), [item.id]: e.target.checked })}/>
-                      <span className="flex-1" style={{fontSize:'12px',color:checked?'#1A77A3':'#334155',fontWeight:checked?600:500}}>{item.label}</span>
+                      <span className="flex-1" style={{fontSize:'12px',color:checked?'#144f6b':'#334155',fontWeight:checked?600:500}}>{item.label}</span>
                       {docsForItem.length>0 ? (
-                        <button data-tooltip="Lihat file" onClick={()=>handleViewDocument(docsForItem[0])} className="p-1.5 rounded-lg hover:bg-gray-100 text-[#1A77A3]"><Eye className="w-3.5 h-3.5"/></button>
+                        <button data-tooltip="Lihat file" onClick={()=>handleViewDocument(docsForItem[0])} className="p-1.5 rounded-lg hover:bg-gray-100 text-[#144f6b]"><Eye className="w-3.5 h-3.5"/></button>
                       ) : canEditDocs && (
-                        <button data-tooltip="Unggah PDF" onClick={()=>handleUploadDocClick(item.id)} disabled={uploadingDoc} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#1A77A3]"><Upload className="w-3.5 h-3.5"/></button>
+                        <button data-tooltip="Unggah PDF" onClick={()=>handleUploadDocClick(item.id)} disabled={uploadingDoc} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#144f6b]"><Upload className="w-3.5 h-3.5"/></button>
                       )}
                     </div>
                   );
@@ -308,7 +308,7 @@ function AttestationDetail({ att, onClose, onEdit, onUpdateStatus, onBuatSurat, 
                   {canEditDocs && (
                     <button onClick={()=>handleUploadDocClick(undefined)} disabled={uploadingDoc}
                       className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed text-sm font-semibold transition-colors disabled:opacity-60 mb-3"
-                      style={{borderColor:'#b8d5e8',color:'#1A77A3',background:'#f0fdf4'}}>
+                      style={{borderColor:'#b8d5e8',color:'#144f6b',background:'#f0fdf4'}}>
                       {uploadingDoc ? <Loader2 className="w-4 h-4 animate-spin"/> : <Upload className="w-4 h-4"/>}
                       {uploadingDoc ? 'Mengunggah...' : 'Unggah Dokumen PDF'}
                     </button>
@@ -327,7 +327,7 @@ function AttestationDetail({ att, onClose, onEdit, onUpdateStatus, onBuatSurat, 
                             <p style={{fontSize:'11px',color:'#94a3b8'}}>{formatBytes(doc.fileSize)} · {fmtDate(doc.uploadedAt)} · {doc.uploadedBy}</p>
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
-                            <button data-tooltip="Lihat" onClick={()=>handleViewDocument(doc)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#1A77A3] transition-colors"><Eye className="w-4 h-4"/></button>
+                            <button data-tooltip="Lihat" onClick={()=>handleViewDocument(doc)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#144f6b] transition-colors"><Eye className="w-4 h-4"/></button>
                             {canDeleteDocs && (
                               <button data-tooltip="Hapus" onClick={()=>handleDeleteDocument(doc)} className="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4"/></button>
                             )}
@@ -352,7 +352,7 @@ function AttestationDetail({ att, onClose, onEdit, onUpdateStatus, onBuatSurat, 
                   </button>
                 )}
                 {normStatusSurat(att.status)==='Diproses' && (
-                  <button onClick={()=>onUpdateStatus(att.id,'Selesai')} className="px-3 py-1.5 rounded-lg text-xs font-medium text-white" style={{background:'#1A77A3'}}>
+                  <button onClick={()=>onUpdateStatus(att.id,'Selesai')} className="px-3 py-1.5 rounded-lg text-xs font-medium text-white" style={{background:'#144f6b'}}>
                     ✓ Tandai Selesai
                   </button>
                 )}
@@ -367,11 +367,11 @@ function AttestationDetail({ att, onClose, onEdit, onUpdateStatus, onBuatSurat, 
         <div className="px-6 py-4 border-t flex justify-end gap-3 flex-shrink-0" style={{borderColor:'#f1f5f9'}}>
           <button onClick={onClose} className="px-4 py-2 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50" style={{borderColor:'#e2e8f0'}}>Tutup</button>
           {canBuatSurat && (
-            <button onClick={()=>onBuatSurat!(att)} className="px-4 py-2 rounded-xl border text-sm font-semibold hover:bg-gray-50" style={{borderColor:'#e2e8f0',color:'#1A77A3'}}>
+            <button onClick={()=>onBuatSurat!(att)} className="px-4 py-2 rounded-xl border text-sm font-semibold hover:bg-gray-50" style={{borderColor:'#e2e8f0',color:'#144f6b'}}>
               <Mail className="w-3.5 h-3.5 mr-1.5 inline"/> Buat Surat
             </button>
           )}
-          <button onClick={onEdit} className="px-4 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#1A77A3'}}>
+          <button onClick={onEdit} className="px-4 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#144f6b'}}>
             <Pencil className="w-3.5 h-3.5 mr-1.5 inline"/> Edit
           </button>
         </div>
@@ -500,7 +500,7 @@ export function AttestationForm({ initial, members, families, onSave, onSaveBatc
     // z-[60] so this stacks above MemberDetail modal (z-50)
     <div className="absolute inset-0 z-[60] flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.55)'}} onClick={onClose}>
       <div className="w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'90vh', transform:`translate(${offset.x}px,${offset.y}px)`}} onClick={e=>e.stopPropagation()}>
-        <div className="px-6 py-4 border-b" style={{background:isIn?'#1A77A3':'#9c9486',cursor:'move'}} onMouseDown={onMouseDown}>
+        <div className="px-6 py-4 border-b" style={{background:isIn?'#144f6b':'#9c9486',cursor:'move'}} onMouseDown={onMouseDown}>
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-white font-semibold flex items-center gap-2" style={{fontSize:'15px'}}>
@@ -521,7 +521,7 @@ export function AttestationForm({ initial, members, families, onSave, onSaveBatc
           <div className="grid grid-cols-2 gap-2 mb-4">
             {TIPE_ATESTASI.map(t=>(
               <button key={t} onClick={()=>handleType(t)} className="py-2.5 rounded-xl border-2 transition-all text-sm font-semibold flex items-center justify-center gap-2"
-                style={{borderColor:f.type===t?(t==='Pindah Masuk'?'#1A77A3':'#9c9486'):'#e2e8f0',background:f.type===t?(t==='Pindah Masuk'?'#f0fdf4':'#f6f4f0'):'#fff',color:f.type===t?(t==='Pindah Masuk'?'#1A77A3':'#9c9486'):'#64748b'}}>
+                style={{borderColor:f.type===t?(t==='Pindah Masuk'?'#144f6b':'#9c9486'):'#e2e8f0',background:f.type===t?(t==='Pindah Masuk'?'#f0fdf4':'#f6f4f0'):'#fff',color:f.type===t?(t==='Pindah Masuk'?'#144f6b':'#9c9486'):'#64748b'}}>
                 {t==='Pindah Masuk'?<ArrowRight className="w-4 h-4"/>:<ArrowLeft className="w-4 h-4"/>}{t}
               </button>
             ))}
@@ -530,11 +530,11 @@ export function AttestationForm({ initial, members, families, onSave, onSaveBatc
           {canBatchFamily && (
             <div className="grid grid-cols-2 gap-2 mb-4">
               <button onClick={()=>setMode('individu')} className="py-2 rounded-xl border-2 transition-all text-xs font-semibold flex items-center justify-center gap-2"
-                style={{borderColor:mode==='individu'?'#1A77A3':'#e2e8f0',background:mode==='individu'?'#eff6ff':'#fff',color:mode==='individu'?'#1A77A3':'#64748b'}}>
+                style={{borderColor:mode==='individu'?'#144f6b':'#e2e8f0',background:mode==='individu'?'#eff6ff':'#fff',color:mode==='individu'?'#144f6b':'#64748b'}}>
                 <User className="w-3.5 h-3.5"/>Per Anggota
               </button>
               <button onClick={()=>setMode('keluarga')} className="py-2 rounded-xl border-2 transition-all text-xs font-semibold flex items-center justify-center gap-2"
-                style={{borderColor:mode==='keluarga'?'#1A77A3':'#e2e8f0',background:mode==='keluarga'?'#eff6ff':'#fff',color:mode==='keluarga'?'#1A77A3':'#64748b'}}>
+                style={{borderColor:mode==='keluarga'?'#144f6b':'#e2e8f0',background:mode==='keluarga'?'#eff6ff':'#fff',color:mode==='keluarga'?'#144f6b':'#64748b'}}>
                 <Users className="w-3.5 h-3.5"/>1 Keluarga
               </button>
             </div>
@@ -548,11 +548,11 @@ export function AttestationForm({ initial, members, families, onSave, onSaveBatc
                 <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl border"
                   style={{background:'#f0fdf4',borderColor:'#86efac'}}>
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white flex-shrink-0"
-                    style={{background:'#1A77A3',fontSize:13,fontWeight:800}}>
+                    style={{background:'#144f6b',fontSize:13,fontWeight:800}}>
                     {memberInitials}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p style={{fontSize:'13px',fontWeight:700,color:'#1A77A3'}} className="truncate" data-tooltip={f.memberName} data-tooltip-truncate>{f.memberName}</p>
+                    <p style={{fontSize:'13px',fontWeight:700,color:'#144f6b'}} className="truncate" data-tooltip={f.memberName} data-tooltip-truncate>{f.memberName}</p>
                     <p style={{fontSize:'10.5px',color:'#16a34a'}}>Anggota dipilih otomatis dari profil</p>
                   </div>
                   <Lock className="w-3.5 h-3.5 flex-shrink-0" style={{color:'#16a34a'}}/>
@@ -578,7 +578,7 @@ export function AttestationForm({ initial, members, families, onSave, onSaveBatc
                 />
                 {selectedFamily && (
                   <div className="mt-2 px-3 py-2.5 rounded-xl border" style={{background:'#f0fdf4',borderColor:'#86efac'}}>
-                    <p style={{fontSize:12,fontWeight:700,color:'#1A77A3'}}>Keluarga {selectedFamily.headOfFamily}</p>
+                    <p style={{fontSize:12,fontWeight:700,color:'#144f6b'}}>Keluarga {selectedFamily.headOfFamily}</p>
                     {familyMembers.length===0 ? (
                       <p style={{fontSize:11,color:'#dc2626'}} className="mt-1">Belum ada anggota dengan familyId keluarga ini.</p>
                     ) : (
@@ -656,7 +656,7 @@ export function AttestationForm({ initial, members, families, onSave, onSaveBatc
             </div>
             {isIn && mode!=='keluarga' && (
               <div className="col-span-2 p-3 rounded-xl" style={{background:'#f0fdf4',border:'1px solid #bbf7d0'}}>
-                <p style={{fontSize:'11px',fontWeight:700,color:'#1A77A3',marginBottom:8,textTransform:'uppercase',letterSpacing:'0.03em'}}>Data Kontak & Domisili</p>
+                <p style={{fontSize:'11px',fontWeight:700,color:'#144f6b',marginBottom:8,textTransform:'uppercase',letterSpacing:'0.03em'}}>Data Kontak & Domisili</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>No. HP</label>
@@ -712,7 +712,7 @@ export function AttestationForm({ initial, members, families, onSave, onSaveBatc
         <div className="px-6 pb-5 flex justify-end gap-3 flex-shrink-0">
           <button onClick={onClose} className="px-4 py-2 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50" style={{borderColor:'#e2e8f0'}}>Batal</button>
           <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90"
-            style={{background:isIn?'#1A77A3':'#9c9486'}}>Simpan</button>
+            style={{background:isIn?'#144f6b':'#9c9486'}}>Simpan</button>
         </div>
       </div>
     </div>
@@ -917,7 +917,7 @@ Tetap tandai Selesai?`);
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2.5" style={{fontSize:'22px',fontWeight:700,color:'#0f172a',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{background:'#1A77A3'}}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{background:'#144f6b'}}>
               <FileText className="w-5 h-5 text-white"/>
             </div>
             Administrasi Perpindahan Jemaat
@@ -926,7 +926,7 @@ Tetap tandai Selesai?`);
         </div>
         {outerTab === 'atestasi' && (
           <div className="flex gap-2">
-            <button onMouseDown={e=>e.preventDefault()} onClick={()=>{setEditItem(null);setShowForm(true);}} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold shadow hover:opacity-90" style={{background:'#1A77A3'}}>
+            <button onMouseDown={e=>e.preventDefault()} onClick={()=>{setEditItem(null);setShowForm(true);}} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold shadow hover:opacity-90" style={{background:'#144f6b'}}>
               <Plus className="w-4 h-4"/> Tambah Atestasi
             </button>
             <button onClick={exportPDF} className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border hover:bg-gray-50" style={{borderColor:'#e2e8f0',color:'#4b5563'}}>
@@ -954,11 +954,11 @@ Tetap tandai Selesai?`);
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         {[
           {l:'Total',v:stats.total,c:'#374151',bg:'#f8fafc',bo:'#e2e8f0'},
-          {l:'Pindah Masuk',v:stats.masuk,c:'#1A77A3',bg:'#f0fdf4',bo:'#b8d5e8'},
+          {l:'Pindah Masuk',v:stats.masuk,c:'#144f6b',bg:'#f0fdf4',bo:'#b8d5e8'},
           {l:'Pindah Keluar',v:stats.keluar,c:'#9c9486',bg:'#f6f4f0',bo:'#e8e4d8'},
           {l:'Diajukan',v:stats.diajukan,c:'#9c9486',bg:'#f6f4f0',bo:'#e8e4d8'},
           {l:'Diproses',v:stats.diproses,c:'#2563eb',bg:'#eff6ff',bo:'#bfdbfe'},
-          {l:'Selesai',v:stats.selesai,c:'#1A77A3',bg:'#f0fdf4',bo:'#b8d5e8'},
+          {l:'Selesai',v:stats.selesai,c:'#144f6b',bg:'#f0fdf4',bo:'#b8d5e8'},
           {l:'Ditolak',v:stats.ditolak,c:'#dc2626',bg:'#fef2f2',bo:'#fecaca'},
         ].map((s,i)=>(
           <div key={i} className="rounded-xl p-3 border text-center" style={{background:s.bg,borderColor:s.bo}}>
@@ -1014,18 +1014,18 @@ Tetap tandai Selesai?`);
               {val:yearF,set:(v:string)=>{setYearF(v);setPage(1);},opts:[{v:'all',l:'Semua Tahun'},...Array.from({length:5},(_,i)=>String(new Date().getFullYear()-i)).map(y=>({v:y,l:y}))]},
             ] as {val:string;set:(v:string)=>void;opts:{v:string;l:string}[]}[]).map((f,i)=>{
               const active=f.val!=='all';
-              return <select key={i} value={f.val} onChange={e=>f.set(e.target.value)} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#1A77A3':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#1A77A3':'#64748b',fontWeight:active?600:400}}>{f.opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>;
+              return <select key={i} value={f.val} onChange={e=>f.set(e.target.value)} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#144f6b':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#144f6b':'#64748b',fontWeight:active?600:400}}>{f.opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>;
             })}
           </div>
         </div>
         {(searchQ||statusF!=='all'||yearF!=='all') ? (
           <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-t" style={{borderColor:'#f1f5f9',background:'#fafbfc'}}>
             <span style={{fontSize:'11px',color:'#94a3b8',fontWeight:500,whiteSpace:'nowrap'}}>Filter aktif:</span>
-            {searchQ && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}><Search className="w-3 h-3"/>"{searchQ.length>15?searchQ.slice(0,15)+'…':searchQ}"<button onClick={()=>{setSearchQ('');setPage(1);}} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
-            {statusF!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>{statusF}<button onClick={()=>{setStatusF('all');setPage(1);}} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
-            {yearF!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>{yearF}<button onClick={()=>{setYearF('all');setPage(1);}} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+            {searchQ && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}><Search className="w-3 h-3"/>"{searchQ.length>15?searchQ.slice(0,15)+'…':searchQ}"<button onClick={()=>{setSearchQ('');setPage(1);}} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+            {statusF!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>{statusF}<button onClick={()=>{setStatusF('all');setPage(1);}} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+            {yearF!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>{yearF}<button onClick={()=>{setYearF('all');setPage(1);}} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
             <button onClick={()=>{setSearchQ('');setStatusF('all');setYearF('all');setPage(1);}} className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border transition-all hover:bg-red-50" style={{borderColor:'#fca5a5',color:'#ef4444'}}><X className="w-3 h-3"/>Reset Semua</button>
-            <span className="ml-auto text-xs font-semibold" style={{color:'#1A77A3'}}>{filtered.length} permohonan ditemukan</span>
+            <span className="ml-auto text-xs font-semibold" style={{color:'#144f6b'}}>{filtered.length} permohonan ditemukan</span>
           </div>
         ) : (
           <div className="px-3 pb-2 flex justify-end"><span style={{fontSize:'12px',color:'#94a3b8',fontWeight:500}}>{filtered.length} permohonan total</span></div>
@@ -1061,13 +1061,13 @@ Tetap tandai Selesai?`);
                 <tr key={a.id} className="border-b hover:bg-[#f6f4f0]/20 transition-colors cursor-pointer" style={{borderColor:'#f2f0ea'}} onClick={()=>setShowDetail(a)}>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold"
-                      style={{background:a.type==='Pindah Masuk'?'#f0fdf4':'#f6f4f0',color:a.type==='Pindah Masuk'?'#1A77A3':'#9c9486'}}>
+                      style={{background:a.type==='Pindah Masuk'?'#f0fdf4':'#f6f4f0',color:a.type==='Pindah Masuk'?'#144f6b':'#9c9486'}}>
                       {a.type==='Pindah Masuk'?<ArrowRight className="w-3 h-3"/>:<ArrowLeft className="w-3 h-3"/>}{a.type}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{background:a.type==='Pindah Masuk'?'#1A77A3':'#9c9486'}}>
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{background:a.type==='Pindah Masuk'?'#144f6b':'#9c9486'}}>
                         {a.memberName[0]}
                       </div>
                       <div>
@@ -1097,7 +1097,7 @@ Tetap tandai Selesai?`);
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1" onClick={e=>e.stopPropagation()}>
-                      <button onClick={()=>setShowDetail(a)} data-tooltip="Lihat Detail" className="p-1.5 rounded-lg hover:bg-[#f6f4f0] transition-colors"><Eye className="w-3.5 h-3.5 text-[#1A77A3]"/></button>
+                      <button onClick={()=>setShowDetail(a)} data-tooltip="Lihat Detail" className="p-1.5 rounded-lg hover:bg-[#f6f4f0] transition-colors"><Eye className="w-3.5 h-3.5 text-[#144f6b]"/></button>
                       {can('letters-outgoing','create') && <button onClick={()=>handleBuatSurat(a)} data-tooltip="Buat Surat" className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><Mail className="w-3.5 h-3.5 text-gray-400"/></button>}
                       <button onMouseDown={e=>e.preventDefault()} onClick={()=>{setEditItem(a);setShowForm(true);}} data-tooltip="Edit" className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><Pencil className="w-3.5 h-3.5 text-gray-400"/></button>
                       <button onClick={()=>setDeleteTarget(a)} data-tooltip="Hapus" className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5 text-red-400"/></button>
@@ -1136,7 +1136,7 @@ Tetap tandai Selesai?`);
       {deleteTarget && (
         <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={()=>setDeleteTarget(null)}>
           <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 text-center" style={{transform:`translate(${offset.x}px,${offset.y}px)`}} onClick={e=>e.stopPropagation()}>
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{background:'#f6f4f0',cursor:'move'}} onMouseDown={onMouseDown}><Trash2 className="w-6 h-6 text-[#1A77A3]"/></div>
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{background:'#f6f4f0',cursor:'move'}} onMouseDown={onMouseDown}><Trash2 className="w-6 h-6 text-[#144f6b]"/></div>
             <h3 style={{fontSize:'16px',fontWeight:700,color:'#0f172a',marginBottom:8}}>Hapus Data Atestasi?</h3>
             <p style={{fontSize:'13px',color:'#64748b',marginBottom:24}}>Atestasi <strong>{deleteTarget.memberName}</strong> akan dihapus permanen.</p>
             <div className="flex gap-3">

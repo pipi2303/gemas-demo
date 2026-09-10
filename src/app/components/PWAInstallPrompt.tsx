@@ -81,15 +81,15 @@ export function PWAInstallPrompt() {
 
         <div className="space-y-2 mb-3">
           <div className="flex items-center gap-2 text-sm text-gray-700">
-            <CheckCircle className="size-4 text-[#1A77A3]" />
+            <CheckCircle className="size-4 text-[#144f6b]" />
             <span>Akses offline</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-700">
-            <CheckCircle className="size-4 text-[#1A77A3]" />
+            <CheckCircle className="size-4 text-[#144f6b]" />
             <span>Notifikasi real-time</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-700">
-            <CheckCircle className="size-4 text-[#1A77A3]" />
+            <CheckCircle className="size-4 text-[#144f6b]" />
             <span>Performa lebih cepat</span>
           </div>
         </div>
@@ -104,7 +104,7 @@ export function PWAInstallPrompt() {
           </Button>
           <Button
             onClick={handleInstall}
-            className="flex-1 bg-[#1A77A3] hover:bg-[#144f6b] text-white"
+            className="flex-1 bg-[#144f6b] hover:bg-[#144f6b] text-white"
           >
             <Download className="size-4 mr-2" />
             Install

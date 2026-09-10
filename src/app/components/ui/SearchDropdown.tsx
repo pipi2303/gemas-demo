@@ -54,7 +54,7 @@ export function SearchDropdown<T>({
         style={{
           width: '100%', paddingLeft: 34, paddingRight: value ? 32 : 12,
           paddingTop: 7, paddingBottom: 7,
-          border: `1px solid ${value ? '#1A77A3' : '#e2e8f0'}`,
+          border: `1px solid ${value ? '#144f6b' : '#e2e8f0'}`,
           borderRadius: 10, fontSize: 13, outline: 'none',
           background: '#fafafa', boxSizing: 'border-box',
           ...inputStyle,

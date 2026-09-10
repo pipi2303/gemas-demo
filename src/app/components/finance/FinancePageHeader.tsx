@@ -115,7 +115,7 @@ export function FinancePageHeader({
   return (
     <div className="bg-white/90 backdrop-blur-md rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs relative overflow-hidden">
       {/* Subtle top brand accent line */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#1A77A3] via-sky-400 to-emerald-400" />
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#144f6b] via-sky-400 to-emerald-400" />
 
       {/* Main Title & Action Cluster */}
       <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-5">
@@ -132,11 +132,11 @@ export function FinancePageHeader({
                 type="button"
                 onClick={onRefresh}
                 disabled={isRefreshing}
-                className="inline-flex items-center justify-center p-1.5 sm:p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/90 text-slate-500 hover:text-[#1A77A3] hover:border-[#1A77A3] shadow-2xs transition-all disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#1A77A3]/30"
+                className="inline-flex items-center justify-center p-1.5 sm:p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/90 text-slate-500 hover:text-[#144f6b] hover:border-[#144f6b] shadow-2xs transition-all disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#144f6b]/30"
                 title="Segarkan Data Real-Time"
                 aria-label="Segarkan Data Real-Time"
               >
-                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#1A77A3]' : ''}`} />
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#144f6b]' : ''}`} />
               </button>
             )}
 
@@ -180,7 +180,7 @@ export function FinancePageHeader({
         <div className="flex items-center flex-wrap gap-2.5 sm:gap-3">
           {/* Secondary Selector (e.g., Bank Account) */}
           {secondarySelect && (
-            <div className="relative flex items-center gap-2 bg-slate-50/90 hover:bg-slate-100/90 border border-slate-200/90 rounded-xl px-3.5 py-2 transition-all shadow-2xs group focus-within:ring-2 focus-within:ring-[#1A77A3]/20 focus-within:border-[#1A77A3]">
+            <div className="relative flex items-center gap-2 bg-slate-50/90 hover:bg-slate-100/90 border border-slate-200/90 rounded-xl px-3.5 py-2 transition-all shadow-2xs group focus-within:ring-2 focus-within:ring-[#144f6b]/20 focus-within:border-[#144f6b]">
               <div className="w-7 h-7 rounded-lg bg-teal-100/70 text-teal-700 flex items-center justify-center shrink-0">
                 {secondarySelect.icon ? (
                   <secondarySelect.icon className="w-4 h-4" />
@@ -210,8 +210,8 @@ export function FinancePageHeader({
 
           {/* Fiscal Year Selector Capsule */}
           {fiscalYears && fiscalYears.length > 0 && onFiscalYearChange && (
-            <div className="relative flex items-center gap-2.5 bg-slate-50/90 hover:bg-slate-100/90 border border-slate-200/90 rounded-xl px-3.5 py-2 transition-all shadow-2xs group focus-within:ring-2 focus-within:ring-[#1A77A3]/20 focus-within:border-[#1A77A3]">
-              <div className="w-7 h-7 rounded-lg bg-sky-100/70 text-[#1A77A3] flex items-center justify-center shrink-0">
+            <div className="relative flex items-center gap-2.5 bg-slate-50/90 hover:bg-slate-100/90 border border-slate-200/90 rounded-xl px-3.5 py-2 transition-all shadow-2xs group focus-within:ring-2 focus-within:ring-[#144f6b]/20 focus-within:border-[#144f6b]">
+              <div className="w-7 h-7 rounded-lg bg-sky-100/70 text-[#144f6b] flex items-center justify-center shrink-0">
                 <Calendar className="w-4 h-4" />
               </div>
               <div className="text-left pr-4">
@@ -255,7 +255,7 @@ export function FinancePageHeader({
               onClick={primaryAction.onClick}
               disabled={primaryAction.disabled}
               className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-white shadow-sm hover:shadow-md text-xs font-bold transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none"
-              style={{ background: 'linear-gradient(135deg, #1A77A3 0%, #115372 100%)' }}
+              style={{ background: 'linear-gradient(135deg, #144f6b 0%, #115372 100%)' }}
             >
               {primaryAction.icon && (
                 <primaryAction.icon className="w-4 h-4 stroke-[2.5]" />

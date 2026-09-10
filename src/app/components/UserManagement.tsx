@@ -175,7 +175,7 @@ export function UserManagement() {
                 <div className="flex items-center gap-1">
                   Nama
                   {sortKey === 'name'
-                    ? (sortDir === 'asc' ? <ArrowUp className="h-4 w-4 text-[#1A77A3]" /> : <ArrowDown className="h-4 w-4 text-[#1A77A3]" />)
+                    ? (sortDir === 'asc' ? <ArrowUp className="h-4 w-4 text-[#144f6b]" /> : <ArrowDown className="h-4 w-4 text-[#144f6b]" />)
                     : <ArrowUpDown className="h-4 w-4 text-gray-400" />}
                 </div>
               </TableHead>
@@ -183,7 +183,7 @@ export function UserManagement() {
                 <div className="flex items-center gap-1">
                   Username
                   {sortKey === 'username'
-                    ? (sortDir === 'asc' ? <ArrowUp className="h-4 w-4 text-[#1A77A3]" /> : <ArrowDown className="h-4 w-4 text-[#1A77A3]" />)
+                    ? (sortDir === 'asc' ? <ArrowUp className="h-4 w-4 text-[#144f6b]" /> : <ArrowDown className="h-4 w-4 text-[#144f6b]" />)
                     : <ArrowUpDown className="h-4 w-4 text-gray-400" />}
                 </div>
               </TableHead>
@@ -191,7 +191,7 @@ export function UserManagement() {
                 <div className="flex items-center gap-1">
                   Email
                   {sortKey === 'email'
-                    ? (sortDir === 'asc' ? <ArrowUp className="h-4 w-4 text-[#1A77A3]" /> : <ArrowDown className="h-4 w-4 text-[#1A77A3]" />)
+                    ? (sortDir === 'asc' ? <ArrowUp className="h-4 w-4 text-[#144f6b]" /> : <ArrowDown className="h-4 w-4 text-[#144f6b]" />)
                     : <ArrowUpDown className="h-4 w-4 text-gray-400" />}
                 </div>
               </TableHead>
@@ -199,7 +199,7 @@ export function UserManagement() {
                 <div className="flex items-center gap-1">
                   Role
                   {sortKey === 'role'
-                    ? (sortDir === 'asc' ? <ArrowUp className="h-4 w-4 text-[#1A77A3]" /> : <ArrowDown className="h-4 w-4 text-[#1A77A3]" />)
+                    ? (sortDir === 'asc' ? <ArrowUp className="h-4 w-4 text-[#144f6b]" /> : <ArrowDown className="h-4 w-4 text-[#144f6b]" />)
                     : <ArrowUpDown className="h-4 w-4 text-gray-400" />}
                 </div>
               </TableHead>
@@ -207,7 +207,7 @@ export function UserManagement() {
                 <div className="flex items-center gap-1">
                   Status
                   {sortKey === 'isActive'
-                    ? (sortDir === 'asc' ? <ArrowUp className="h-4 w-4 text-[#1A77A3]" /> : <ArrowDown className="h-4 w-4 text-[#1A77A3]" />)
+                    ? (sortDir === 'asc' ? <ArrowUp className="h-4 w-4 text-[#144f6b]" /> : <ArrowDown className="h-4 w-4 text-[#144f6b]" />)
                     : <ArrowUpDown className="h-4 w-4 text-gray-400" />}
                 </div>
               </TableHead>

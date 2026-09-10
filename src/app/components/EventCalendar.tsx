@@ -16,11 +16,11 @@ const MONTHS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agu
 const DAYS_ID   = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
 
 const TYPE_CONFIG: Record<Event['type'], { gradient: string; bg: string; text: string; border: string; dot: string }> = {
-  Ibadah:      { gradient: 'from-[#1A77A3] to-[#144f6b]',  bg: 'bg-[#f0f7fb]', text: 'text-[#144f6b]', border: 'border-[#b8d5e8]', dot: 'bg-[#1A77A3]' },
-  Persekutuan: { gradient: 'from-blue-600 to-indigo-600',    bg: 'bg-[#f0f7fb]',    text: 'text-[#144f6b]',    border: 'border-[#b8d5e8]',    dot: 'bg-[#1A77A3]'    },
+  Ibadah:      { gradient: 'from-[#144f6b] to-[#144f6b]',  bg: 'bg-[#f0f7fb]', text: 'text-[#144f6b]', border: 'border-[#b8d5e8]', dot: 'bg-[#144f6b]' },
+  Persekutuan: { gradient: 'from-[#144f6b] to-[#1A77A3]',     bg: 'bg-[#f0f7fb]',    text: 'text-[#144f6b]',    border: 'border-[#b8d5e8]',    dot: 'bg-[#144f6b]'    },
   Retreat:     { gradient: 'from-purple-600 to-violet-600',  bg: 'bg-[#f0f7fb]',  text: 'text-[#3a7fa0]',  border: 'border-[#b8d5e8]',  dot: 'bg-[#3a7fa0]'  },
-  Seminar:     { gradient: 'from-[#1A77A3] to-[#3a7fa0]',   bg: 'bg-[#f6f4f0]',  text: 'text-orange-700',  border: 'border-[#b8d5e8]',  dot: 'bg-[#9c9486]'  },
-  Pelayanan:   { gradient: 'from-pink-600 to-rose-600',      bg: 'bg-[#f0f7fb]',    text: 'text-[#1A77A3]',    border: 'border-pink-200',    dot: 'bg-[#1A77A3]'    },
+  Seminar:     { gradient: 'from-[#144f6b] to-[#3a7fa0]',   bg: 'bg-[#f6f4f0]',  text: 'text-orange-700',  border: 'border-[#b8d5e8]',  dot: 'bg-[#9c9486]'  },
+  Pelayanan:   { gradient: 'from-pink-600 to-rose-600',      bg: 'bg-[#f0f7fb]',    text: 'text-[#144f6b]',    border: 'border-pink-200',    dot: 'bg-[#144f6b]'    },
   Lainnya:     { gradient: 'from-slate-600 to-gray-600',     bg: 'bg-slate-50',   text: 'text-slate-700',   border: 'border-slate-200',   dot: 'bg-slate-500'   },
 };
 
@@ -36,7 +36,7 @@ const PELAYANAN_OPTIONS = [
 const PELAYANAN_COLOR: Record<string, { bg: string; text: string; border: string; dot: string }> = {
   PA:   { bg: 'bg-green-50',  text: 'text-green-700',  border: 'border-green-200',  dot: 'bg-green-500'  },
   PT:   { bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200', dot: 'bg-yellow-400' },
-  GP:   { bg: 'bg-blue-50',   text: 'text-blue-700',   border: 'border-blue-200',   dot: 'bg-blue-500'   },
+  GP:   { bg: 'bg-[#e8ecf0]', text: 'text-[#144f6b]',  border: 'border-[#b8d5e8]',  dot: 'bg-[#144f6b]'  },
   PKLU: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', dot: 'bg-orange-500' },
   PKP:  { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', dot: 'bg-purple-400' },
   PKB:  { bg: 'bg-slate-100', text: 'text-slate-600',  border: 'border-slate-300',  dot: 'bg-slate-400'  },
@@ -212,7 +212,7 @@ export function EventCalendar() {
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-[#1A77A3] to-[#144f6b] rounded-xl flex items-center justify-center shadow">
+          <div className="w-10 h-10 bg-gradient-to-br from-[#144f6b] to-[#144f6b] rounded-xl flex items-center justify-center shadow">
             <Calendar className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -222,7 +222,7 @@ export function EventCalendar() {
         </div>
         {canCreate && (
           <button onMouseDown={e=>e.preventDefault()} onClick={() => openAdd()}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1A77A3] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm">
+            className="flex items-center gap-2 px-4 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm">
             <Plus className="w-4 h-4" /> Tambah Acara
           </button>
         )}
@@ -231,10 +231,10 @@ export function EventCalendar() {
       {/* ── Stats ───────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Total Acara', value: stats.total, icon: Calendar, color: 'text-[#1A77A3]', bg: 'bg-[#f0f7fb]' },
-          { label: 'Bulan Ini', value: stats.thisMonth, icon: CalendarDays, color: 'text-[#1A77A3]', bg: 'bg-[#f0f7fb]' },
-          { label: 'Akan Datang', value: stats.upcoming, icon: AlertCircle, color: 'text-[#1A77A3]', bg: 'bg-[#f6f4f0]' },
-          { label: 'Ibadah & Pelayanan', value: (stats.byType['Ibadah']||0) + (stats.byType['Pelayanan']||0), icon: Star, color: 'text-[#1A77A3]', bg: 'bg-[#f0f7fb]' },
+          { label: 'Total Acara', value: stats.total, icon: Calendar, color: 'text-[#144f6b]', bg: 'bg-[#f0f7fb]' },
+          { label: 'Bulan Ini', value: stats.thisMonth, icon: CalendarDays, color: 'text-[#144f6b]', bg: 'bg-[#f0f7fb]' },
+          { label: 'Akan Datang', value: stats.upcoming, icon: AlertCircle, color: 'text-[#144f6b]', bg: 'bg-[#f6f4f0]' },
+          { label: 'Ibadah & Pelayanan', value: (stats.byType['Ibadah']||0) + (stats.byType['Pelayanan']||0), icon: Star, color: 'text-[#144f6b]', bg: 'bg-[#f0f7fb]' },
         ].map((s, i) => (
           <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
             <div className={`w-10 h-10 ${s.bg} rounded-lg flex items-center justify-center flex-shrink-0`}>
@@ -274,7 +274,7 @@ export function EventCalendar() {
           </div>
           <div className="flex items-center gap-1 p-1 rounded-xl border" style={{borderColor:'#e2e8f0',background:'#f8fafc'}}>
             {([['calendar','Kalender',CalendarDays],['grid','Grid',LayoutGrid],['list','Daftar',List]] as const).map(([mode,label,Icon])=>(
-              <button key={mode} onClick={()=>setViewMode(mode as any)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all" style={{background:viewMode===mode?'#1A77A3':'transparent',color:viewMode===mode?'#fff':'#94a3b8'}}>
+              <button key={mode} onClick={()=>setViewMode(mode as any)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all" style={{background:viewMode===mode?'#144f6b':'transparent',color:viewMode===mode?'#fff':'#94a3b8'}}>
                 <Icon className="w-3.5 h-3.5"/>{label}
               </button>
             ))}
@@ -288,18 +288,18 @@ export function EventCalendar() {
               {val:filterStatus,set:(v:string)=>setFilterStatus(v as any),opts:[{v:'all',l:'Semua Status'},...STATUS_EVENT.map(s=>({v:s,l:s}))]},
             ] as {val:string;set:(v:string)=>void;opts:{v:string;l:string}[]}[]).map((f,i)=>{
               const active=f.val!=='all';
-              return <select key={i} value={f.val} onChange={e=>f.set(e.target.value)} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#1A77A3':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#1A77A3':'#64748b',fontWeight:active?600:400}}>{f.opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>;
+              return <select key={i} value={f.val} onChange={e=>f.set(e.target.value)} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#144f6b':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#144f6b':'#64748b',fontWeight:active?600:400}}>{f.opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>;
             })}
           </div>
         </div>
         {(searchTerm||filterType!=='all'||filterStatus!=='all') ? (
           <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-t" style={{borderColor:'#f1f5f9',background:'#fafbfc'}}>
             <span style={{fontSize:'11px',color:'#94a3b8',fontWeight:500,whiteSpace:'nowrap'}}>Filter aktif:</span>
-            {searchTerm && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}><Search className="w-3 h-3"/>"{searchTerm.length>15?searchTerm.slice(0,15)+'…':searchTerm}"<button onClick={()=>setSearchTerm('')} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
-            {filterType!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>{filterType}<button onClick={()=>setFilterType('all')} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
-            {filterStatus!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>{filterStatus}<button onClick={()=>setFilterStatus('all')} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+            {searchTerm && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}><Search className="w-3 h-3"/>"{searchTerm.length>15?searchTerm.slice(0,15)+'…':searchTerm}"<button onClick={()=>setSearchTerm('')} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+            {filterType!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>{filterType}<button onClick={()=>setFilterType('all')} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+            {filterStatus!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>{filterStatus}<button onClick={()=>setFilterStatus('all')} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
             <button onClick={()=>{setSearchTerm('');setFilterType('all');setFilterStatus('all');}} className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border transition-all hover:bg-red-50" style={{borderColor:'#fca5a5',color:'#ef4444'}}><X className="w-3 h-3"/>Reset Semua</button>
-            <span className="ml-auto text-xs font-semibold" style={{color:'#1A77A3'}}>{filteredEvents.length} acara ditemukan</span>
+            <span className="ml-auto text-xs font-semibold" style={{color:'#144f6b'}}>{filteredEvents.length} acara ditemukan</span>
           </div>
         ) : (
           <div className="px-3 pb-2 flex justify-end"><span style={{fontSize:'12px',color:'#94a3b8',fontWeight:500}}>{filteredEvents.length} acara total</span></div>
@@ -338,7 +338,7 @@ export function EventCalendar() {
               {/* Day headers */}
               <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50/50">
                 {DAYS_ID.map((d, i) => (
-                  <div key={d} className={`py-3 text-center text-[11px] font-bold uppercase tracking-wider ${i === 0 ? 'text-red-500' : i === 6 ? 'text-[#1A77A3]' : 'text-gray-500'}`}>{d}</div>
+                  <div key={d} className={`py-3 text-center text-[11px] font-bold uppercase tracking-wider ${i === 0 ? 'text-red-500' : i === 6 ? 'text-[#144f6b]' : 'text-gray-500'}`}>{d}</div>
                 ))}
               </div>
 
@@ -354,12 +354,12 @@ export function EventCalendar() {
                   return (
                     <div key={i} className={`min-h-[100px] p-2 border-b border-r border-gray-100 relative group ${
                       day === null ? 'bg-gray-50/30' : 'cursor-pointer transition-all'
-                    } ${isSelected ? 'bg-[#f0f7fb] ring-2 ring-inset ring-[#1A77A3] z-10' : day !== null ? 'hover:bg-gray-50' : ''}`}
+                    } ${isSelected ? 'bg-[#f0f7fb] ring-2 ring-inset ring-[#144f6b] z-10' : day !== null ? 'hover:bg-gray-50' : ''}`}
                       onClick={() => { if (day) { const d = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day); setSelectedDate(d); } }}>
                       {day && (
                         <>
                           <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold mb-1.5 transition-colors ${
-                            isToday ? 'bg-[#1A77A3] text-white shadow-sm' : isSelected ? 'text-[#1A77A3]' : isSun ? 'text-red-500' : isSat ? 'text-[#1A77A3]' : 'text-gray-700'
+                            isToday ? 'bg-[#144f6b] text-white shadow-sm' : isSelected ? 'text-[#144f6b]' : isSun ? 'text-red-500' : isSat ? 'text-[#144f6b]' : 'text-gray-700'
                           }`}>{day}</div>
                           
                           <div className="space-y-1">
@@ -381,7 +381,7 @@ export function EventCalendar() {
                           {canCreate && dayEvents.length === 0 && (
                             <button onClick={e => { e.stopPropagation(); openAdd(`${currentMonth.getFullYear()}-${String(currentMonth.getMonth()+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`); }}
                               data-tooltip="Tambah"
-                              className="absolute bottom-1 right-1 w-5 h-5 rounded-lg bg-white border border-gray-200 text-gray-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:text-[#1A77A3] hover:border-[#1A77A3] shadow-sm">
+                              className="absolute bottom-1 right-1 w-5 h-5 rounded-lg bg-white border border-gray-200 text-gray-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:text-[#144f6b] hover:border-[#144f6b] shadow-sm">
                               <Plus className="w-3 h-3" />
                             </button>
                           )}
@@ -419,7 +419,7 @@ export function EventCalendar() {
                 <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
                   <h3 className="font-bold text-gray-900 text-sm">Kegiatan Hari Ini</h3>
                   {selectedDate && (
-                    <span className="text-[11px] font-bold text-[#1A77A3] bg-[#f0f7fb] px-2 py-0.5 rounded-full border border-[#b8d5e8]">
+                    <span className="text-[11px] font-bold text-[#144f6b] bg-[#f0f7fb] px-2 py-0.5 rounded-full border border-[#b8d5e8]">
                       {selectedDate.getDate()} {MONTHS_ID[selectedDate.getMonth()].slice(0,3)}
                     </span>
                   )}
@@ -441,7 +441,7 @@ export function EventCalendar() {
                       <p className="text-xs text-gray-500 font-medium">Tidak ada kegiatan terjadwal</p>
                       {canCreate && (
                         <button onClick={() => openAdd(`${selectedDate.getFullYear()}-${String(selectedDate.getMonth()+1).padStart(2,'0')}-${String(selectedDate.getDate()).padStart(2,'0')}`)}
-                          className="mt-3 text-[11px] font-bold text-[#1A77A3] hover:underline">+ Tambah Acara</button>
+                          className="mt-3 text-[11px] font-bold text-[#144f6b] hover:underline">+ Tambah Acara</button>
                       )}
                     </div>
                   ) : (
@@ -453,14 +453,14 @@ export function EventCalendar() {
                           <div 
                             key={ev.id} 
                             onClick={() => openDetail(ev)}
-                            className="group p-3 rounded-xl border border-gray-100 bg-white hover:border-[#1A77A3] hover:shadow-sm transition-all cursor-pointer relative overflow-hidden"
+                            className="group p-3 rounded-xl border border-gray-100 bg-white hover:border-[#144f6b] hover:shadow-sm transition-all cursor-pointer relative overflow-hidden"
                           >
                             <div className={`absolute top-0 left-0 w-1 h-full ${cfg.dot}`} />
                             <div className="flex items-center justify-between mb-1.5">
                               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${cfg.bg} ${cfg.text}`}>{ev.type}</span>
                               <span className="text-[10px] text-gray-400 font-medium">{ev.time} WIB</span>
                             </div>
-                            <h4 className="text-sm font-bold text-gray-900 group-hover:text-[#1A77A3] transition-colors line-clamp-2">{ev.title}</h4>
+                            <h4 className="text-sm font-bold text-gray-900 group-hover:text-[#144f6b] transition-colors line-clamp-2">{ev.title}</h4>
                             <div className="flex items-center gap-1.5 mt-2 text-[11px] text-gray-500">
                               <MapPin className="w-3 h-3" />
                               <span data-tooltip={ev.location} data-tooltip-truncate className="truncate">{ev.location}</span>
@@ -469,7 +469,7 @@ export function EventCalendar() {
                               <span className={`text-[9px] font-bold flex items-center gap-1 ${st.text}`}>
                                 <st.icon className="w-2.5 h-2.5" /> {st.label}
                               </span>
-                              <ChevronRight className="w-3 h-3 text-gray-300 group-hover:text-[#1A77A3] transition-all" />
+                              <ChevronRight className="w-3 h-3 text-gray-300 group-hover:text-[#144f6b] transition-all" />
                             </div>
                           </div>
                         );
@@ -544,7 +544,7 @@ export function EventCalendar() {
                     {/* Actions */}
                     <div className="flex gap-2 pt-3 border-t border-gray-100" onClick={(e) => e.stopPropagation()}>
                       <button onClick={() => openDetail(ev)}
-                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#1A77A3] text-white rounded-lg text-xs hover:bg-[#144f6b] transition-colors">
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#144f6b] text-white rounded-lg text-xs hover:bg-[#144f6b] transition-colors">
                         <Eye className="w-3.5 h-3.5" /> Detail
                       </button>
                       {ev.status === 'Akan Datang' && (
@@ -554,7 +554,7 @@ export function EventCalendar() {
                           className={`px-3 py-1.5 rounded-lg text-xs transition-colors ${
                             reminderSetId === ev.id
                               ? 'bg-green-100 text-green-700 border border-green-300'
-                              : 'border border-[#e8e4d8] text-[#1A77A3] hover:bg-[#f6f4f0]'
+                              : 'border border-[#e8e4d8] text-[#144f6b] hover:bg-[#f6f4f0]'
                           }`}>
                           {reminderSetId === ev.id ? <CheckCircle className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
                         </button>
@@ -629,7 +629,7 @@ export function EventCalendar() {
                       )}
                     </div>
 
-                    <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0 group-hover:text-[#1A77A3] transition-colors" />
+                    <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0 group-hover:text-[#144f6b] transition-colors" />
                   </div>
                 );
               })}
@@ -730,7 +730,7 @@ export function EventCalendar() {
                 <div className="flex gap-3 pt-1">
                   {canEdit && (
                     <button onMouseDown={e=>e.preventDefault()} onClick={() => openEdit(ev)}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#1A77A3] text-white rounded-lg text-sm hover:bg-[#144f6b] transition-colors">
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#144f6b] text-white rounded-lg text-sm hover:bg-[#144f6b] transition-colors">
                       <Pencil className="w-4 h-4" /> Edit Acara
                     </button>
                   )}
@@ -753,7 +753,7 @@ export function EventCalendar() {
       {showForm && (
         <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowForm(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden" onClick={e=>e.stopPropagation()} style={{ transform: `translate(${offsetForm.x}px, ${offsetForm.y}px)` }}>
-            <div className="bg-gradient-to-r from-[#144f6b] to-[#1A77A3] px-6 py-5 flex items-center justify-between flex-shrink-0" onMouseDown={onMouseDownForm} style={{ cursor: 'move' }}>
+            <div className="bg-gradient-to-r from-[#144f6b] to-[#144f6b] px-6 py-5 flex items-center justify-between flex-shrink-0" onMouseDown={onMouseDownForm} style={{ cursor: 'move' }}>
               <div>
                 <h2 className="text-xl font-bold text-white">{editingId ? 'Edit Acara' : 'Tambah Acara Baru'}</h2>
                 <p className="text-indigo-200 text-sm mt-0.5">Kalender Gerejawi GPIB Bahtera Kasih</p>
@@ -769,38 +769,38 @@ export function EventCalendar() {
                   <label className="block text-xs font-medium text-gray-700 mb-1">Judul Acara *</label>
                   <input autoFocus type="text" value={formData.title} onChange={e => setFormData(p => ({ ...p, title: e.target.value }))} required
                     placeholder="Nama acara / kegiatan"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" />
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Tanggal *</label>
                     <input type="date" value={formData.date} onChange={e => setFormData(p => ({ ...p, date: e.target.value }))} required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" />
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Waktu *</label>
                     <input type="time" value={formData.time} onChange={e => setFormData(p => ({ ...p, time: e.target.value }))} required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" />
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Lokasi *</label>
                   <input type="text" value={formData.location} onChange={e => setFormData(p => ({ ...p, location: e.target.value }))} required
                     placeholder="Gedung, ruangan, atau alamat"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" />
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Jenis Acara *</label>
                     <select value={formData.type} onChange={e => setFormData(p => ({ ...p, type: e.target.value as Event['type'] }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
                       {EVENT_TYPES_LIST.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
                     <select value={formData.status} onChange={e => setFormData(p => ({ ...p, status: e.target.value as Event['status'] }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
                       {STATUS_EVENT.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
@@ -808,7 +808,7 @@ export function EventCalendar() {
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Ibadah Pelayanan</label>
                   <select value={formData.pelayanan} onChange={e => setFormData(p => ({ ...p, pelayanan: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
                     <option value="">— Tidak Spesifik —</option>
                     {PELAYANAN_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
                   </select>
@@ -817,20 +817,20 @@ export function EventCalendar() {
                   <label className="block text-xs font-medium text-gray-700 mb-1">Penyelenggara</label>
                   <input type="text" value={formData.organizer} onChange={e => setFormData(p => ({ ...p, organizer: e.target.value }))}
                     placeholder="Tim / Komisi penyelenggara"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" />
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Deskripsi</label>
                   <textarea value={formData.description} onChange={e => setFormData(p => ({ ...p, description: e.target.value }))}
                     rows={3} placeholder="Deskripsi singkat kegiatan..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3] resize-none" />
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none" />
                 </div>
               </div>
               <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 flex gap-3 justify-end flex-shrink-0">
                 <button type="button" onClick={() => setShowForm(false)}
                   className="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-100 transition-colors">Batal</button>
                 <button type="submit"
-                  className="flex items-center gap-2 px-5 py-2 bg-[#1A77A3] text-white rounded-lg text-sm hover:bg-[#144f6b] transition-colors">
+                  className="flex items-center gap-2 px-5 py-2 bg-[#144f6b] text-white rounded-lg text-sm hover:bg-[#144f6b] transition-colors">
                   <CheckCircle className="w-4 h-4" />{editingId ? 'Simpan Perubahan' : 'Tambah Acara'}
                 </button>
               </div>

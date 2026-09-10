@@ -83,8 +83,8 @@ async function callApi<T = any>(url: string): Promise<T> {
   return res.data as T;
 }
 
-const PIE_COLORS = ['#1A77A3', '#0891b2', '#0d9488', '#16a34a', '#ca8a04', '#d97706'];
-const REV_COLORS = ['#10b981', '#059669', '#0d9488', '#0284c7', '#6366f1'];
+const PIE_COLORS = ['#1A77A3', '#caa04a', '#2f8f5b', '#d1553f', '#8b6bb1', '#9c9486'];
+const REV_COLORS = ['#1A77A3', '#caa04a', '#2f8f5b', '#d1553f', '#8b6bb1'];
 
 type ActiveTab = 'ringkasan' | 'tren' | 'kas-bank' | 'anggaran' | 'tata-kelola';
 
@@ -150,7 +150,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto p-8 flex flex-col items-center justify-center min-h-[400px] text-slate-400">
-        <Loader2 className="w-8 h-8 animate-spin mb-3 text-[#1A77A3]" />
+        <Loader2 className="w-8 h-8 animate-spin mb-3 text-[#144f6b]" />
         <p className="text-sm font-medium text-slate-600">Menyiapkan Dashboard Finance…</p>
       </div>
     );
@@ -168,7 +168,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
           {onNavigate && (
             <button
               onClick={() => onNavigate('finance-master-data')}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1A77A3] text-white text-xs font-medium rounded-lg hover:opacity-90"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#144f6b] text-white text-xs font-medium rounded-lg hover:opacity-90"
             >
               Buka Master Data &amp; Fiskal <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -258,7 +258,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
 
       {loadingDashboard && (
         <div className="flex items-center justify-center py-20 text-slate-400">
-          <Loader2 className="w-6 h-6 animate-spin text-[#1A77A3] mr-2.5" />
+          <Loader2 className="w-6 h-6 animate-spin text-[#144f6b] mr-2.5" />
           <span className="text-sm font-medium text-slate-600">Memperbarui metrik analitik...</span>
         </div>
       )}
@@ -295,15 +295,15 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
           {/* ── Hero Executive Metric Cards (4 Pillars) ──────────────────── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* 1. Posisi Total Aset */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:border-[#1A77A3]/40 transition-all relative overflow-hidden group">
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:border-[#144f6b]/40 transition-all relative overflow-hidden group">
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-sky-50 flex items-center justify-center text-[#1A77A3]">
+                  <div className="w-8 h-8 rounded-lg bg-sky-50 flex items-center justify-center text-[#144f6b]">
                     <Wallet className="w-4 h-4" />
                   </div>
                   <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Aset Bersih</span>
                 </div>
-                <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-sky-50 text-[#1A77A3]">
+                <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-sky-50 text-[#144f6b]">
                   Solven
                 </span>
               </div>
@@ -315,7 +315,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
             </div>
 
             {/* 2. Surplus / (Defisit) YTD */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:border-[#1A77A3]/40 transition-all relative overflow-hidden group">
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:border-[#144f6b]/40 transition-all relative overflow-hidden group">
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <div className="flex items-center gap-2">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${data.ytdNetSurplus >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
@@ -339,7 +339,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
             </div>
 
             {/* 3. Penerimaan (Revenue) YTD */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:border-[#1A77A3]/40 transition-all relative overflow-hidden group">
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:border-[#144f6b]/40 transition-all relative overflow-hidden group">
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
@@ -359,7 +359,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
             </div>
 
             {/* 4. Pengeluaran (Expense) YTD */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:border-[#1A77A3]/40 transition-all relative overflow-hidden group">
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:border-[#144f6b]/40 transition-all relative overflow-hidden group">
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
@@ -421,7 +421,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                   onClick={() => setActiveTab(t.id as ActiveTab)}
                   className={`inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-xl whitespace-nowrap transition-all ${
                     isActive
-                      ? 'bg-[#1A77A3] text-white shadow-xs'
+                      ? 'bg-[#144f6b] text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
                 >
@@ -442,7 +442,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                   <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                     <div>
                       <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-[#1A77A3]" />
+                        <TrendingUp className="w-4 h-4 text-[#144f6b]" />
                         Tren Pendapatan vs Beban per Periode
                       </h3>
                       <p className="text-xs text-slate-500 mt-0.5">
@@ -453,19 +453,19 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                     <div className="flex items-center bg-slate-100 p-0.5 rounded-lg text-xs font-medium">
                       <button
                         onClick={() => setChartType('area')}
-                        className={`px-2.5 py-1 rounded-md transition-all ${chartType === 'area' ? 'bg-white text-[#1A77A3] shadow-xs' : 'text-slate-600'}`}
+                        className={`px-2.5 py-1 rounded-md transition-all ${chartType === 'area' ? 'bg-white text-[#144f6b] shadow-xs' : 'text-slate-600'}`}
                       >
                         Area
                       </button>
                       <button
                         onClick={() => setChartType('bar')}
-                        className={`px-2.5 py-1 rounded-md transition-all ${chartType === 'bar' ? 'bg-white text-[#1A77A3] shadow-xs' : 'text-slate-600'}`}
+                        className={`px-2.5 py-1 rounded-md transition-all ${chartType === 'bar' ? 'bg-white text-[#144f6b] shadow-xs' : 'text-slate-600'}`}
                       >
                         Batang
                       </button>
                       <button
                         onClick={() => setChartType('net')}
-                        className={`px-2.5 py-1 rounded-md transition-all ${chartType === 'net' ? 'bg-white text-[#1A77A3] shadow-xs' : 'text-slate-600'}`}
+                        className={`px-2.5 py-1 rounded-md transition-all ${chartType === 'net' ? 'bg-white text-[#144f6b] shadow-xs' : 'text-slate-600'}`}
                       >
                         Surplus Bersih
                       </button>
@@ -477,12 +477,12 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                       <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                         <defs>
                           <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.28} />
-                            <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                            <stop offset="5%" stopColor="#2f8f5b" stopOpacity={0.28} />
+                            <stop offset="95%" stopColor="#2f8f5b" stopOpacity={0.0} />
                           </linearGradient>
                           <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.28} />
-                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0.0} />
+                            <stop offset="5%" stopColor="#d1553f" stopOpacity={0.28} />
+                            <stop offset="95%" stopColor="#d1553f" stopOpacity={0.0} />
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -491,26 +491,29 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                         <Tooltip
                           formatter={(value: any) => formatRp(value)}
                           labelFormatter={(label: string) => `Periode: ${label}`}
-                          contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', fontSize: '12px' }}
+                          contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 8px 24px -4px rgba(15,45,65,0.15)', fontSize: '12px' }}
+                          animationDuration={200}
+                          animationEasing="ease-out"
+                          cursor={{ fill: 'rgba(20,79,107,0.04)' }}
                         />
                         <Legend wrapperStyle={{ fontSize: 12, paddingTop: '10px' }} />
 
                         {chartType === 'area' && (
                           <>
-                            <Area type="monotone" dataKey="Pendapatan" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRev)" />
-                            <Area type="monotone" dataKey="Beban" stroke="#ef4444" strokeWidth={2.5} fillOpacity={1} fill="url(#colorExp)" />
+                            <Area type="monotone" dataKey="Pendapatan" stroke="#2f8f5b" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRev)" animationDuration={450} animationEasing="ease-out" />
+                            <Area type="monotone" dataKey="Beban" stroke="#d1553f" strokeWidth={2.5} fillOpacity={1} fill="url(#colorExp)" animationDuration={450} animationEasing="ease-out" />
                           </>
                         )}
                         {chartType === 'bar' && (
                           <>
-                            <Bar dataKey="Pendapatan" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={32} />
-                            <Bar dataKey="Beban" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                            <Bar dataKey="Pendapatan" fill="#2f8f5b" radius={[4, 4, 0, 0]} maxBarSize={32} animationDuration={450} animationEasing="ease-out" />
+                            <Bar dataKey="Beban" fill="#d1553f" radius={[4, 4, 0, 0]} maxBarSize={32} animationDuration={450} animationEasing="ease-out" />
                           </>
                         )}
                         {chartType === 'net' && (
                           <>
-                            <Bar dataKey="Surplus" fill="#1A77A3" radius={[4, 4, 0, 0]} maxBarSize={32} />
-                            <Line type="monotone" dataKey="Surplus" stroke="#0891b2" strokeWidth={3} dot={{ r: 4 }} />
+                            <Bar dataKey="Surplus" fill="#1A77A3" radius={[4, 4, 0, 0]} maxBarSize={32} animationDuration={450} animationEasing="ease-out" />
+                            <Line type="monotone" dataKey="Surplus" stroke="#144f6b" strokeWidth={3} dot={{ r: 4 }} animationDuration={450} animationEasing="ease-out" />
                           </>
                         )}
                       </ComposedChart>
@@ -643,10 +646,10 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                        <Landmark className="w-4 h-4 text-[#1A77A3]" />
+                        <Landmark className="w-4 h-4 text-[#144f6b]" />
                         Likuiditas Kas &amp; Saldo Bank
                       </h3>
-                      <span className="text-xs font-semibold text-[#1A77A3] bg-sky-50 px-2 py-0.5 rounded-md">
+                      <span className="text-xs font-semibold text-[#144f6b] bg-sky-50 px-2 py-0.5 rounded-md">
                         {formatRp(data.liquidity?.totalLiquidAssets || data.totalAssets)}
                       </span>
                     </div>
@@ -695,7 +698,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                     </span>
                     <button
                       onClick={() => setActiveTab('kas-bank')}
-                      className="text-xs font-semibold text-[#1A77A3] hover:underline flex items-center gap-1"
+                      className="text-xs font-semibold text-[#144f6b] hover:underline flex items-center gap-1"
                     >
                       Lihat Semua Rekening &rarr;
                     </button>
@@ -723,8 +726,8 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                     <span className="flex items-center gap-1.5 text-rose-700 font-medium">
                       <span className="w-3 h-3 rounded-full bg-rose-500" /> Pengeluaran
                     </span>
-                    <span className="flex items-center gap-1.5 text-[#1A77A3] font-medium">
-                      <span className="w-3 h-3 rounded-full bg-[#1A77A3]" /> Surplus Bersih
+                    <span className="flex items-center gap-1.5 text-[#144f6b] font-medium">
+                      <span className="w-3 h-3 rounded-full bg-[#144f6b]" /> Surplus Bersih
                     </span>
                   </div>
                 </div>
@@ -736,9 +739,9 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                       <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#475569' }} axisLine={false} tickLine={false} />
                       <YAxis tickFormatter={formatRpShort} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} width={60} />
                       <Tooltip formatter={(v: any) => formatRp(v)} />
-                      <Bar dataKey="Pendapatan" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={36} />
-                      <Bar dataKey="Beban" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={36} />
-                      <Line type="monotone" dataKey="Surplus" stroke="#1A77A3" strokeWidth={3} dot={{ r: 5, fill: '#1A77A3' }} />
+                      <Bar dataKey="Pendapatan" fill="#2f8f5b" radius={[4, 4, 0, 0]} maxBarSize={36} animationDuration={450} animationEasing="ease-out" />
+                      <Bar dataKey="Beban" fill="#d1553f" radius={[4, 4, 0, 0]} maxBarSize={36} animationDuration={450} animationEasing="ease-out" />
+                      <Line type="monotone" dataKey="Surplus" stroke="#1A77A3" strokeWidth={3} dot={{ r: 5, fill: '#1A77A3' }} animationDuration={450} animationEasing="ease-out" />
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
@@ -802,7 +805,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                 <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
                   <div>
                     <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                      <PieChartIcon className="w-4 h-4 text-[#1A77A3]" />
+                      <PieChartIcon className="w-4 h-4 text-[#144f6b]" />
                       Proporsi Aset Likuid
                     </h3>
                     <p className="text-xs text-slate-500 mt-0.5">Distribusi Kas Fisik vs Saldo Bank</p>
@@ -842,7 +845,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                   {onNavigate && (
                     <button
                       onClick={() => onNavigate('finance-reconciliation')}
-                      className="mt-4 w-full py-2 bg-slate-100 hover:bg-[#1A77A3] hover:text-white text-slate-700 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5"
+                      className="mt-4 w-full py-2 bg-slate-100 hover:bg-[#144f6b] hover:text-white text-slate-700 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5"
                     >
                       Buka Rekonsiliasi Bank <ArrowRight className="w-3.5 h-3.5" />
                     </button>
@@ -894,7 +897,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                               <p className="text-[11px] text-slate-400">{b.bank_name} &bull; {b.account_number}</p>
                             </div>
                           </div>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-sky-50 text-[#1A77A3]">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-sky-50 text-[#144f6b]">
                             Bank
                           </span>
                         </div>
@@ -924,7 +927,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                   {onNavigate && (
                     <button
                       onClick={() => onNavigate('finance-budget')}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1A77A3] text-white text-xs font-medium hover:opacity-90 transition-all"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#144f6b] text-white text-xs font-medium hover:opacity-90 transition-all"
                     >
                       Buka RKA &amp; Anggaran <ArrowRight className="w-3.5 h-3.5" />
                     </button>
@@ -996,7 +999,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                   {[
                     { status: 'DRAFT', label: 'Konsep (Draft)', count: data.statusCounts?.DRAFT || 0, color: 'bg-slate-100 text-slate-700 border-slate-200' },
                     { status: 'SUBMITTED', label: 'Diajukan', count: data.statusCounts?.SUBMITTED || 0, color: 'bg-amber-50 text-amber-700 border-amber-200' },
-                    { status: 'VERIFIED', label: 'Diverifikasi', count: data.statusCounts?.VERIFIED || 0, color: 'bg-sky-50 text-[#1A77A3] border-sky-200' },
+                    { status: 'VERIFIED', label: 'Diverifikasi', count: data.statusCounts?.VERIFIED || 0, color: 'bg-sky-50 text-[#144f6b] border-sky-200' },
                     { status: 'APPROVED', label: 'Disetujui KMJ', count: data.statusCounts?.APPROVED || 0, color: 'bg-purple-50 text-purple-700 border-purple-200' },
                     { status: 'POSTED', label: 'Dibukukan ke GL', count: data.statusCounts?.POSTED || 0, color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
                   ].map((s, idx) => (
@@ -1010,7 +1013,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
 
                 {/* Segregation of Duties Card */}
                 <div className="p-4 rounded-2xl bg-sky-50/60 border border-sky-100 flex items-start gap-3.5">
-                  <ShieldCheck className="w-6 h-6 text-[#1A77A3] shrink-0 mt-0.5" />
+                  <ShieldCheck className="w-6 h-6 text-[#144f6b] shrink-0 mt-0.5" />
                   <div className="text-xs text-slate-700 space-y-1">
                     <p className="font-bold text-slate-900">Penegakan Segregation of Duties (Prinsip 4-Mata Sinodal)</p>
                     <p>
@@ -1031,7 +1034,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                     </button>
                     <button
                       onClick={() => onNavigate('finance-approval')}
-                      className="px-4 py-2 rounded-xl bg-[#1A77A3] text-white text-xs font-semibold hover:opacity-90 transition-all shadow-xs"
+                      className="px-4 py-2 rounded-xl bg-[#144f6b] text-white text-xs font-semibold hover:opacity-90 transition-all shadow-xs"
                     >
                       Buka Antrian Persetujuan
                     </button>

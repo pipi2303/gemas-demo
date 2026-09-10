@@ -20,15 +20,15 @@ type StatusFilter = 'Terjadwal' | 'Berlangsung' | 'Selesai' | 'Dibatalkan' | 'Al
 
 // ─── Warna per tipe ──────────────────────────────────────────────────────────
 type TypeStyle = { bg: string; text: string; border: string; badge: string };
-const TYPE_DEFAULT: TypeStyle = { bg: 'bg-[#f0f7fb]', text: 'text-[#144f6b]', border: 'border-[#b8d5e8]', badge: 'bg-[#1A77A3]' };
+const TYPE_DEFAULT: TypeStyle = { bg: 'bg-[#f0f7fb]', text: 'text-[#144f6b]', border: 'border-[#b8d5e8]', badge: 'bg-[#144f6b]' };
 const TYPE_CONFIG: Partial<Record<string, TypeStyle>> = {
   'Doa Pagi':                { bg: 'bg-yellow-50',  text: 'text-yellow-800',  border: 'border-yellow-200', badge: 'bg-yellow-600' },
-  'Ibadah GP':               { bg: 'bg-[#f0f7fb]',  text: 'text-blue-800',    border: 'border-[#b8d5e8]',  badge: 'bg-[#1A77A3]' },
+  'Ibadah GP':               { bg: 'bg-[#f0f7fb]',  text: 'text-blue-800',    border: 'border-[#b8d5e8]',  badge: 'bg-[#144f6b]' },
   'Ibadah Keluarga Sektor 1':{ bg: 'bg-green-50',   text: 'text-green-800',   border: 'border-green-200',  badge: 'bg-green-600' },
   'Ibadah Keluarga Sektor 2':{ bg: 'bg-green-50',   text: 'text-green-800',   border: 'border-green-200',  badge: 'bg-green-600' },
   'Ibadah Keluarga Sektor 3':{ bg: 'bg-green-50',   text: 'text-green-800',   border: 'border-green-200',  badge: 'bg-green-600' },
   'Ibadah Keluarga Sektor 4':{ bg: 'bg-green-50',   text: 'text-green-800',   border: 'border-green-200',  badge: 'bg-green-600' },
-  'Ibadah Minggu Pagi':      { bg: 'bg-[#f0f7fb]',  text: 'text-blue-800',    border: 'border-[#b8d5e8]',  badge: 'bg-[#1A77A3]' },
+  'Ibadah Minggu Pagi':      { bg: 'bg-[#f0f7fb]',  text: 'text-blue-800',    border: 'border-[#b8d5e8]',  badge: 'bg-[#144f6b]' },
   'Ibadah Minggu Sore':      { bg: 'bg-indigo-50',  text: 'text-indigo-800',  border: 'border-indigo-200', badge: 'bg-indigo-600' },
   'Ibadah PKB':              { bg: 'bg-purple-50',  text: 'text-purple-800',  border: 'border-purple-200', badge: 'bg-purple-600' },
   'Ibadah PKLU':             { bg: 'bg-purple-50',  text: 'text-purple-800',  border: 'border-purple-200', badge: 'bg-purple-600' },
@@ -295,7 +295,7 @@ export function WorshipSchedules() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 bg-gradient-to-br from-[#1A77A3] to-green-700 rounded-xl flex items-center justify-center shadow">
+            <div className="w-10 h-10 bg-gradient-to-br from-[#144f6b] to-green-700 rounded-xl flex items-center justify-center shadow">
               <Church className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -316,7 +316,7 @@ export function WorshipSchedules() {
             <button
               onMouseDown={e=>e.preventDefault()}
               onClick={openAdd}
-              className="flex items-center gap-2 px-4 py-2 bg-[#1A77A3] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm"
             >
               <Plus className="w-4 h-4" />
               Tambah Jadwal
@@ -332,14 +332,14 @@ export function WorshipSchedules() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4"/>
             <input type="text" placeholder="Cari jadwal, lokasi, pengkhotbah..." value={searchTerm} onChange={e=>setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-8 py-2 text-sm rounded-xl border focus:outline-none transition-all"
-              style={{borderColor:searchTerm?'#1A77A3':'#e2e8f0',background:'#fafafa'}}/>
+              style={{borderColor:searchTerm?'#144f6b':'#e2e8f0',background:'#fafafa'}}/>
             {searchTerm && <button onClick={()=>setSearchTerm('')} data-tooltip="Hapus pencarian" className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-gray-200 transition-all" style={{color:'#94a3b8'}}><X className="w-3.5 h-3.5"/></button>}
           </div>
           <div className="flex items-center gap-1 p-1 rounded-xl border" style={{borderColor:'#e2e8f0',background:'#f8fafc'}}>
-            <button onClick={()=>setView('list')} className="flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg transition-all" style={{background:view==='list'?'#1A77A3':'transparent',color:view==='list'?'#fff':'#94a3b8'}}>
+            <button onClick={()=>setView('list')} className="flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg transition-all" style={{background:view==='list'?'#144f6b':'transparent',color:view==='list'?'#fff':'#94a3b8'}}>
               <List className="w-4 h-4"/>Daftar
             </button>
-            <button onClick={()=>setView('calendar')} className="flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg transition-all" style={{background:view==='calendar'?'#1A77A3':'transparent',color:view==='calendar'?'#fff':'#94a3b8'}}>
+            <button onClick={()=>setView('calendar')} className="flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg transition-all" style={{background:view==='calendar'?'#144f6b':'transparent',color:view==='calendar'?'#fff':'#94a3b8'}}>
               <Calendar className="w-4 h-4"/>Kalender
             </button>
           </div>
@@ -352,18 +352,18 @@ export function WorshipSchedules() {
               {val:filterStatus,set:(v:string)=>setFilterStatus(v as StatusFilter),opts:[{v:'All',l:'Semua Status'},{v:'Terjadwal',l:'Terjadwal'},{v:'Berlangsung',l:'Berlangsung'},{v:'Selesai',l:'Selesai'},{v:'Dibatalkan',l:'Dibatalkan'}]},
             ] as {val:string;set:(v:string)=>void;opts:{v:string;l:string}[]}[]).map((f,i)=>{
               const active=f.val!=='All';
-              return <select key={i} value={f.val} onChange={e=>f.set(e.target.value)} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#1A77A3':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#1A77A3':'#64748b',fontWeight:active?600:400}}>{f.opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>;
+              return <select key={i} value={f.val} onChange={e=>f.set(e.target.value)} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#144f6b':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#144f6b':'#64748b',fontWeight:active?600:400}}>{f.opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>;
             })}
           </div>
         </div>
         {(searchTerm||filterType!=='All'||filterStatus!=='All') ? (
           <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-t" style={{borderColor:'#f1f5f9',background:'#fafbfc'}}>
             <span style={{fontSize:'11px',color:'#94a3b8',fontWeight:500,whiteSpace:'nowrap'}}>Filter aktif:</span>
-            {searchTerm && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}><Search className="w-3 h-3"/>"{`${searchTerm.length>15?searchTerm.slice(0,15)+'…':searchTerm}`}"<button onClick={()=>setSearchTerm('')} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
-            {filterType!=='All' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>{filterType}<button onClick={()=>setFilterType('All')} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
-            {filterStatus!=='All' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>{filterStatus}<button onClick={()=>setFilterStatus('All')} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+            {searchTerm && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}><Search className="w-3 h-3"/>"{`${searchTerm.length>15?searchTerm.slice(0,15)+'…':searchTerm}`}"<button onClick={()=>setSearchTerm('')} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+            {filterType!=='All' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>{filterType}<button onClick={()=>setFilterType('All')} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+            {filterStatus!=='All' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>{filterStatus}<button onClick={()=>setFilterStatus('All')} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
             <button onClick={()=>{setSearchTerm('');setFilterType('All');setFilterStatus('All');}} className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border transition-all hover:bg-red-50" style={{borderColor:'#fca5a5',color:'#ef4444'}}><X className="w-3 h-3"/>Reset Semua</button>
-            <span className="ml-auto text-xs font-semibold" style={{color:'#1A77A3'}}>{filteredSchedules.length} jadwal ditemukan</span>
+            <span className="ml-auto text-xs font-semibold" style={{color:'#144f6b'}}>{filteredSchedules.length} jadwal ditemukan</span>
           </div>
         ) : (
           <div className="px-3 pb-2 flex justify-end"><span style={{fontSize:'12px',color:'#94a3b8',fontWeight:500}}>{filteredSchedules.length} jadwal total</span></div>
@@ -404,7 +404,7 @@ export function WorshipSchedules() {
                       {/* Title row */}
                       <div className="flex items-start justify-between gap-2 mb-3">
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-900 truncate group-hover:text-[#1A77A3] transition-colors">{schedule.title}</h3>
+                          <h3 className="font-semibold text-gray-900 truncate group-hover:text-[#144f6b] transition-colors">{schedule.title}</h3>
                           {schedule.sermon_theme && (
                             <p className="text-xs text-gray-500 mt-0.5 italic truncate">"{schedule.sermon_theme}"</p>
                           )}
@@ -454,7 +454,7 @@ export function WorshipSchedules() {
                     <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => setShowDetail(schedule)}
-                        className="flex items-center gap-1.5 text-xs text-[#1A77A3] hover:text-[#144f6b] font-medium"
+                        className="flex items-center gap-1.5 text-xs text-[#144f6b] hover:text-[#144f6b] font-medium"
                       >
                         <Eye className="w-3.5 h-3.5" />
                         Detail
@@ -465,7 +465,7 @@ export function WorshipSchedules() {
                             <button
                               onMouseDown={e=>e.preventDefault()}
                               onClick={() => openEdit(schedule)}
-                              className="p-1.5 text-[#1A77A3] hover:bg-[#f0ede5] rounded-lg transition-colors"
+                              className="p-1.5 text-[#144f6b] hover:bg-[#f0ede5] rounded-lg transition-colors"
                               data-tooltip="Edit"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
@@ -662,7 +662,7 @@ export function WorshipSchedules() {
                         : User;
                       const iconColor = key.includes('pengkhotbah') ? 'text-blue-500'
                         : key.includes('liturgis') ? 'text-purple-500'
-                        : key.includes('pemimpin pujian') ? 'text-[#1A77A3]'
+                        : key.includes('pemimpin pujian') ? 'text-[#144f6b]'
                         : key.includes('pianis') ? 'text-green-500'
                         : key.includes('multimedia') ? 'text-orange-500'
                         : 'text-gray-500';
@@ -698,7 +698,7 @@ export function WorshipSchedules() {
                   <button
                     onMouseDown={e=>e.preventDefault()}
                     onClick={() => { setShowDetail(null); openEdit(showDetail); }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1A77A3] text-white rounded-lg text-sm hover:bg-[#144f6b] transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#144f6b] text-white rounded-lg text-sm hover:bg-[#144f6b] transition-colors"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                     Edit
@@ -744,7 +744,7 @@ export function WorshipSchedules() {
                 {/* Informasi Dasar */}
                 <div className="bg-[#f0f7fb] rounded-xl p-4 border border-[#f0ede5] space-y-4">
                   <div className="flex items-center gap-2 pb-1">
-                    <div className="w-7 h-7 bg-[#1A77A3] rounded-lg flex items-center justify-center">
+                    <div className="w-7 h-7 bg-[#144f6b] rounded-lg flex items-center justify-center">
                       <Calendar className="w-3.5 h-3.5 text-white" />
                     </div>
                     <span className="font-semibold text-gray-800 text-sm">Informasi Dasar</span>

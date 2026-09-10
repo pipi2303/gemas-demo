@@ -228,7 +228,7 @@ export function FinanceApproval({ onNavigate }: { onNavigate?: (page: string) =>
           {queueMeta && queueMeta.page < queueMeta.totalPages && (
             <div className="flex items-center justify-center py-3 border-t border-slate-100">
               <button onClick={loadMoreQueue} disabled={loadingMoreQueue}
-                className="text-xs font-medium text-[#1A77A3] hover:underline disabled:opacity-50 flex items-center gap-1.5">
+                className="text-xs font-medium text-[#144f6b] hover:underline disabled:opacity-50 flex items-center gap-1.5">
                 {loadingMoreQueue && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 Muat Lebih Banyak ({queue.length} dari {queueMeta.total})
               </button>

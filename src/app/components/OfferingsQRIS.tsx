@@ -44,7 +44,7 @@ const compactRp = (n: number) => { if (n >= 1e9) return `Rp ${(n/1e9).toFixed(1)
 
 const TYPE_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
   'Mingguan':     { bg: '#eff6ff', text: '#2563eb', dot: '#3b82f6' },
-  'Syukur':       { bg: '#f0f7fb', text: '#144f6b', dot: '#1A77A3' },
+  'Syukur':       { bg: '#f0f7fb', text: '#144f6b', dot: '#144f6b' },
   'Persepuluhan': { bg: '#f5f3ff', text: '#5b21b6', dot: '#3a7fa0' },
   'Pembangunan':  { bg: '#fff7ed', text: '#9a3412', dot: '#9c9486' },
   'Diakonia':     { bg: '#fdf2f8', text: '#86198f', dot: '#ec4899' },
@@ -105,7 +105,7 @@ function SparkBar({ data, colors }: { data: { name: string; value: number }[]; c
   );
 }
 
-function Sparkline({ data, color = '#1A77A3' }: { data: { name: string; v: number }[]; color?: string }) {
+function Sparkline({ data, color = '#144f6b' }: { data: { name: string; v: number }[]; color?: string }) {
   const W = 420, H = 130;
   const pad = { t: 8, r: 8, b: 26, l: 46 };
   const iW = W-pad.l-pad.r, iH = H-pad.t-pad.b;
@@ -219,7 +219,7 @@ export function OfferingsQRIS() {
     });
 
     // Per-sektor stats
-    const SECTOR_COLORS_S = ['#3b82f6','#3a7fa0','#1A77A3','#c2baaa','#1A77A3'];
+    const SECTOR_COLORS_S = ['#3b82f6','#3a7fa0','#144f6b','#c2baaa','#144f6b'];
     const bySector = sectors.map((sec, i) => {
       const secMemIds = members.filter(m => m.sectorId === sec.id).map(m => m.id);
       const secOff = yearOff.filter(o => o.memberId && secMemIds.includes(o.memberId));
@@ -274,7 +274,7 @@ export function OfferingsQRIS() {
   const pagedSorted = sortedOfferings.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const SortIcon = ({col}:{col:string}) => {
     if(sortKey!==col) return <ArrowUpDown className="w-3 h-3 opacity-40"/>;
-    return sortDir==='asc'?<ArrowUp className="w-3 h-3 text-[#1A77A3]"/>:<ArrowDown className="w-3 h-3 text-[#1A77A3]"/>;
+    return sortDir==='asc'?<ArrowUp className="w-3 h-3 text-[#144f6b]"/>:<ArrowDown className="w-3 h-3 text-[#144f6b]"/>;
   };
 
   // ── CRUD handlers ────────────────────────────────────────────────────────────
@@ -385,7 +385,7 @@ export function OfferingsQRIS() {
   return (
     <div className="space-y-6">
       {/* ── HERO HEADER ── */}
-      <div className="relative overflow-hidden rounded-2xl p-6" style={{ background: 'linear-gradient(135deg,#144f6b 0%,#1A77A3 60%,#f0ede5 100%)', boxShadow: '0 8px 32px rgba(6,95,70,0.22)' }}>
+      <div className="relative overflow-hidden rounded-2xl p-6" style={{ background: 'linear-gradient(135deg,#144f6b 0%,#144f6b 60%,#f0ede5 100%)', boxShadow: '0 8px 32px rgba(6,95,70,0.22)' }}>
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle,rgba(255,255,255,0.8) 1px,transparent 1px)', backgroundSize: '20px 20px' }} />
         <div className="relative flex items-center justify-between flex-wrap gap-4">
           <div>
@@ -414,8 +414,8 @@ export function OfferingsQRIS() {
       {/* ── KPI CARDS ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { icon: TrendingUp,  label: 'Total Persembahan',   value: compactRp(stats.totalYear),  sub: `Tahun ${filterYear}`,      color: '#1A77A3', bg: '#1A77A3' },
-          { icon: Calendar,    label: 'Bulan Ini',            value: compactRp(stats.totalMonth), sub: 'Bulan berjalan',           color: '#3b82f6', bg: '#1A77A3' },
+          { icon: TrendingUp,  label: 'Total Persembahan',   value: compactRp(stats.totalYear),  sub: `Tahun ${filterYear}`,      color: '#144f6b', bg: '#144f6b' },
+          { icon: Calendar,    label: 'Bulan Ini',            value: compactRp(stats.totalMonth), sub: 'Bulan berjalan',           color: '#3b82f6', bg: '#144f6b' },
           { icon: QrCode,      label: 'Via QRIS/Transfer',    value: compactRp((stats.byMethod.find(m=>m.name==='QRIS')?.value||0)+(stats.byMethod.find(m=>m.name==='Transfer')?.value||0)), sub: 'Non-tunai', color: '#3a7fa0', bg: '#3a7fa0' },
           { icon: Wallet,      label: 'Minggu Ini',           value: compactRp(stats.totalWeek),  sub: '7 hari terakhir',         color: '#c2baaa', bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)' },
         ].map((c, i) => (
@@ -448,10 +448,10 @@ export function OfferingsQRIS() {
           <button onClick={handlePrint} className="flex items-center gap-2 px-3 py-2 rounded-xl border transition-colors hover:bg-gray-50" style={{ fontSize: '13px', borderColor: '#e2e8f0' }}>
             <Printer className="w-4 h-4 text-gray-500" />Cetak
           </button>
-          <button onMouseDown={e=>e.preventDefault()} onClick={openDepositModal} data-tooltip="Agregasi persembahan yang belum disetor menjadi transaksi Finance Add-on" className="flex items-center gap-2 px-3 py-2 rounded-xl border font-semibold transition-colors hover:bg-[#f0f7fb]" style={{ fontSize: '13px', borderColor: '#1A77A3', color: '#1A77A3' }}>
+          <button onMouseDown={e=>e.preventDefault()} onClick={openDepositModal} data-tooltip="Agregasi persembahan yang belum disetor menjadi transaksi Finance Add-on" className="flex items-center gap-2 px-3 py-2 rounded-xl border font-semibold transition-colors hover:bg-[#f0f7fb]" style={{ fontSize: '13px', borderColor: '#144f6b', color: '#144f6b' }}>
             <Landmark className="w-4 h-4" />Setor ke Buku Besar
           </button>
-          <button onMouseDown={e=>e.preventDefault()} onClick={openCreate} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white font-semibold transition-colors" style={{ background: '#1A77A3', fontSize: '13px', boxShadow: '0 2px 8px rgba(26,119,163,0.3)' }}>
+          <button onMouseDown={e=>e.preventDefault()} onClick={openCreate} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white font-semibold transition-colors" style={{ background: '#144f6b', fontSize: '13px', boxShadow: '0 2px 8px rgba(20,79,107,0.3)' }}>
             <Plus className="w-4 h-4" />Catat Persembahan
           </button>
         </div>
@@ -489,8 +489,8 @@ export function OfferingsQRIS() {
             <div className="p-3 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <span style={{fontSize:'9px',fontWeight:700,letterSpacing:'0.08em',color:'#b0bec5',textTransform:'uppercase',minWidth:'68px'}}>Periode</span>
-                {(()=>{const ay=true;return <select value={filterYear} onChange={e=>{setFilterYear(Number(e.target.value));setPage(1);}} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:'#1A77A3',background:'#f0f7fb',color:'#1A77A3',fontWeight:600}}>{years.map(y=><option key={y} value={y}>{y}</option>)}</select>;})()}
-                {(()=>{const active=filterMonth>=0;return <select value={filterMonth} onChange={e=>{setFilterMonth(Number(e.target.value));setPage(1);}} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#1A77A3':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#1A77A3':'#64748b',fontWeight:active?600:400}}><option value={-1}>Semua Bulan</option>{MONTH_FULL.map((m,i)=><option key={i} value={i}>{m}</option>)}</select>;})()}
+                {(()=>{const ay=true;return <select value={filterYear} onChange={e=>{setFilterYear(Number(e.target.value));setPage(1);}} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:'#144f6b',background:'#f0f7fb',color:'#144f6b',fontWeight:600}}>{years.map(y=><option key={y} value={y}>{y}</option>)}</select>;})()}
+                {(()=>{const active=filterMonth>=0;return <select value={filterMonth} onChange={e=>{setFilterMonth(Number(e.target.value));setPage(1);}} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#144f6b':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#144f6b':'#64748b',fontWeight:active?600:400}}><option value={-1}>Semua Bulan</option>{MONTH_FULL.map((m,i)=><option key={i} value={i}>{m}</option>)}</select>;})()}
               </div>
               <div style={{height:'1px',background:'#f1f5f9'}}/>
               <div className="flex flex-wrap items-center gap-2">
@@ -500,19 +500,19 @@ export function OfferingsQRIS() {
                   {val:filterMethod,set:(v:string)=>{setFilterMethod(v);setPage(1);},opts:[{v:'all',l:'Semua Metode'},...METODE_PEMBAYARAN.map(m=>({v:m,l:m}))]},
                 ] as {val:string;set:(v:string)=>void;opts:{v:string;l:string}[]}[]).map((f,i)=>{
                   const active=f.val!=='all';
-                  return <select key={i} value={f.val} onChange={e=>f.set(e.target.value)} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#1A77A3':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#1A77A3':'#64748b',fontWeight:active?600:400}}>{f.opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>;
+                  return <select key={i} value={f.val} onChange={e=>f.set(e.target.value)} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#144f6b':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#144f6b':'#64748b',fontWeight:active?600:400}}>{f.opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>;
                 })}
               </div>
             </div>
             {(filterMonth>=0||filterType!=='all'||filterMethod!=='all'||search) ? (
               <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-t" style={{borderColor:'#f1f5f9',background:'#fafbfc'}}>
                 <span style={{fontSize:'11px',color:'#94a3b8',fontWeight:500,whiteSpace:'nowrap'}}>Filter aktif:</span>
-                {search && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}><Search className="w-3 h-3"/>"{search.length>15?search.slice(0,15)+'…':search}"<button onClick={()=>{setSearch('');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
-                {filterMonth>=0 && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>{MONTH_FULL[filterMonth]}<button onClick={()=>{setFilterMonth(-1);setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
-                {filterType!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>{filterType}<button onClick={()=>{setFilterType('all');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
-                {filterMethod!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>{filterMethod}<button onClick={()=>{setFilterMethod('all');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+                {search && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}><Search className="w-3 h-3"/>"{search.length>15?search.slice(0,15)+'…':search}"<button onClick={()=>{setSearch('');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+                {filterMonth>=0 && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>{MONTH_FULL[filterMonth]}<button onClick={()=>{setFilterMonth(-1);setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+                {filterType!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>{filterType}<button onClick={()=>{setFilterType('all');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+                {filterMethod!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>{filterMethod}<button onClick={()=>{setFilterMethod('all');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
                 <button onClick={()=>{setFilterMonth(-1);setFilterType('all');setFilterMethod('all');setSearch('');setPage(1);}} className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border transition-all hover:bg-red-50" style={{borderColor:'#fca5a5',color:'#ef4444'}}><X className="w-3 h-3"/>Reset Semua</button>
-                <span className="ml-auto text-xs font-semibold" style={{color:'#1A77A3'}}>{filtered.length} transaksi ditemukan</span>
+                <span className="ml-auto text-xs font-semibold" style={{color:'#144f6b'}}>{filtered.length} transaksi ditemukan</span>
               </div>
             ) : (
               <div className="px-3 pb-2 flex justify-end"><span style={{fontSize:'12px',color:'#94a3b8',fontWeight:500}}>{filtered.length} transaksi total</span></div>
@@ -521,7 +521,7 @@ export function OfferingsQRIS() {
 
           {/* Summary strip */}
           <div className="flex items-center justify-between px-1">
-            <p style={{ fontSize: '12.5px', color: '#64748b' }}>{filtered.length} transaksi · Total: <strong style={{ color: '#1A77A3' }}>{formatRp(filteredTotal)}</strong></p>
+            <p style={{ fontSize: '12.5px', color: '#64748b' }}>{filtered.length} transaksi · Total: <strong style={{ color: '#144f6b' }}>{formatRp(filteredTotal)}</strong></p>
             <p style={{ fontSize: '12.5px', color: '#94a3b8' }}>Halaman {page} / {totalPages}</p>
           </div>
 
@@ -569,7 +569,7 @@ export function OfferingsQRIS() {
                       <td className="px-4 py-3" style={{ fontSize: '13px', color: '#374151' }}>{donor}</td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex flex-col items-end gap-0.5">
-                          <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#1A77A3', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{formatRp(o.amount)}</span>
+                          <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#144f6b', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{formatRp(o.amount)}</span>
                           {o.depositedTransactionId && (
                             <span data-tooltip="Sudah disetor ke Finance Add-on" className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold" style={{ background: '#f0fdf4', color: '#15803d' }}>
                               <BadgeCheck className="w-2.5 h-2.5" />Disetor
@@ -604,7 +604,7 @@ export function OfferingsQRIS() {
               {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
                 const p = page <= 4 ? i + 1 : page >= totalPages - 3 ? totalPages - 6 + i : page - 3 + i;
                 if (p < 1 || p > totalPages) return null;
-                return <button key={p} onClick={() => setPage(p)} className="w-8 h-8 rounded-lg text-sm font-semibold transition-colors" style={{ background: page === p ? '#1A77A3' : 'white', color: page === p ? 'white' : '#374151', border: '1px solid #e2e8f0' }}>{p}</button>;
+                return <button key={p} onClick={() => setPage(p)} className="w-8 h-8 rounded-lg text-sm font-semibold transition-colors" style={{ background: page === p ? '#144f6b' : 'white', color: page === p ? 'white' : '#374151', border: '1px solid #e2e8f0' }}>{p}</button>;
               })}
               <button onClick={() => setPage(p => Math.min(totalPages, p+1))} disabled={page === totalPages} data-tooltip="Halaman Berikutnya"
                 className="w-8 h-8 rounded-lg flex items-center justify-center disabled:opacity-40 hover:bg-gray-100 transition-colors" style={{ border: '1px solid #e2e8f0' }}>
@@ -655,7 +655,7 @@ export function OfferingsQRIS() {
             {/* Per metode */}
             <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
               <p style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', fontFamily: "'Plus Jakarta Sans', sans-serif", marginBottom: '12px' }}>Persembahan per Metode Pembayaran</p>
-              <SparkBar data={stats.byMethod.map(m => ({ name: m.name, value: m.value }))} colors={['#1A77A3', '#3b82f6', '#3a7fa0']} />
+              <SparkBar data={stats.byMethod.map(m => ({ name: m.name, value: m.value }))} colors={['#144f6b', '#3b82f6', '#3a7fa0']} />
               <div className="grid grid-cols-3 gap-3 mt-3">
                 {stats.byMethod.map((m, i) => {
                   const mc = METHOD_COLORS[m.name] || { bg: '#f8fafc', text: '#64748b' };
@@ -674,7 +674,7 @@ export function OfferingsQRIS() {
           {/* Tren bulanan */}
           <div className="bg-white rounded-2xl p-5" style={{ border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
             <p style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', fontFamily: "'Plus Jakarta Sans', sans-serif", marginBottom: '12px' }}>Tren Persembahan Bulanan {filterYear}</p>
-            <Sparkline data={stats.monthly} color="#1A77A3" />
+            <Sparkline data={stats.monthly} color="#144f6b" />
           </div>
 
           {/* Per Sektor */}
@@ -730,11 +730,11 @@ export function OfferingsQRIS() {
                       <div className="flex items-center gap-3">
                         <span style={{ fontSize: '11.5px', color: '#94a3b8' }}>Target: {compactRp(target)}</span>
                         <span style={{ fontSize: '12.5px', fontWeight: 700, color: tc.text }}>{compactRp(actual)}</span>
-                        <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold" style={{ background: pct >= 100 ? '#f0f7fb' : pct >= 75 ? '#fef3c7' : '#fef2f2', color: pct >= 100 ? '#1A77A3' : pct >= 75 ? '#9c9486' : '#dc2626' }}>{pct.toFixed(0)}%</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold" style={{ background: pct >= 100 ? '#f0f7fb' : pct >= 75 ? '#fef3c7' : '#fef2f2', color: pct >= 100 ? '#144f6b' : pct >= 75 ? '#9c9486' : '#dc2626' }}>{pct.toFixed(0)}%</span>
                       </div>
                     </div>
                     <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${Math.min(100, pct)}%`, background: pct >= 100 ? '#1A77A3' : pct >= 75 ? 'linear-gradient(90deg,#f59e0b,#fbbf24)' : tc.dot }} />
+                      <div className="h-full rounded-full" style={{ width: `${Math.min(100, pct)}%`, background: pct >= 100 ? '#144f6b' : pct >= 75 ? 'linear-gradient(90deg,#f59e0b,#fbbf24)' : tc.dot }} />
                     </div>
                   </div>
                 );
@@ -780,7 +780,7 @@ export function OfferingsQRIS() {
                         </td>
                       ))}
                       <td className="px-4 py-3 text-right" style={{ fontSize: '12.5px', color: '#64748b' }}>{row.count}x</td>
-                      <td className="px-4 py-3 text-right" style={{ fontSize: '13px', fontWeight: 700, color: row.total > 0 ? '#1A77A3' : '#94a3b8', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                      <td className="px-4 py-3 text-right" style={{ fontSize: '13px', fontWeight: 700, color: row.total > 0 ? '#144f6b' : '#94a3b8', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                         {row.total > 0 ? compactRp(row.total) : '–'}
                       </td>
                     </tr>
@@ -812,7 +812,7 @@ export function OfferingsQRIS() {
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => { setShowForm(false); resetForm(); }} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}>
             {/* Header */}
-            <div className="flex-shrink-0 px-6 py-4 flex items-center justify-between" style={{ background: '#1A77A3', borderBottom: '1px solid rgba(255,255,255,0.1)', cursor: 'move' }} onMouseDown={onMouseDown}>
+            <div className="flex-shrink-0 px-6 py-4 flex items-center justify-between" style={{ background: '#144f6b', borderBottom: '1px solid rgba(255,255,255,0.1)', cursor: 'move' }} onMouseDown={onMouseDown}>
               <div>
                 <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '17px', fontWeight: 800, color: 'white' }}>{editId ? 'Edit Catatan Persembahan' : 'Catat Persembahan Baru'}</h2>
                 <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>{editId ? 'Ubah informasi persembahan' : 'Catat persembahan tunai, transfer, atau QRIS'}</p>
@@ -890,7 +890,7 @@ export function OfferingsQRIS() {
               {/* Footer */}
               <div className="flex-shrink-0 px-6 py-4 flex justify-end gap-2" style={{ borderTop: '1px solid #f1f5f9' }}>
                 <button type="button" onClick={() => { setShowForm(false); resetForm(); }} className="px-4 py-2 rounded-xl border font-semibold text-sm transition-colors hover:bg-gray-50" style={{ borderColor: '#e2e8f0', color: '#475569' }}>Batal</button>
-                <button type="submit" className="px-5 py-2 rounded-xl text-white font-semibold text-sm transition-colors" style={{ background: '#1A77A3', boxShadow: '0 2px 8px rgba(26,119,163,0.3)' }}>
+                <button type="submit" className="px-5 py-2 rounded-xl text-white font-semibold text-sm transition-colors" style={{ background: '#144f6b', boxShadow: '0 2px 8px rgba(20,79,107,0.3)' }}>
                   {editId ? 'Simpan Perubahan' : 'Simpan Persembahan'}
                 </button>
               </div>
@@ -905,7 +905,7 @@ export function OfferingsQRIS() {
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => { if (!depositSubmitting) setDepositOpen(false); }} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
             {/* Header */}
-            <div className="flex-shrink-0 px-6 py-4 flex items-center justify-between" style={{ background: '#1A77A3', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+            <div className="flex-shrink-0 px-6 py-4 flex items-center justify-between" style={{ background: '#144f6b', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
               <div className="flex items-center gap-2.5">
                 <Landmark className="w-5 h-5 text-white" />
                 <div>
@@ -934,7 +934,7 @@ export function OfferingsQRIS() {
                           <p style={{ fontSize: '12px', fontWeight: 700, color: '#144f6b' }}>{t.bucket === 'CASH' ? 'Tunai (BKM)' : 'Transfer/QRIS (BBM)'}</p>
                           <p style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace' }}>{t.voucherNumber}</p>
                         </div>
-                        <p style={{ fontSize: '13.5px', fontWeight: 800, color: '#1A77A3' }}>{formatRp(t.amount)}</p>
+                        <p style={{ fontSize: '13.5px', fontWeight: 800, color: '#144f6b' }}>{formatRp(t.amount)}</p>
                       </div>
                     ))}
                   </div>
@@ -1004,7 +1004,7 @@ export function OfferingsQRIS() {
             {/* Footer */}
             <div className="flex-shrink-0 px-6 py-4 flex justify-end gap-2" style={{ borderTop: '1px solid #f1f5f9' }}>
               {depositResult ? (
-                <button onClick={() => setDepositOpen(false)} className="px-5 py-2 rounded-xl text-white font-semibold text-sm transition-colors" style={{ background: '#1A77A3', boxShadow: '0 2px 8px rgba(26,119,163,0.3)' }}>Selesai</button>
+                <button onClick={() => setDepositOpen(false)} className="px-5 py-2 rounded-xl text-white font-semibold text-sm transition-colors" style={{ background: '#144f6b', boxShadow: '0 2px 8px rgba(20,79,107,0.3)' }}>Selesai</button>
               ) : (
                 <>
                   <button type="button" disabled={depositSubmitting} onClick={() => setDepositOpen(false)} className="px-4 py-2 rounded-xl border font-semibold text-sm transition-colors hover:bg-gray-50 disabled:opacity-50" style={{ borderColor: '#e2e8f0', color: '#475569' }}>Batal</button>
@@ -1013,7 +1013,7 @@ export function OfferingsQRIS() {
                     disabled={!depositPreview || depositPreview.offeringCount === 0 || depositSubmitting || depositPreviewLoading}
                     onClick={handleConfirmDeposit}
                     className="flex items-center gap-2 px-5 py-2 rounded-xl text-white font-semibold text-sm transition-colors disabled:opacity-50"
-                    style={{ background: '#1A77A3', boxShadow: '0 2px 8px rgba(26,119,163,0.3)' }}
+                    style={{ background: '#144f6b', boxShadow: '0 2px 8px rgba(20,79,107,0.3)' }}
                   >
                     {depositSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                     Proses Setoran

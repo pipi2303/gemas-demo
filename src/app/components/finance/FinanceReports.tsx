@@ -29,7 +29,7 @@ async function callApi<T = any>(url: string): Promise<T> {
   return res.data as T;
 }
 
-const inputCls = 'w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]';
+const inputCls = 'w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]';
 const labelCls = 'block text-xs font-medium text-slate-600 mb-1';
 
 type Tab = 'balance-sheet' | 'activity-statement' | 'budget-realization';
@@ -359,7 +359,7 @@ export function FinanceReports({ onNavigate }: { onNavigate?: (page: string) => 
                 onClick={() => setTab(t.key)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                   tab === t.key
-                    ? 'bg-white text-[#1A77A3] shadow-xs'
+                    ? 'bg-white text-[#144f6b] shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >

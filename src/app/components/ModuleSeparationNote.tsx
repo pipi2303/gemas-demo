@@ -39,7 +39,7 @@ export function ModuleSeparationNote({ variant, className = '' }: ModuleSeparati
       className={`flex items-start gap-2.5 rounded-xl border px-3.5 py-2.5 text-xs ${className}`}
       style={{ background: '#f0f7fb', borderColor: '#b8d5e8', color: '#0d1a2d' }}
     >
-      <Info className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#1A77A3' }} />
+      <Info className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#144f6b' }} />
       <p className="leading-relaxed">{TEXT[variant]}</p>
     </div>
   );

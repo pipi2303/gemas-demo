@@ -79,7 +79,7 @@ export function PrayerRequests() {
       'Keuangan': 'bg-green-100 text-green-700',
       'Keluarga': 'bg-[#f0ede5] text-[#144f6b]',
       'Pekerjaan': 'bg-[#f0ede5] text-[#3a7fa0]',
-      'Rohani': 'bg-[#f0ede5] text-[#1A77A3]',
+      'Rohani': 'bg-[#f0ede5] text-[#144f6b]',
       'Lainnya': 'bg-gray-100 text-gray-700'
     };
     return colors[category];

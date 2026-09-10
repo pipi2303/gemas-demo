@@ -108,15 +108,15 @@ function LedgerEntriesTab({ fiscalYearId, accounts }: { fiscalYearId: string; ac
     <div className="space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <select value={accountId} onChange={e => setAccountId(e.target.value)}
-          className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+          className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
           <option value="">— semua akun —</option>
           {postableAccounts.map(a => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}
         </select>
         <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-          className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" />
+          className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
         <span className="text-xs text-slate-400">s/d</span>
         <input type="date" value={to} onChange={e => setTo(e.target.value)}
-          className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" />
+          className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
@@ -167,7 +167,7 @@ function LedgerEntriesTab({ fiscalYearId, accounts }: { fiscalYearId: string; ac
         {entriesMeta && entriesMeta.page < entriesMeta.totalPages && (
           <div className="flex items-center justify-center py-3 border-t border-slate-100">
             <button onClick={loadMore} disabled={loadingMore}
-              className="text-xs font-medium text-[#1A77A3] hover:underline disabled:opacity-50 flex items-center gap-1.5">
+              className="text-xs font-medium text-[#144f6b] hover:underline disabled:opacity-50 flex items-center gap-1.5">
               {loadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Muat Lebih Banyak ({entries.length} dari {entriesMeta.total})
             </button>
@@ -212,7 +212,7 @@ function TrialBalanceTab({ fiscalYearId, periods }: { fiscalYearId: string; peri
     <div className="space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <select value={periodId} onChange={e => setPeriodId(e.target.value)}
-          className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+          className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
           <option value="">— seluruh Tahun Fiskal —</option>
           {periods.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
@@ -330,7 +330,7 @@ export function FinanceLedger({ onNavigate }: { onNavigate?: (page: string) => v
               onClick={() => setTab('entries')}
               className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
                 tab === 'entries'
-                  ? 'bg-white text-[#1A77A3] shadow-xs'
+                  ? 'bg-white text-[#144f6b] shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -340,7 +340,7 @@ export function FinanceLedger({ onNavigate }: { onNavigate?: (page: string) => v
               onClick={() => setTab('trial-balance')}
               className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${
                 tab === 'trial-balance'
-                  ? 'bg-white text-[#1A77A3] shadow-xs'
+                  ? 'bg-white text-[#144f6b] shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >

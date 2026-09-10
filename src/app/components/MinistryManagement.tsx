@@ -17,13 +17,13 @@ type MinistryCategory = 'Pujian & Musik' | 'Pengajaran' | 'Pemuda' | 'Diakonia' 
 
 const CATEGORY_CONFIG: Record<MinistryCategory, { color: string; bg: string; text: string; icon: any; border: string }> = {
   'Pujian & Musik': { color: 'bg-pink-500',    bg: 'bg-pink-50',    text: 'text-pink-700',    icon: Music,      border: 'border-pink-200' },
-  'Pengajaran':     { color: 'bg-blue-500',  bg: 'bg-blue-50',    text: 'text-blue-700',    icon: BookOpen,   border: 'border-blue-200' },
+  'Pengajaran':     { color: 'bg-[#144f6b]', bg: 'bg-[#e8ecf0]',  text: 'text-[#144f6b]',   icon: BookOpen,   border: 'border-[#b8d5e8]' },
   'Pemuda':         { color: 'bg-purple-500',bg: 'bg-purple-50',  text: 'text-purple-700',  icon: Zap,        border: 'border-purple-200' },
-  'Diakonia':       { color: 'bg-[#1A77A3]',bg: 'bg-[#f0f7fb]', text: 'text-[#144f6b]', icon: HandHeart,  border: 'border-[#b8d5e8]' },
-  'Teknologi':      { color: 'bg-[#1A77A3]',    bg: 'bg-[#f0f7fb]',    text: 'text-cyan-700',    icon: Laptop,     border: 'border-cyan-200' },
-  'Kaum Bapak':     { color: 'bg-[#f6f4f0]0', bg: 'bg-[#f6f4f0]',   text: 'text-[#1A77A3]',   icon: UsersRound, border: 'border-[#e8e4d8]' },
+  'Diakonia':       { color: 'bg-[#144f6b]',bg: 'bg-[#f0f7fb]', text: 'text-[#144f6b]', icon: HandHeart,  border: 'border-[#b8d5e8]' },
+  'Teknologi':      { color: 'bg-[#144f6b]',    bg: 'bg-[#f0f7fb]',    text: 'text-cyan-700',    icon: Laptop,     border: 'border-cyan-200' },
+  'Kaum Bapak':     { color: 'bg-[#f6f4f0]',  bg: 'bg-[#f6f4f0]',   text: 'text-[#144f6b]',   icon: UsersRound, border: 'border-[#e8e4d8]' },
   'Kaum Ibu':       { color: 'bg-fuchsia-500', bg: 'bg-fuchsia-50', text: 'text-fuchsia-700', icon: Heart,      border: 'border-fuchsia-200' },
-  'Lansia':         { color: 'bg-[#1A77A3]',    bg: 'bg-[#f0f7fb]',    text: 'text-[#144f6b]',    icon: Coffee,     border: 'border-teal-200' },
+  'Lansia':         { color: 'bg-[#144f6b]',    bg: 'bg-[#f0f7fb]',    text: 'text-[#144f6b]',    icon: Coffee,     border: 'border-teal-200' },
   'Protokol':       { color: 'bg-slate-500',   bg: 'bg-slate-50',   text: 'text-slate-700',   icon: Award,      border: 'border-slate-200' },
   'Lainnya':        { color: 'bg-gray-500',   bg: 'bg-gray-50',    text: 'text-gray-700',    icon: Church,     border: 'border-gray-200' },
 };
@@ -224,11 +224,11 @@ export function MinistryManagement() {
   // ── Color palette for index-based ─────────────────────────────────────────
   const PALETTES = [
     'bg-blue-500',
-    'bg-[#1A77A3]',
+    'bg-[#144f6b]',
     'bg-purple-500',
     'bg-[#f6f4f0]0',
     'bg-[#f6f4f0]0',
-    'bg-[#1A77A3]',
+    'bg-[#144f6b]',
     'bg-fuchsia-500',
     'from-lime-500 to-[#144f6b]',
     'bg-slate-500',
@@ -242,7 +242,7 @@ export function MinistryManagement() {
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#1A77A3] rounded-xl flex items-center justify-center shadow">
+          <div className="w-10 h-10 bg-[#144f6b] rounded-xl flex items-center justify-center shadow">
             <Heart className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -252,7 +252,7 @@ export function MinistryManagement() {
         </div>
         {canCreate && (
           <button onMouseDown={e=>e.preventDefault()} onClick={openAdd}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1A77A3] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm">
+            className="flex items-center gap-2 px-4 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm">
             <Plus className="w-4 h-4" /> Tambah Komisi
           </button>
         )}
@@ -261,8 +261,8 @@ export function MinistryManagement() {
       {/* ── Stats Row ───────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Total Komisi', value: stats.total, icon: Church, color: 'text-[#1A77A3]', bg: 'bg-[#f6f4f0]' },
-          { label: 'Aktif', value: stats.aktif, icon: CheckCircle, color: 'text-[#1A77A3]', bg: 'bg-[#f0f7fb]' },
+          { label: 'Total Komisi', value: stats.total, icon: Church, color: 'text-[#144f6b]', bg: 'bg-[#f6f4f0]' },
+          { label: 'Aktif', value: stats.aktif, icon: CheckCircle, color: 'text-[#144f6b]', bg: 'bg-[#f0f7fb]' },
           { label: 'Tidak Aktif', value: stats.nonaktif, icon: X, color: 'text-gray-500', bg: 'bg-gray-100' },
           { label: 'Total Anggota', value: stats.totalMembers, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
         ].map((s, i) => (
@@ -306,7 +306,7 @@ export function MinistryManagement() {
         <div className="flex rounded-lg border border-gray-200 overflow-hidden">
           {([['grid', LayoutGrid], ['list', List]] as const).map(([mode, Icon]) => (
             <button key={mode} onClick={() => setViewMode(mode as any)}
-              className={`p-2 transition-colors ${viewMode === mode ? 'bg-[#1A77A3] text-white' : 'text-gray-500 hover:bg-gray-50'}`}>
+              className={`p-2 transition-colors ${viewMode === mode ? 'bg-[#144f6b] text-white' : 'text-gray-500 hover:bg-gray-50'}`}>
               <Icon className="w-4 h-4" />
             </button>
           ))}
@@ -332,7 +332,7 @@ export function MinistryManagement() {
           {([['all','Semua'],['aktif','Aktif'],['nonaktif','Nonaktif']] as const).map(([v, l]) => (
             <button key={v} onClick={() => setFilterActive(v)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                filterActive === v ? 'bg-[#1A77A3] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                filterActive === v ? 'bg-[#144f6b] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}>{l}</button>
           ))}
         </div>
@@ -346,7 +346,7 @@ export function MinistryManagement() {
             <Heart className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500">Belum ada komisi pelayanan</p>
             {canCreate && (
-              <button onMouseDown={e=>e.preventDefault()} onClick={openAdd} className="mt-4 px-4 py-2 bg-[#f0ede5] text-[#1A77A3] rounded-lg text-sm hover:bg-[#e8e4d8] transition-colors">
+              <button onMouseDown={e=>e.preventDefault()} onClick={openAdd} className="mt-4 px-4 py-2 bg-[#f0ede5] text-[#144f6b] rounded-lg text-sm hover:bg-[#e8e4d8] transition-colors">
                 + Tambah Komisi
               </button>
             )}
@@ -412,7 +412,7 @@ export function MinistryManagement() {
                     {/* Actions */}
                     <div className="flex gap-2 pt-3 border-t border-gray-100">
                       <button onClick={() => openDetail(ministry)}
-                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#1A77A3] text-white rounded-lg text-xs hover:bg-[#144f6b] transition-colors">
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#144f6b] text-white rounded-lg text-xs hover:bg-[#144f6b] transition-colors">
                         <Eye className="w-3.5 h-3.5" /> Lihat Detail
                       </button>
                       {canEdit && (
@@ -576,7 +576,7 @@ export function MinistryManagement() {
                             </div>
                             <div className="min-w-0 flex-1">
                               <p data-tooltip={name} data-tooltip-truncate className="text-xs font-medium text-gray-800 truncate">{name}</p>
-                              {isLeader && <p className="text-[10px] text-[#1A77A3] font-semibold">Ketua</p>}
+                              {isLeader && <p className="text-[10px] text-[#144f6b] font-semibold">Ketua</p>}
                             </div>
                           </div>
                         );
@@ -592,7 +592,7 @@ export function MinistryManagement() {
                     <p className={`text-xs font-medium mt-0.5 ${cfg.text}`}>Total Anggota</p>
                   </div>
                   <div className={`p-3 rounded-xl text-center ${ministry.isActive ? 'bg-[#f0f7fb] border border-[#b8d5e8]' : 'bg-gray-100 border border-gray-200'}`}>
-                    <CheckCircle className={`w-7 h-7 mx-auto mb-0.5 ${ministry.isActive ? 'text-[#1A77A3]' : 'text-gray-400'}`} />
+                    <CheckCircle className={`w-7 h-7 mx-auto mb-0.5 ${ministry.isActive ? 'text-[#144f6b]' : 'text-gray-400'}`} />
                     <p className={`text-xs font-semibold ${ministry.isActive ? 'text-[#144f6b]' : 'text-gray-500'}`}>
                       {ministry.isActive ? 'Aktif Melayani' : 'Nonaktif'}
                     </p>
@@ -610,7 +610,7 @@ export function MinistryManagement() {
                         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Jadwal Pelayanan ({schedules.length})</p>
                         {canCreate && (
                           <button onMouseDown={e=>e.preventDefault()} onClick={() => openAddSchedule(ministry.id)}
-                            className="flex items-center gap-1 text-xs text-[#1A77A3] hover:text-[#144f6b] font-medium transition-colors">
+                            className="flex items-center gap-1 text-xs text-[#144f6b] hover:text-[#144f6b] font-medium transition-colors">
                             <Plus className="w-3.5 h-3.5" />Tambah
                           </button>
                         )}
@@ -620,7 +620,7 @@ export function MinistryManagement() {
                           <Calendar className="w-7 h-7 text-gray-300 mx-auto mb-1" />
                           <p className="text-xs text-gray-400">Belum ada jadwal pelayanan</p>
                           {canCreate && (
-                            <button onMouseDown={e=>e.preventDefault()} onClick={() => openAddSchedule(ministry.id)} className="mt-2 text-xs text-[#1A77A3] hover:underline">+ Tambah sekarang</button>
+                            <button onMouseDown={e=>e.preventDefault()} onClick={() => openAddSchedule(ministry.id)} className="mt-2 text-xs text-[#144f6b] hover:underline">+ Tambah sekarang</button>
                           )}
                         </div>
                       ) : (
@@ -628,7 +628,7 @@ export function MinistryManagement() {
                           {schedules.slice(0, 5).map(sch => (
                             <div key={sch.id} className="flex items-center gap-2.5 p-2.5 rounded-xl bg-gray-50 border border-gray-100 hover:border-[#b8d5e8] transition-colors">
                               <div className="w-8 h-8 rounded-lg bg-[#f0f7fb] flex items-center justify-center flex-shrink-0">
-                                <Calendar className="w-4 h-4 text-[#1A77A3]" />
+                                <Calendar className="w-4 h-4 text-[#144f6b]" />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-semibold text-gray-800">
@@ -641,7 +641,7 @@ export function MinistryManagement() {
                                 <div className="flex gap-1 flex-shrink-0">
                                   {canEdit && (
                                     <button onMouseDown={e=>e.preventDefault()} onClick={() => openEditSchedule(sch)} data-tooltip="Edit jadwal"
-                                      className="p-1.5 rounded-lg hover:bg-white hover:shadow-sm transition-all text-gray-400 hover:text-[#1A77A3]">
+                                      className="p-1.5 rounded-lg hover:bg-white hover:shadow-sm transition-all text-gray-400 hover:text-[#144f6b]">
                                       <Pencil className="w-3 h-3" />
                                     </button>
                                   )}
@@ -690,10 +690,10 @@ export function MinistryManagement() {
                   <label className="block text-xs font-medium text-gray-700 mb-1">Nama Komisi / Unit Pelayanan *</label>
                   <input autoFocus type="text" value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} required
                     placeholder="Misal: Pujian & Penyembahan"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" />
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
                   {formData.name && (
                     <p className="text-xs text-gray-400 mt-1">
-                      Kategori terdeteksi: <span className="font-medium text-[#1A77A3]">{detectCategory(formData.name)}</span>
+                      Kategori terdeteksi: <span className="font-medium text-[#144f6b]">{detectCategory(formData.name)}</span>
                     </p>
                   )}
                 </div>
@@ -701,20 +701,20 @@ export function MinistryManagement() {
                   <label className="block text-xs font-medium text-gray-700 mb-1">Deskripsi</label>
                   <textarea value={formData.description} onChange={e => setFormData(p => ({ ...p, description: e.target.value }))}
                     rows={3} placeholder="Deskripsi kegiatan dan tujuan komisi..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3] resize-none" />
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Nama Ketua *</label>
                     <input type="text" value={formData.leader} onChange={e => setFormData(p => ({ ...p, leader: e.target.value }))} required
                       placeholder="Nama ketua komisi"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" />
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
                     <select value={formData.isActive ? 'aktif' : 'nonaktif'}
                       onChange={e => setFormData(p => ({ ...p, isActive: e.target.value === 'aktif' }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
                       <option value="aktif">● Aktif</option>
                       <option value="nonaktif">○ Nonaktif</option>
                     </select>
@@ -726,7 +726,7 @@ export function MinistryManagement() {
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-xs font-medium text-gray-700">Anggota Tim ({formData.memberIds.length} dipilih)</label>
                     <button type="button" onClick={() => setShowMemberSelector(!showMemberSelector)}
-                      className="flex items-center gap-1 text-xs text-[#1A77A3] hover:text-[#1A77A3] font-medium">
+                      className="flex items-center gap-1 text-xs text-[#144f6b] hover:text-[#144f6b] font-medium">
                       <UserPlus className="w-3.5 h-3.5" />
                       {showMemberSelector ? 'Tutup' : 'Pilih Anggota'}
                     </button>
@@ -736,7 +736,7 @@ export function MinistryManagement() {
                   {formData.memberIds.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mb-2">
                       {formData.memberIds.map(id => (
-                        <span key={id} className="flex items-center gap-1 px-2 py-1 bg-[#f0ede5] text-[#1A77A3] rounded-full text-xs font-medium">
+                        <span key={id} className="flex items-center gap-1 px-2 py-1 bg-[#f0ede5] text-[#144f6b] rounded-full text-xs font-medium">
                           {getMemberName(id)}
                           <button type="button" onClick={() => toggleMember(id)} className="hover:text-rose-900">
                             <X className="w-3 h-3" />
@@ -754,7 +754,7 @@ export function MinistryManagement() {
                           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                           <input type="text" placeholder="Cari anggota jemaat..." value={memberSearch}
                             onChange={e => setMemberSearch(e.target.value)}
-                            className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" />
+                            className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
                         </div>
                       </div>
                       <div className="max-h-48 overflow-y-auto">
@@ -764,14 +764,14 @@ export function MinistryManagement() {
                           return (
                             <button key={m.id} type="button" onClick={() => toggleMember(m.id)}
                               className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-[#f2f0ea] transition-colors cursor-pointer group ${selected ? 'bg-[#f6f4f0]' : ''}`}>
-                              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${selected ? 'bg-[#1A77A3] text-white' : 'bg-gray-200 text-gray-600'}`}>
+                              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${selected ? 'bg-[#144f6b] text-white' : 'bg-gray-200 text-gray-600'}`}>
                                 {name.charAt(0)}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p data-tooltip={name} data-tooltip-truncate className="text-sm font-medium text-gray-800 truncate">{name}</p>
                                 <p className="text-xs text-gray-400">{m.membershipType || 'Warga Jemaat'}</p>
                               </div>
-                              {selected && <CheckCircle className="w-4 h-4 text-[#1A77A3] flex-shrink-0" />}
+                              {selected && <CheckCircle className="w-4 h-4 text-[#144f6b] flex-shrink-0" />}
                             </button>
                           );
                         })}
@@ -785,7 +785,7 @@ export function MinistryManagement() {
                 <button type="button" onClick={() => setShowForm(false)}
                   className="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-100 transition-colors">Batal</button>
                 <button type="submit"
-                  className="flex items-center gap-2 px-5 py-2 bg-[#1A77A3] text-white rounded-lg text-sm hover:bg-[#144f6b] transition-colors">
+                  className="flex items-center gap-2 px-5 py-2 bg-[#144f6b] text-white rounded-lg text-sm hover:bg-[#144f6b] transition-colors">
                   <CheckCircle className="w-4 h-4" />{editingId ? 'Simpan Perubahan' : 'Tambah Komisi'}
                 </button>
               </div>
@@ -841,7 +841,7 @@ export function MinistryManagement() {
                   type="date"
                   value={scheduleForm.date}
                   onChange={e => setScheduleForm(p => ({ ...p, date: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                 />
               </div>
 
@@ -851,7 +851,7 @@ export function MinistryManagement() {
                 <select autoFocus
                   value={scheduleForm.serviceType}
                   onChange={e => setScheduleForm(p => ({ ...p, serviceType: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                 >
                   <option value="">-- Pilih jenis --</option>
                   {SERVICE_TYPES_MD.map(t => <option key={t} value={t}>{t}</option>)}
@@ -876,7 +876,7 @@ export function MinistryManagement() {
                         placeholder="Cari anggota..."
                         value={scheduleMemberSearch}
                         onChange={e => setScheduleMemberSearch(e.target.value)}
-                        className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                        className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                       />
                     </div>
                   </div>
@@ -899,11 +899,11 @@ export function MinistryManagement() {
                         return (
                           <button key={m!.id} type="button" onClick={() => toggleScheduleMember(m!.id)}
                             className={`w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-[#f2f0ea] transition-colors ${selected ? 'bg-[#f6f4f0]' : ''}`}>
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${selected ? 'bg-[#1A77A3] text-white' : 'bg-gray-200 text-gray-600'}`}>
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${selected ? 'bg-[#144f6b] text-white' : 'bg-gray-200 text-gray-600'}`}>
                               {name.charAt(0)}
                             </div>
                             <span className="text-sm text-gray-800 truncate flex-1">{name}</span>
-                            {selected && <CheckCircle className="w-3.5 h-3.5 text-[#1A77A3] flex-shrink-0" />}
+                            {selected && <CheckCircle className="w-3.5 h-3.5 text-[#144f6b] flex-shrink-0" />}
                           </button>
                         );
                       });
@@ -922,7 +922,7 @@ export function MinistryManagement() {
                           placeholder="Peran (misal: Pemain Gitar)"
                           value={role}
                           onChange={e => updateScheduleMemberRole(memberId, e.target.value)}
-                          className="w-40 px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#1A77A3]"
+                          className="w-40 px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#144f6b]"
                         />
                         <button type="button" onClick={() => toggleScheduleMember(memberId)}
                           className="p-1 hover:text-red-500 text-gray-400 transition-colors">
@@ -942,7 +942,7 @@ export function MinistryManagement() {
                   onChange={e => setScheduleForm(p => ({ ...p, notes: e.target.value }))}
                   rows={2}
                   placeholder="Catatan tambahan jadwal..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3] resize-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none"
                 />
               </div>
             </div>
@@ -956,7 +956,7 @@ export function MinistryManagement() {
                 type="button"
                 onClick={handleSaveSchedule}
                 disabled={!scheduleForm.date || !scheduleForm.serviceType}
-                className="flex items-center gap-2 px-5 py-2 bg-[#1A77A3] text-white rounded-lg text-sm hover:bg-[#144f6b] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                className="flex items-center gap-2 px-5 py-2 bg-[#144f6b] text-white rounded-lg text-sm hover:bg-[#144f6b] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 <Calendar className="w-4 h-4" />
                 {editingScheduleId ? 'Simpan Perubahan' : 'Tambah Jadwal'}
               </button>

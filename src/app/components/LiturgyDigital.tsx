@@ -203,9 +203,9 @@ const WORSHIP_TYPES: WorshipType[] = ['Minggu','Keluarga','PJJ','Kategorial','Kh
 
 const TYPE_CONFIG: Record<WorshipType, { gradient: string; bg: string; text: string; border: string }> = {
   Minggu:    { gradient: 'from-blue-600 to-indigo-600',   bg: 'bg-[#f0f7fb]',   text: 'text-[#144f6b]',   border: 'border-[#b8d5e8]' },
-  Keluarga:  { gradient: 'from-[#1A77A3] to-[#1A77A3]', bg: 'bg-green-50',  text: 'text-green-700',  border: 'border-green-200' },
+  Keluarga:  { gradient: 'from-[#144f6b] to-[#144f6b]', bg: 'bg-green-50',  text: 'text-green-700',  border: 'border-green-200' },
   PJJ:       { gradient: 'from-purple-600 to-violet-600', bg: 'bg-[#f0f7fb]', text: 'text-[#3a7fa0]', border: 'border-[#b8d5e8]' },
-  Kategorial:{ gradient: 'from-[#1A77A3] to-[#3a7fa0]',  bg: 'bg-[#f6f4f0]',  text: 'text-[#1A77A3]',  border: 'border-[#e8e4d8]' },
+  Kategorial:{ gradient: 'from-[#144f6b] to-[#3a7fa0]',  bg: 'bg-[#f6f4f0]',  text: 'text-[#144f6b]',  border: 'border-[#e8e4d8]' },
   Khusus:    { gradient: 'from-red-600 to-rose-600',      bg: 'bg-red-50',    text: 'text-red-700',    border: 'border-red-200' },
 };
 
@@ -216,7 +216,7 @@ const DEFAULT_TYPE_CONFIG = { gradient: 'from-gray-500 to-gray-600', bg: 'bg-gra
 
 const HYMN_TYPE_LABEL: Record<string, { label: string; color: string; bg: string }> = {
   opening:   { label: 'Pembukaan', color: 'text-[#144f6b]', bg: 'bg-[#f0f7fb]' },
-  offering:  { label: 'Persembahan', color: 'text-[#1A77A3]', bg: 'bg-[#f6f4f0]' },
+  offering:  { label: 'Persembahan', color: 'text-[#144f6b]', bg: 'bg-[#f6f4f0]' },
   communion: { label: 'Komuni', color: 'text-[#3a7fa0]', bg: 'bg-[#f0f7fb]' },
   closing:   { label: 'Penutup', color: 'text-green-700', bg: 'bg-green-50' },
 };
@@ -545,11 +545,11 @@ export function LiturgyDigital() {
                     {/* Actions */}
                     <div className="flex gap-2 pt-3 border-t border-gray-100" onClick={(e) => e.stopPropagation()}>
                       <button onClick={() => { setSelectedLiturgy(l); setActiveDetailTab('urutan'); setView('detail'); }}
-                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#1A77A3] text-white rounded-lg text-xs hover:bg-[#144f6b] transition-colors">
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#144f6b] text-white rounded-lg text-xs hover:bg-[#144f6b] transition-colors">
                         <Eye className="w-3.5 h-3.5" /> Lihat
                       </button>
                       <button onClick={() => handleExportPDF(l)} data-tooltip="Export PDF Buletin"
-                        className="px-3 py-1.5 border border-[#b8d5e8] text-[#1A77A3] rounded-lg text-xs hover:bg-white transition-colors">
+                        className="px-3 py-1.5 border border-[#b8d5e8] text-[#144f6b] rounded-lg text-xs hover:bg-white transition-colors">
                         <Download className="w-3.5 h-3.5" />
                       </button>
                       {canEdit && (
@@ -853,27 +853,27 @@ export function LiturgyDigital() {
                 {/* Nyanyian */}
                 <section className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2"><Music className="w-4 h-4 text-[#1A77A3]" /><span className="font-semibold text-gray-800 text-sm">Nyanyian Jemaat</span></div>
+                    <div className="flex items-center gap-2"><Music className="w-4 h-4 text-[#144f6b]" /><span className="font-semibold text-gray-800 text-sm">Nyanyian Jemaat</span></div>
                     <button type="button" onClick={addHymn}
-                      className="flex items-center gap-1 px-2.5 py-1.5 bg-[#f0ede5] text-[#1A77A3] rounded-lg text-xs hover:bg-[#e8e4d8] transition-colors">
+                      className="flex items-center gap-1 px-2.5 py-1.5 bg-[#f0ede5] text-[#144f6b] rounded-lg text-xs hover:bg-[#e8e4d8] transition-colors">
                       <Plus className="w-3.5 h-3.5" /> Tambah
                     </button>
                   </div>
                   {formData.hymns.map((h, i) => (
                     <div key={i} className="grid grid-cols-4 gap-2 items-center">
                       <select value={h.type} onChange={e => updateHymn(i, 'type', e.target.value)}
-                        className="px-2 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+                        className="px-2 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
                         {TIPE_NYANYIAN_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
                       <select value={h.book} onChange={e => updateHymn(i, 'book', e.target.value)}
-                        className="px-2 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+                        className="px-2 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
                         {BUKU_NYANYIAN.map(b => <option key={b} value={b}>{b}</option>)}
                       </select>
                       <input type="text" value={h.number} onChange={e => updateHymn(i, 'number', e.target.value)} placeholder="No. lagu"
-                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" />
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
                       <div className="flex gap-1">
                         <input type="text" value={h.title} onChange={e => updateHymn(i, 'title', e.target.value)} placeholder="Judul"
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" />
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
                         {formData.hymns.length > 1 && (
                           <button type="button" onClick={() => removeHymn(i)} data-tooltip="Hapus nyanyian" className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                             <X className="w-4 h-4" />

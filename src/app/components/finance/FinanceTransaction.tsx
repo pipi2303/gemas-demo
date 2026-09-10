@@ -254,7 +254,7 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
 
   return (
     <div className="space-y-4">
-      <button onClick={onBack} className="flex items-center gap-1 text-xs text-slate-400 hover:text-[#1A77A3]">
+      <button onClick={onBack} className="flex items-center gap-1 text-xs text-slate-400 hover:text-[#144f6b]">
         <ArrowLeft className="w-3 h-3" /> Kembali ke daftar Transaksi
       </button>
 
@@ -288,7 +288,7 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
                 <button
                   onClick={() => runAction('submit')} disabled={busy !== null || !balanced}
                   title={!balanced ? 'Debit dan kredit harus seimbang dulu' : ''}
-                  className={btnPrimary} style={{ background: '#1A77A3' }}
+                  className={btnPrimary} style={{ background: '#144f6b' }}
                 >
                   {busy === 'submit' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />} Ajukan
                 </button>
@@ -303,7 +303,7 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
                 <button
                   onClick={() => runAction('verify')} disabled={busy !== null || isOwnTransaction}
                   title={isOwnTransaction ? 'Pembuat transaksi tidak bisa memverifikasi transaksinya sendiri' : ''}
-                  className={btnPrimary} style={{ background: '#1A77A3' }}
+                  className={btnPrimary} style={{ background: '#144f6b' }}
                 >
                   {busy === 'verify' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />} Verifikasi
                 </button>
@@ -318,7 +318,7 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
                 <button
                   onClick={() => runAction('approve')} disabled={busy !== null || isOwnTransaction || isOwnVerification}
                   title={isOwnTransaction ? 'Pembuat transaksi tidak bisa menyetujui transaksinya sendiri' : isOwnVerification ? 'Verifikator tidak bisa merangkap sebagai penyetuju' : ''}
-                  className={btnPrimary} style={{ background: '#1A77A3' }}
+                  className={btnPrimary} style={{ background: '#144f6b' }}
                 >
                   {busy === 'approve' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />} Setujui
                 </button>
@@ -357,7 +357,7 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-slate-700">Baris Jurnal</h3>
           {isDraft && canEdit && (
-            <button onClick={openAddLine} className="flex items-center gap-1.5 text-sm font-medium text-white px-3 py-1.5 rounded-lg hover:opacity-90" style={{ background: '#1A77A3' }}>
+            <button onClick={openAddLine} className="flex items-center gap-1.5 text-sm font-medium text-white px-3 py-1.5 rounded-lg hover:opacity-90" style={{ background: '#144f6b' }}>
               <Plus className="w-3.5 h-3.5" /> Tambah Baris
             </button>
           )}
@@ -429,7 +429,7 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Akun <span className="text-red-500">*</span></label>
               <select value={form.account_id ?? ''} onChange={e => setForm(prev => ({ ...prev, account_id: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
                 <option value="">— pilih akun —</option>
                 {postableAccounts.map(a => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}
               </select>
@@ -438,7 +438,7 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Kas / Bank (opsional)</label>
               <select value={form.cashBank ?? ''} onChange={e => setForm(prev => ({ ...prev, cashBank: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
                 {cashBankOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
@@ -447,7 +447,7 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Bidang</label>
                 <select value={form.field_id ?? ''} onChange={e => setForm(prev => ({ ...prev, field_id: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
                   <option value="">—</option>
                   {lookups.fields.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
@@ -455,7 +455,7 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Program</label>
                 <select value={form.program_id ?? ''} onChange={e => setForm(prev => ({ ...prev, program_id: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
                   <option value="">—</option>
                   {lookups.programs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
@@ -463,7 +463,7 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Kegiatan</label>
                 <select value={form.activity_id ?? ''} onChange={e => setForm(prev => ({ ...prev, activity_id: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
                   <option value="">—</option>
                   {lookups.activities.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
@@ -471,7 +471,7 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Dana</label>
                 <select value={form.fund_id ?? ''} onChange={e => setForm(prev => ({ ...prev, fund_id: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
                   <option value="">—</option>
                   {lookups.funds.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
@@ -479,7 +479,7 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Pusat Biaya</label>
                 <select value={form.cost_center_id ?? ''} onChange={e => setForm(prev => ({ ...prev, cost_center_id: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
                   <option value="">—</option>
                   {lookups.costCenters.map(c => <option key={c.id} value={c.id}>{c.code} — {c.name}</option>)}
                 </select>
@@ -490,7 +490,7 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
                 </label>
                 <select value={form.budget_line_id ?? ''} onChange={e => setForm(prev => ({ ...prev, budget_line_id: e.target.value }))}
                   disabled={!form.account_id || budgetLineOptions.length === 0}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3] disabled:bg-slate-50 disabled:text-slate-400">
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] disabled:bg-slate-50 disabled:text-slate-400">
                   <option value="">— tidak dikaitkan ke RKA —</option>
                   {budgetLineOptions.map(bl => (
                     <option key={bl.id} value={bl.id}>
@@ -514,7 +514,7 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
                       key={s} type="button"
                       onClick={() => setForm(prev => ({ ...prev, side: s }))}
                       className="flex-1 px-3 py-2 rounded-lg text-sm border"
-                      style={form.side === s ? { background: '#1A77A3', color: '#fff', borderColor: '#1A77A3' } : { color: '#475569', borderColor: '#e2e8f0' }}
+                      style={form.side === s ? { background: '#144f6b', color: '#fff', borderColor: '#144f6b' } : { color: '#475569', borderColor: '#e2e8f0' }}
                     >
                       {s === 'debit' ? 'Debit' : 'Kredit'}
                     </button>
@@ -524,19 +524,19 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Jumlah <span className="text-red-500">*</span></label>
                 <input type="number" value={form.amount ?? ''} onChange={e => setForm(prev => ({ ...prev, amount: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" />
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Deskripsi</label>
               <input type="text" value={form.description ?? ''} onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" />
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <button onClick={() => setModalOpen(false)} disabled={saving} className="px-3 py-1.5 rounded-lg text-sm text-slate-600 border border-slate-200">Batal</button>
-              <button onClick={handleAddLine} disabled={saving} className="px-3 py-1.5 rounded-lg text-sm text-white flex items-center gap-1.5 disabled:opacity-60" style={{ background: '#1A77A3' }}>
+              <button onClick={handleAddLine} disabled={saving} className="px-3 py-1.5 rounded-lg text-sm text-white flex items-center gap-1.5 disabled:opacity-60" style={{ background: '#144f6b' }}>
                 {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Simpan
               </button>
             </div>
@@ -558,7 +558,7 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
               <textarea
                 value={reasonModal.reason} onChange={e => setReasonModal(prev => prev && ({ ...prev, reason: e.target.value }))}
                 rows={3}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
               />
             </div>
             <div className="flex justify-end gap-2 pt-2">
@@ -777,7 +777,7 @@ export function FinanceTransaction({ onNavigate }: { onNavigate?: (page: string)
             {txMeta && txMeta.page < txMeta.totalPages && (
               <div className="flex items-center justify-center py-3 border-t border-slate-100">
                 <button onClick={loadMoreTransactions} disabled={loadingMoreTx}
-                  className="text-xs font-medium text-[#1A77A3] hover:underline disabled:opacity-50 flex items-center gap-1.5">
+                  className="text-xs font-medium text-[#144f6b] hover:underline disabled:opacity-50 flex items-center gap-1.5">
                   {loadingMoreTx && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Muat Lebih Banyak ({transactions.length} dari {txMeta.total})
                 </button>
@@ -797,7 +797,7 @@ export function FinanceTransaction({ onNavigate }: { onNavigate?: (page: string)
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Jenis Voucher <span className="text-red-500">*</span></label>
               <select value={createForm.voucher_type_id} onChange={e => setCreateForm(prev => ({ ...prev, voucher_type_id: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
                 <option value="">— pilih —</option>
                 {lookups.voucherTypes.filter(vt => vt.is_active).map(vt => <option key={vt.id} value={vt.id}>{vt.code} — {vt.name}</option>)}
               </select>
@@ -805,7 +805,7 @@ export function FinanceTransaction({ onNavigate }: { onNavigate?: (page: string)
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Tanggal <span className="text-red-500">*</span></label>
               <input type="date" value={createForm.transaction_date} onChange={e => setCreateForm(prev => ({ ...prev, transaction_date: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" />
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
@@ -817,7 +817,7 @@ export function FinanceTransaction({ onNavigate }: { onNavigate?: (page: string)
                     const donor = lookups.donors.find(d => d.id === id);
                     setCreateForm(prev => ({ ...prev, donor_id: id, payer_name: donor ? donor.name : prev.payer_name }));
                   }}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                 >
                   <option value="">— tanpa donatur —</option>
                   {lookups.donors.filter(d => d.is_active).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -832,7 +832,7 @@ export function FinanceTransaction({ onNavigate }: { onNavigate?: (page: string)
                     const vendor = lookups.vendors.find(v => v.id === id);
                     setCreateForm(prev => ({ ...prev, vendor_id: id, payee_name: vendor ? vendor.name : prev.payee_name }));
                   }}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                 >
                   <option value="">— tanpa pemasok —</option>
                   {lookups.vendors.filter(v => v.is_active).map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
@@ -843,27 +843,27 @@ export function FinanceTransaction({ onNavigate }: { onNavigate?: (page: string)
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Dari (Pembayar)</label>
                 <input type="text" value={createForm.payer_name} onChange={e => setCreateForm(prev => ({ ...prev, payer_name: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" />
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Kepada (Penerima)</label>
                 <input type="text" value={createForm.payee_name} onChange={e => setCreateForm(prev => ({ ...prev, payee_name: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" />
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
               </div>
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Keterangan <span className="text-red-500">*</span></label>
               <input type="text" value={createForm.description} onChange={e => setCreateForm(prev => ({ ...prev, description: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" />
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">No. Referensi (opsional)</label>
               <input type="text" value={createForm.reference_number} onChange={e => setCreateForm(prev => ({ ...prev, reference_number: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" />
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <button onClick={() => setCreateOpen(false)} disabled={creating} className="px-3 py-1.5 rounded-lg text-sm text-slate-600 border border-slate-200">Batal</button>
-              <button onClick={handleCreate} disabled={creating} className="px-3 py-1.5 rounded-lg text-sm text-white flex items-center gap-1.5 disabled:opacity-60" style={{ background: '#1A77A3' }}>
+              <button onClick={handleCreate} disabled={creating} className="px-3 py-1.5 rounded-lg text-sm text-white flex items-center gap-1.5 disabled:opacity-60" style={{ background: '#144f6b' }}>
                 {creating && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Simpan
               </button>
             </div>

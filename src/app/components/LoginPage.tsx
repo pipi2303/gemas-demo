@@ -72,13 +72,13 @@ export function LoginPage() {
         .login-btn {
           position: relative;
           overflow: hidden;
-          background: linear-gradient(135deg, #1A77A3 0%, #144f6b 100%);
+          background: linear-gradient(135deg, #144f6b 0%, #144f6b 100%);
           background-size: 200% auto;
           transition: box-shadow 0.2s, background-position 0.4s;
         }
         .login-btn:hover:not(:disabled) {
           background-position: right center;
-          box-shadow: 0 10px 28px rgba(26,119,163,0.5) !important;
+          box-shadow: 0 10px 28px rgba(20,79,107,0.5) !important;
         }
         .login-btn::after {
           content: '';
@@ -106,7 +106,7 @@ export function LoginPage() {
             <div className="absolute -top-24 -left-24 w-80 h-80 rounded-full opacity-[0.12]"
               style={{ background: `radial-gradient(circle, ${GOLD}, transparent)` }} />
             <div className="absolute -bottom-32 -right-16 w-[480px] h-[480px] rounded-full opacity-10"
-              style={{ background: 'radial-gradient(circle, #1A77A3, transparent)' }} />
+              style={{ background: 'radial-gradient(circle, #144f6b, transparent)' }} />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[620px] h-[620px] rounded-full opacity-[0.05]"
               style={{ background: `radial-gradient(circle, ${GOLD}, transparent 70%)` }} />
           </div>
@@ -177,7 +177,7 @@ export function LoginPage() {
 
           {/* Top decorative bar */}
           <div className="absolute top-0 left-0 right-0 h-[3px]"
-            style={{ background: `linear-gradient(90deg, #1A77A3, ${GOLD}, #1A77A3)` }} />
+            style={{ background: `linear-gradient(90deg, #144f6b, ${GOLD}, #144f6b)` }} />
 
           <div className="px-10 py-12 w-full max-w-md mx-auto">
 
@@ -198,7 +198,7 @@ export function LoginPage() {
                   Selamat Datang
                 </h2>
                 <p style={{ fontSize: '13px', color: '#64748b' }}>
-                  Silakan Login ke Aplikasi <span style={{ color: '#1A77A3', fontWeight: 600 }}>GEMAS</span>
+                  Silakan Login ke Aplikasi <span style={{ color: '#144f6b', fontWeight: 600 }}>GEMAS</span>
                 </p>
               </div>
             </div>
@@ -206,14 +206,14 @@ export function LoginPage() {
             {/* Heading with church icon badge */}
             <div className="fade-up mb-8 hidden lg:block">
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-4 shadow-md"
-                style={{ background: 'linear-gradient(135deg, #1A77A3, #144f6b)' }}>
+                style={{ background: 'linear-gradient(135deg, #144f6b, #144f6b)' }}>
                 <Lock className="w-5 h-5 text-white" />
               </div>
               <h2 className="text-gray-900 mb-1" style={{ fontSize: '26px', fontWeight: 800 }}>
                 Selamat Datang
               </h2>
               <p style={{ fontSize: '14px', color: '#64748b' }}>
-                Silakan Login ke Aplikasi <span style={{ color: '#1A77A3', fontWeight: 600 }}>GEMAS</span>
+                Silakan Login ke Aplikasi <span style={{ color: '#144f6b', fontWeight: 600 }}>GEMAS</span>
               </p>
             </div>
 
@@ -235,7 +235,7 @@ export function LoginPage() {
                     placeholder="Masukkan username Anda"
                     className="w-full pl-10 pr-4 py-3 rounded-xl outline-none transition-all"
                     style={{ border: '1.5px solid #e2e8f0', fontSize: '14px', color: '#0f172a', background: '#f8fafc' }}
-                    onFocus={e => { e.currentTarget.style.border = '1.5px solid #1A77A3'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(26,119,163,0.1)'; e.currentTarget.style.background = '#fff'; }}
+                    onFocus={e => { e.currentTarget.style.border = '1.5px solid #144f6b'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(20,79,107,0.1)'; e.currentTarget.style.background = '#fff'; }}
                     onBlur={e => { e.currentTarget.style.border = '1.5px solid #e2e8f0'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.background = '#f8fafc'; }}
                   />
                 </div>
@@ -257,7 +257,7 @@ export function LoginPage() {
                     placeholder="Masukkan password Anda"
                     className="w-full pl-10 pr-12 py-3 rounded-xl outline-none transition-all"
                     style={{ border: '1.5px solid #e2e8f0', fontSize: '14px', color: '#0f172a', background: '#f8fafc' }}
-                    onFocus={e => { e.currentTarget.style.border = '1.5px solid #1A77A3'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(26,119,163,0.1)'; e.currentTarget.style.background = '#fff'; }}
+                    onFocus={e => { e.currentTarget.style.border = '1.5px solid #144f6b'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(20,79,107,0.1)'; e.currentTarget.style.background = '#fff'; }}
                     onBlur={e => { e.currentTarget.style.border = '1.5px solid #e2e8f0'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.background = '#f8fafc'; }}
                   />
                   <button
@@ -265,7 +265,7 @@ export function LoginPage() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors"
                     style={{ color: '#94a3b8' }}
-                    onMouseOver={e => (e.currentTarget.style.color = '#1A77A3')}
+                    onMouseOver={e => (e.currentTarget.style.color = '#144f6b')}
                     onMouseOut={e => (e.currentTarget.style.color = '#94a3b8')}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -294,7 +294,7 @@ export function LoginPage() {
                     height: '50px',
                     color: 'white',
                     fontSize: '14px',
-                    boxShadow: loading ? 'none' : '0 4px 16px rgba(26,119,163,0.38)',
+                    boxShadow: loading ? 'none' : '0 4px 16px rgba(20,79,107,0.38)',
                     cursor: loading ? 'not-allowed' : 'pointer',
                     opacity: loading ? 0.7 : 1,
                   }}

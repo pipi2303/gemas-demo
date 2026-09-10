@@ -262,10 +262,10 @@ function LaporanPosisiKeuangan({ pettyCashBalance, asOfLabel, bankRows, asetTeta
       <html><head><title>Laporan Posisi Keuangan</title>
       <style>
         body{font-family:Arial,sans-serif;font-size:11px;color:#111;margin:24px}
-        h2{color:#1A77A3;margin:0 0 2px;font-size:15px}
+        h2{color:#144f6b;margin:0 0 2px;font-size:15px}
         p.sub{color:#64748b;margin:0 0 16px;font-size:10px}
         table{width:100%;border-collapse:collapse;margin-bottom:14px}
-        .sec{font-size:10px;font-weight:700;color:#1A77A3;text-transform:uppercase;letter-spacing:.05em;padding:8px 0 2px;border-bottom:1px solid #f0ede5}
+        .sec{font-size:10px;font-weight:700;color:#144f6b;text-transform:uppercase;letter-spacing:.05em;padding:8px 0 2px;border-bottom:1px solid #f0ede5}
         .sub-sec{font-size:10px;font-weight:600;color:#374151;font-style:italic;padding:4px 0 2px}
         .row td{padding:2px 4px;font-size:10px;color:#1e293b}
         .row td:last-child{text-align:right;font-weight:500}
@@ -351,15 +351,15 @@ function LaporanPosisiKeuangan({ pettyCashBalance, asOfLabel, bankRows, asetTeta
             <SubSection>Aset Lancar</SubSection>
             {bankRows.map((b, i) => <DataRow key={i} label={b.nama} value={b.saldo} indent={2} />)}
             <DataRow label="Kas Kecil (Petty Cash)" value={pettyCashBalance} indent={2} />
-            <SubTotalRow label="Jumlah Aset Lancar" value={totalLancar} color="#1A77A3" />
+            <SubTotalRow label="Jumlah Aset Lancar" value={totalLancar} color="#144f6b" />
             <Spacer />
 
             <SubSection>Aset Tidak Lancar (Tetap)</SubSection>
             {asetTetapRows.map((a, i) => <DataRow key={i} label={a.nama} value={a.nilai} indent={2} />)}
             <DataRow label="Dikurangi: Akumulasi Penyusutan" value={-totalAkumDep} indent={2} color="#ef4444" />
-            <SubTotalRow label="Jumlah Aset Tidak Lancar – Bersih" value={totalTetapBersih} color="#1A77A3" />
+            <SubTotalRow label="Jumlah Aset Tidak Lancar – Bersih" value={totalTetapBersih} color="#144f6b" />
             <Spacer />
-            <TotalRow label="JUMLAH ASET" value={totalAset} color="#1A77A3" big />
+            <TotalRow label="JUMLAH ASET" value={totalAset} color="#144f6b" big />
 
             {/* ── LIABILITAS ── */}
             <Spacer /><Spacer />
@@ -373,18 +373,18 @@ function LaporanPosisiKeuangan({ pettyCashBalance, asOfLabel, bankRows, asetTeta
             {/* ── ASET NETO ── */}
             <Spacer /><Spacer />
             <SectionTitle>ASET NETO</SectionTitle>
-            <DataRow label="Tidak Terikat" value={netoTidakTerikat} indent={2} color="#1A77A3" note="Dana operasional" />
+            <DataRow label="Tidak Terikat" value={netoTidakTerikat} indent={2} color="#144f6b" note="Dana operasional" />
             <DataRow label="Terikat Sementara (Dana Pembangunan)" value={netoTerikatSementara} indent={2} color="#9c9486" note="Terikat tujuan" />
             <DataRow label="Terikat Permanen (Tanah & Gedung Gereja)" value={netoTerikatPermanen} indent={2} color="#2563eb" note="Terikat permanen" />
-            <SubTotalRow label="Jumlah Aset Neto" value={totalAsetNeto} color="#1A77A3" />
+            <SubTotalRow label="Jumlah Aset Neto" value={totalAsetNeto} color="#144f6b" />
             <Spacer />
-            <TotalRow label="JUMLAH LIABILITAS DAN ASET NETO" value={totalLiabilitas + totalAsetNeto} color="#1A77A3" big />
+            <TotalRow label="JUMLAH LIABILITAS DAN ASET NETO" value={totalLiabilitas + totalAsetNeto} color="#144f6b" big />
           </tbody>
         </table>
 
         {/* Footnote */}
         <div className="mt-6 p-3 rounded-xl flex gap-2" style={{ background: '#f6f4f0', border: '1px solid #b8d5e8' }}>
-          <Info className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#1A77A3' }} />
+          <Info className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#144f6b' }} />
           <p style={{ fontSize: '11px', color: '#144f6b', lineHeight: 1.6 }}>
             Laporan ini disusun sesuai <strong>ISAK 35</strong> tentang Penyajian Laporan Keuangan Entitas Berorientasi Nonlaba yang berlaku di Indonesia.
             Nilai aset tetap berdasarkan harga perolehan dikurangi akumulasi penyusutan. Nilai aset tetap & liabilitas bersifat referensi — harap diperbarui oleh Bendahara sesuai kondisi aktual.
@@ -590,16 +590,16 @@ function LaporanAktivitas({ records, periodeLabel, periodeType, asOfLabel, asetT
     if (!w) return;
     w.document.write(`<html><head><title>Laporan Aktivitas</title>
       <style>body{font-family:Arial,sans-serif;font-size:11px;color:#111;margin:24px}
-      h2{color:#1A77A3;margin:0 0 2px;font-size:15px}p.sub{color:#64748b;margin:0 0 16px;font-size:10px}
+      h2{color:#144f6b;margin:0 0 2px;font-size:15px}p.sub{color:#64748b;margin:0 0 16px;font-size:10px}
       table{width:100%;border-collapse:collapse;margin-bottom:14px}
-      .sec{font-size:10px;font-weight:700;color:#1A77A3;text-transform:uppercase;letter-spacing:.05em;padding:8px 0 2px;border-bottom:1px solid #f0ede5}
+      .sec{font-size:10px;font-weight:700;color:#144f6b;text-transform:uppercase;letter-spacing:.05em;padding:8px 0 2px;border-bottom:1px solid #f0ede5}
       .sub{font-size:10px;font-weight:600;color:#374151;font-style:italic;padding:4px 0 2px}
       .row td{padding:2px 4px;font-size:10px}.row td:last-child{text-align:right;font-weight:500}
       .sub-total td{padding:3px 4px;font-size:10px;font-weight:600;border-top:1px solid #e2e8f0}
       .sub-total td:last-child{text-align:right;font-weight:700}
       .total td{padding:5px 6px;font-size:11px;font-weight:800;border-top:2px solid #e8e4d8;background:#f6f4f0}
       .total td:last-child{text-align:right}
-      .surplus{color:#1A77A3}.defisit{color:#dc2626}</style></head><body>
+      .surplus{color:#144f6b}.defisit{color:#dc2626}</style></head><body>
       <h2>GPIB TRINITAS</h2>
       <h3 style="margin:0 0 2px;font-size:12px">LAPORAN AKTIVITAS</h3>
       <p class="sub">Untuk ${periodeType === 'tahunan' ? 'Tahun Yang Berakhir' : 'Periode'} ${asOfLabel}</p>
@@ -672,9 +672,9 @@ function LaporanAktivitas({ records, periodeLabel, periodeType, asOfLabel, asetT
       {/* KPI Strip */}
       <div className="grid grid-cols-3 divide-x border-b" style={{ borderColor: '#e2e8f0' }}>
         {[
-          { label: 'Jumlah Penerimaan', value: totalPenerimaan, color: '#1A77A3', bg: '#f0fdf4', icon: ArrowUpRight },
+          { label: 'Jumlah Penerimaan', value: totalPenerimaan, color: '#144f6b', bg: '#f0fdf4', icon: ArrowUpRight },
           { label: 'Jumlah Beban', value: totalBeban, color: '#dc2626', bg: '#fef2f2', icon: ArrowDownRight },
-          { label: isSurplus ? 'Surplus Bersih' : 'Defisit Bersih', value: Math.abs(surplusDefisit), color: isSurplus ? '#1A77A3' : '#dc2626', bg: isSurplus ? '#f0fdf4' : '#fef2f2', icon: isSurplus ? TrendingUp : TrendingDown },
+          { label: isSurplus ? 'Surplus Bersih' : 'Defisit Bersih', value: Math.abs(surplusDefisit), color: isSurplus ? '#144f6b' : '#dc2626', bg: isSurplus ? '#f0fdf4' : '#fef2f2', icon: isSurplus ? TrendingUp : TrendingDown },
         ].map((k, i) => (
           <div key={i} className="px-3 py-2" style={{ background: k.bg }}>
             <p style={{ fontSize: '9px', color: k.color, fontWeight: 600, opacity: 0.75 }}>{k.label}</p>
@@ -709,9 +709,9 @@ function LaporanAktivitas({ records, periodeLabel, periodeType, asOfLabel, asetT
               <>
                 <SubSection>Penerimaan Tidak Terikat</SubSection>
                 {penTidakTerikat.map(([cat, val], i) => (
-                  <DataRow key={i} label={cat} value={val} indent={2} color="#1A77A3" />
+                  <DataRow key={i} label={cat} value={val} indent={2} color="#144f6b" />
                 ))}
-                <SubTotalRow label="Jumlah Penerimaan Tidak Terikat" value={totalPenTidakTerikat} color="#1A77A3" />
+                <SubTotalRow label="Jumlah Penerimaan Tidak Terikat" value={totalPenTidakTerikat} color="#144f6b" />
               </>
             )}
 
@@ -727,7 +727,7 @@ function LaporanAktivitas({ records, periodeLabel, periodeType, asOfLabel, asetT
             )}
 
             <Spacer />
-            <TotalRow label="JUMLAH PENERIMAAN" value={totalPenerimaan} color="#1A77A3" big />
+            <TotalRow label="JUMLAH PENERIMAAN" value={totalPenerimaan} color="#144f6b" big />
 
             {/* ── BEBAN ── */}
             <Spacer /><Spacer />
@@ -790,7 +790,7 @@ function LaporanAktivitas({ records, periodeLabel, periodeType, asOfLabel, asetT
               <td colSpan={2} style={{ paddingLeft: 8, paddingTop: 8, paddingBottom: 8, fontSize: '13px', fontWeight: 800, color: isSurplus ? '#144f6b' : '#7f1d1d' }}>
                 {isSurplus ? '↑ KENAIKAN' : '↓ PENURUNAN'} ASET NETO BERSIH
               </td>
-              <td style={{ textAlign: 'right', fontSize: '15px', fontWeight: 900, color: isSurplus ? '#1A77A3' : '#dc2626', paddingTop: 8, paddingBottom: 8, whiteSpace: 'nowrap' }}>
+              <td style={{ textAlign: 'right', fontSize: '15px', fontWeight: 900, color: isSurplus ? '#144f6b' : '#dc2626', paddingTop: 8, paddingBottom: 8, whiteSpace: 'nowrap' }}>
                 {isSurplus ? '+' : ''}{fmt(surplusDefisit)}
               </td>
             </tr>
@@ -799,8 +799,8 @@ function LaporanAktivitas({ records, periodeLabel, periodeType, asOfLabel, asetT
             <Spacer /><Spacer />
             <SectionTitle>REKONSILIASI ASET NETO</SectionTitle>
             <DataRow label="Aset Neto Awal Periode" value={asetNetoAwal} indent={1} />
-            <DataRow label={isSurplus ? 'Kenaikan Aset Neto' : 'Penurunan Aset Neto'} value={surplusDefisit} indent={1} color={isSurplus ? '#1A77A3' : '#dc2626'} />
-            <TotalRow label="ASET NETO AKHIR PERIODE" value={asetNetoAkhir} color="#1A77A3" big />
+            <DataRow label={isSurplus ? 'Kenaikan Aset Neto' : 'Penurunan Aset Neto'} value={surplusDefisit} indent={1} color={isSurplus ? '#144f6b' : '#dc2626'} />
+            <TotalRow label="ASET NETO AKHIR PERIODE" value={asetNetoAkhir} color="#144f6b" big />
           </tbody>
         </table>
 
@@ -894,7 +894,7 @@ function LaporanArusKas({ records, periodeLabel, periodeType, asOfLabel, pettyCa
       return (
         <tr style={{ background: row.value >= 0 ? '#f0fdf4' : '#fef2f2', borderTop: '2px solid #e8e4d8' }}>
           <td style={{ paddingLeft: pl, paddingTop: 6, paddingBottom: 6, fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>{row.label}</td>
-          <td style={{ textAlign: 'right', fontSize: '13px', fontWeight: 900, color: row.value >= 0 ? '#1A77A3' : '#dc2626', paddingTop: 6, paddingBottom: 6, whiteSpace: 'nowrap' }}>
+          <td style={{ textAlign: 'right', fontSize: '13px', fontWeight: 900, color: row.value >= 0 ? '#144f6b' : '#dc2626', paddingTop: 6, paddingBottom: 6, whiteSpace: 'nowrap' }}>
             {row.value >= 0 ? '+' : ''}{fmt(row.value)}
           </td>
         </tr>
@@ -904,7 +904,7 @@ function LaporanArusKas({ records, periodeLabel, periodeType, asOfLabel, pettyCa
       return (
         <tr style={{ borderTop: '1px solid #e2e8f0' }}>
           <td style={{ paddingLeft: pl, paddingTop: 4, paddingBottom: 4, fontSize: '12px', fontWeight: 700, color: '#374151' }}>{row.label}</td>
-          <td style={{ textAlign: 'right', fontSize: '12px', fontWeight: 700, color: row.value >= 0 ? '#1A77A3' : '#dc2626', paddingTop: 4, paddingBottom: 4, whiteSpace: 'nowrap' }}>
+          <td style={{ textAlign: 'right', fontSize: '12px', fontWeight: 700, color: row.value >= 0 ? '#144f6b' : '#dc2626', paddingTop: 4, paddingBottom: 4, whiteSpace: 'nowrap' }}>
             {row.value >= 0 ? '+' : ''}{fmt(row.value)}
           </td>
         </tr>
@@ -915,7 +915,7 @@ function LaporanArusKas({ records, periodeLabel, periodeType, asOfLabel, pettyCa
         <td style={{ paddingLeft: pl, paddingTop: 3, paddingBottom: 3, fontSize: '12px', color: '#374151' }}>{row.label}</td>
         <td style={{ textAlign: 'right', fontSize: '12px', fontWeight: 500, color: row.value >= 0 ? '#1e293b' : '#dc2626', paddingTop: 3, paddingBottom: 3, whiteSpace: 'nowrap' }}>
           {row.value >= 0 ? '' : '('}{fmt(Math.abs(row.value))}{row.value < 0 ? ')' : ''}
-          {onEdit && <button onClick={onEdit} title="Edit nilai" style={{ fontSize: '10px', color: '#94a3b8', marginLeft: 4 }} className="hover:text-[#1A77A3] transition-colors">✎</button>}
+          {onEdit && <button onClick={onEdit} title="Edit nilai" style={{ fontSize: '10px', color: '#94a3b8', marginLeft: 4 }} className="hover:text-[#144f6b] transition-colors">✎</button>}
         </td>
       </tr>
     );
@@ -1062,12 +1062,12 @@ function LaporanArusKas({ records, periodeLabel, periodeType, asOfLabel, pettyCa
     if (!w) return;
     w.document.write(`<html><head><title>Laporan Arus Kas</title>
       <style>body{font-family:Arial,sans-serif;font-size:11px;color:#111;margin:24px}
-      h2{color:#1A77A3;margin:0 0 2px;font-size:15px}p.sub{color:#64748b;margin:0 0 16px;font-size:10px}
+      h2{color:#144f6b;margin:0 0 2px;font-size:15px}p.sub{color:#64748b;margin:0 0 16px;font-size:10px}
       table{width:100%;border-collapse:collapse}tr td{padding:3px 6px}
-      .sec{font-size:10px;font-weight:700;color:#1A77A3;text-transform:uppercase;border-bottom:1px solid #f0ede5;padding-top:10px}
-      .sub-total{font-weight:700;border-top:1px solid #e2e8f0;color:#1A77A3}
+      .sec{font-size:10px;font-weight:700;color:#144f6b;text-transform:uppercase;border-bottom:1px solid #f0ede5;padding-top:10px}
+      .sub-total{font-weight:700;border-top:1px solid #e2e8f0;color:#144f6b}
       .total{font-weight:800;font-size:11px;border-top:2px solid #e8e4d8;background:#f6f4f0}
-      .neg{color:#dc2626}.pos{color:#1A77A3}</style></head><body>
+      .neg{color:#dc2626}.pos{color:#144f6b}</style></head><body>
       <h2>GPIB TRINITAS</h2>
       <h3 style="margin:0 0 2px;font-size:12px">LAPORAN ARUS KAS (METODE LANGSUNG)</h3>
       <p class="sub">Untuk ${periodeType === 'tahunan' ? 'Tahun Yang Berakhir' : 'Periode'} ${asOfLabel}</p>
@@ -1129,10 +1129,10 @@ function LaporanArusKas({ records, periodeLabel, periodeType, asOfLabel, pettyCa
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 divide-x border-b" style={{ borderColor: '#e2e8f0' }}>
         {[
-          { label: 'Kas dari Operasi', value: kasOperasi, color: kasOperasi >= 0 ? '#1A77A3' : '#dc2626', bg: kasOperasi >= 0 ? '#f0fdf4' : '#fef2f2' },
+          { label: 'Kas dari Operasi', value: kasOperasi, color: kasOperasi >= 0 ? '#144f6b' : '#dc2626', bg: kasOperasi >= 0 ? '#f0fdf4' : '#fef2f2' },
           { label: 'Kas dari Investasi', value: kasInvestasi, color: '#dc2626', bg: '#fef2f2' },
           { label: 'Kas dari Pendanaan', value: kasPendanaan, color: '#9c9486', bg: '#f6f4f0' },
-          { label: 'Kenaikan Bersih Kas', value: kenaikananKas, color: kenaikananKas >= 0 ? '#1A77A3' : '#dc2626', bg: kenaikananKas >= 0 ? '#f0fdf4' : '#fef2f2' },
+          { label: 'Kenaikan Bersih Kas', value: kenaikananKas, color: kenaikananKas >= 0 ? '#144f6b' : '#dc2626', bg: kenaikananKas >= 0 ? '#f0fdf4' : '#fef2f2' },
         ].map((k, i) => (
           <div key={i} className="px-3 py-2" style={{ background: k.bg }}>
             <p style={{ fontSize: '9px', color: k.color, fontWeight: 600, opacity: 0.75 }}>{k.label}</p>
@@ -1194,7 +1194,7 @@ function LaporanArusKas({ records, periodeLabel, periodeType, asOfLabel, pettyCa
             <Spacer /><Spacer />
             <CashStatRow row={{ label: 'KENAIKAN (PENURUNAN) BERSIH KAS DAN SETARA KAS', value: kenaikananKas, isTotal: true }} />
             <DataRow label="Kas dan Setara Kas Awal Periode" value={kasAwal} indent={1} />
-            <TotalRow label="KAS DAN SETARA KAS AKHIR PERIODE" value={kasAkhir} color="#1A77A3" big />
+            <TotalRow label="KAS DAN SETARA KAS AKHIR PERIODE" value={kasAkhir} color="#144f6b" big />
           </tbody>
         </table>
 
@@ -1207,16 +1207,16 @@ function LaporanArusKas({ records, periodeLabel, periodeType, asOfLabel, pettyCa
             {bankRows.map((b, i) => (
               <div key={i}>
                 <p style={{ fontSize: '10px', color: '#64748b' }}>{b.nama.replace('Kas di Bank ', '')}</p>
-                <p style={{ fontSize: '11px', fontWeight: 600, color: '#1A77A3' }}>{fmt(b.saldo)}</p>
+                <p style={{ fontSize: '11px', fontWeight: 600, color: '#144f6b' }}>{fmt(b.saldo)}</p>
               </div>
             ))}
             <div>
               <p style={{ fontSize: '10px', color: '#64748b' }}>Kas Kecil</p>
-              <p style={{ fontSize: '11px', fontWeight: 600, color: '#1A77A3' }}>{fmt(pettyCashBalance)}</p>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: '#144f6b' }}>{fmt(pettyCashBalance)}</p>
             </div>
             <div style={{ borderTop: '1px solid #b8d5e8', paddingTop: 4, gridColumn: 'span 1' }}>
               <p style={{ fontSize: '10px', color: '#144f6b', fontWeight: 700 }}>Total Kas & Setara Kas</p>
-              <p style={{ fontSize: '12px', fontWeight: 800, color: '#1A77A3' }}>{fmt(kasAkhir)}</p>
+              <p style={{ fontSize: '12px', fontWeight: 800, color: '#144f6b' }}>{fmt(kasAkhir)}</p>
             </div>
           </div>
         </div>
@@ -1351,7 +1351,7 @@ export function LaporanKeuanganTab({ allRecords, pettyCashBalance }: Props) {
         style={{ background: 'linear-gradient(135deg,#0a1e2c 0%,#1a4a2e 50%,#0a1e2c 100%)', border: '1px solid #1a3a22' }}>
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(26,119,163,0.12)' }}>
+            <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(20,79,107,0.12)' }}>
               <FileText className="w-3.5 h-3.5" style={{ color: '#f0ede5' }} />
             </div>
             <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>Berdasarkan ISAK 35 / PSAK 45 · Entitas Nonlaba</span>
@@ -1368,7 +1368,7 @@ export function LaporanKeuanganTab({ allRecords, pettyCashBalance }: Props) {
               <button key={t} onClick={() => setPeriodeType(t)}
                 className="px-3 py-1.5 text-xs font-semibold transition-all capitalize"
                 style={{
-                  background: periodeType === t ? 'rgba(26,119,163,0.25)' : 'transparent',
+                  background: periodeType === t ? 'rgba(20,79,107,0.25)' : 'transparent',
                   color: periodeType === t ? '#f0ede5' : 'rgba(255,255,255,0.5)',
                 }}>
                 {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -1392,7 +1392,7 @@ export function LaporanKeuanganTab({ allRecords, pettyCashBalance }: Props) {
             </select>
           )}
 
-          <div className="px-3 py-1.5 rounded-xl" style={{ background: 'rgba(26,119,163,0.15)', border: '1px solid rgba(26,119,163,0.25)' }}>
+          <div className="px-3 py-1.5 rounded-xl" style={{ background: 'rgba(20,79,107,0.15)', border: '1px solid rgba(20,79,107,0.25)' }}>
             <span style={{ fontSize: '11px', color: '#f0ede5', fontWeight: 600 }}>Periode: {periodeLabel}</span>
           </div>
 
@@ -1438,11 +1438,11 @@ export function LaporanKeuanganTab({ allRecords, pettyCashBalance }: Props) {
             style={{
               background: subTab === t.id ? 'linear-gradient(135deg,#0a1e2c,#0f2d41)' : 'white',
               borderColor: subTab === t.id ? '#144f6b' : '#e2e8f0',
-              boxShadow: subTab === t.id ? '0 4px 12px rgba(26,119,163,0.2)' : undefined,
+              boxShadow: subTab === t.id ? '0 4px 12px rgba(20,79,107,0.2)' : undefined,
             }}>
             <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: subTab === t.id ? 'rgba(26,119,163,0.12)' : '#f0fdf4' }}>
-              <t.icon className="w-4.5 h-4.5" style={{ color: subTab === t.id ? '#f0ede5' : '#1A77A3', width: 18, height: 18 }} />
+              style={{ background: subTab === t.id ? 'rgba(20,79,107,0.12)' : '#f0fdf4' }}>
+              <t.icon className="w-4.5 h-4.5" style={{ color: subTab === t.id ? '#f0ede5' : '#144f6b', width: 18, height: 18 }} />
             </div>
             <div className="min-w-0">
               <p style={{ fontSize: '12.5px', fontWeight: 700, color: subTab === t.id ? 'white' : '#0f172a', lineHeight: 1.2 }}>{t.label}</p>
@@ -1495,13 +1495,13 @@ export function LaporanKeuanganTab({ allRecords, pettyCashBalance }: Props) {
             <input
               type="text" value={investasiInput} onChange={e => setInvestasiInput(e.target.value)}
               placeholder="Contoh: 45000000"
-              className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3] mb-4" style={{borderColor:'#e2e8f0'}}
+              className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] mb-4" style={{borderColor:'#e2e8f0'}}
               onKeyDown={e => { if (e.key === 'Enter') saveInvestasi(); if (e.key === 'Escape') setEditingInvestasi(null); }}
               autoFocus
             />
             <div className="flex gap-3">
               <button onClick={() => setEditingInvestasi(null)} className="flex-1 py-2.5 rounded-xl border font-medium text-gray-600 hover:bg-gray-50 text-sm" style={{borderColor:'#e2e8f0'}}>Batal</button>
-              <button onClick={saveInvestasi} className="flex-1 py-2.5 rounded-xl text-white font-semibold text-sm hover:opacity-90" style={{background:'#1A77A3'}}>Simpan</button>
+              <button onClick={saveInvestasi} className="flex-1 py-2.5 rounded-xl text-white font-semibold text-sm hover:opacity-90" style={{background:'#144f6b'}}>Simpan</button>
             </div>
           </div>
         </div>

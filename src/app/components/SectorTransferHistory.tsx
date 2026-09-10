@@ -20,7 +20,7 @@ import { Member, SectorTransfer } from '../types';
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   'Selesai': { label: 'Selesai', color: 'bg-[#f0ede5] text-[#144f6b]', icon: CheckCircle2 },
   'Diproses': { label: 'Diproses', color: 'bg-[#f0ede5] text-[#144f6b]', icon: Clock },
-  'Pending': { label: 'Menunggu', color: 'bg-[#f0ede5] text-[#1A77A3]', icon: AlertCircle },
+  'Pending': { label: 'Menunggu', color: 'bg-[#f0ede5] text-[#144f6b]', icon: AlertCircle },
 };
 
 export function SectorTransferHistory() {
@@ -96,7 +96,7 @@ export function SectorTransferHistory() {
           { label: 'Total Perpindahan', value: transfers.length, color: 'text-gray-900', bg: 'bg-white border' },
           { label: 'Selesai', value: transfers.filter(t => t.status === 'Selesai').length, color: 'text-[#144f6b]', bg: 'bg-[#f6f4f0]' },
           { label: 'Diproses', value: transfers.filter(t => t.status === 'Diproses').length, color: 'text-[#144f6b]', bg: 'bg-[#f6f4f0]' },
-          { label: 'Menunggu', value: transfers.filter(t => t.status === 'Pending').length, color: 'text-[#1A77A3]', bg: 'bg-[#f6f4f0]' },
+          { label: 'Menunggu', value: transfers.filter(t => t.status === 'Pending').length, color: 'text-[#144f6b]', bg: 'bg-[#f6f4f0]' },
         ].map((stat, i) => (
           <Card key={i} className={`p-4 ${stat.bg}`}>
             <p className="text-sm text-gray-600">{stat.label}</p>
@@ -121,7 +121,7 @@ export function SectorTransferHistory() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"/>
                 <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Cari nama jemaat..."
                   className="w-full pl-9 pr-8 py-2 text-sm rounded-xl border focus:outline-none transition-all"
-                  style={{borderColor:search?'#1A77A3':'#e2e8f0',background:'#fafafa'}}/>
+                  style={{borderColor:search?'#144f6b':'#e2e8f0',background:'#fafafa'}}/>
                 {search && <button onClick={()=>setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-gray-200 transition-all" style={{color:'#94a3b8'}}><X className="w-3.5 h-3.5"/></button>}
               </div>
             </div>
@@ -133,18 +133,18 @@ export function SectorTransferHistory() {
                   {val:filterSector,set:setFilterSector,opts:[{v:'all',l:'Semua Sektor'},...sectors.map(s=>({v:s.id,l:s.name}))]},
                 ] as {val:string;set:(v:string)=>void;opts:{v:string;l:string}[]}[]).map((f,i)=>{
                   const active=f.val!=='all';
-                  return <select key={i} value={f.val} onChange={e=>f.set(e.target.value)} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#1A77A3':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#1A77A3':'#64748b',fontWeight:active?600:400}}>{f.opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>;
+                  return <select key={i} value={f.val} onChange={e=>f.set(e.target.value)} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#144f6b':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#144f6b':'#64748b',fontWeight:active?600:400}}>{f.opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>;
                 })}
               </div>
             </div>
             {(search||filterStatus!=='all'||filterSector!=='all') ? (
               <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-t" style={{borderColor:'#f1f5f9',background:'#fafbfc'}}>
                 <span style={{fontSize:'11px',color:'#94a3b8',fontWeight:500,whiteSpace:'nowrap'}}>Filter aktif:</span>
-                {search && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}><Search className="w-3 h-3"/>"{search.length>15?search.slice(0,15)+'…':search}"<button onClick={()=>setSearch('')} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
-                {filterStatus!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>{filterStatus}<button onClick={()=>setFilterStatus('all')} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
-                {filterSector!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}><MapPin className="w-3 h-3"/>{sectors.find(s=>s.id===filterSector)?.name||filterSector}<button onClick={()=>setFilterSector('all')} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+                {search && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}><Search className="w-3 h-3"/>"{search.length>15?search.slice(0,15)+'…':search}"<button onClick={()=>setSearch('')} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+                {filterStatus!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>{filterStatus}<button onClick={()=>setFilterStatus('all')} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+                {filterSector!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}><MapPin className="w-3 h-3"/>{sectors.find(s=>s.id===filterSector)?.name||filterSector}<button onClick={()=>setFilterSector('all')} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
                 <button onClick={()=>{setSearch('');setFilterStatus('all');setFilterSector('all');}} className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border transition-all hover:bg-red-50" style={{borderColor:'#fca5a5',color:'#ef4444'}}><X className="w-3 h-3"/>Reset Semua</button>
-                <span className="ml-auto text-xs font-semibold" style={{color:'#1A77A3'}}>{filtered.length} ditemukan</span>
+                <span className="ml-auto text-xs font-semibold" style={{color:'#144f6b'}}>{filtered.length} ditemukan</span>
               </div>
             ) : (
               <div className="px-3 pb-2 flex justify-end"><span style={{fontSize:'12px',color:'#94a3b8',fontWeight:500}}>{filtered.length} total</span></div>
@@ -174,7 +174,7 @@ export function SectorTransferHistory() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-medium text-gray-900 group-hover:text-[#1A77A3] transition-colors">{transfer.memberName}</p>
+                          <p className="font-medium text-gray-900 group-hover:text-[#144f6b] transition-colors">{transfer.memberName}</p>
                           <Badge className={`text-xs ${cfg.color}`}>
                             <StatusIcon className="w-3 h-3 mr-1" />
                             {cfg.label}
@@ -195,7 +195,7 @@ export function SectorTransferHistory() {
                           {new Date(transfer.requestDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </div>
                         {transfer.processedDate && (
-                          <p className="text-[#1A77A3] mt-0.5">
+                          <p className="text-[#144f6b] mt-0.5">
                             Selesai: {new Date(transfer.processedDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                           </p>
                         )}
@@ -231,7 +231,7 @@ export function SectorTransferHistory() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-[#f6f4f0] rounded-lg p-3 text-center">
                     <div className="flex items-center justify-center gap-1 mb-1">
-                      <TrendingUp className="w-4 h-4 text-[#1A77A3]" />
+                      <TrendingUp className="w-4 h-4 text-[#144f6b]" />
                       <span className="text-xs text-[#144f6b]">Masuk</span>
                     </div>
                     <p className="text-2xl font-bold text-[#144f6b]">{sector.incoming}</p>
@@ -248,13 +248,13 @@ export function SectorTransferHistory() {
                 <div className="mt-3">
                   <div className="flex justify-between text-xs text-gray-500 mb-1">
                     <span>Pertumbuhan Bersih</span>
-                    <span className={sector.incoming - sector.outgoing >= 0 ? 'text-[#1A77A3]' : 'text-red-600'}>
+                    <span className={sector.incoming - sector.outgoing >= 0 ? 'text-[#144f6b]' : 'text-red-600'}>
                       {sector.incoming - sector.outgoing >= 0 ? '+' : ''}{sector.incoming - sector.outgoing}
                     </span>
                   </div>
                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full ${sector.incoming >= sector.outgoing ? 'bg-[#1A77A3]' : 'bg-red-400'}`}
+                      className={`h-full rounded-full ${sector.incoming >= sector.outgoing ? 'bg-[#144f6b]' : 'bg-red-400'}`}
                       style={{ width: `${Math.min(100, (sector.incoming / Math.max(1, sector.incoming + sector.outgoing)) * 100)}%` }}
                     />
                   </div>
@@ -267,7 +267,7 @@ export function SectorTransferHistory() {
         {/* Tab 3: Member Status */}
         <TabsContent value="status" className="space-y-4">
           <div className="flex items-center gap-2 p-3 bg-[#f6f4f0] rounded-lg border border-border-[#b8d5e8]">
-            <AlertCircle className="w-4 h-4 text-[#1A77A3] shrink-0" />
+            <AlertCircle className="w-4 h-4 text-[#144f6b] shrink-0" />
             <p className="text-sm text-[#144f6b]">
               Status aktif/tidak aktif diperbarui otomatis berdasarkan kehadiran ibadah dan data keanggotaan.
               Jemaat yang tidak hadir selama 3 bulan berturut-turut akan ditandai sebagai "Perlu Perhatian".
@@ -287,7 +287,7 @@ export function SectorTransferHistory() {
                       <span className="text-[#144f6b] font-semibold">{member.fullName.charAt(0)}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm text-gray-900 group-hover:text-[#1A77A3] transition-colors">{member.fullName}</p>
+                      <p className="font-medium text-sm text-gray-900 group-hover:text-[#144f6b] transition-colors">{member.fullName}</p>
                       <p className="text-xs text-gray-500">{sector?.name || '-'} • {member.membershipType || 'Warga Jemaat'}</p>
                     </div>
                     <div className="text-center">
@@ -516,7 +516,7 @@ export function SectorTransferHistory() {
               {can('attestations', 'edit') && selectedTransfer.status !== 'Selesai' && (
                 <div className="flex gap-2 pt-2 border-t">
                   {selectedTransfer.status === 'Pending' && (
-                    <Button variant="outline" className="flex-1 text-[#1A77A3] border-[#b8d5e8] hover:bg-[#f0f7fb]" onClick={() => {
+                    <Button variant="outline" className="flex-1 text-[#144f6b] border-[#b8d5e8] hover:bg-[#f0f7fb]" onClick={() => {
                       updateSectorTransfer(selectedTransfer.id, { status: 'Diproses', processedBy: currentUser?.name || 'Admin' });
                       setSelectedTransfer(null);
                     }}>

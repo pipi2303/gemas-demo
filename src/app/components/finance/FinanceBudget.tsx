@@ -203,7 +203,7 @@ function BudgetDetail({
 
   return (
     <div className="space-y-4">
-      <button onClick={onBack} className="flex items-center gap-1 text-xs text-slate-400 hover:text-[#1A77A3]">
+      <button onClick={onBack} className="flex items-center gap-1 text-xs text-slate-400 hover:text-[#144f6b]">
         <ArrowLeft className="w-3 h-3" /> Kembali ke daftar RKA
       </button>
 
@@ -227,7 +227,7 @@ function BudgetDetail({
                 onClick={() => runAction('submit')}
                 disabled={busyAction !== null}
                 className="flex items-center gap-1.5 text-sm font-medium text-white px-3 py-1.5 rounded-lg disabled:opacity-60"
-                style={{ background: '#1A77A3' }}
+                style={{ background: '#144f6b' }}
               >
                 {busyAction === 'submit' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />} Ajukan
               </button>
@@ -270,7 +270,7 @@ function BudgetDetail({
             <textarea
               value={rejectReason} onChange={e => setRejectReason(e.target.value)} rows={3}
               placeholder="Alasan pengembalian…"
-              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
             />
             <div className="flex justify-end gap-2">
               <button onClick={() => setRejectOpen(false)} className="px-3 py-1.5 rounded-lg text-sm text-slate-600 border border-slate-200">Batal</button>
@@ -293,7 +293,7 @@ function BudgetDetail({
             <button
               onClick={openAddLine}
               className="flex items-center gap-1.5 text-sm font-medium text-white px-3 py-1.5 rounded-lg hover:opacity-90"
-              style={{ background: '#1A77A3' }}
+              style={{ background: '#144f6b' }}
             >
               <Plus className="w-3.5 h-3.5" /> Tambah Baris
             </button>
@@ -361,7 +361,7 @@ function BudgetDetail({
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Akun <span className="text-red-500">*</span></label>
               <select value={form.account_id ?? ''} onChange={e => setForm(prev => ({ ...prev, account_id: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
                 <option value="">— pilih akun —</option>
                 {postableAccounts.map(a => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}
               </select>
@@ -371,7 +371,7 @@ function BudgetDetail({
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Bidang</label>
                 <select value={form.field_id ?? ''} onChange={e => setForm(prev => ({ ...prev, field_id: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
                   <option value="">—</option>
                   {lookups.fields.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
@@ -379,7 +379,7 @@ function BudgetDetail({
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Program</label>
                 <select value={form.program_id ?? ''} onChange={e => setForm(prev => ({ ...prev, program_id: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
                   <option value="">—</option>
                   {lookups.programs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
@@ -387,7 +387,7 @@ function BudgetDetail({
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Kegiatan</label>
                 <select value={form.activity_id ?? ''} onChange={e => setForm(prev => ({ ...prev, activity_id: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
                   <option value="">—</option>
                   {lookups.activities.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
@@ -395,7 +395,7 @@ function BudgetDetail({
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Dana</label>
                 <select value={form.fund_id ?? ''} onChange={e => setForm(prev => ({ ...prev, fund_id: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
                   <option value="">—</option>
                   {lookups.funds.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
@@ -407,7 +407,7 @@ function BudgetDetail({
               <input
                 type="number" value={form.budget_amount ?? ''}
                 onChange={e => setForm(prev => ({ ...prev, budget_amount: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
               />
             </div>
 
@@ -416,7 +416,7 @@ function BudgetDetail({
               <input
                 type="text" value={form.description ?? ''}
                 onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
               />
             </div>
 
@@ -429,7 +429,7 @@ function BudgetDetail({
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Periode <span className="text-red-500">*</span></label>
                 <select value={form.period_id ?? ''} onChange={e => setForm(prev => ({ ...prev, period_id: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]">
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
                   <option value="">— pilih periode —</option>
                   {periods.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
@@ -441,7 +441,7 @@ function BudgetDetail({
               <button
                 onClick={handleAddLine} disabled={saving}
                 className="px-3 py-1.5 rounded-lg text-sm text-white flex items-center gap-1.5 disabled:opacity-60"
-                style={{ background: '#1A77A3' }}
+                style={{ background: '#144f6b' }}
               >
                 {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Simpan
               </button>
@@ -669,7 +669,7 @@ export function FinanceBudget({ onNavigate }: { onNavigate?: (page: string) => v
             {budgetsMeta && budgetsMeta.page < budgetsMeta.totalPages && (
               <div className="flex items-center justify-center py-3 border-t border-slate-100">
                 <button onClick={loadMoreBudgets} disabled={loadingMoreBudgets}
-                  className="text-xs font-medium text-[#1A77A3] hover:underline disabled:opacity-50 flex items-center gap-1.5">
+                  className="text-xs font-medium text-[#144f6b] hover:underline disabled:opacity-50 flex items-center gap-1.5">
                   {loadingMoreBudgets && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Muat Lebih Banyak ({budgets.length} dari {budgetsMeta.total})
                 </button>
@@ -691,7 +691,7 @@ export function FinanceBudget({ onNavigate }: { onNavigate?: (page: string) => v
               <input
                 type="text" value={createForm.code} placeholder="RKA-2026-01"
                 onChange={e => setCreateForm(prev => ({ ...prev, code: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
               />
             </div>
             <div>
@@ -699,7 +699,7 @@ export function FinanceBudget({ onNavigate }: { onNavigate?: (page: string) => v
               <input
                 type="text" value={createForm.name} placeholder="RKA Tahun Fiskal 2026/2027"
                 onChange={e => setCreateForm(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
               />
             </div>
             <div className="flex justify-end gap-2 pt-2">
@@ -707,7 +707,7 @@ export function FinanceBudget({ onNavigate }: { onNavigate?: (page: string) => v
               <button
                 onClick={handleCreate} disabled={creating}
                 className="px-3 py-1.5 rounded-lg text-sm text-white flex items-center gap-1.5 disabled:opacity-60"
-                style={{ background: '#1A77A3' }}
+                style={{ background: '#144f6b' }}
               >
                 {creating && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Simpan
               </button>

@@ -69,7 +69,7 @@ function categorizeKegiatan(kegiatan: string): ChartCategory | null {
   return null;
 }
 
-const COLORS = ['#144f6b', '#144f6b', '#1A77A3', '#3a7fa0', '#f0ede5'];
+const COLORS = ['#1A77A3', '#caa04a', '#2f8f5b', '#d1553f', '#8b6bb1'];
 
 const LAPORAN_MINGGUAN_DEFAULT_WIDTHS: Record<string, number> = {
   kegiatan: 220, tempat: 180, tanggal: 180, kehadiran: 140, aksi: 110,
@@ -372,7 +372,7 @@ export function AttendanceStatsQR() {
                     <label className="text-sm font-semibold" style={{ color: '#24324a' }}>{f.label}</label>
                     <input type={f.type} value={inlineForm[f.key]} placeholder={f.placeholder}
                       onChange={e => setInlineForm(p => ({ ...p, [f.key]: e.target.value }))}
-                      className="px-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                      className="px-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                       style={{ borderColor: '#d1d5db' }} />
                   </div>
                 ))}
@@ -380,14 +380,14 @@ export function AttendanceStatsQR() {
                   <label className="text-sm font-semibold" style={{ color: '#24324a' }}>Tanggal</label>
                   <input type="date" value={inlineForm.tanggal}
                     onChange={e => setInlineForm(p => ({ ...p, tanggal: e.target.value }))}
-                    className="px-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                    className="px-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                     style={{ borderColor: '#d1d5db' }} />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-semibold" style={{ color: '#24324a' }}>Jumlah Kehadiran</label>
                   <input type="number" min="0" value={inlineForm.kehadiran} placeholder="0"
                     onChange={e => setInlineForm(p => ({ ...p, kehadiran: e.target.value }))}
-                    className="px-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                    className="px-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                     style={{ borderColor: '#d1d5db' }} />
                 </div>
               </div>
@@ -418,7 +418,7 @@ export function AttendanceStatsQR() {
                 type="month"
                 value={filterBulanMingguan}
                 onChange={e => setFilterBulanMingguan(e.target.value)}
-                className="px-2.5 py-1 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#1A77A3]"
+                className="px-2.5 py-1 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                 style={{ borderColor: '#d1b84a', background: '#fffce8', color: '#2b4265', fontWeight: 600 }}
               />
             </div>
@@ -469,7 +469,7 @@ export function AttendanceStatsQR() {
                             <div className="flex items-center gap-1.5">
                               <button onClick={() => openEditAbsensi(r)} title="Edit"
                                 className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-blue-50"
-                                style={{ color: '#1A77A3' }}>
+                                style={{ color: '#144f6b' }}>
                                 <Pencil className="w-4 h-4" />
                               </button>
                               <button onClick={() => setDeleteAbsensiId(r.id)} title="Hapus"
@@ -527,10 +527,10 @@ export function AttendanceStatsQR() {
                 <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="Minggu Pagi" fill="#144f6b" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="Minggu Sore" fill="#1A77A3" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="Rabu" fill="#f0ede5" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="Pemuda" fill="#b8d5e8" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="Minggu Pagi" fill="#1A77A3" radius={[3, 3, 0, 0]} animationDuration={400} animationEasing="ease-out" />
+                <Bar dataKey="Minggu Sore" fill="#caa04a" radius={[3, 3, 0, 0]} animationDuration={400} animationEasing="ease-out" />
+                <Bar dataKey="Rabu" fill="#2f8f5b" radius={[3, 3, 0, 0]} animationDuration={400} animationEasing="ease-out" />
+                <Bar dataKey="Pemuda" fill="#8b6bb1" radius={[3, 3, 0, 0]} animationDuration={400} animationEasing="ease-out" />
               </BarChart>
             </ResponsiveContainer>
           </Card>
@@ -544,7 +544,7 @@ export function AttendanceStatsQR() {
                 <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="kehadiran" stroke="#144f6b" strokeWidth={2.5}
+                <Line type="monotone" dataKey="kehadiran" stroke="#1A77A3" strokeWidth={2.5}
                   dot={{ fill: '#144f6b', r: 4 }} activeDot={{ r: 6 }} name="Jumlah Hadir" />
               </LineChart>
             </ResponsiveContainer>
@@ -563,8 +563,8 @@ export function AttendanceStatsQR() {
                   <YAxis dataKey="sector" type="category" tick={{ fontSize: 11 }} />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="hadir" fill="#144f6b" name="Hadir" radius={[0, 3, 3, 0]} />
-                  <Bar dataKey="total" fill="#f0ede5" name="Total" radius={[0, 3, 3, 0]} />
+                  <Bar dataKey="hadir" fill="#1A77A3" name="Hadir" radius={[0, 3, 3, 0]} animationDuration={400} animationEasing="ease-out" />
+                  <Bar dataKey="total" fill="#caa04a" name="Total" radius={[0, 3, 3, 0]} animationDuration={400} animationEasing="ease-out" />
                 </BarChart>
               </ResponsiveContainer>
             </Card>
@@ -593,7 +593,7 @@ export function AttendanceStatsQR() {
                   <p className="text-sm text-gray-500">{sec.hadir}/{sec.total}</p>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#1A77A3] rounded-full" style={{ width: `${sec.persen}%` }} />
+                  <div className="h-full bg-[#144f6b] rounded-full" style={{ width: `${sec.persen}%` }} />
                 </div>
               </Card>
             ))}

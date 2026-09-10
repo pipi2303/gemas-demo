@@ -19,7 +19,7 @@ import { useResizableColumns } from '../../hooks/useResizableColumns';
 import { ColResizeHandle } from './ui/resizable-th';
 import { liveAge } from '../../lib/age';
 
-const COLORS = ['#144f6b', '#144f6b', '#1A77A3', '#3a7fa0', '#f0ede5', '#b8d5e8'];
+const COLORS = ['#1A77A3', '#caa04a', '#2f8f5b', '#d1553f', '#8b6bb1', '#9c9486'];
 
 function formatNumber(n: number) { return n.toLocaleString('id-ID'); }
 
@@ -502,7 +502,7 @@ export function LaporanSensus() {
                   <XAxis type="number" tick={{ fontSize: 10 }} />
                   <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} />
                   <Tooltip />
-                  <Bar dataKey="value" fill="#144f6b" radius={[0, 3, 3, 0]} name="Jumlah" />
+                  <Bar dataKey="value" fill="#1A77A3" radius={[0, 3, 3, 0]} name="Jumlah" animationDuration={400} animationEasing="ease-out" />
                 </BarChart>
               </ResponsiveContainer>
             </Card>
@@ -609,8 +609,8 @@ export function LaporanSensus() {
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="laki" fill="#144f6b" name="Laki-laki" radius={[2, 2, 0, 0]} />
-                  <Bar dataKey="perempuan" fill="#f0ede5" name="Perempuan" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="laki" fill="#1A77A3" name="Laki-laki" radius={[2, 2, 0, 0]} animationDuration={400} animationEasing="ease-out" />
+                  <Bar dataKey="perempuan" fill="#caa04a" name="Perempuan" radius={[2, 2, 0, 0]} animationDuration={400} animationEasing="ease-out" />
                 </BarChart>
               </ResponsiveContainer>
             </Card>
@@ -642,7 +642,7 @@ export function LaporanSensus() {
                   <span className="text-gray-500">KK: {s.keluarga}</span>
                 </div>
                 <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#1A77A3] rounded-full"
+                  <div className="h-full bg-[#144f6b] rounded-full"
                     style={{ width: `${totalMembers > 0 ? (s.total / totalMembers) * 100 : 0}%` }} />
                 </div>
               </Card>

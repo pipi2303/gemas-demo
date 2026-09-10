@@ -15,10 +15,10 @@ import { normPelkat, PELKAT_LABELS } from '../utils/pelkatUtils';
 import { liveAge } from '../../lib/age';
 
 const SECTOR_THEMES = [
-  {bg:'#1A77A3',light:'#f0fdf4',border:'#b8d5e8',accent:'#1A77A3',icon:'#f0fdf4'},
-  {bg:'linear-gradient(135deg,#3a7fa0,#1A77A3)',light:'#f6f4f0',border:'#bfdbfe',accent:'#1A77A3',icon:'#f6f4f0'},
-  {bg:'linear-gradient(135deg,#1A77A3,#144f6b)',light:'#f6f4f0',border:'#ddd6fe',accent:'#144f6b',icon:'#f6f4f0'},
-  {bg:'linear-gradient(135deg,#7290a0,#1A77A3)',light:'#fdf2f8',border:'#fbcfe8',accent:'#3a7fa0',icon:'#fdf2f8'},
+  {bg:'#144f6b',light:'#f0fdf4',border:'#b8d5e8',accent:'#144f6b',icon:'#f0fdf4'},
+  {bg:'linear-gradient(135deg,#3a7fa0,#144f6b)',light:'#f6f4f0',border:'#bfdbfe',accent:'#144f6b',icon:'#f6f4f0'},
+  {bg:'linear-gradient(135deg,#144f6b,#144f6b)',light:'#f6f4f0',border:'#ddd6fe',accent:'#144f6b',icon:'#f6f4f0'},
+  {bg:'linear-gradient(135deg,#7290a0,#144f6b)',light:'#fdf2f8',border:'#fbcfe8',accent:'#3a7fa0',icon:'#fdf2f8'},
 ];
 
 function progressBar(value: number, max: number, color: string) {
@@ -123,7 +123,7 @@ function SectorDetail({ sector, members, families, theme, onClose, onEdit }: {
               {/* Gender */}
               <div className="rounded-2xl border p-4" style={{borderColor:'#f1f5f9'}}>
                 <h4 style={{fontSize:'13px',fontWeight:700,color:'#4b5563',marginBottom:12}}>Jenis Kelamin</h4>
-                {[{l:'Laki-laki',v:laki,c:'#1A77A3'},{l:'Perempuan',v:perempuan,c:'#3a7fa0'}].map(x=>(
+                {[{l:'Laki-laki',v:laki,c:'#144f6b'},{l:'Perempuan',v:perempuan,c:'#3a7fa0'}].map(x=>(
                   <div key={x.l} className="mb-2.5">
                     <div className="flex justify-between" style={{fontSize:'12px',color:'#4b5563'}}>
                       <span>{x.l}</span>
@@ -164,7 +164,7 @@ function SectorDetail({ sector, members, families, theme, onClose, onEdit }: {
               {/* Sakramen */}
               <div className="rounded-2xl border p-4" style={{borderColor:'#f1f5f9'}}>
                 <h4 style={{fontSize:'13px',fontWeight:700,color:'#4b5563',marginBottom:12}}>Status Sakramen</h4>
-                {[{l:'Sudah Baptis',v:sudahBaptis,c:'#3a7fa0'},{l:'Sudah Sidi',v:sudahSidi,c:'#1A77A3'},{l:'Belum Baptis',v:sMembers.length-sudahBaptis,c:'#c2baaa'}].map(x=>(
+                {[{l:'Sudah Baptis',v:sudahBaptis,c:'#3a7fa0'},{l:'Sudah Sidi',v:sudahSidi,c:'#144f6b'},{l:'Belum Baptis',v:sMembers.length-sudahBaptis,c:'#c2baaa'}].map(x=>(
                   <div key={x.l} className="mb-2">
                     <div className="flex justify-between" style={{fontSize:'12px',color:'#4b5563'}}>
                       <span>{x.l}</span><span style={{fontWeight:600}}>{x.v}</span>
@@ -207,7 +207,7 @@ function SectorDetail({ sector, members, families, theme, onClose, onEdit }: {
                       </div>
                     );})()}
                     <div className="flex-1 min-w-0">
-                      <p style={{fontSize:'13px',fontWeight:600,color:'#334155'}} className="group-hover:text-[#1A77A3] transition-colors">{m.fullName}</p>
+                      <p style={{fontSize:'13px',fontWeight:600,color:'#334155'}} className="group-hover:text-[#144f6b] transition-colors">{m.fullName}</p>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         {m.familyRole && (() => { const rs=roleStyle(m.familyRole); return (
                           <span className="px-1.5 py-0.5 rounded text-xs font-semibold" style={{background:rs.bg,color:rs.text,border:`1px solid ${rs.border}`}}>{m.familyRole}</span>
@@ -303,7 +303,7 @@ function MemberPicker({ label, value, onSelect, members, sectors }: {
       <label style={{ display: 'block', marginBottom: 4, fontSize: '12px', color: '#64748b', fontWeight: 600 }}>{label}</label>
       {value ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8, background: '#f0f7fb', border: '1px solid #b8d5e8' }}>
-          <User style={{ width: 14, height: 14, color: '#1A77A3', flexShrink: 0 }} />
+          <User style={{ width: 14, height: 14, color: '#144f6b', flexShrink: 0 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{value.fullName}</p>
             <p style={{ fontSize: '11px', color: '#64748b', margin: 0 }}>{sectorName(value.sectorId)}</p>
@@ -394,7 +394,7 @@ function SectorForm({ sector, onSave, onClose }: {
           <div>
             <label style={{display:'block',marginBottom:4,fontSize:'12px',color:'#64748b',fontWeight:600}}>Nama Sektor</label>
             <input autoFocus value={name} onChange={e=>setName(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/>
+              className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/>
           </div>
 
           <MemberPicker label="Koordinator Sektor" value={leader} onSelect={m => { setLeader(m); if (m?.phone) setLeaderContact(m.phone); }} members={members} sectors={sectors}/>
@@ -406,22 +406,22 @@ function SectorForm({ sector, onSave, onClose }: {
           <div>
             <label style={{display:'block',marginBottom:4,fontSize:'12px',color:'#64748b',fontWeight:600}}>
               No. Kontak Koordinator
-              {leader && <span style={{fontSize:'11px',color:'#1A77A3',marginLeft:6}}>— otomatis tersimpan ke data jemaat</span>}
+              {leader && <span style={{fontSize:'11px',color:'#144f6b',marginLeft:6}}>— otomatis tersimpan ke data jemaat</span>}
             </label>
             <input value={leaderContact} onChange={e=>setLeaderContact(e.target.value)}
               placeholder="08xxxxxxxxxx"
-              className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/>
+              className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/>
           </div>
 
           <div>
             <label style={{display:'block',marginBottom:4,fontSize:'12px',color:'#64748b',fontWeight:600}}>Keterangan</label>
             <textarea value={description} onChange={e=>setDescription(e.target.value)} rows={3}
-              className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3] resize-none" style={{borderColor:'#e2e8f0'}}/>
+              className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none" style={{borderColor:'#e2e8f0'}}/>
           </div>
         </div>
         <div className="px-6 pb-6 flex justify-end gap-3">
           <button onClick={onClose} className="px-4 py-2 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50" style={{borderColor:'#e2e8f0'}}>Batal</button>
-          <button onClick={handleSave} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#1A77A3'}}>Simpan</button>
+          <button onClick={handleSave} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#144f6b'}}>Simpan</button>
         </div>
       </div>
     </div>
@@ -566,7 +566,7 @@ export function SectorDatabase() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2.5" style={{fontSize:'22px',fontWeight:700,color:'#0f172a',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{background:'linear-gradient(135deg,#1A77A3,#144f6b)'}}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{background:'linear-gradient(135deg,#144f6b,#144f6b)'}}>
               <MapPin className="w-5 h-5 text-white"/>
             </div>
             Sektor Pelayanan
@@ -575,7 +575,7 @@ export function SectorDatabase() {
         </div>
         <div className="flex gap-2">
           {canEdit && (
-            <button onMouseDown={e=>e.preventDefault()} onClick={()=>{setEditSector({});setShowForm(true);}} className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-all" style={{background:'#1A77A3'}}>
+            <button onMouseDown={e=>e.preventDefault()} onClick={()=>{setEditSector({});setShowForm(true);}} className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-all" style={{background:'#144f6b'}}>
               <Plus className="w-4 h-4"/> Tambah Sektor
             </button>
           )}
@@ -589,8 +589,8 @@ export function SectorDatabase() {
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {[
           {label:'Total Anggota',value:totalMembers,sub:'seluruh sektor',color:'#0f172a',bg:'#f8fafc',border:'#e2e8f0', type:'members' as const, items:members},
-          {label:'Total Keluarga',value:totalFamilies,sub:'seluruh sektor',color:'#1A77A3',bg:'#f6f4f0',border:'#bfdbfe', type:'families' as const, items:families},
-          {label:'Anggota Aktif',value:members.filter(m=>m.membershipStatus==='Aktif').length,sub:`${totalMembers>0?((members.filter(m=>m.membershipStatus==='Aktif').length/totalMembers)*100).toFixed(0):0}% dari total`,color:'#1A77A3',bg:'#f0fdf4',border:'#b8d5e8', type:'members' as const, items:members.filter(m=>m.membershipStatus==='Aktif')},
+          {label:'Total Keluarga',value:totalFamilies,sub:'seluruh sektor',color:'#144f6b',bg:'#f6f4f0',border:'#bfdbfe', type:'families' as const, items:families},
+          {label:'Anggota Aktif',value:members.filter(m=>m.membershipStatus==='Aktif').length,sub:`${totalMembers>0?((members.filter(m=>m.membershipStatus==='Aktif').length/totalMembers)*100).toFixed(0):0}% dari total`,color:'#144f6b',bg:'#f0fdf4',border:'#b8d5e8', type:'members' as const, items:members.filter(m=>m.membershipStatus==='Aktif')},
           {label:'Anggota Non-Aktif',value:members.filter(m=>m.membershipStatus==='Tidak Aktif').length,sub:`${totalMembers>0?((members.filter(m=>m.membershipStatus==='Tidak Aktif').length/totalMembers)*100).toFixed(0):0}% dari total`,color:'#b45309',bg:'#fef3c7',border:'#fde68a', type:'members' as const, items:members.filter(m=>m.membershipStatus==='Tidak Aktif')},
           {label:'Rata-rata Umur per Sektor',value:sectorStats.length>0?Math.round(sectorStats.reduce((a,s)=>a+s.avgAge,0)/sectorStats.length):0,sub:'tahun',color:'#144f6b',bg:'#f6f4f0',border:'#ddd6fe', type:'members' as const, items:members},
         ].map((s,i)=>(
@@ -649,7 +649,7 @@ export function SectorDatabase() {
                   <span style={{fontSize:'11.5px',color:'#64748b'}}>{s.laki}L / {s.perempuan}P</span>
                 </div>
                 <div className="flex h-3 rounded-full overflow-hidden">
-                  <div style={{width:`${s.sm.length>0?(s.laki/s.sm.length)*100:50}%`,background:'#1A77A3'}}/>
+                  <div style={{width:`${s.sm.length>0?(s.laki/s.sm.length)*100:50}%`,background:'#144f6b'}}/>
                   <div style={{flex:1,background:'#3a7fa0'}}/>
                 </div>
               </div>
@@ -771,7 +771,7 @@ export function SectorDatabase() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"/>
                   <input value={kpiSearch} onChange={e=>setKpiSearch(e.target.value)}
                     placeholder={kpiDetail.type==='members'?'Cari nama anggota...':'Cari nama kepala keluarga...'}
-                    className="w-full pl-9 pr-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/>
+                    className="w-full pl-9 pr-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/>
                 </div>
               </div>
               {/* List */}
@@ -784,7 +784,7 @@ export function SectorDatabase() {
                   return (
                     <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl border hover:bg-[#f0f7fb]/50 transition-colors" style={{borderColor:'#f1f5f9'}}>
                       <div className="w-9 h-9 rounded-full flex items-center justify-center text-white flex-shrink-0 text-sm font-bold"
-                        style={{background:'linear-gradient(135deg,#1A77A3,#144f6b)'}}>
+                        style={{background:'linear-gradient(135deg,#144f6b,#144f6b)'}}>
                         {m.fullName?.[0]||'?'}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -807,7 +807,7 @@ export function SectorDatabase() {
                   return (
                     <div key={f.id} className="flex items-center gap-3 p-3 rounded-xl border hover:bg-[#f0f7fb]/50 transition-colors" style={{borderColor:'#f1f5f9'}}>
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{background:'#f6f4f0'}}>
-                        <Home className="w-5 h-5 text-[#1A77A3]"/>
+                        <Home className="w-5 h-5 text-[#144f6b]"/>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p style={{fontSize:'13px',fontWeight:600,color:'#334155'}}>Kel. {f.headOfFamily}</p>

@@ -153,7 +153,7 @@ export function AnnouncementManagement() {
         <button
           onMouseDown={e=>e.preventDefault()}
           onClick={openAddForm}
-          className="flex items-center gap-2 px-4 py-2 bg-[#1A77A3] text-white rounded-lg hover:bg-[#144f6b]"
+          className="flex items-center gap-2 px-4 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b]"
         >
           <Plus className="w-4 h-4" />
           Buat Pengumuman

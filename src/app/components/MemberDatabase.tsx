@@ -50,7 +50,7 @@ interface MemberDocument {
 // ── Status Badge ──────────────────────────────────────────────────────────────
 export function StatusBadge({ status }: { status?: string }) {
   const cfg: Record<string, { bg: string; color: string }> = {
-    'Aktif':      { bg:'#f0fdf4', color:'#1A77A3' },
+    'Aktif':      { bg:'#f0fdf4', color:'#144f6b' },
     'Pindah':     { bg:'#eff6ff', color:'#2563eb' },
     'Meninggal':  { bg:'#f8fafc', color:'#64748b' },
     'Tidak Aktif':{ bg:'#fef2f2', color:'#dc2626' },
@@ -114,7 +114,7 @@ export function AttBadge({ status }: { status: string }) {
   const cfg: Record<string,{bg:string;color:string;icon:React.ReactNode}> = {
     'Diajukan': { bg:'#f6f4f0', color:'#9c9486', icon:<Clock className="w-2.5 h-2.5"/> },
     'Diproses': { bg:'#eff6ff', color:'#2563eb', icon:<RefreshCw className="w-2.5 h-2.5"/> },
-    'Selesai':  { bg:'#f0fdf4', color:'#1A77A3', icon:<CheckCircle2 className="w-2.5 h-2.5"/> },
+    'Selesai':  { bg:'#f0fdf4', color:'#144f6b', icon:<CheckCircle2 className="w-2.5 h-2.5"/> },
     'Ditolak':  { bg:'#fef2f2', color:'#dc2626', icon:<Ban className="w-2.5 h-2.5"/> },
   };
   const c = cfg[status] || { bg:'#f1f5f9', color:'#64748b', icon:null };
@@ -361,7 +361,7 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
           {tab==='personal' && (
             <div className="space-y-5">
               <div>
-                <SectionHeader icon={<User className="w-3.5 h-3.5 text-[#1A77A3]"/>} title="Identitas"/>
+                <SectionHeader icon={<User className="w-3.5 h-3.5 text-[#144f6b]"/>} title="Identitas"/>
                 <InfoRow label="Nama Lengkap" value={member.fullName}/>
                 <InfoRow label="Nama Keluarga" value={member.familyName}/>
                 <InfoRow label="Jenis Kelamin" value={member.gender}/>
@@ -379,19 +379,19 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
                 <InfoRow label="Kode Keluarga" value={member.familyCode}/>
               </div>
               <div>
-                <SectionHeader icon={<Calendar className="w-3.5 h-3.5 text-[#1A77A3]"/>} title="Kelahiran"/>
+                <SectionHeader icon={<Calendar className="w-3.5 h-3.5 text-[#144f6b]"/>} title="Kelahiran"/>
                 <InfoRow label="Tempat Lahir" value={member.birthPlace}/>
                 <InfoRow label="Tanggal Lahir" value={fmtDate(member.birthDate)}/>
                 <InfoRow label="Usia" value={member.birthDate ? `${liveAge(member)} tahun` : undefined}/>
               </div>
               <div>
-                <SectionHeader icon={<Heart className="w-3.5 h-3.5 text-[#1A77A3]"/>} title="Status Pernikahan"/>
+                <SectionHeader icon={<Heart className="w-3.5 h-3.5 text-[#144f6b]"/>} title="Status Pernikahan"/>
                 <InfoRow label="Status" value={member.maritalStatus}/>
                 <InfoRow label="Tgl Nikah Gereja" value={fmtDate(member.marriageDateChurch)}/>
                 <InfoRow label="Tgl Nikah Sipil" value={fmtDate(member.marriageDateCivil)}/>
               </div>
               <div>
-                <SectionHeader icon={<Droplets className="w-3.5 h-3.5 text-[#1A77A3]"/>} title="Kesehatan"/>
+                <SectionHeader icon={<Droplets className="w-3.5 h-3.5 text-[#144f6b]"/>} title="Kesehatan"/>
                 <InfoRow label="Golongan Darah" value={member.bloodType}/>
               </div>
             </div>
@@ -399,7 +399,7 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
           {tab==='gereja' && (
             <div className="space-y-5">
               <div>
-                <SectionHeader icon={<Church className="w-3.5 h-3.5 text-[#1A77A3]"/>} title="Keanggotaan Gereja"/>
+                <SectionHeader icon={<Church className="w-3.5 h-3.5 text-[#144f6b]"/>} title="Keanggotaan Gereja"/>
                 <InfoRow label="Status Keanggotaan" value={member.membershipStatus}/>
                 <InfoRow label="Tipe Keanggotaan" value={member.membershipType}/>
                 <InfoRow label="No. Induk" value={member.memberNumber}/>
@@ -409,20 +409,20 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
                 <InfoRow label="Tgl Bergabung" value={fmtDate(member.joinDate)}/>
               </div>
               <div>
-                <SectionHeader icon={<Baby className="w-3.5 h-3.5 text-[#1A77A3]"/>} title="Baptisan"/>
+                <SectionHeader icon={<Baby className="w-3.5 h-3.5 text-[#144f6b]"/>} title="Baptisan"/>
                 <InfoRow label="Status Baptis" value={member.baptismStatus}/>
                 <InfoRow label="Tempat Baptis" value={member.baptismPlace}/>
                 <InfoRow label="Tgl Baptis" value={fmtDate(member.baptismDate)}/>
               </div>
               <div>
-                <SectionHeader icon={<CheckCircle2 className="w-3.5 h-3.5 text-[#1A77A3]"/>} title="Sidi"/>
+                <SectionHeader icon={<CheckCircle2 className="w-3.5 h-3.5 text-[#144f6b]"/>} title="Sidi"/>
                 <InfoRow label="Status Sidi" value={member.sidiStatus}/>
                 <InfoRow label="Tempat Sidi" value={member.sidiPlace}/>
                 <InfoRow label="Tgl Sidi" value={fmtDate(member.sidiDate)}/>
               </div>
               {member.otherHistory && (
                 <div>
-                  <SectionHeader icon={<FileText className="w-3.5 h-3.5 text-[#1A77A3]"/>} title="Riwayat Gerejawi"/>
+                  <SectionHeader icon={<FileText className="w-3.5 h-3.5 text-[#144f6b]"/>} title="Riwayat Gerejawi"/>
                   <p style={{fontSize:'12.5px',color:'#4b5563',lineHeight:1.7}}>{member.churchExperience||'—'}</p>
                 </div>
               )}
@@ -431,13 +431,13 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
           {tab==='kontak' && (
             <div className="space-y-5">
               <div>
-                <SectionHeader icon={<Phone className="w-3.5 h-3.5 text-[#1A77A3]"/>} title="Kontak"/>
+                <SectionHeader icon={<Phone className="w-3.5 h-3.5 text-[#144f6b]"/>} title="Kontak"/>
                 <InfoRow label="No. Handphone" value={member.phone}/>
                 <InfoRow label="No. Telp Rumah" value={member.homePhone}/>
                 <InfoRow label="Email" value={member.email}/>
               </div>
               <div>
-                <SectionHeader icon={<Home className="w-3.5 h-3.5 text-[#1A77A3]"/>} title="Alamat"/>
+                <SectionHeader icon={<Home className="w-3.5 h-3.5 text-[#144f6b]"/>} title="Alamat"/>
                 <p style={{fontSize:'12.5px',color:'#4b5563',lineHeight:1.8}}>{member.address||'—'}</p>
               </div>
             </div>
@@ -445,19 +445,19 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
           {tab==='kerja' && (
             <div className="space-y-5">
               <div>
-                <SectionHeader icon={<GraduationCap className="w-3.5 h-3.5 text-[#1A77A3]"/>} title="Pendidikan"/>
+                <SectionHeader icon={<GraduationCap className="w-3.5 h-3.5 text-[#144f6b]"/>} title="Pendidikan"/>
                 <InfoRow label="Pendidikan Terakhir" value={member.education}/>
                 <InfoRow label="Gelar" value={member.degree}/>
                 <InfoRow label="Jurusan" value={member.major}/>
               </div>
               <div>
-                <SectionHeader icon={<Briefcase className="w-3.5 h-3.5 text-[#1A77A3]"/>} title="Pekerjaan"/>
+                <SectionHeader icon={<Briefcase className="w-3.5 h-3.5 text-[#144f6b]"/>} title="Pekerjaan"/>
                 <InfoRow label="Pekerjaan" value={member.occupation}/>
                 <InfoRow label="Profesi" value={member.profession}/>
                 <InfoRow label="Tempat Kerja" value={member.workplace}/>
               </div>
               <div>
-                <SectionHeader icon={<Users className="w-3.5 h-3.5 text-[#1A77A3]"/>} title="Kompetensi"/>
+                <SectionHeader icon={<Users className="w-3.5 h-3.5 text-[#144f6b]"/>} title="Kompetensi"/>
                 <InfoRow label="Penguasaan Bahasa" value={member.languageSkills}/>
                 <InfoRow label="Skill / Kompetensi" value={member.skills}/>
                 <InfoRow label="Pengalaman Organisasi" value={member.organizationExperience}/>
@@ -484,7 +484,7 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
         </div>
         <div className="px-6 py-4 border-t flex justify-end gap-3 flex-shrink-0" style={{borderColor:'#f1f5f9'}}>
           {detailCanEdit && (
-            <button onClick={onEdit} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90" style={{background:'#1A77A3'}}>
+            <button onClick={onEdit} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90" style={{background:'#144f6b'}}>
               <Pencil className="w-3.5 h-3.5"/> Edit Data
             </button>
           )}
@@ -512,12 +512,12 @@ function AttestationsTabContent({ member, memberAttestations, onShowAttForm }: {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{background:'#f0fdf4'}}>
-                    <FileText className="w-3.5 h-3.5 text-[#1A77A3]"/>
+                    <FileText className="w-3.5 h-3.5 text-[#144f6b]"/>
                   </div>
                   <h4 style={{fontSize:'13px',fontWeight:700,color:'#4b5563'}}>Riwayat Atestasi</h4>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{background:'#f0fdf4',color:'#1A77A3'}}>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{background:'#f0fdf4',color:'#144f6b'}}>
                     {memberAttestations.length} catatan
                   </span>
                   <button
@@ -552,11 +552,11 @@ function AttestationsTabContent({ member, memberAttestations, onShowAttForm }: {
                         {/* Card header */}
                         <div className="px-4 py-3 flex items-center justify-between" style={{background: isIn ? 'linear-gradient(135deg,#f0fdf4,#dcfce7)' : 'linear-gradient(135deg,#f6f4f0,#fef3c7)'}}>
                           <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{background: isIn ? '#1A77A3' : '#9c9486'}}>
+                            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{background: isIn ? '#144f6b' : '#9c9486'}}>
                               {isIn ? <ArrowRight className="w-3.5 h-3.5 text-white"/> : <ArrowLeft className="w-3.5 h-3.5 text-white"/>}
                             </div>
                             <div>
-                              <p style={{fontSize:'12.5px',fontWeight:700,color: isIn ? '#1A77A3' : '#9c9486'}}>{att.type}</p>
+                              <p style={{fontSize:'12.5px',fontWeight:700,color: isIn ? '#144f6b' : '#9c9486'}}>{att.type}</p>
                               {att.letterNumber && <p style={{fontSize:'10.5px',color:'#94a3b8'}}>Surat: {att.letterNumber}</p>}
                             </div>
                           </div>
@@ -607,7 +607,7 @@ function AssetsTabContent({ memberAssets, borrowedAssets }: {
   memberAssets: ChurchAsset[]; borrowedAssets: ChurchAsset[];
 }) {
             const condCfg: Record<string,{text:string;bg:string;border:string}> = {
-              'Baik':         {text:'#1A77A3',bg:'#f0fdf4',border:'#b8d5e8'},
+              'Baik':         {text:'#144f6b',bg:'#f0fdf4',border:'#b8d5e8'},
               'Cukup Baik':   {text:'#2563eb',bg:'#eff6ff',border:'#bfdbfe'},
               'Rusak Ringan': {text:'#9c9486',bg:'#f6f4f0',border:'#e8e4d8'},
               'Rusak Berat':  {text:'#dc2626',bg:'#fef2f2',border:'#fecaca'},
@@ -615,7 +615,7 @@ function AssetsTabContent({ memberAssets, borrowedAssets }: {
             };
             const catColorMap: Record<string,string> = {
               'Tanah':'#3a7fa0','Bangunan':'#3b82f6','Kendaraan':'#c2baaa',
-              'Inventaris':'#64748b','Elektronik':'#06b6d4','Peralatan Ibadah':'#1A77A3','Lainnya':'#ec4899'
+              'Inventaris':'#64748b','Elektronik':'#06b6d4','Peralatan Ibadah':'#144f6b','Lainnya':'#ec4899'
             };
             const fmtShort = (d?: string) => d ? new Date(d).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}) : '—';
             const isOD = (a: any) => (a.loanStatus||'Tersedia')==='Dipinjam' && a.expectedReturnDate && new Date(a.expectedReturnDate).getTime() < Date.now();
@@ -725,7 +725,7 @@ function AssetsTabContent({ memberAssets, borrowedAssets }: {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{background:'#f0fdf4'}}>
-                      <Shield className="w-3.5 h-3.5 text-[#1A77A3]"/>
+                      <Shield className="w-3.5 h-3.5 text-[#144f6b]"/>
                     </div>
                     <h4 style={{fontSize:'13px',fontWeight:700,color:'#4b5563'}}>Aset Terkait</h4>
                   </div>
@@ -735,7 +735,7 @@ function AssetsTabContent({ memberAssets, borrowedAssets }: {
                         ⚠ {overdueCount} jatuh tempo
                       </span>
                     )}
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{background:'#f0fdf4',color:'#1A77A3'}}>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{background:'#f0fdf4',color:'#144f6b'}}>
                       {totalCount} aset
                     </span>
                   </div>
@@ -781,9 +781,9 @@ function AssetsTabContent({ memberAssets, borrowedAssets }: {
                   <div>
                     <div className="flex items-center gap-2 mb-2 pb-1 border-b" style={{borderColor:'#f1f5f9'}}>
                       <div className="w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0" style={{background:'#f0fdf4'}}>
-                        <Shield className="w-3 h-3 text-[#1A77A3]"/>
+                        <Shield className="w-3 h-3 text-[#144f6b]"/>
                       </div>
-                      <span style={{fontSize:'12px',fontWeight:700,color:'#1A77A3'}}>Dikelola / Penanggung Jawab ({memberAssets.length})</span>
+                      <span style={{fontSize:'12px',fontWeight:700,color:'#144f6b'}}>Dikelola / Penanggung Jawab ({memberAssets.length})</span>
                     </div>
                     <div className="space-y-2">
                       {memberAssets.map(a => <AssetCard key={a.id} asset={a} mode="managed"/>)}
@@ -806,7 +806,7 @@ function DocumentsTabContent({ memberDocuments, canEdit, canDelete, uploadingDoc
               {canEdit && (
                 <button onClick={onUploadClick} disabled={uploadingDoc}
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed text-sm font-semibold transition-colors disabled:opacity-60"
-                  style={{borderColor:'#b8d5e8',color:'#1A77A3',background:'#f0fdf4'}}>
+                  style={{borderColor:'#b8d5e8',color:'#144f6b',background:'#f0fdf4'}}>
                   {uploadingDoc ? <Loader2 className="w-4 h-4 animate-spin"/> : <Upload className="w-4 h-4"/>}
                   {uploadingDoc ? 'Mengunggah...' : 'Unggah Dokumen PDF'}
                 </button>
@@ -833,7 +833,7 @@ function DocumentsTabContent({ memberDocuments, canEdit, canDelete, uploadingDoc
                         <p style={{fontSize:'11px',color:'#94a3b8'}}>{formatBytes(doc.fileSize)} · {fmtDate(doc.uploadedAt)} · {doc.uploadedBy}</p>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        <button data-tooltip="Lihat" onClick={()=>onViewDocument(doc)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#1A77A3] transition-colors"><Eye className="w-4 h-4"/></button>
+                        <button data-tooltip="Lihat" onClick={()=>onViewDocument(doc)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#144f6b] transition-colors"><Eye className="w-4 h-4"/></button>
                         {canDelete && (
                           <button data-tooltip="Hapus" onClick={()=>onDeleteDocument(doc)} className="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4"/></button>
                         )}
@@ -876,13 +876,13 @@ function MemberField({ label, value, onChange, type='text', opts, required, auto
       </label>
       {opts ? (
         <select autoFocus={autoFocus} value={value} onChange={e=>onChange(e.target.value)}
-          className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}>
+          className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}>
           <option value="">— Pilih —</option>
           {opts.map(o=><option key={o} value={o}>{o}</option>)}
         </select>
       ) : (
         <input autoFocus={autoFocus} type={type} value={value} onChange={e=>onChange(e.target.value)}
-          className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/>
+          className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/>
       )}
     </div>
   );
@@ -1147,7 +1147,7 @@ function MemberForm({ mode, initial, sectors, families, attestations, members, o
               <MemberField label="Kode Keluarga" value={form.familyCode} onChange={v=>h('familyCode',v)}/>
               <div>
                 <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Sektor<span className="text-red-400 ml-0.5">*</span></label>
-                <select value={form.sectorId} onChange={e=>h('sectorId',e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}>
+                <select value={form.sectorId} onChange={e=>h('sectorId',e.target.value)} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}>
                   <option value="">— Pilih Sektor —</option>
                   {[...sectors].sort((a,b)=>a.name.localeCompare(b.name,'id',{numeric:true})).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
@@ -1173,7 +1173,7 @@ function MemberForm({ mode, initial, sectors, families, attestations, members, o
               <div className="col-span-2">
                 <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Alamat</label>
                 <textarea value={form.address} onChange={e=>h('address',e.target.value)} rows={3}
-                  className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3] resize-none" style={{borderColor:'#e2e8f0'}}/>
+                  className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none" style={{borderColor:'#e2e8f0'}}/>
               </div>
             </div>
           )}
@@ -1187,15 +1187,15 @@ function MemberForm({ mode, initial, sectors, families, attestations, members, o
               <MemberField label="Tempat Kerja" value={form.workplace} onChange={v=>h('workplace',v)}/>
               <div className="col-span-2">
                 <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Penguasaan Bahasa</label>
-                <input type="text" value={form.languageSkills} onChange={e=>h('languageSkills',e.target.value)} placeholder="Indonesia, Inggris, dll" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]" style={{borderColor:'#e2e8f0'}}/>
+                <input type="text" value={form.languageSkills} onChange={e=>h('languageSkills',e.target.value)} placeholder="Indonesia, Inggris, dll" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/>
               </div>
               <div className="col-span-2">
                 <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Skill / Kompetensi</label>
-                <textarea value={form.skills} onChange={e=>h('skills',e.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3] resize-none" style={{borderColor:'#e2e8f0'}}/>
+                <textarea value={form.skills} onChange={e=>h('skills',e.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none" style={{borderColor:'#e2e8f0'}}/>
               </div>
               <div className="col-span-2">
                 <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Pengalaman Gerejawi</label>
-                <textarea value={form.churchExperience} onChange={e=>h('churchExperience',e.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3] resize-none" style={{borderColor:'#e2e8f0'}}/>
+                <textarea value={form.churchExperience} onChange={e=>h('churchExperience',e.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none" style={{borderColor:'#e2e8f0'}}/>
               </div>
             </div>
           )}
@@ -1219,7 +1219,7 @@ function MemberForm({ mode, initial, sectors, families, attestations, members, o
 
         <div className="px-6 py-4 border-t flex justify-end gap-3 flex-shrink-0" style={{borderColor:'#f1f5f9'}}>
           <button onClick={onClose} className="px-4 py-2 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors" style={{borderColor:'#e2e8f0'}}>Batal</button>
-          <button onClick={submit} disabled={submitting} className="px-5 py-2 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed" style={{background:'#1A77A3'}}>
+          <button onClick={submit} disabled={submitting} className="px-5 py-2 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed" style={{background:'#144f6b'}}>
             {submitting ? 'Menyimpan...' : (mode==='add'?'Simpan Anggota':'Perbarui Data')}
           </button>
         </div>
@@ -1534,13 +1534,13 @@ function ImportMembersModal({ sectors, existingMembers, onImport, onClose }: {
           {(['upload', 'preview', 'done'] as ImportStep[]).map((s, i) => (
             <div key={s} className="flex-1 flex items-center gap-2 px-4 py-2.5">
               <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                style={{ background: step === s ? '#384959' : ((['upload','preview','done'].indexOf(step) > i) ? '#1A77A3' : '#e2e8f0'), color: step === s || ['upload','preview','done'].indexOf(step) > i ? '#fff' : '#94a3b8' }}>
+                style={{ background: step === s ? '#384959' : ((['upload','preview','done'].indexOf(step) > i) ? '#144f6b' : '#e2e8f0'), color: step === s || ['upload','preview','done'].indexOf(step) > i ? '#fff' : '#94a3b8' }}>
                 {['upload','preview','done'].indexOf(step) > i ? '✓' : i + 1}
               </div>
               <span style={{ fontSize: '12px', fontWeight: 600, color: step === s ? '#384959' : '#94a3b8' }}>
                 {s === 'upload' ? 'Upload' : s === 'preview' ? 'Preview' : 'Selesai'}
               </span>
-              {i < 2 && <div className="flex-1 h-px ml-2" style={{ background: ['upload','preview','done'].indexOf(step) > i ? '#1A77A3' : '#e2e8f0' }} />}
+              {i < 2 && <div className="flex-1 h-px ml-2" style={{ background: ['upload','preview','done'].indexOf(step) > i ? '#144f6b' : '#e2e8f0' }} />}
             </div>
           ))}
         </div>
@@ -1556,16 +1556,16 @@ function ImportMembersModal({ sectors, existingMembers, onImport, onClose }: {
                 onDragLeave={() => setDragOver(false)}
                 onClick={() => fileRef.current?.click()}
                 className="border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all"
-                style={{ borderColor: dragOver ? '#1A77A3' : '#e2e8f0', background: dragOver ? '#f0f7fb' : '#fafbfc' }}
+                style={{ borderColor: dragOver ? '#144f6b' : '#e2e8f0', background: dragOver ? '#f0f7fb' : '#fafbfc' }}
               >
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: '#f0f7fb' }}>
-                  <Download className="w-7 h-7" style={{ color: '#1A77A3', transform: 'rotate(180deg)' }} />
+                  <Download className="w-7 h-7" style={{ color: '#144f6b', transform: 'rotate(180deg)' }} />
                 </div>
                 <p style={{ fontSize: '14px', fontWeight: 700, color: '#384959' }}>Drag & drop file di sini</p>
                 <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: 4 }}>atau klik untuk pilih file</p>
                 <div className="flex justify-center gap-2 mt-4">
                   {['.xlsx', '.xls', '.csv'].map(ext => (
-                    <span key={ext} className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: '#f0f7fb', color: '#1A77A3', border: '1px solid #b8d5e8' }}>{ext}</span>
+                    <span key={ext} className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: '#f0f7fb', color: '#144f6b', border: '1px solid #b8d5e8' }}>{ext}</span>
                   ))}
                 </div>
               </div>
@@ -1579,7 +1579,7 @@ function ImportMembersModal({ sectors, existingMembers, onImport, onClose }: {
                     ['Format Export GEMAS', 'Kolom: No.Induk, Nama Lengkap, Gender, Tgl Lahir, Sektor, ...'],
                   ].map(([fmt, desc]) => (
                     <div key={fmt} className="flex gap-2">
-                      <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#1A77A3' }} />
+                      <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#144f6b' }} />
                       <div>
                         <p style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>{fmt}</p>
                         <p style={{ fontSize: '11px', color: '#94a3b8' }}>{desc}</p>
@@ -1597,7 +1597,7 @@ function ImportMembersModal({ sectors, existingMembers, onImport, onClose }: {
               {/* Summary cards */}
               <div className="grid grid-cols-3 gap-3">
                 {([
-                  { key: 'new' as const,   label: 'Akan Diimpor', count: newRows.length,   bg: '#f0fdf4', border: '#b8d5e8', color: '#1A77A3' },
+                  { key: 'new' as const,   label: 'Akan Diimpor', count: newRows.length,   bg: '#f0fdf4', border: '#b8d5e8', color: '#144f6b' },
                   { key: 'dupe' as const,  label: 'Sudah Ada',    count: dupeRows.length,  bg: '#fffbeb', border: '#fcd34d', color: '#b45309' },
                   { key: 'error' as const, label: 'Dilewati',     count: errorRows.length, bg: '#fef2f2', border: '#fca5a5', color: '#dc2626' },
                 ] as const).map(c => (
@@ -1613,7 +1613,7 @@ function ImportMembersModal({ sectors, existingMembers, onImport, onClose }: {
               {/* Format badge */}
               {format && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: '#f0f7fb', border: '1px solid #b8d5e8' }}>
-                  <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: '#1A77A3' }} />
+                  <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: '#144f6b' }} />
                   <span style={{ fontSize: '12px', color: '#334155', fontWeight: 500 }}>
                     Format terdeteksi: <strong>{format === 'jemaat' ? 'SIJEMAAT / SIG' : 'Export GEMAS'}</strong> · {parsed.length} baris
                   </span>
@@ -1664,11 +1664,11 @@ function ImportMembersModal({ sectors, existingMembers, onImport, onClose }: {
                                 <td className="px-3 py-2 font-mono" style={{ color: '#94a3b8' }}>{r.mapped?.memberNumber || '—'}</td>
                                 <td className="px-3 py-2" style={{ color: '#64748b' }}>{r.mapped?.gender === 'Laki-laki' ? 'L' : 'P'}</td>
                                 <td className="px-3 py-2" style={{ color: '#64748b' }}>{r.mapped?.birthDate || '—'}</td>
-                                <td className="px-3 py-2" style={{ color: r.mapped?.sectorId ? '#1A77A3' : '#f59e0b' }}>
+                                <td className="px-3 py-2" style={{ color: r.mapped?.sectorId ? '#144f6b' : '#f59e0b' }}>
                                   {r.mapped?.sectorId ? (sectors.find(s => s.id === r.mapped?.sectorId)?.name || '?') : '⚠ kosong'}
                                 </td>
                                 <td className="px-3 py-2">
-                                  <span className="px-1.5 py-0.5 rounded-full text-xs font-semibold" style={{ background: '#f0fdf4', color: '#1A77A3' }}>{r.mapped?.membershipStatus}</span>
+                                  <span className="px-1.5 py-0.5 rounded-full text-xs font-semibold" style={{ background: '#f0fdf4', color: '#144f6b' }}>{r.mapped?.membershipStatus}</span>
                                 </td>
                               </tr>
                             ))}
@@ -1727,11 +1727,11 @@ function ImportMembersModal({ sectors, existingMembers, onImport, onClose }: {
           {step === 'done' && (
             <div className="p-10 text-center">
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ background: '#f0fdf4' }}>
-                <CheckCircle2 className="w-9 h-9" style={{ color: '#1A77A3' }} />
+                <CheckCircle2 className="w-9 h-9" style={{ color: '#144f6b' }} />
               </div>
               <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>Import Berhasil!</h3>
               <p style={{ fontSize: '13px', color: '#64748b' }}>
-                <strong style={{ color: '#1A77A3' }}>{doneCount} anggota</strong> berhasil ditambahkan ke database.
+                <strong style={{ color: '#144f6b' }}>{doneCount} anggota</strong> berhasil ditambahkan ke database.
               </p>
               {dupeRows.length > 0 && (
                 <p style={{ fontSize: '12px', color: '#b45309', marginTop: 6 }}>{dupeRows.length} data duplikat dilewati.</p>
@@ -2051,7 +2051,7 @@ export function MemberDatabase() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2.5" style={{fontSize:'22px',fontWeight:700,color:'#0f172a',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{background:'#1A77A3'}}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{background:'#144f6b'}}>
               <Users className="w-5 h-5 text-white"/>
             </div>
             Database Warga Jemaat
@@ -2060,7 +2060,7 @@ export function MemberDatabase() {
         </div>
         <div className="flex flex-wrap gap-2">
           {canCreate && (
-            <button onMouseDown={e=>e.preventDefault()} onClick={()=>{setFormMode('add');setSelected(null);setShowForm(true);}} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold shadow transition-all hover:opacity-90" style={{background:'#1A77A3'}}>
+            <button onMouseDown={e=>e.preventDefault()} onClick={()=>{setFormMode('add');setSelected(null);setShowForm(true);}} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold shadow transition-all hover:opacity-90" style={{background:'#144f6b'}}>
               <Plus className="w-4 h-4"/> Tambah Anggota
             </button>
           )}
@@ -2081,13 +2081,13 @@ export function MemberDatabase() {
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
         {[
           {label:'Total Anggota',value:stats.total,           color:'#0f172a',bg:'#f8fafc',border:'#e2e8f0',list:members},
-          {label:'Aktif',        value:stats.aktif.length,     color:'#1A77A3',bg:'#f0fdf4',border:'#b8d5e8',list:stats.aktif},
+          {label:'Aktif',        value:stats.aktif.length,     color:'#144f6b',bg:'#f0fdf4',border:'#b8d5e8',list:stats.aktif},
           {label:'Pindah',       value:stats.pindah.length,    color:'#2563eb',bg:'#eff6ff',border:'#bfdbfe',list:stats.pindah},
           {label:'Meninggal',    value:stats.meninggal.length, color:'#64748b',bg:'#f8fafc',border:'#e2e8f0',list:stats.meninggal},
           {label:'Tidak Aktif',  value:stats.tidakAktif.length,color:'#b45309',bg:'#fffbeb',border:'#fde68a',list:stats.tidakAktif},
           {label:'Laki-Laki',    value:stats.lakiLaki.length,  color:'#2563eb',bg:'#eff6ff',border:'#bfdbfe',list:stats.lakiLaki},
           {label:'Perempuan',    value:stats.perempuan.length, color:'#3a7fa0',bg:'#fdf2f8',border:'#fbcfe8',list:stats.perempuan},
-          {label:'Sudah Sidi',   value:stats.sudahSidi.length, color:'#1A77A3',bg:'#f0fdf4',border:'#b8d5e8',list:stats.sudahSidi},
+          {label:'Sudah Sidi',   value:stats.sudahSidi.length, color:'#144f6b',bg:'#f0fdf4',border:'#b8d5e8',list:stats.sudahSidi},
         ].map((s,i)=>(
           <div key={i}
             onClick={()=>{setKpiDetail({label:s.label,list:s.list});setKpiSearch('');}}
@@ -2128,10 +2128,10 @@ export function MemberDatabase() {
             />
           </div>
           <div className="flex items-center gap-1 p-1 rounded-xl border" style={{borderColor:'#e2e8f0',background:'#f8fafc'}}>
-            <button data-tooltip="Tampilan Tabel" onClick={()=>setView('table')} className="p-2 rounded-lg transition-all" style={{background:view==='table'?'#1A77A3':'transparent',color:view==='table'?'#fff':'#94a3b8',padding:'6px'}}>
+            <button data-tooltip="Tampilan Tabel" onClick={()=>setView('table')} className="p-2 rounded-lg transition-all" style={{background:view==='table'?'#144f6b':'transparent',color:view==='table'?'#fff':'#94a3b8',padding:'6px'}}>
               <List className="w-4 h-4"/>
             </button>
-            <button data-tooltip="Tampilan Kartu" onClick={()=>setView('card')} className="p-2 rounded-lg transition-all" style={{background:view==='card'?'#1A77A3':'transparent',color:view==='card'?'#fff':'#94a3b8',padding:'6px'}}>
+            <button data-tooltip="Tampilan Kartu" onClick={()=>setView('card')} className="p-2 rounded-lg transition-all" style={{background:view==='card'?'#144f6b':'transparent',color:view==='card'?'#fff':'#94a3b8',padding:'6px'}}>
               <LayoutGrid className="w-4 h-4"/>
             </button>
           </div>
@@ -2153,7 +2153,7 @@ export function MemberDatabase() {
               return (
                 <select key={i} value={f.val} onChange={e=>f.set(e.target.value)}
                   className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer"
-                  style={{borderColor:active?'#1A77A3':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#1A77A3':'#64748b',fontWeight:active?600:400}}>
+                  style={{borderColor:active?'#144f6b':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#144f6b':'#64748b',fontWeight:active?600:400}}>
                   {f.opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}
                 </select>
               );
@@ -2172,7 +2172,7 @@ export function MemberDatabase() {
                 <>
                   <select value={periodeField} onChange={e=>{setPeriodeField(e.target.value as any);setPage(1);}}
                     className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer"
-                    style={{borderColor:periodeActive?'#1A77A3':'#e2e8f0',background:periodeActive?'#f0f7fb':'#fafafa',color:periodeActive?'#1A77A3':'#64748b',fontWeight:periodeActive?600:400}}>
+                    style={{borderColor:periodeActive?'#144f6b':'#e2e8f0',background:periodeActive?'#f0f7fb':'#fafafa',color:periodeActive?'#144f6b':'#64748b',fontWeight:periodeActive?600:400}}>
                     <option value="joinDate">Tgl Bergabung</option>
                     <option value="baptismDate">Tgl Baptis</option>
                     <option value="sidiDate">Tgl Sidi</option>
@@ -2181,11 +2181,11 @@ export function MemberDatabase() {
                   <div className="flex items-center gap-2">
                     <input type="date" value={periodeFrom} onChange={e=>{setPeriodeFrom(e.target.value);setPage(1);}}
                       className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all"
-                      style={{borderColor:periodeFrom?'#1A77A3':'#e2e8f0',background:periodeFrom?'#f0f7fb':'#fafafa',color:'#4b5563'}}/>
+                      style={{borderColor:periodeFrom?'#144f6b':'#e2e8f0',background:periodeFrom?'#f0f7fb':'#fafafa',color:'#4b5563'}}/>
                     <span style={{color:'#b0bec5',fontSize:'13px',fontWeight:500}}>—</span>
                     <input type="date" value={periodeTo} onChange={e=>{setPeriodeTo(e.target.value);setPage(1);}}
                       className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all"
-                      style={{borderColor:periodeTo?'#1A77A3':'#e2e8f0',background:periodeTo?'#f0f7fb':'#fafafa',color:'#4b5563'}}/>
+                      style={{borderColor:periodeTo?'#144f6b':'#e2e8f0',background:periodeTo?'#f0f7fb':'#fafafa',color:'#4b5563'}}/>
                   </div>
                   {periodeActive && (
                     <button onClick={()=>{setPeriodeFrom('');setPeriodeTo('');setPage(1);}}
@@ -2205,43 +2205,43 @@ export function MemberDatabase() {
           <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-t" style={{borderColor:'#f1f5f9',background:'#fafbfc'}}>
             <span style={{fontSize:'11px',color:'#94a3b8',fontWeight:500,whiteSpace:'nowrap'}}>Filter aktif:</span>
             {searchQ && (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>
                 <Search className="w-3 h-3"/>"{searchQ.length>18?searchQ.slice(0,18)+'…':searchQ}"
                 <button data-tooltip="Hapus filter" onClick={()=>{setSearchQ('');setPage(1);}} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button>
               </span>
             )}
             {sectorF!=='all' && (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>
                 <MapPin className="w-3 h-3"/>{sectors.find(s=>s.id===sectorF)?.name||sectorF}
                 <button data-tooltip="Hapus filter" onClick={()=>{setSectorF('all');setPage(1);}} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button>
               </span>
             )}
             {statusF!=='all' && (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>
                 <UserCheck className="w-3 h-3"/>{statusF}
                 <button data-tooltip="Hapus filter" onClick={()=>{setStatusF('all');setPage(1);}} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button>
               </span>
             )}
             {genderF!=='all' && (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>
                 <User className="w-3 h-3"/>{genderF}
                 <button data-tooltip="Hapus filter" onClick={()=>{setGenderF('all');setPage(1);}} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button>
               </span>
             )}
             {pelkatF!=='all' && (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>
                 <Shield className="w-3 h-3"/>{pelkatF}
                 <button data-tooltip="Hapus filter" onClick={()=>{setPelkatF('all');setPage(1);}} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button>
               </span>
             )}
             {ageF!=='all' && (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>
                 <Users className="w-3 h-3"/>{{anak:'Anak',pemuda:'Pemuda',dewasa:'Dewasa',lansia:'Lansia'}[ageF]||ageF}
                 <button data-tooltip="Hapus filter" onClick={()=>{setAgeF('all');setPage(1);}} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button>
               </span>
             )}
             {(periodeFrom||periodeTo) && (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>
                 <Calendar className="w-3 h-3"/>{{joinDate:'Bergabung',baptismDate:'Baptis',sidiDate:'Sidi',birthDate:'Lahir'}[periodeField]}: {periodeFrom||'*'} — {periodeTo||'*'}
                 <button data-tooltip="Hapus filter" onClick={()=>{setPeriodeFrom('');setPeriodeTo('');setPage(1);}} className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button>
               </span>
@@ -2252,7 +2252,7 @@ export function MemberDatabase() {
               style={{borderColor:'#fca5a5',color:'#ef4444'}}>
               <X className="w-3 h-3"/>Reset Semua
             </button>
-            <span className="ml-auto text-xs font-semibold" style={{color:'#1A77A3'}}>{filtered.length} anggota ditemukan</span>
+            <span className="ml-auto text-xs font-semibold" style={{color:'#144f6b'}}>{filtered.length} anggota ditemukan</span>
           </div>
         ) : (
           <div className="px-3 pb-2 flex justify-end">
@@ -2318,13 +2318,13 @@ export function MemberDatabase() {
                       <td className="px-4 py-3 text-sm" style={{color:'#4b5563'}}>{sec?.name?.replace(/Sektor \d+ - /,'')??'—'}</td>
                       <td className="px-4 py-3 text-sm" style={{color:'#4b5563'}}>{m.position||'—'}</td>
                       <td className="px-4 py-3">
-                        {m.pelkatStatus ? <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0fdf4',color:'#1A77A3',border:'1px solid #b8d5e8'}}>{m.pelkatStatus}</span> : <span style={{color:'#d1d5db'}}>—</span>}
+                        {m.pelkatStatus ? <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0fdf4',color:'#144f6b',border:'1px solid #b8d5e8'}}>{m.pelkatStatus}</span> : <span style={{color:'#d1d5db'}}>—</span>}
                       </td>
                       <td className="px-4 py-3"><StatusBadge status={m.membershipStatus}/></td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1" onClick={e=>e.stopPropagation()}>
-                          <button data-tooltip="Lihat Detail" onClick={()=>{setSelected(m);setShowDetail(true);}} className="p-1.5 rounded-lg hover:bg-[#f0ede5] transition-colors"><Eye className="w-3.5 h-3.5 text-[#1A77A3]"/></button>
-                          <button data-tooltip="Lihat Kartu Keluarga" onClick={()=>handleViewFamilyCard(m)} className="p-1.5 rounded-lg hover:bg-[#f0f7fb] transition-colors"><IdCard className="w-3.5 h-3.5 text-[#1A77A3]"/></button>
+                          <button data-tooltip="Lihat Detail" onClick={()=>{setSelected(m);setShowDetail(true);}} className="p-1.5 rounded-lg hover:bg-[#f0ede5] transition-colors"><Eye className="w-3.5 h-3.5 text-[#144f6b]"/></button>
+                          <button data-tooltip="Lihat Kartu Keluarga" onClick={()=>handleViewFamilyCard(m)} className="p-1.5 rounded-lg hover:bg-[#f0f7fb] transition-colors"><IdCard className="w-3.5 h-3.5 text-[#144f6b]"/></button>
                           {canEdit && <button data-tooltip="Edit" onClick={()=>{setSelected(m);setFormMode('edit');setShowForm(true);}} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><Pencil className="w-3.5 h-3.5 text-gray-400"/></button>}
                           {canDelete && <button data-tooltip="Hapus" onClick={()=>setDeleteTarget(m)} className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5 text-red-400"/></button>}
                         </div>
@@ -2349,7 +2349,7 @@ export function MemberDatabase() {
               <button data-tooltip="Halaman Sebelumnya" disabled={page===1} onClick={()=>setPage(p=>p-1)} className="p-1.5 rounded-lg border disabled:opacity-40 hover:bg-gray-50 transition-colors" style={{borderColor:'#e2e8f0'}}><ChevronLeft className="w-4 h-4 text-gray-500"/></button>
               {Array.from({length:Math.min(totalPages,7)},(_,i)=>{
                 const p=i+1;
-                return <button key={p} onClick={()=>setPage(p)} className="w-7 h-7 rounded-lg text-xs font-medium transition-all" style={{background:page===p?'#1A77A3':'transparent',color:page===p?'#fff':'#64748b',border:page===p?'none':'1px solid #e2e8f0'}}>{p}</button>;
+                return <button key={p} onClick={()=>setPage(p)} className="w-7 h-7 rounded-lg text-xs font-medium transition-all" style={{background:page===p?'#144f6b':'transparent',color:page===p?'#fff':'#64748b',border:page===p?'none':'1px solid #e2e8f0'}}>{p}</button>;
               })}
               {totalPages>7 && <span style={{color:'#94a3b8',fontSize:'12px'}}>...{totalPages}</span>}
               <button data-tooltip="Halaman Berikutnya" disabled={page===totalPages} onClick={()=>setPage(p=>p+1)} className="p-1.5 rounded-lg border disabled:opacity-40 hover:bg-gray-50 transition-colors" style={{borderColor:'#e2e8f0'}}><ChevronRight className="w-4 h-4 text-gray-500"/></button>
@@ -2388,8 +2388,8 @@ export function MemberDatabase() {
                   <div className="flex items-center justify-between">
                     <StatusBadge status={m.membershipStatus}/>
                     <div className="flex gap-1">
-                      <button data-tooltip="Lihat Detail" onClick={()=>{setSelected(m);setShowDetail(true);}} className="p-1.5 rounded-lg hover:bg-[#f0f7fb] transition-colors"><Eye className="w-3.5 h-3.5 text-[#1A77A3]"/></button>
-                      <button data-tooltip="Lihat Kartu Keluarga" onClick={()=>handleViewFamilyCard(m)} className="p-1.5 rounded-lg hover:bg-[#f0f7fb] transition-colors"><IdCard className="w-3.5 h-3.5 text-[#1A77A3]"/></button>
+                      <button data-tooltip="Lihat Detail" onClick={()=>{setSelected(m);setShowDetail(true);}} className="p-1.5 rounded-lg hover:bg-[#f0f7fb] transition-colors"><Eye className="w-3.5 h-3.5 text-[#144f6b]"/></button>
+                      <button data-tooltip="Lihat Kartu Keluarga" onClick={()=>handleViewFamilyCard(m)} className="p-1.5 rounded-lg hover:bg-[#f0f7fb] transition-colors"><IdCard className="w-3.5 h-3.5 text-[#144f6b]"/></button>
                       {canEdit && <button data-tooltip="Edit" onClick={()=>{setSelected(m);setFormMode('edit');setShowForm(true);}} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><Pencil className="w-3.5 h-3.5 text-gray-400"/></button>}
                       {canDelete && <button data-tooltip="Hapus" onClick={()=>setDeleteTarget(m)} className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5 text-red-400"/></button>}
                     </div>
@@ -2411,7 +2411,7 @@ export function MemberDatabase() {
         <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.55)'}} onClick={()=>setKpiDetail(null)}>
           <div className="w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'85vh', transform:`translate(${offset1.x}px,${offset1.y}px)`}} onClick={e=>e.stopPropagation()}>
             {/* Header */}
-            <div className="px-6 py-5 flex-shrink-0 flex items-center justify-between" style={{background:'#1A77A3',cursor:'move'}} onMouseDown={onMouseDown1}>
+            <div className="px-6 py-5 flex-shrink-0 flex items-center justify-between" style={{background:'#144f6b',cursor:'move'}} onMouseDown={onMouseDown1}>
               <div>
                 <p style={{fontSize:'11px',color:'rgba(255,255,255,0.65)',fontWeight:500,letterSpacing:'0.05em',textTransform:'uppercase'}}>Detail Kategori KPI</p>
                 <h3 className="text-white font-bold flex items-center gap-3 mt-0.5" style={{fontSize:'17px',fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
@@ -2474,7 +2474,7 @@ export function MemberDatabase() {
                               <span className="px-2 py-0.5 rounded-full text-xs font-medium"
                                 style={{
                                   background:m.membershipStatus==='Aktif'?'#f0fdf4':m.membershipStatus==='Pindah'?'#eff6ff':'#f8fafc',
-                                  color:m.membershipStatus==='Aktif'?'#1A77A3':m.membershipStatus==='Pindah'?'#2563eb':'#64748b'
+                                  color:m.membershipStatus==='Aktif'?'#144f6b':m.membershipStatus==='Pindah'?'#2563eb':'#64748b'
                                 }}>
                                 {m.membershipStatus||'—'}
                               </span>

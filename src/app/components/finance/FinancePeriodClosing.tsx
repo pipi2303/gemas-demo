@@ -39,7 +39,7 @@ async function callApi<T = any>(method: 'get' | 'post' | 'put' | 'delete', url: 
 
 const btnPrimary = 'flex items-center gap-1.5 text-sm font-medium text-white px-3 py-1.5 rounded-lg disabled:opacity-50';
 const btnSecondary = 'flex items-center gap-1.5 text-sm font-medium text-slate-600 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-50';
-const inputCls = 'w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A77A3]';
+const inputCls = 'w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]';
 const labelCls = 'block text-xs font-medium text-slate-600 mb-1';
 
 function PeriodStatusBadge({ status }: { status: string }) {
@@ -158,7 +158,7 @@ function PeriodDetail({ periodId, canApprove, canEdit, onBack, onChanged }: {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <button onClick={onBack} className="text-xs text-slate-400 hover:text-[#1A77A3]">&larr; Kembali ke daftar periode</button>
+        <button onClick={onBack} className="text-xs text-slate-400 hover:text-[#144f6b]">&larr; Kembali ke daftar periode</button>
         <PeriodStatusBadge status={period.status} />
       </div>
 
@@ -206,7 +206,7 @@ function PeriodDetail({ periodId, canApprove, canEdit, onBack, onChanged }: {
           <button
             onClick={closePeriod} disabled={busy !== null || !canClose}
             title={!canClose ? 'Semua item checklist harus terpenuhi dulu' : ''}
-            className={btnPrimary} style={{ background: '#1A77A3' }}
+            className={btnPrimary} style={{ background: '#144f6b' }}
           >
             {busy === 'close' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Lock className="w-3.5 h-3.5" />} Tutup Periode
           </button>

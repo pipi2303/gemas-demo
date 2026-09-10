@@ -42,7 +42,7 @@ function GroupedMonthlyBar({ data }: { data: { name: string; income: number; exp
   const slotW = iW / data.length, groupW = slotW * 0.62, barW = groupW / 2, groupOff = (slotW - groupW) / 2;
   const f = (n: number) => n.toFixed(1);
   const yOf = (v: number) => pad.t + (1 - v / maxV) * iH;
-  const inc = '#1A77A3', exp = '#ef4444';
+  const inc = '#144f6b', exp = '#ef4444';
   return (
     <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
       {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
@@ -158,7 +158,7 @@ function FinancialForm({ rec, categories, currentUser, onSave, onClose }: {
               {(['income', 'expense'] as const).map(t => (
                 <button key={t} type="button" onClick={() => setForm(f => ({ ...f, type: t, category: '' }))}
                   className="py-2.5 rounded-xl text-sm font-semibold transition-all"
-                  style={{ background: form.type === t ? (t === 'income' ? '#1A77A3' : '#dc2626') : '#f8fafc', color: form.type === t ? 'white' : '#64748b', border: `1px solid ${form.type === t ? 'transparent' : '#e2e8f0'}` }}>
+                  style={{ background: form.type === t ? (t === 'income' ? '#144f6b' : '#dc2626') : '#f8fafc', color: form.type === t ? 'white' : '#64748b', border: `1px solid ${form.type === t ? 'transparent' : '#e2e8f0'}` }}>
                   {t === 'income' ? '↑ Pemasukan' : '↓ Pengeluaran'}
                 </button>
               ))}
@@ -617,7 +617,7 @@ export function FinancialManagement() {
     <style>body{font-family:Arial,sans-serif;padding:24px;font-size:12px;color:#222}h2{color:#144f6b;margin:0 0 4px}p.sub{color:#64748b;margin:0 0 20px}
     table{width:100%;border-collapse:collapse;margin-top:14px}th,td{border:1px solid #e2e8f0;padding:7px 12px;text-align:left}
     th{background:#144f6b;color:white;font-size:11px;text-transform:uppercase;letter-spacing:.04em}tr:nth-child(even){background:#f8fafc}
-    .inc{color:#1A77A3;font-weight:600}.exp{color:#ef4444;font-weight:600}.bal{font-weight:700}
+    .inc{color:#144f6b;font-weight:600}.exp{color:#ef4444;font-weight:600}.bal{font-weight:700}
     .footer{margin-top:20px;border-top:1px solid #e2e8f0;padding-top:10px;color:#64748b;font-size:11px}</style></head><body>
     <h2>GPIB BAHTERA KASIH – Laporan Keuangan ${filterYear}</h2>
     <p class="sub">Dicetak: ${now.toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})} · Total Transaksi: ${financialRecords.filter(r=>new Date(r.date).getFullYear()===filterYear).length}</p>
@@ -628,7 +628,7 @@ export function FinancialManagement() {
     w.document.close(); w.print();
   };
 
-  const INC_COLORS  = ['#1A77A3','#f0ede5','#b8d5e8','#a7f3d0','#0d9488','#1A77A3'];
+  const INC_COLORS  = ['#144f6b','#f0ede5','#b8d5e8','#a7f3d0','#0d9488','#144f6b'];
   const EXP_COLORS  = ['#ef4444','#9c9486','#c2baaa','#ec4899','#3a7fa0','#64748b'];
   const tabCls      = (t: string) => `px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${activeTab === t ? 'text-[#384959] shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`;
 
@@ -664,9 +664,9 @@ export function FinancialManagement() {
       {/* ── KPI CARDS ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { icon: TrendingUp,    label: 'Total Pemasukan',   value: compactRp(stats.totalIncome),  sub: `Tahun ${filterYear}`,           grad: '#1A77A3', arrow: true },
+          { icon: TrendingUp,    label: 'Total Pemasukan',   value: compactRp(stats.totalIncome),  sub: `Tahun ${filterYear}`,           grad: '#144f6b', arrow: true },
           { icon: TrendingDown,  label: 'Total Pengeluaran', value: compactRp(stats.totalExpense), sub: `Tahun ${filterYear}`,           grad: '#dc2626', arrow: false },
-          { icon: Wallet,        label: 'Saldo Bersih',      value: compactRp(stats.balance),      sub: stats.balance >= 0 ? 'Surplus' : 'Defisit', grad: stats.balance >= 0 ? '#1A77A3' : 'linear-gradient(135deg,#f59e0b,#fbbf24)', arrow: stats.balance >= 0 },
+          { icon: Wallet,        label: 'Saldo Bersih',      value: compactRp(stats.balance),      sub: stats.balance >= 0 ? 'Surplus' : 'Defisit', grad: stats.balance >= 0 ? '#144f6b' : 'linear-gradient(135deg,#f59e0b,#fbbf24)', arrow: stats.balance >= 0 },
           { icon: DollarSign,    label: 'Bulan Ini',         value: compactRp(stats.monthIncome),  sub: `Keluar: ${compactRp(stats.monthExpense)}`,  grad: '#3a7fa0', arrow: true },
         ].map((c, i) => (
           <div key={i} className="bg-white rounded-2xl p-5" style={{ border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
@@ -722,7 +722,7 @@ export function FinancialManagement() {
           </button>
 
           {activeTab === 'transactions' && canCreate && (
-            <button onMouseDown={e=>e.preventDefault()} onClick={openCreate} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold" style={{ background: '#1A77A3', boxShadow: '0 2px 8px rgba(26,119,163,0.3)' }}>
+            <button onMouseDown={e=>e.preventDefault()} onClick={openCreate} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold" style={{ background: '#144f6b', boxShadow: '0 2px 8px rgba(20,79,107,0.3)' }}>
               <Plus className="w-4 h-4" />
               <span>Tambah</span>
             </button>
@@ -738,7 +738,7 @@ export function FinancialManagement() {
             <div className="flex items-center justify-between mb-4">
               <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>Pemasukan vs Pengeluaran {filterYear}</p>
               <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1.5 text-xs text-gray-500"><span className="w-2.5 h-2.5 rounded bg-[#1A77A3] inline-block" />Pemasukan</span>
+                <span className="flex items-center gap-1.5 text-xs text-gray-500"><span className="w-2.5 h-2.5 rounded bg-[#144f6b] inline-block" />Pemasukan</span>
                 <span className="flex items-center gap-1.5 text-xs text-gray-500"><span className="w-2.5 h-2.5 rounded bg-red-500 inline-block" />Pengeluaran</span>
               </div>
             </div>
@@ -755,8 +755,8 @@ export function FinancialManagement() {
               <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '14px', fontWeight: 700, color: '#0f172a', marginBottom: '10px' }}>Saldo vs Target</p>
               <div className="space-y-3">
                 {[
-                  { label: 'Saldo Bersih',    val: stats.balance,       col: stats.balance >= 0 ? '#1A77A3' : '#ef4444', bg: stats.balance >= 0 ? '#f0f7fb' : '#fef2f2' },
-                  { label: 'Total Pemasukan', val: stats.totalIncome,   col: '#1A77A3', bg: '#f0f7fb' },
+                  { label: 'Saldo Bersih',    val: stats.balance,       col: stats.balance >= 0 ? '#144f6b' : '#ef4444', bg: stats.balance >= 0 ? '#f0f7fb' : '#fef2f2' },
+                  { label: 'Total Pemasukan', val: stats.totalIncome,   col: '#144f6b', bg: '#f0f7fb' },
                   { label: 'Total Pengeluaran',val: stats.totalExpense, col: '#ef4444', bg: '#fef2f2' },
                   { label: 'Bulan Ini Masuk', val: stats.monthIncome,   col: '#3b82f6', bg: '#eff6ff' },
                   { label: 'Bulan Ini Keluar',val: stats.monthExpense,  col: '#9c9486', bg: '#fff7ed' },
@@ -805,7 +805,7 @@ export function FinancialManagement() {
           <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
               <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>Transaksi Terbaru</p>
-              <button onClick={() => setActiveTab('transactions')} className="text-sm text-[#1A77A3] font-medium hover:underline">Lihat Semua →</button>
+              <button onClick={() => setActiveTab('transactions')} className="text-sm text-[#144f6b] font-medium hover:underline">Lihat Semua →</button>
             </div>
             <table className="w-full">
               <tbody>
@@ -814,7 +814,7 @@ export function FinancialManagement() {
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: r.type === 'income' ? '#f0f7fb' : '#fef2f2' }}>
-                          {r.type === 'income' ? <TrendingUp className="w-4 h-4 text-[#1A77A3]" /> : <TrendingDown className="w-4 h-4 text-red-600" />}
+                          {r.type === 'income' ? <TrendingUp className="w-4 h-4 text-[#144f6b]" /> : <TrendingDown className="w-4 h-4 text-red-600" />}
                         </div>
                         <div>
                           <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{r.description}</p>
@@ -823,7 +823,7 @@ export function FinancialManagement() {
                       </div>
                     </td>
                     <td className="px-5 py-3" style={{ fontSize: '12px', color: '#94a3b8' }}>{new Date(r.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                    <td className="px-5 py-3 text-right" style={{ fontSize: '14px', fontWeight: 700, color: r.type === 'income' ? '#1A77A3' : '#ef4444', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                    <td className="px-5 py-3 text-right" style={{ fontSize: '14px', fontWeight: 700, color: r.type === 'income' ? '#144f6b' : '#ef4444', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                       {r.type === 'income' ? '+' : '-'}{formatRp(r.amount)}
                     </td>
                   </tr>
@@ -844,14 +844,14 @@ export function FinancialManagement() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"/>
                 <input value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder="Cari deskripsi, kategori, referensi..."
                   className="w-full pl-9 pr-8 py-2 text-sm rounded-xl border focus:outline-none transition-all"
-                  style={{borderColor:search?'#1A77A3':'#e2e8f0',background:'#fafafa'}}/>
+                  style={{borderColor:search?'#144f6b':'#e2e8f0',background:'#fafafa'}}/>
                 {search && <button onClick={()=>{setSearch('');setPage(1);}} data-tooltip="Hapus pencarian" className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-gray-200 transition-all" style={{color:'#94a3b8'}}><X className="w-3.5 h-3.5"/></button>}
               </div>
             </div>
             <div className="p-3 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <span style={{fontSize:'9px',fontWeight:700,letterSpacing:'0.08em',color:'#b0bec5',textTransform:'uppercase',minWidth:'68px'}}>Periode</span>
-                {(()=>{const active=filterMonth>=0;return <select value={filterMonth} onChange={e=>{setFilterMonth(Number(e.target.value));setPage(1);}} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#1A77A3':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#1A77A3':'#64748b',fontWeight:active?600:400}}><option value={-1}>Semua Bulan</option>{MONTH_FULL.map((m,i)=><option key={i} value={i}>{m}</option>)}</select>;})()}
+                {(()=>{const active=filterMonth>=0;return <select value={filterMonth} onChange={e=>{setFilterMonth(Number(e.target.value));setPage(1);}} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#144f6b':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#144f6b':'#64748b',fontWeight:active?600:400}}><option value={-1}>Semua Bulan</option>{MONTH_FULL.map((m,i)=><option key={i} value={i}>{m}</option>)}</select>;})()}
               </div>
               <div style={{height:'1px',background:'#f1f5f9'}}/>
               <div className="flex flex-wrap items-center gap-2">
@@ -861,19 +861,19 @@ export function FinancialManagement() {
                   {val:filterCat,set:(v:string)=>{setFilterCat(v);setPage(1);},opts:[{v:'all',l:'Semua Kategori'},...financialCategories.map(c=>({v:c.name,l:c.name}))]},
                 ] as {val:string;set:(v:string)=>void;opts:{v:string;l:string}[]}[]).map((f,i)=>{
                   const active=f.val!=='all';
-                  return <select key={i} value={f.val} onChange={e=>f.set(e.target.value)} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#1A77A3':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#1A77A3':'#64748b',fontWeight:active?600:400}}>{f.opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>;
+                  return <select key={i} value={f.val} onChange={e=>f.set(e.target.value)} className="px-2.5 py-1 text-sm rounded-full border focus:outline-none transition-all cursor-pointer" style={{borderColor:active?'#144f6b':'#e2e8f0',background:active?'#f0f7fb':'#fafafa',color:active?'#144f6b':'#64748b',fontWeight:active?600:400}}>{f.opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}</select>;
                 })}
               </div>
             </div>
             {(filterMonth>=0||filterType!=='all'||filterCat!=='all'||search) ? (
               <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-t" style={{borderColor:'#f1f5f9',background:'#fafbfc'}}>
                 <span style={{fontSize:'11px',color:'#94a3b8',fontWeight:500,whiteSpace:'nowrap'}}>Filter aktif:</span>
-                {search && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}><Search className="w-3 h-3"/>"{search.length>15?search.slice(0,15)+'…':search}"<button onClick={()=>{setSearch('');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
-                {filterMonth>=0 && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>{MONTH_FULL[filterMonth]}<button onClick={()=>{setFilterMonth(-1);setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
-                {filterType!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>{filterType==='income'?'Pemasukan':'Pengeluaran'}<button onClick={()=>{setFilterType('all');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
-                {filterCat!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#1A77A3',border:'1px solid #b8d5e8'}}>{filterCat}<button onClick={()=>{setFilterCat('all');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+                {search && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}><Search className="w-3 h-3"/>"{search.length>15?search.slice(0,15)+'…':search}"<button onClick={()=>{setSearch('');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+                {filterMonth>=0 && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>{MONTH_FULL[filterMonth]}<button onClick={()=>{setFilterMonth(-1);setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+                {filterType!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>{filterType==='income'?'Pemasukan':'Pengeluaran'}<button onClick={()=>{setFilterType('all');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
+                {filterCat!=='all' && <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style={{background:'#f0f7fb',color:'#144f6b',border:'1px solid #b8d5e8'}}>{filterCat}<button onClick={()=>{setFilterCat('all');setPage(1);}} data-tooltip="Hapus filter" className="ml-0.5 hover:opacity-60"><X className="w-3 h-3"/></button></span>}
                 <button onClick={()=>{setFilterMonth(-1);setFilterType('all');setFilterCat('all');setSearch('');setPage(1);}} className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border transition-all hover:bg-red-50" style={{borderColor:'#fca5a5',color:'#ef4444'}}><X className="w-3 h-3"/>Reset Semua</button>
-                <span className="ml-auto text-xs font-semibold" style={{color:'#1A77A3'}}>{filtered.length} transaksi ditemukan</span>
+                <span className="ml-auto text-xs font-semibold" style={{color:'#144f6b'}}>{filtered.length} transaksi ditemukan</span>
               </div>
             ) : (
               <div className="px-3 pb-2 flex justify-end"><span style={{fontSize:'12px',color:'#94a3b8',fontWeight:500}}>{filtered.length} transaksi total</span></div>
@@ -884,7 +884,7 @@ export function FinancialManagement() {
           <div className="flex items-center justify-between px-1 flex-wrap gap-2">
             <div className="flex items-center gap-4">
               <p style={{ fontSize: '12.5px', color: '#64748b' }}>{filtered.length} transaksi</p>
-              <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{ background: '#f0f7fb', color: '#1A77A3' }}>Masuk: {formatRp(filteredIncome)}</span>
+              <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{ background: '#f0f7fb', color: '#144f6b' }}>Masuk: {formatRp(filteredIncome)}</span>
               <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{ background: '#fef2f2', color: '#ef4444' }}>Keluar: {formatRp(filteredExpense)}</span>
               <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{ background: '#eff6ff', color: '#3b82f6' }}>Saldo: {formatRp(filteredIncome - filteredExpense)}</span>
             </div>
@@ -914,14 +914,14 @@ export function FinancialManagement() {
                   <tr key={r.id} style={{ borderBottom: '1px solid #f2f0ea' }} className="hover:bg-[#f6f4f0]/20 transition-colors">
                     <td className="px-4 py-3" style={{ fontSize: '12.5px', color: '#374151' }}>{new Date(r.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                     <td className="px-4 py-3">
-                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: r.type === 'income' ? '#f0f7fb' : '#fef2f2', color: r.type === 'income' ? '#1A77A3' : '#ef4444' }}>
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: r.type === 'income' ? '#f0f7fb' : '#fef2f2', color: r.type === 'income' ? '#144f6b' : '#ef4444' }}>
                         {r.type === 'income' ? '↑ Pemasukan' : '↓ Pengeluaran'}
                       </span>
                     </td>
                     <td className="px-4 py-3"><span className="px-2 py-0.5 rounded-full text-xs" style={{ background: '#f1f5f9', color: '#475569' }}>{r.category}</span></td>
                     <td className="px-4 py-3" style={{ fontSize: '12.5px', color: '#374151', maxWidth: '220px' }}><p className="truncate">{r.description}</p></td>
                     <td className="px-4 py-3" style={{ fontSize: '11.5px', color: '#94a3b8' }}>{r.reference || '–'}</td>
-                    <td className="px-4 py-3 text-right" style={{ fontSize: '13.5px', fontWeight: 700, color: r.type === 'income' ? '#1A77A3' : '#ef4444', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                    <td className="px-4 py-3 text-right" style={{ fontSize: '13.5px', fontWeight: 700, color: r.type === 'income' ? '#144f6b' : '#ef4444', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                       {r.type === 'income' ? '+' : '-'}{formatRp(r.amount)}
                     </td>
                     <td className="px-4 py-3" style={{ fontSize: '11.5px', color: '#94a3b8' }}>{r.recordedBy}</td>
@@ -944,7 +944,7 @@ export function FinancialManagement() {
               {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
                 const p = page <= 4 ? i + 1 : page >= totalPages - 3 ? totalPages - 6 + i : page - 3 + i;
                 if (p < 1 || p > totalPages) return null;
-                return <button key={p} onClick={() => setPage(p)} className="w-8 h-8 rounded-lg text-sm font-semibold" style={{ background: page === p ? '#1A77A3' : 'white', color: page === p ? 'white' : '#374151', border: '1px solid #e2e8f0' }}>{p}</button>;
+                return <button key={p} onClick={() => setPage(p)} className="w-8 h-8 rounded-lg text-sm font-semibold" style={{ background: page === p ? '#144f6b' : 'white', color: page === p ? 'white' : '#374151', border: '1px solid #e2e8f0' }}>{p}</button>;
               })}
               <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} data-tooltip="Halaman Berikutnya" className="w-8 h-8 rounded-lg flex items-center justify-center disabled:opacity-40 hover:bg-gray-100 transition-colors" style={{ border: '1px solid #e2e8f0' }}><ChevronRight className="w-4 h-4" /></button>
             </div>
@@ -985,9 +985,9 @@ export function FinancialManagement() {
                   return (
                     <tr key={m.name} style={{ borderBottom: '1px solid #f8fafc' }} className={`hover:bg-gray-50 transition-colors ${m.income === 0 && m.expense === 0 ? 'opacity-50' : ''}`}>
                       <td className="px-5 py-3.5" style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{MONTH_FULL[i]}</td>
-                      <td className="px-5 py-3.5 text-right" style={{ fontSize: '13px', fontWeight: m.income > 0 ? 700 : 400, color: m.income > 0 ? '#1A77A3' : '#94a3b8', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{m.income > 0 ? formatRp(m.income) : '–'}</td>
+                      <td className="px-5 py-3.5 text-right" style={{ fontSize: '13px', fontWeight: m.income > 0 ? 700 : 400, color: m.income > 0 ? '#144f6b' : '#94a3b8', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{m.income > 0 ? formatRp(m.income) : '–'}</td>
                       <td className="px-5 py-3.5 text-right" style={{ fontSize: '13px', fontWeight: m.expense > 0 ? 700 : 400, color: m.expense > 0 ? '#ef4444' : '#94a3b8', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{m.expense > 0 ? formatRp(m.expense) : '–'}</td>
-                      <td className="px-5 py-3.5 text-right" style={{ fontSize: '13px', fontWeight: 700, color: m.balance >= 0 ? '#1A77A3' : '#ef4444', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{m.income > 0 || m.expense > 0 ? formatRp(m.balance) : '–'}</td>
+                      <td className="px-5 py-3.5 text-right" style={{ fontSize: '13px', fontWeight: 700, color: m.balance >= 0 ? '#144f6b' : '#ef4444', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{m.income > 0 || m.expense > 0 ? formatRp(m.balance) : '–'}</td>
                       <td className="px-5 py-3.5 text-right" style={{ fontSize: '13px', fontWeight: 700, color: cum >= 0 ? '#3b82f6' : '#9c9486', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{formatRp(cum)}</td>
                       <td className="px-5 py-3.5 text-right" style={{ fontSize: '13px', color: '#64748b' }}>{m.count > 0 ? `${m.count} transaksi` : '–'}</td>
                     </tr>
@@ -997,9 +997,9 @@ export function FinancialManagement() {
               <tfoot>
                 <tr style={{ background: '#f0f7fb', borderTop: '2px solid #a7f3d0' }}>
                   <td className="px-5 py-4" style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>TOTAL {filterYear}</td>
-                  <td className="px-5 py-4 text-right" style={{ fontSize: '14px', fontWeight: 800, color: '#1A77A3', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{formatRp(stats.totalIncome)}</td>
+                  <td className="px-5 py-4 text-right" style={{ fontSize: '14px', fontWeight: 800, color: '#144f6b', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{formatRp(stats.totalIncome)}</td>
                   <td className="px-5 py-4 text-right" style={{ fontSize: '14px', fontWeight: 800, color: '#ef4444', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{formatRp(stats.totalExpense)}</td>
-                  <td className="px-5 py-4 text-right" style={{ fontSize: '14px', fontWeight: 800, color: stats.balance >= 0 ? '#1A77A3' : '#ef4444', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{formatRp(stats.balance)}</td>
+                  <td className="px-5 py-4 text-right" style={{ fontSize: '14px', fontWeight: 800, color: stats.balance >= 0 ? '#144f6b' : '#ef4444', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{formatRp(stats.balance)}</td>
                   <td className="px-5 py-4 text-right" style={{ fontSize: '14px', fontWeight: 800, color: stats.balance >= 0 ? '#3b82f6' : '#9c9486', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{formatRp(stats.balance)}</td>
                   <td className="px-5 py-4 text-right" style={{ fontSize: '13px', color: '#64748b', fontWeight: 700 }}>{financialRecords.filter(r => new Date(r.date).getFullYear() === filterYear).length} transaksi</td>
                 </tr>

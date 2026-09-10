@@ -21,12 +21,12 @@ function formatRp(n: number) {
   return `Rp ${n.toLocaleString('id-ID')}`;
 }
 
-const SECTOR_COLORS = ['#3b82f6', '#0891b2', '#1A77A3', '#7c3aed', '#e11d48', '#16a34a', '#f59e0b'];
-const AGE_COLORS    = ['#3b82f6', '#0891b2', '#1A77A3', '#7c3aed'];
-const DIAKONIA_COLORS = ['#1A77A3','#16a34a','#f59e0b','#e11d48','#7c3aed'];
+const SECTOR_COLORS = ['#3b82f6', '#0891b2', '#144f6b', '#7c3aed', '#e11d48', '#16a34a', '#f59e0b'];
+const AGE_COLORS    = ['#3b82f6', '#0891b2', '#144f6b', '#7c3aed'];
+const DIAKONIA_COLORS = ['#144f6b','#16a34a','#f59e0b','#e11d48','#7c3aed'];
 
 // ── Mini SVG charts ────────────────────────────────────────────────────────────
-function MiniSparkline({ data, color = '#1A77A3', color2 }: { data: { name: string; persembahan: number }[]; color?: string; color2?: string }) {
+function MiniSparkline({ data, color = '#144f6b', color2 }: { data: { name: string; persembahan: number }[]; color?: string; color2?: string }) {
   if (!data.length) return null;
   const W = 500, H = 130;
   const pad = { t: 18, r: 36, b: 28, l: 50 };
@@ -155,7 +155,7 @@ function MiniBar({ data, colors }: { data: { name: string; value: number }[]; co
   );
 }
 
-function MiniHorizontalBar({ data, color = '#1A77A3' }: { data: { name: string; value: number; total: number }[]; color?: string }) {
+function MiniHorizontalBar({ data, color = '#144f6b' }: { data: { name: string; value: number; total: number }[]; color?: string }) {
   return (
     <div className="space-y-2.5">
       {data.map((d, i) => {
@@ -181,7 +181,7 @@ function MiniHorizontalBar({ data, color = '#1A77A3' }: { data: { name: string; 
   );
 }
 
-function MiniStackedBar({ data, color1 = '#1A77A3', color2 = '#ef4444', label1 = 'Pemasukan', label2 = 'Pengeluaran' }: {
+function MiniStackedBar({ data, color1 = '#144f6b', color2 = '#ef4444', label1 = 'Pemasukan', label2 = 'Pengeluaran' }: {
   data: { name: string; v1: number; v2: number }[]; color1?: string; color2?: string; label1?: string; label2?: string;
 }) {
   if (!data.length) return null;
@@ -266,7 +266,7 @@ function KPICard({ label, value, sub, icon: Icon, gradient, trend, onClick }: {
         </div>
         <div className="flex items-center gap-1.5">
           {trend && (
-            <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${trend.up ? 'bg-[#f0f7fb] text-[#1A77A3]' : 'bg-red-50 text-red-600'}`}>
+            <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${trend.up ? 'bg-[#f0f7fb] text-[#144f6b]' : 'bg-red-50 text-red-600'}`}>
               {trend.up ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}{trend.value}
             </div>
           )}
@@ -297,7 +297,7 @@ function DRow({ label, value, accent }: { label: string; value?: string | number
   return (
     <div className="flex items-start justify-between py-2 border-b border-gray-50 last:border-0 gap-4">
       <span style={{ fontSize: '12px', color: '#94a3b8', flexShrink: 0 }}>{label}</span>
-      <span style={{ fontSize: '12.5px', fontWeight: 600, color: accent ? '#1A77A3' : '#0f172a', textAlign: 'right' }}>{value}</span>
+      <span style={{ fontSize: '12.5px', fontWeight: 600, color: accent ? '#144f6b' : '#0f172a', textAlign: 'right' }}>{value}</span>
     </div>
   );
 }
@@ -342,7 +342,7 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
 
   const cfgMap: Record<KPIType, { title: string; subtitle: string; gradient: string; count: number; icon: any }> = {
     birthdays:       { title: 'Ulang Tahun Bulan Ini', subtitle: 'Jemaat yang berulang tahun bulan ini', gradient: '#9c9486', count: birthdayMembers.length, icon: Cake },
-    attestations:    { title: 'Atestasi Pending', subtitle: 'Atestasi yang menunggu proses', gradient: '#1A77A3', count: pendingAtts.length, icon: FileText },
+    attestations:    { title: 'Atestasi Pending', subtitle: 'Atestasi yang menunggu proses', gradient: '#144f6b', count: pendingAtts.length, icon: FileText },
     inactiveMembers: { title: 'Jemaat Tidak Aktif', subtitle: 'Jemaat dengan status keanggotaan tidak aktif', gradient: '#f59e0b', count: inactiveMembers.length, icon: AlertCircle },
   };
 
@@ -414,7 +414,7 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
       const stCfg: Record<string, any> = {
         'Diajukan': { bg: '#fef3c7', text: '#9c9486', label: 'Menunggu Proses', icon: '⏳' },
         'Diproses': { bg: '#eff6ff', text: '#3b82f6', label: 'Sedang Diproses', icon: '🔄' },
-        'Selesai':  { bg: '#f0f7fb', text: '#1A77A3', label: 'Selesai',         icon: '✅' },
+        'Selesai':  { bg: '#f0f7fb', text: '#144f6b', label: 'Selesai',         icon: '✅' },
         'Ditolak':  { bg: '#fef2f2', text: '#dc2626', label: 'Ditolak',         icon: '❌' },
       };
       const sc = stCfg[att.status] || stCfg['Diajukan'];
@@ -440,7 +440,7 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
                 <span className="text-base flex-shrink-0">{isIn ? '📥' : '📤'}</span>
                 <div>
                   <p style={{ fontSize: '10.5px', fontWeight: 700, color: isIn ? '#144f6b' : '#0369a1', textTransform: 'uppercase' }}>{isIn ? 'Gereja Asal' : 'Gereja Tujuan'}</p>
-                  <p style={{ fontSize: '13px', fontWeight: 700, color: isIn ? '#1A77A3' : '#0284c7' }}>{isIn ? att.fromChurch : att.toChurch}</p>
+                  <p style={{ fontSize: '13px', fontWeight: 700, color: isIn ? '#144f6b' : '#0284c7' }}>{isIn ? att.fromChurch : att.toChurch}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 px-2 py-1"><div className="flex-1 h-px bg-gray-200" /><span style={{ fontSize: '11px', color: '#94a3b8' }}>→</span><div className="flex-1 h-px bg-gray-200" /></div>
@@ -509,7 +509,7 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
                             <div className="flex items-center gap-2 flex-shrink-0">
                               <div className="text-right">
                                 <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: isT ? '#fef3c7' : isP ? '#f0fdf4' : '#f8fafc', border: `1px solid ${isT ? '#e8e4d8' : isP ? '#f0ede5' : '#e2e8f0'}` }}>
-                                  <span style={{ fontSize: '13px', fontWeight: 800, color: isT ? '#9c9486' : isP ? '#1A77A3' : '#94a3b8' }}>{bd.getDate()}</span>
+                                  <span style={{ fontSize: '13px', fontWeight: 800, color: isT ? '#9c9486' : isP ? '#144f6b' : '#94a3b8' }}>{bd.getDate()}</span>
                                 </div>
                                 <p style={{ fontSize: '9px', color: '#94a3b8', marginTop: '2px' }}>{getSN(m.sectorId).replace('Sektor ', 'Sek.')}</p>
                               </div>
@@ -549,14 +549,14 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
                       return (
                         <div key={att.id || i} onClick={() => setSelectedItem(att)} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md hover:border-sky-200 active:scale-[0.99] transition-all duration-150">
                           <div className="flex items-start gap-3">
-                            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-white font-bold text-xs" style={{ background: '#1A77A3' }}>{att.memberName?.charAt(0) || '?'}</div>
+                            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-white font-bold text-xs" style={{ background: '#144f6b' }}>{att.memberName?.charAt(0) || '?'}</div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between gap-2 mb-1">
                                 <p style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a' }} className="truncate">{att.memberName}</p>
-                                <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: isIn ? '#f0f7fb' : '#eff6ff', color: isIn ? '#1A77A3' : '#3b82f6' }}>{att.type}</span>
+                                <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: isIn ? '#f0f7fb' : '#eff6ff', color: isIn ? '#144f6b' : '#3b82f6' }}>{att.type}</span>
                               </div>
                               <p style={{ fontSize: '11.5px', color: '#64748b' }}>{isIn ? `📥 Dari: ${att.fromChurch}` : `📤 Ke: ${att.toChurch}`}</p>
-                              <div className="flex items-center gap-1.5 mt-1.5"><AlertCircle className="w-3 h-3 text-[#1A77A3] flex-shrink-0" /><span style={{ fontSize: '11px', fontWeight: 600, color: '#9c9486' }}>Menunggu · {new Date(att.requestDate || att.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span></div>
+                              <div className="flex items-center gap-1.5 mt-1.5"><AlertCircle className="w-3 h-3 text-[#144f6b] flex-shrink-0" /><span style={{ fontSize: '11px', fontWeight: 600, color: '#9c9486' }}>Menunggu · {new Date(att.requestDate || att.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span></div>
                             </div>
                             <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0 mt-1" />
                           </div>
@@ -584,8 +584,8 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
 const QUICK_NAV = [
   { label: 'Database & Anggota',      icon: Users,     page: 'members',          color: '#3b82f6', bg: '#eff6ff',                    emoji: '👥' },
   { label: 'Jadwal & Peribadahan',    icon: Church,    page: 'worship-schedules', color: '#7c3aed', bg: 'rgba(124,58,237,0.08)',       emoji: '⛪' },
-  { label: 'Keuangan & Kas',          icon: DollarSign,page: 'church-finance',    color: '#1A77A3', bg: '#f0f7fb',                    emoji: '💰' },
-  { label: 'Laporan Jemaat',          icon: BarChart3,  page: 'sensus-report',    color: '#1A77A3', bg: 'rgba(26,119,163,0.08)',        emoji: '📋' },
+  { label: 'Keuangan & Kas',          icon: DollarSign,page: 'church-finance',    color: '#144f6b', bg: '#f0f7fb',                    emoji: '💰' },
+  { label: 'Laporan Jemaat',          icon: BarChart3,  page: 'sensus-report',    color: '#144f6b', bg: 'rgba(20,79,107,0.08)',        emoji: '📋' },
   { label: 'Pusat Laporan PDF',       icon: Printer,    page: 'report-center',    color: '#b45309', bg: 'rgba(180,83,9,0.08)',          emoji: '📄' },
   { label: 'Layanan & Bantuan',       icon: Heart,      page: 'service-requests', color: '#e11d48', bg: 'rgba(225,29,72,0.08)',        emoji: '❤️' },
   { label: 'Aset & Inventaris',       icon: Package,    page: 'assets',           color: '#0891b2', bg: 'rgba(8,145,178,0.08)',        emoji: '📦' },
@@ -599,7 +599,7 @@ const PRAYER_CATEGORY_EMOJI: Record<string, string> = {
 
 const ANNOUNCEMENT_PRIORITY: Record<string, { bg: string; color: string; label: string }> = {
   urgent:    { bg: 'rgba(239,68,68,0.1)',   color: '#dc2626', label: 'Mendesak' },
-  important: { bg: 'rgba(245,158,11,0.1)',  color: '#1A77A3', label: 'Penting'  },
+  important: { bg: 'rgba(245,158,11,0.1)',  color: '#144f6b', label: 'Penting'  },
   normal:    { bg: 'rgba(100,116,139,0.1)', color: '#64748b', label: 'Normal'   },
 };
 
@@ -812,7 +812,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
 
   const actIcon = (action: string) => {
     if (action.includes('Menambahkan') || action.includes('tambah')) return { bg: 'rgba(22,163,74,0.1)', color: '#16a34a', Icon: UserPlus };
-    if (action.includes('Mengubah')    || action.includes('ubah'))   return { bg: 'rgba(26,119,163,0.1)', color: '#1A77A3',  Icon: Pencil };
+    if (action.includes('Mengubah')    || action.includes('ubah'))   return { bg: 'rgba(20,79,107,0.1)', color: '#144f6b',  Icon: Pencil };
     if (action.includes('Menghapus')   || action.includes('hapus'))  return { bg: 'rgba(239,68,68,0.1)',  color: '#ef4444',  Icon: Trash2 };
     return { bg: '#f8fafc', color: '#94a3b8', Icon: Activity };
   };
@@ -828,9 +828,9 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
   };
 
   const worshipTypeColor: Record<string, { bg: string; color: string }> = {
-    'Minggu':     { bg: '#f0f7fb',               color: '#1A77A3' },
+    'Minggu':     { bg: '#f0f7fb',               color: '#144f6b' },
     'Keluarga':   { bg: 'rgba(124,58,237,0.08)', color: '#7c3aed' },
-    'PJJ':        { bg: 'rgba(26,119,163,0.08)',  color: '#1A77A3' },
+    'PJJ':        { bg: 'rgba(20,79,107,0.08)',  color: '#144f6b' },
     'Kategorial': { bg: 'rgba(22,163,74,0.08)',  color: '#16a34a' },
     'Khusus':     { bg: 'rgba(225,29,72,0.08)',  color: '#e11d48' },
   };
@@ -913,10 +913,10 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
           icon={AlertCircle} gradient="#f59e0b" trend={{ value: `${s.totalMembers > 0 ? ((s.tidakAktif/s.totalMembers)*100).toFixed(0) : 0}% dari total`, up: false }}
           onClick={() => setActiveKPI('inactiveMembers')} />
         <KPICard label="Atestasi Pending" value={s.pendingAttestations} sub="menunggu proses"
-          icon={FileText} gradient="#1A77A3" trend={{ value: `${s.totalAttestations} total`, up: false }}
+          icon={FileText} gradient="#144f6b" trend={{ value: `${s.totalAttestations} total`, up: false }}
           onClick={() => setActiveKPI('attestations')} />
         <KPICard label="Persembahan Bulan Ini" value={formatRp(s.offeringsThisMonth)} sub={`${offerings.length} transaksi`}
-          icon={DollarSign} gradient="linear-gradient(135deg,#1A77A3,#2d9cdb)"
+          icon={DollarSign} gradient="linear-gradient(135deg,#144f6b,#2d9cdb)"
           trend={{ value: 'Bulan ini', up: true }} onClick={() => nav('church-finance')} />
         <KPICard label="Saldo Kas Gereja" value={formatRp(s.finIncome - s.finExpense)} sub="pemasukan – pengeluaran"
           icon={TrendingUp} gradient="#3a7fa0" trend={{ value: 'Total bersih', up: s.finIncome >= s.finExpense }}
@@ -935,16 +935,16 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
           icon={HandHeart} gradient="#e11d48" trend={{ value: s.srDone > 0 ? `${s.srDone} selesai` : 'Perlu tindak lanjut', up: s.srDone > s.srPending }}
           onClick={() => nav('service-requests')} />
         <KPICard label="Pengumuman Aktif" value={(announcements || []).filter(a => a.isActive).length} sub="sedang berjalan"
-          icon={Megaphone} gradient="#1A77A3" trend={{ value: 'Aktif', up: true }}
+          icon={Megaphone} gradient="#144f6b" trend={{ value: 'Aktif', up: true }}
           onClick={() => nav('announcements')} />
       </div>
 
       {/* ══ MODUL 1: ADMINISTRASI & KEANGGOTAAN ════════════════════════════════ */}
       <div className="rounded-2xl p-6" style={{ background: 'white', border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         <ModuleHeader icon={Users} title="Administrasi & Keanggotaan" subtitle="Modul 1 · Data lengkap jemaat & keluarga"
-          gradient="#1A77A3" action="Database Warga" onAction={() => nav('members')} />
+          gradient="#144f6b" action="Database Warga" onAction={() => nav('members')} />
         <div className="flex gap-3 flex-wrap mb-5">
-          <StatChip label="Jemaat Aktif"   value={s.aktif}      color="#1A77A3" bg="#f0f7fb" icon={Users}         trend={`${s.totalMembers > 0 ? ((s.aktif / s.totalMembers) * 100).toFixed(0) : 0}% dari total`} />
+          <StatChip label="Jemaat Aktif"   value={s.aktif}      color="#144f6b" bg="#f0f7fb" icon={Users}         trend={`${s.totalMembers > 0 ? ((s.aktif / s.totalMembers) * 100).toFixed(0) : 0}% dari total`} />
           <StatChip label="Pindah"         value={s.pindah}     color="#3b82f6" bg="#eff6ff" icon={ArrowUpRight} />
           <StatChip label="Meninggal"      value={s.meninggal}  color="#64748b" bg="#f8fafc" icon={Circle} />
           <StatChip label="Tidak Aktif"    value={s.tidakAktif} color="#c2baaa" bg="#fef3c7" icon={AlertCircle} />
@@ -954,7 +954,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
             <p style={{ fontSize: '12.5px', fontWeight: 700, color: '#374151', marginBottom: '10px' }}>Anggota per Sektor</p>
             <MiniHorizontalBar
               data={s.membersBySector.map(sec => ({ name: sec.short, value: sec.count, total: s.totalMembers || 1 }))}
-              color="#1A77A3"
+              color="#144f6b"
             />
           </div>
           <div>
@@ -964,7 +964,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
               {[
                 { label: 'Anak (0–12)',    color: '#3b82f6', val: s.ageGroups['Anak']   || 0 },
                 { label: 'Pemuda (13–24)', color: '#3a7fa0', val: s.ageGroups['Pemuda'] || 0 },
-                { label: 'Dewasa (25–59)', color: '#1A77A3', val: s.ageGroups['Dewasa'] || 0 },
+                { label: 'Dewasa (25–59)', color: '#144f6b', val: s.ageGroups['Dewasa'] || 0 },
                 { label: 'Lansia (60+)',   color: '#c2baaa', val: s.ageGroups['Lansia'] || 0 },
               ].map((item) => (
                 <div key={item.label} className="flex items-center justify-between">
@@ -1069,7 +1069,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
           <StatChip label="Total Jadwal Ibadah" value={worshipSchedules?.length || 0}  color="#7c3aed" bg="rgba(124,58,237,0.08)" icon={Church}   trend="Semua waktu" />
           <StatChip label="Ibadah Mendatang"    value={s.worshipThisWeek}              color="#0891b2" bg="rgba(8,145,178,0.08)"  icon={Calendar} trend="7 hari ke depan" />
           <StatChip label="Kehadiran Bulan Ini" value={s.attendanceThisMonth}          color="#16a34a" bg="rgba(22,163,74,0.08)"  icon={CheckCircle2} trend="Record hadir" />
-          <StatChip label="Total Acara"         value={events?.length || 0}            color="#1A77A3" bg="rgba(26,119,163,0.08)"  icon={Calendar} trend="Semua waktu" />
+          <StatChip label="Total Acara"         value={events?.length || 0}            color="#144f6b" bg="rgba(20,79,107,0.08)"  icon={Calendar} trend="Semua waktu" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -1176,7 +1176,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
             <p style={{ fontSize: '12.5px', fontWeight: 700, color: '#374151', marginBottom: '10px' }}>Jadwal Ibadah per Kategori</p>
             <MiniBar
               data={Object.entries(s.worshipByType).map(([name, value]) => ({ name, value: value as number }))}
-              colors={['#7c3aed','#1A77A3','#16a34a','#e11d48','#f59e0b','#0891b2']}
+              colors={['#7c3aed','#144f6b','#16a34a','#e11d48','#f59e0b','#0891b2']}
             />
           </div>
         )}
@@ -1196,10 +1196,10 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
       {/* ══ MODUL 3: KEUANGAN & PERSEMBAHAN ════════════════════════════════════ */}
       <div className="rounded-2xl p-6" style={{ background: 'white', border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
         <ModuleHeader icon={DollarSign} title="Keuangan & Persembahan (Modul Klasik)" subtitle="Modul 3 · Persembahan & laporan keuangan gereja (terpisah dari Finance Add-on)"
-          gradient="linear-gradient(135deg,#1A77A3,#2d9cdb)" action="Keuangan Gereja" onAction={() => nav('church-finance')} />
+          gradient="linear-gradient(135deg,#144f6b,#2d9cdb)" action="Keuangan Gereja" onAction={() => nav('church-finance')} />
         <div className="flex gap-3 flex-wrap mb-5">
-          <StatChip label="Total Persembahan" value={formatRp(s.offeringsTotal)}     color="#1A77A3" bg="#f0f7fb" icon={DollarSign}    trend={`${offerings.length} transaksi`} />
-          <StatChip label="Bulan Ini"          value={formatRp(s.offeringsThisMonth)} color="#1A77A3" bg="#f0f9ff" icon={TrendingUp} />
+          <StatChip label="Total Persembahan" value={formatRp(s.offeringsTotal)}     color="#144f6b" bg="#f0f7fb" icon={DollarSign}    trend={`${offerings.length} transaksi`} />
+          <StatChip label="Bulan Ini"          value={formatRp(s.offeringsThisMonth)} color="#144f6b" bg="#f0f9ff" icon={TrendingUp} />
           <StatChip label="Total Pemasukan"    value={formatRp(s.finIncome)}          color="#3a7fa0" bg="#f5f3ff" icon={ArrowUpRight} />
           <StatChip label="Total Pengeluaran"  value={formatRp(s.finExpense)}         color="#c2baaa" bg="#fef3c7" icon={ArrowDownRight} />
         </div>
@@ -1208,15 +1208,15 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
             <div>
               <p style={{ fontSize: '12.5px', fontWeight: 700, color: '#374151', marginBottom: '4px' }}>Tren Persembahan {new Date().getFullYear()}</p>
               <p style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '8px' }}>Data real per bulan</p>
-              <MiniSparkline data={s.monthlyOfferings} color="#1A77A3" />
+              <MiniSparkline data={s.monthlyOfferings} color="#144f6b" />
             </div>
             <div>
               <p style={{ fontSize: '12.5px', fontWeight: 700, color: '#374151', marginBottom: '4px' }}>Kas Masuk vs Keluar (6 Bulan)</p>
               <div className="flex items-center gap-4 mb-2">
-                <span className="flex items-center gap-1.5 text-xs text-gray-500"><span className="w-3 h-2 rounded-sm inline-block" style={{ background: '#1A77A3' }} />Pemasukan</span>
+                <span className="flex items-center gap-1.5 text-xs text-gray-500"><span className="w-3 h-2 rounded-sm inline-block" style={{ background: '#144f6b' }} />Pemasukan</span>
                 <span className="flex items-center gap-1.5 text-xs text-gray-500"><span className="w-3 h-2 rounded-sm inline-block" style={{ background: '#ef4444' }} />Pengeluaran</span>
               </div>
-              <MiniStackedBar data={s.last6Months} color1="#1A77A3" color2="#ef4444" />
+              <MiniStackedBar data={s.last6Months} color1="#144f6b" color2="#ef4444" />
             </div>
           </div>
           <div>
@@ -1227,7 +1227,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-1.5" style={{ fontSize: '11.5px', color: '#475569' }}><ArrowUpRight className="w-3 h-3 text-[#3a7fa0]" />Pemasukan</span>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#1A77A3' }}>{formatRp(s.finIncome)}</span>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#144f6b' }}>{formatRp(s.finIncome)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-1.5" style={{ fontSize: '11.5px', color: '#475569' }}><ArrowDownRight className="w-3 h-3 text-red-400" />Pengeluaran</span>
@@ -1236,7 +1236,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
                   <div className="h-px bg-gray-200 my-1" />
                   <div className="flex items-center justify-between">
                     <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#374151' }}>Saldo Bersih</span>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: s.finIncome >= s.finExpense ? '#1A77A3' : '#ef4444', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{formatRp(s.finIncome - s.finExpense)}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: s.finIncome >= s.finExpense ? '#144f6b' : '#ef4444', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{formatRp(s.finIncome - s.finExpense)}</span>
                   </div>
                 </div>
               </div>
@@ -1246,7 +1246,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
                   {Object.entries(s.offeringsByType).slice(0, 4).map(([type, amount]) => (
                     <div key={type} className="flex items-center justify-between mb-1.5 last:mb-0">
                       <span style={{ fontSize: '11px', color: '#64748b' }}>{type}</span>
-                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#1A77A3' }}>{formatRp(amount as number)}</span>
+                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#144f6b' }}>{formatRp(amount as number)}</span>
                     </div>
                   ))}
                 </div>
@@ -1259,7 +1259,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
             { label: 'Keuangan Gereja', page: 'church-finance' }, { label: 'Pencatatan Persembahan', page: 'offerings' },
             { label: 'Proyek Pembangunan', page: 'building-projects' },
           ].map(item => (
-            <button key={item.page} onClick={() => nav(item.page)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-[#f0f7fb] transition-colors" style={{ fontSize: '12px', fontWeight: 500, color: '#1A77A3', background: '#f0f7fb' }}>
+            <button key={item.page} onClick={() => nav(item.page)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-[#f0f7fb] transition-colors" style={{ fontSize: '12px', fontWeight: 500, color: '#144f6b', background: '#f0f7fb' }}>
               {item.label} <ChevronRight className="w-3 h-3" />
             </button>
           ))}
@@ -1369,7 +1369,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
         <div className="lg:col-span-3 rounded-2xl p-6" style={{ background: 'white', border: '1px solid #f1f5f9', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <div className="flex items-center justify-between mb-4 pb-4" style={{ borderBottom: '1.5px solid #f1f5f9' }}>
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#1A77A3' }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#144f6b' }}>
                 <Activity className="w-4 h-4 text-white" />
               </div>
               <div>
@@ -1379,7 +1379,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
             </div>
             <button onClick={() => nav('activity')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
-              style={{ background: '#f0f7fb', color: '#1A77A3' }}>
+              style={{ background: '#f0f7fb', color: '#144f6b' }}>
               Lihat Semua <ChevronRight className="w-3 h-3" />
             </button>
           </div>
@@ -1428,11 +1428,11 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(217,119,6,0.1)' }}>
-                  <Bell className="w-3.5 h-3.5 text-[#1A77A3]" />
+                  <Bell className="w-3.5 h-3.5 text-[#144f6b]" />
                 </div>
                 <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a' }}>Pengumuman Aktif</span>
               </div>
-              <button onClick={() => nav('announcements')} className="text-xs font-medium" style={{ color: '#1A77A3' }}>Semua →</button>
+              <button onClick={() => nav('announcements')} className="text-xs font-medium" style={{ color: '#144f6b' }}>Semua →</button>
             </div>
             {s.activeAnnouncements.length === 0 ? (
               <p style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center', padding: '16px 0' }}>Tidak ada pengumuman aktif</p>

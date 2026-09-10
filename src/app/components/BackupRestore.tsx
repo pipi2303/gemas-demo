@@ -317,7 +317,7 @@ export function BackupRestore() {
           {syncStatus === 'loading' && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg"
               style={{ background: '#f0f7fb', border: '1px solid #b8d5e8' }}>
-              <RefreshCw className="w-4 h-4 text-[#1A77A3] animate-spin" />
+              <RefreshCw className="w-4 h-4 text-[#144f6b] animate-spin" />
               <span className="text-xs font-medium text-[#144f6b]">Memeriksa...</span>
             </div>
           )}
@@ -340,7 +340,7 @@ export function BackupRestore() {
         <Card className="p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: '#f0f7fb' }}>
-              <Database className="w-4 h-4 text-[#1A77A3]" />
+              <Database className="w-4 h-4 text-[#144f6b]" />
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{families.length.toLocaleString()}</p>
@@ -383,7 +383,7 @@ export function BackupRestore() {
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100"
           style={{ background: '#f8fafc' }}>
           <div className="flex items-center gap-2.5">
-            <Database className="w-4 h-4 text-[#1A77A3]" />
+            <Database className="w-4 h-4 text-[#144f6b]" />
             <h3 className="font-semibold text-gray-800 text-sm">Status Data Server</h3>
           </div>
           <div className="flex items-center gap-3">
@@ -396,7 +396,7 @@ export function BackupRestore() {
               onClick={fetchServerCounts}
               disabled={syncStatus === 'loading'}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-              style={{ background: '#f0f7fb', color: '#1A77A3', border: '1px solid #b8d5e8' }}
+              style={{ background: '#f0f7fb', color: '#144f6b', border: '1px solid #b8d5e8' }}
             >
               <RefreshCw className={`w-3 h-3 ${syncStatus === 'loading' ? 'animate-spin' : ''}`} />
               Refresh
@@ -458,7 +458,7 @@ export function BackupRestore() {
                       ) : syncStatus === 'ok' ? (
                         synced
                           ? <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(22,163,74,0.1)', color: '#16a34a' }}>✓ Sinkron</span>
-                          : <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(245,158,11,0.1)', color: '#1A77A3' }}>⚠ Beda</span>
+                          : <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(245,158,11,0.1)', color: '#144f6b' }}>⚠ Beda</span>
                       ) : (
                         <span className="text-xs text-gray-300">—</span>
                       )}
@@ -476,7 +476,7 @@ export function BackupRestore() {
                   {syncStatus === 'ok' && (
                     totalLocal === totalServer
                       ? <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: 'rgba(22,163,74,0.15)', color: '#16a34a' }}>✓ Seimbang</span>
-                      : <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: 'rgba(245,158,11,0.15)', color: '#1A77A3' }}>⚠ Periksa</span>
+                      : <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: 'rgba(245,158,11,0.15)', color: '#144f6b' }}>⚠ Periksa</span>
                   )}
                 </td>
               </tr>
@@ -490,7 +490,7 @@ export function BackupRestore() {
         <Card className="p-6">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: '#f0f7fb' }}>
-              <HardDrive className="w-4 h-4 text-[#1A77A3]" />
+              <HardDrive className="w-4 h-4 text-[#144f6b]" />
             </div>
             <div>
               <h3 className="font-semibold text-gray-800">Backup Lengkap</h3>
@@ -506,7 +506,7 @@ export function BackupRestore() {
               disabled={exportingJSON}
               title={exportingJSON ? 'Sedang membuat backup...' : 'Backup semua koleksi (terenkripsi) langsung dari server'}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: '#f0f7fb', color: '#1A77A3', border: '1px solid #b8d5e8' }}
+              style={{ background: '#f0f7fb', color: '#144f6b', border: '1px solid #b8d5e8' }}
               onMouseOver={e => (e.currentTarget.style.background = '#f0ede5')}
               onMouseOut={e => (e.currentTarget.style.background = '#f0f7fb')}
             >
@@ -601,7 +601,7 @@ export function BackupRestore() {
         <div className="flex items-center gap-3 mb-4">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center"
             style={{ background: integrityOk ? 'rgba(22,163,74,0.08)' : 'rgba(245,158,11,0.08)' }}>
-            <Activity className="w-4 h-4" style={{ color: integrityOk ? '#16a34a' : '#1A77A3' }} />
+            <Activity className="w-4 h-4" style={{ color: integrityOk ? '#16a34a' : '#144f6b' }} />
           </div>
           <div>
             <h3 className="font-semibold text-gray-800">Pemeriksaan Integritas Data</h3>
@@ -619,7 +619,7 @@ export function BackupRestore() {
               style={{ borderColor: item.count === 0 ? 'rgba(22,163,74,0.2)' : 'rgba(245,158,11,0.3)', background: item.count === 0 ? 'rgba(22,163,74,0.04)' : 'rgba(245,158,11,0.04)' }}>
               <div className="flex items-start justify-between mb-2">
                 <p className="text-sm font-medium text-gray-700">{item.label}</p>
-                <span className="text-lg font-bold" style={{ color: item.count === 0 ? '#16a34a' : '#1A77A3' }}>{item.count}</span>
+                <span className="text-lg font-bold" style={{ color: item.count === 0 ? '#16a34a' : '#144f6b' }}>{item.count}</span>
               </div>
               <p className="text-xs text-gray-500">{item.desc}</p>
             </div>
