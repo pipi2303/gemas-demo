@@ -37,8 +37,8 @@ function SectorDetail({ sector, members, families, theme, onClose, onEdit }: {
   onClose:()=>void; onEdit:()=>void;
 }) {
   const { offset, onMouseDown } = useDraggable();
-  const { attestations, sectors, can: canFn } = useApp();
-  const detailCanEdit = canFn('Sektor Pelayanan', 'edit');
+  const { attestations, sectors, can: canFn, currentUser } = useApp();
+  const detailCanEdit = canFn('Sektor Pelayanan', 'edit') && (currentUser?.role !== 'Ketua Sektor' || sector.id === (currentUser as any)?.assignedSectorId);
   const [tab, setTab] = useState<'overview'|'members'|'families'>('overview');
   const [search, setSearch] = useState('');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
@@ -432,10 +432,14 @@ function SectorForm({ sector, onSave, onClose }: {
 export function SectorDatabase() {
   const { offset: offset1, onMouseDown: onMouseDown1 } = useDraggable();
   const { offset: offset2, onMouseDown: onMouseDown2 } = useDraggable();
-  const { sectors, members, families, addSector, updateSector, deleteSector, can } = useApp();
+  const { sectors, members, families, addSector, updateSector, deleteSector, can, currentUser } = useApp();
 
   const canEdit   = can('sectors', 'edit');
   const canDelete = can('sectors', 'delete');
+  const canExport = can('sectors', 'export');
+  // Ketua Sektor hanya boleh mengelola (edit/hapus) sektor yang ditugaskan padanya —
+  // mencegah satu Ketua Sektor mengubah/menghapus sektor milik ketua lain.
+  const canManageSector = (sec: Sector) => currentUser?.role !== 'Ketua Sektor' || sec.id === (currentUser as any)?.assignedSectorId;
   const [deleteTarget, setDeleteTarget] = useState<Sector | null>(null);
 
   const [selected, setSelected] = useState<Sector|null>(null);
@@ -579,9 +583,11 @@ export function SectorDatabase() {
               <Plus className="w-4 h-4"/> Tambah Sektor
             </button>
           )}
-          <button onClick={exportExcel} className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border hover:bg-gray-50 transition-all" style={{borderColor:'#e2e8f0',color:'#4b5563'}}>
-            <Download className="w-4 h-4"/> Export Excel
-          </button>
+          {canExport && (
+            <button onClick={exportExcel} className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border hover:bg-gray-50 transition-all" style={{borderColor:'#e2e8f0',color:'#4b5563'}}>
+              <Download className="w-4 h-4"/> Export Excel
+            </button>
+          )}
         </div>
       </div>
 
@@ -601,6 +607,42 @@ export function SectorDatabase() {
           </div>
         ))}
       </div>
+
+      {/* Perbandingan Beban Sektor */}
+      {sectorStats.length > 1 && (()=>{
+        const avgPerSector = sectors.length > 0 ? totalMembers / sectors.length : 0;
+        const maxCount = Math.max(1, ...sectorStats.map(s=>s.sm.length));
+        return (
+          <div className="rounded-2xl border bg-white p-5" style={{borderColor:'#e2e8f0'}}>
+            <h3 style={{fontSize:'14px',fontWeight:700,color:'#0f172a',marginBottom:14}}>Perbandingan Beban Sektor</h3>
+            <div className="space-y-3">
+              {[...sectorStats].sort((a,b)=>b.sm.length-a.sm.length).map(s=>{
+                const pctOfAvg = avgPerSector > 0 ? (s.sm.length/avgPerSector)*100 : 0;
+                const isHigh = pctOfAvg > 130;
+                const isLow = avgPerSector > 0 && pctOfAvg < 70;
+                const barColor = isHigh ? '#d1553f' : isLow ? '#caa04a' : '#2f8f5b';
+                const widthPct = (s.sm.length/maxCount)*100;
+                return (
+                  <div key={s.id}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span style={{fontSize:'12px',color:'#334155',fontWeight:600}}>{s.name}</span>
+                      <span style={{fontSize:'11px',color:'#64748b'}}>
+                        {s.sm.length} anggota{isHigh?' · di atas rata-rata':isLow?' · di bawah rata-rata':''}
+                      </span>
+                    </div>
+                    <div className="h-2.5 rounded-full overflow-hidden" style={{background:'#f1f5f9'}}>
+                      <div className="h-full rounded-full" style={{width:`${widthPct}%`,background:barColor}}/>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p style={{fontSize:'11px',color:'#94a3b8',marginTop:14}}>
+              Rata-rata {Math.round(avgPerSector)} anggota/sektor. Ditandai terracotta bila &gt;30% di atas rata-rata (beban berlebih), emas bila &gt;30% di bawah rata-rata.
+            </p>
+          </div>
+        );
+      })()}
 
       {/* Sector Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -624,8 +666,8 @@ export function SectorDatabase() {
                   <p style={{fontSize:'12px',color:'rgba(255,255,255,0.65)'}}>Bendahara Sektor: {s.bendahara?.fullName||'—'}</p>
                 </div>
                 <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                  {canEdit && <button data-tooltip="Edit" onMouseDown={e=>e.preventDefault()} onClick={()=>{setEditSector(s);setShowForm(true);}} className="p-1.5 rounded-lg hover:bg-white/20 text-white/70 hover:text-white transition-colors"><Pencil className="w-3.5 h-3.5"/></button>}
-                  {canDelete && <button data-tooltip="Hapus" onMouseDown={e=>e.preventDefault()} onClick={()=>setDeleteTarget(s)} className="p-1.5 rounded-lg hover:bg-red-500/30 text-white/70 hover:text-red-200 transition-colors"><Trash2 className="w-3.5 h-3.5"/></button>}
+                  {canEdit && canManageSector(s) && <button data-tooltip="Edit" onMouseDown={e=>e.preventDefault()} onClick={()=>{setEditSector(s);setShowForm(true);}} className="p-1.5 rounded-lg hover:bg-white/20 text-white/70 hover:text-white transition-colors"><Pencil className="w-3.5 h-3.5"/></button>}
+                  {canDelete && canManageSector(s) && <button data-tooltip="Hapus" onMouseDown={e=>e.preventDefault()} onClick={()=>setDeleteTarget(s)} className="p-1.5 rounded-lg hover:bg-red-500/30 text-white/70 hover:text-red-200 transition-colors"><Trash2 className="w-3.5 h-3.5"/></button>}
                   <button data-tooltip="Lihat Detail" onClick={()=>{setSelected(s);setShowDetail(true);}} className="p-1.5 rounded-lg hover:bg-white/20 text-white/70 hover:text-white transition-colors"><ArrowRight className="w-3.5 h-3.5"/></button>
                 </div>
               </div>
@@ -727,6 +769,11 @@ export function SectorDatabase() {
               </button>
               <button
                 onClick={()=>{
+                  if (!canManageSector(deleteTarget)) {
+                    toast.error('Anda hanya dapat menghapus sektor yang ditugaskan kepada Anda.');
+                    setDeleteTarget(null);
+                    return;
+                  }
                   const membersInSector = members.filter(m => m.sectorId === deleteTarget.id);
                   if (membersInSector.length > 0) {
                     toast.warning(`Sektor ini masih memiliki ${membersInSector.length} anggota. Pindahkan anggota terlebih dahulu sebelum menghapus sektor.`);

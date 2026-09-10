@@ -57,6 +57,7 @@ export interface User {
   password: string;
   role: UserRole;
   isActive: boolean;
+  assignedSectorId?: string; // Khusus role Ketua Sektor — ID sektor yang boleh ia kelola (edit/hapus)
 }
 
 export type MembershipType = 'Warga Jemaat' | 'Warga Tamu' | 'Simpatisan';

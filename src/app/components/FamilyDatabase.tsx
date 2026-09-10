@@ -8,7 +8,7 @@ import {
   Home, Users, MapPin, Search, Plus, Eye, Pencil, Trash2,
   ChevronLeft, ChevronRight, X, AlertCircle, Phone, Mail,
   User, Baby, Heart, LayoutGrid, List, Download, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw,
-  IdCard, Printer, UserX
+  IdCard, Printer, UserX, Merge, FileText
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
@@ -56,7 +56,7 @@ const KK_TINT = '#f0f7fb';
 
 // No. KK resmi (format sama dgn yg dipakai di fitur Atestasi: FAM_KK_TRIN_S{sektor}_{urut}),
 // diambil dari familyCode kepala keluarga — bukan lagi id internal (fam_...).
-const familyKKNumber = (headMember: any) => headMember?.familyCode || '-';
+const familyKKNumber = (headMember: any) => headMember?.familyCode || 'BELUM DITERBITKAN';
 
 const formatIssuedDate = (family: any) =>
   family.createdAt
@@ -365,6 +365,158 @@ function generateFamilyCardPDF(family: any, members: any[], sectors: any[]) {
   doc.save(`Kartu-Keluarga-${family.headOfFamily.replace(/\s+/g, '-')}.pdf`);
 }
 
+// Unduh direktori keluarga (seluruh sektor, dikelompokkan per sektor) sebagai satu PDF resmi
+function generateFamilyDirectoryPDF(families: Family[], members: Member[], sectors: any[]) {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const NAVY: [number, number, number] = [13, 26, 45];
+  const GOLD: [number, number, number] = [212, 175, 55];
+  const SLATE: [number, number, number] = [51, 65, 85];
+  const NEUTRAL: [number, number, number] = [156, 148, 134];
+  let y = 14;
+
+  const drawHeader = () => {
+    doc.setFillColor(...NAVY);
+    doc.rect(0, 0, pageWidth, 24, 'F');
+    doc.setFillColor(...GOLD);
+    doc.rect(0, 24, pageWidth, 1.5, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('DIREKTORI DATA KELUARGA JEMAAT', pageWidth / 2, 10, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.text('GPIB Jemaat "Trinitas"', pageWidth / 2, 16, { align: 'center' });
+    doc.setFontSize(7.5);
+    doc.text(
+      `Dicetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} · Total ${families.length} Keluarga`,
+      pageWidth / 2, 21, { align: 'center' }
+    );
+    y = 32;
+  };
+
+  drawHeader();
+
+  const renderGroup = (title: string, groupFamilies: Family[], fill: [number, number, number]) => {
+    if (groupFamilies.length === 0) return;
+    if (y > pageHeight - 40) { doc.addPage(); drawHeader(); }
+    doc.setFillColor(...fill);
+    doc.roundedRect(14, y, pageWidth - 28, 7, 1.2, 1.2, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.text(`${title.toUpperCase()} (${groupFamilies.length} Keluarga)`, 17, y + 5);
+    y += 10;
+
+    const rows = groupFamilies.map((f, i) => [String(i + 1), f.headOfFamily, f.address || '-', String(f.memberCount || 0)]);
+    autoTable(doc, {
+      startY: y,
+      head: [['No', 'Kepala Keluarga', 'Alamat', 'Jml Anggota']],
+      body: rows,
+      theme: 'striped',
+      headStyles: { fillColor: SLATE, textColor: 255, fontSize: 7.5, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 7.2, cellPadding: 1.8 },
+      columnStyles: { 0: { cellWidth: 10, halign: 'center' }, 1: { cellWidth: 55 }, 2: { cellWidth: 85 }, 3: { cellWidth: 22, halign: 'center' } },
+      margin: { left: 14, right: 14 },
+    });
+    // @ts-ignore
+    y = doc.lastAutoTable.finalY + 8;
+  };
+
+  [...sectors].sort((a, b) => a.name.localeCompare(b.name, 'id', { numeric: true })).forEach(sec => {
+    const secFamilies = families.filter(f => f.sectorId === sec.id).sort((a, b) => a.headOfFamily.localeCompare(b.headOfFamily, 'id'));
+    renderGroup(sec.name, secFamilies, NAVY);
+  });
+
+  const noSector = families.filter(f => !f.sectorId || !sectors.find(s => s.id === f.sectorId));
+  renderGroup('Belum Ada Sektor', noSector.sort((a, b) => a.headOfFamily.localeCompare(b.headOfFamily, 'id')), NEUTRAL);
+
+  const totalPages = (doc as any).internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.4);
+    doc.line(14, pageHeight - 12, pageWidth - 14, pageHeight - 12);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(148, 163, 184);
+    doc.text('Dokumen Internal GPIB Jemaat Trinitas', 14, pageHeight - 7.5);
+    doc.text(`Halaman ${i} dari ${totalPages}`, pageWidth - 14, pageHeight - 7.5, { align: 'right' });
+  }
+
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  doc.save(`Direktori-Keluarga-GPIB-Trinitas-${pad(now.getDate())}${pad(now.getMonth() + 1)}${now.getFullYear()}.pdf`);
+}
+
+// ── GABUNGKAN DUA KELUARGA (deteksi/atasi duplikat data keluarga) ─────────────
+function MergeFamiliesModal({ families, sectors, members, onMerge, onClose }: {
+  families: Family[]; sectors: any[]; members: Member[];
+  onMerge: (sourceId: string, targetId: string) => void; onClose: () => void;
+}) {
+  const [sourceId, setSourceId] = useState('');
+  const [targetId, setTargetId] = useState('');
+  const sorted = [...families].sort((a, b) => a.headOfFamily.localeCompare(b.headOfFamily, 'id'));
+  const sourceFamily = families.find(f => f.id === sourceId);
+  const targetFamily = families.find(f => f.id === targetId);
+  const sourceMemberCount = members.filter(m => m.familyId === sourceId).length;
+
+  const optLabel = (f: Family) => `${f.headOfFamily} · ${sectors.find(s => s.id === f.sectorId)?.name || 'Belum ada sektor'} · ${f.memberCount || 0} anggota`;
+
+  return (
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
+      <div className="w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden bg-white" onClick={e => e.stopPropagation()}>
+        <div className="px-6 py-4 border-b" style={{ background: 'linear-gradient(135deg,#0a1e2c,#0f2d41)' }}>
+          <div className="flex items-center justify-between">
+            <h3 className="text-white font-semibold flex items-center gap-2" style={{ fontSize: '15px' }}><Merge className="w-4 h-4" /> Gabungkan Dua Data Keluarga</h3>
+            <button onClick={onClose} data-tooltip="Tutup" className="text-white/50 hover:text-white transition-colors"><X className="w-4 h-4" /></button>
+          </div>
+        </div>
+        <div className="p-6 space-y-4">
+          <p style={{ fontSize: '12.5px', color: '#64748b' }}>
+            Gunakan ini bila dua data keluarga ternyata untuk keluarga yang sama (duplikat). Seluruh anggota dari <strong>Keluarga Sumber</strong> akan dipindahkan ke <strong>Keluarga Tujuan</strong>, lalu data sumber akan dihapus permanen.
+          </p>
+          <div>
+            <label className="block mb-1" style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>Keluarga Sumber (akan dihapus)</label>
+            <select value={sourceId} onChange={e => setSourceId(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{ borderColor: '#e2e8f0' }}>
+              <option value="">— Pilih —</option>
+              {sorted.map(f => <option key={f.id} value={f.id} disabled={f.id === targetId}>{optLabel(f)}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block mb-1" style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>Keluarga Tujuan (akan menjadi keluarga akhir)</label>
+            <select value={targetId} onChange={e => setTargetId(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{ borderColor: '#e2e8f0' }}>
+              <option value="">— Pilih —</option>
+              {sorted.map(f => <option key={f.id} value={f.id} disabled={f.id === sourceId}>{optLabel(f)}</option>)}
+            </select>
+          </div>
+          {sourceFamily && targetFamily && (
+            <div className="rounded-lg p-3" style={{ background: '#fdf6e8', border: '1px solid #eddca8' }}>
+              <p style={{ fontSize: '12px', color: '#78350f' }}>
+                {sourceMemberCount} anggota dari "{sourceFamily.headOfFamily}" akan dipindahkan ke "{targetFamily.headOfFamily}". Tindakan ini tidak dapat dibatalkan.
+              </p>
+            </div>
+          )}
+        </div>
+        <div className="px-6 pb-6 flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors" style={{ borderColor: '#e2e8f0' }}>Batal</button>
+          <button
+            disabled={!sourceId || !targetId || sourceId === targetId}
+            onClick={() => { onMerge(sourceId, targetId); onClose(); }}
+            className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90 disabled:opacity-40"
+            style={{ background: '#d1553f' }}
+          >
+            Gabungkan Keluarga
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── KARTU KELUARGA MODAL ───────────────────────────────────────────────────────
 export function FamilyCardModal({ family, members, sectors, onClose }: {
   family: Family; members: Member[]; sectors: any[]; onClose: () => void;
@@ -593,9 +745,9 @@ function FamilyDetail({ family, members, sectors, onClose, onEdit, onDelete, onV
 }
 
 // ── FAMILY FORM ───────────────────────────────────────────────────────────────
-function FamilyForm({ mode, initial, sectors, members, onSave, onClose }: {
+function FamilyForm({ mode, initial, sectors, members, families, onSave, onClose }: {
   mode:'add'|'edit'; initial?: Partial<Family>;
-  sectors:any[]; members:Member[];
+  sectors:any[]; members:Member[]; families:Family[];
   onSave:(data:Partial<Family>)=>void; onClose:()=>void;
 }) {
   const { offset, onMouseDown } = useDraggable();
@@ -612,16 +764,34 @@ function FamilyForm({ mode, initial, sectors, members, onSave, onClose }: {
     members: initial?.members||[],
   });
   const [err, setErr] = useState('');
+  const [dupWarning, setDupWarning] = useState(false);
   const h=(k:string,v:any)=>setForm(p=>({...p,[k]:v}));
   const handleHeadOfFamily = (v: string) => {
     setForm(p => ({ ...p, headOfFamily: v, ...(mode==='add' ? { id: genCode(v) } : {}) }));
+    setDupWarning(false);
   };
 
   const sectorMembers = members.filter(m=>m.sectorId===form.sectorId);
 
+  const normalizeName = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
   const submit = () => {
-    if(!form.headOfFamily){setErr('Nama kepala keluarga wajib diisi');return;}
-    if(!form.sectorId){setErr('Sektor wajib dipilih');return;}
+    if(!form.headOfFamily){setErr('Nama kepala keluarga wajib diisi');setDupWarning(false);return;}
+    if(!form.sectorId){setErr('Sektor wajib dipilih');setDupWarning(false);return;}
+
+    if (!dupWarning) {
+      const dup = families.find(f =>
+        f.id !== form.id &&
+        f.sectorId === form.sectorId &&
+        normalizeName(f.headOfFamily) === normalizeName(form.headOfFamily || '')
+      );
+      if (dup) {
+        setErr(`Sudah ada keluarga "${dup.headOfFamily}" di sektor yang sama — kemungkinan duplikat. Klik "Tetap Simpan" jika ini memang keluarga yang berbeda.`);
+        setDupWarning(true);
+        return;
+      }
+    }
+    setErr('');
     onSave(form);
   };
 
@@ -672,8 +842,8 @@ function FamilyForm({ mode, initial, sectors, members, onSave, onClose }: {
         </div>
         <div className="px-6 pb-6 flex justify-end gap-3">
           <button onClick={onClose} className="px-4 py-2 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors" style={{borderColor:'#e2e8f0'}}>Batal</button>
-          <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'linear-gradient(135deg,#3a7fa0,#144f6b)'}}>
-            {mode==='add'?'Simpan Keluarga':'Perbarui'}
+          <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background: dupWarning ? '#d1553f' : 'linear-gradient(135deg,#3a7fa0,#144f6b)'}}>
+            {dupWarning ? 'Tetap Simpan' : (mode==='add'?'Simpan Keluarga':'Perbarui')}
           </button>
         </div>
       </div>
@@ -685,7 +855,7 @@ function FamilyForm({ mode, initial, sectors, members, onSave, onClose }: {
 export function FamilyDatabase() {
   const { offset: offset1, onMouseDown: onMouseDown1 } = useDraggable();
   const { offset: offset2, onMouseDown: onMouseDown2 } = useDraggable();
-  const { families, members, sectors, addFamily, updateFamily, deleteFamily, can, reloadData } = useApp();
+  const { families, members, sectors, addFamily, updateFamily, deleteFamily, updateMember, can, reloadData, currentUser } = useApp();
 
   const canCreate = can('families', 'create');
   const canEdit   = can('families', 'edit');
@@ -703,6 +873,15 @@ export function FamilyDatabase() {
     } finally {
       setSyncing(false);
     }
+  };
+
+  const [showMerge, setShowMerge] = useState(false);
+  const handleMergeFamilies = (sourceId: string, targetId: string) => {
+    const sourceFamily = families.find(f => f.id === sourceId);
+    const affectedMembers = members.filter(m => m.familyId === sourceId);
+    affectedMembers.forEach(m => updateMember(m.id, { familyId: targetId }));
+    deleteFamily(sourceId);
+    toast.success(`Keluarga "${sourceFamily?.headOfFamily || ''}" berhasil digabungkan (${affectedMembers.length} anggota dipindahkan).`);
   };
 
   const [searchQ, setSearchQ] = useState('');
@@ -753,9 +932,12 @@ export function FamilyDatabase() {
   const pageItems = filtered.slice((page-1)*ITEMS,page*ITEMS);
 
   const handleSave = (data: Partial<Family>) => {
-    const memberIds = members.filter(m=>m.sectorId===data.sectorId).map(m=>m.id);
     if(formMode==='add'){
-      addFamily({...data,memberCount:memberIds.length,members:memberIds,id:(data as any).id||undefined} as any);
+      // Keluarga baru dimulai tanpa anggota — jangan lagi menganggap seluruh anggota
+      // sektor yang dipilih sebagai anggota keluarga ini (bug lama). Anggota ditautkan
+      // satu per satu lewat familyId di Data Anggota, yang otomatis menjaga
+      // memberCount/members[] tetap akurat (lihat updateMember di AppContext).
+      addFamily({...data,memberCount:0,members:[],id:(data as any).id||undefined} as any);
     } else if(selected){
       updateFamily(selected.id,data);
     }
@@ -833,9 +1015,11 @@ export function FamilyDatabase() {
           <p style={{fontSize:'13px',color:'#64748b',marginTop:'2px'}}>GPIB Trinitas · {stats.total} keluarga terdaftar</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={handleSync} disabled={syncing} data-tooltip="Update Jumlah Anggota Sektor" className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border hover:bg-gray-50 transition-all disabled:opacity-50" style={{borderColor:'#e2e8f0',color:'#4b5563'}}>
-            <RefreshCw className={`w-4 h-4 ${syncing?'animate-spin':''}`}/> Sinkronisasi
-          </button>
+          {currentUser?.role === 'Admin' && (
+            <button onClick={handleSync} disabled={syncing} data-tooltip="Update Jumlah Anggota Sektor (Khusus Admin)" className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border hover:bg-gray-50 transition-all disabled:opacity-50" style={{borderColor:'#e2e8f0',color:'#4b5563'}}>
+              <RefreshCw className={`w-4 h-4 ${syncing?'animate-spin':''}`}/> Sinkronisasi
+            </button>
+          )}
           {canCreate && (
             <button onMouseDown={e=>e.preventDefault()} onClick={()=>{setFormMode('add');setSelected(null);setShowForm(true);}} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold shadow hover:opacity-90 transition-all" style={{background:'linear-gradient(135deg,#3a7fa0,#144f6b)'}}>
               <Plus className="w-4 h-4"/> Tambah Keluarga
@@ -844,6 +1028,16 @@ export function FamilyDatabase() {
           {canExport && (
             <button onClick={exportExcel} className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border hover:bg-gray-50 transition-all" style={{borderColor:'#e2e8f0',color:'#4b5563'}}>
               <Download className="w-4 h-4"/> Excel
+            </button>
+          )}
+          {canExport && (
+            <button onClick={()=>generateFamilyDirectoryPDF(families,members,sectors)} data-tooltip="Unduh direktori seluruh keluarga (per sektor) sebagai PDF" className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border hover:bg-gray-50 transition-all" style={{borderColor:'#e2e8f0',color:'#4b5563'}}>
+              <FileText className="w-4 h-4"/> PDF Direktori
+            </button>
+          )}
+          {canEdit && canDelete && (
+            <button onClick={()=>setShowMerge(true)} data-tooltip="Gabungkan dua data keluarga yang duplikat" className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border hover:bg-gray-50 transition-all" style={{borderColor:'#e2e8f0',color:'#4b5563'}}>
+              <Merge className="w-4 h-4"/> Gabungkan
             </button>
           )}
         </div>
@@ -1123,8 +1317,12 @@ export function FamilyDatabase() {
         <FamilyCardModal family={cardFamily} members={members} sectors={sectors} onClose={()=>setCardFamily(null)}/>
       )}
       {showForm && (
-        <FamilyForm mode={formMode} initial={selected||undefined} sectors={sectors} members={members}
+        <FamilyForm mode={formMode} initial={selected||undefined} sectors={sectors} members={members} families={families}
           onSave={handleSave} onClose={()=>{setShowForm(false);setSelected(null);}}/>
+      )}
+      {showMerge && (
+        <MergeFamiliesModal families={families} sectors={sectors} members={members}
+          onMerge={handleMergeFamilies} onClose={()=>setShowMerge(false)}/>
       )}
       {deleteTarget && (
         <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={()=>setDeleteTarget(null)}>

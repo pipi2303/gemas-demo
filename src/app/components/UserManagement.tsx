@@ -44,7 +44,7 @@ import { useSortable } from '../../hooks/useSortable';
 import { toast } from 'sonner';
 
 export function UserManagement() {
-  const { users, addUser, updateUser, currentUser, customRoles } = useApp();
+  const { users, addUser, updateUser, currentUser, customRoles, sectors } = useApp();
   const { sorted: sortedUsers, sortKey, sortDir, requestSort } = useSortable(users);
   const allRoleNames: string[] = ['Admin', 'Majelis', 'Ketua Sektor', 'Operator', ...customRoles.map(r => r.name)];
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -60,7 +60,8 @@ export function UserManagement() {
     username: '',
     password: '',
     role: 'Operator' as UserRole,
-    isActive: true
+    isActive: true,
+    assignedSectorId: ''
   });
 
   const openAddForm = () => {
@@ -71,7 +72,8 @@ export function UserManagement() {
       username: '',
       password: '',
       role: 'Operator',
-      isActive: true
+      isActive: true,
+      assignedSectorId: ''
     });
     setIsFormOpen(true);
   };
@@ -84,7 +86,8 @@ export function UserManagement() {
       username: user.username,
       password: '',
       role: user.role,
-      isActive: user.isActive
+      isActive: user.isActive,
+      assignedSectorId: (user as any).assignedSectorId || ''
     });
     setSelectedUser(user);
     setIsFormOpen(true);
@@ -93,16 +96,19 @@ export function UserManagement() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    const assignedSectorId = formData.role === 'Ketua Sektor' ? (formData.assignedSectorId || undefined) : undefined;
+
     if (formMode === 'add') {
-      addUser(formData);
+      addUser({ ...formData, assignedSectorId } as any);
       toast.success(`Pengguna ${formData.name} berhasil ditambahkan`);
     } else if (selectedUser) {
-      const updateData: Partial<User> = {
+      const updateData: Partial<User> & { assignedSectorId?: string } = {
         name: formData.name,
         email: formData.email,
         username: formData.username,
         role: formData.role,
-        isActive: formData.isActive
+        isActive: formData.isActive,
+        assignedSectorId
       };
       
       if (formData.password) {
@@ -347,6 +353,26 @@ export function UserManagement() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {formData.role === 'Ketua Sektor' && (
+                  <div>
+                    <Label>Sektor yang Dikelola *</Label>
+                    <Select
+                      value={formData.assignedSectorId}
+                      onValueChange={(value: string) => setFormData({ ...formData, assignedSectorId: value })}
+                    >
+                      <SelectTrigger className="mt-1.5">
+                        <SelectValue placeholder="— Pilih Sektor —" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[...sectors].sort((a, b) => a.name.localeCompare(b.name, 'id', { numeric: true })).map(s => (
+                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500 mt-1">Akun Ketua Sektor hanya bisa mengelola data sektor ini.</p>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>

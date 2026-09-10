@@ -59,9 +59,12 @@ export function SectorTransferHistory() {
 
   const sectorStats = useMemo(() => sectors.map(sector => ({
     ...sector,
+    // Dihitung langsung dari data anggota (bukan field Sector.memberCount yang tersimpan),
+    // supaya angka ini selalu konsisten dengan yang ditampilkan di menu Sektor Pelayanan.
+    liveMemberCount: members.filter(m => m.sectorId === sector.id).length,
     incoming: transfers.filter(t => t.toSectorId === sector.id && t.status === 'Selesai').length,
     outgoing: transfers.filter(t => t.fromSectorId === sector.id && t.status === 'Selesai').length,
-  })), [sectors, transfers]);
+  })), [sectors, members, transfers]);
 
   const memberStatusHistory = useMemo(() => members.slice(0, 20).map(m => ({
     ...m,
@@ -224,7 +227,7 @@ export function SectorTransferHistory() {
                     <p className="text-sm text-gray-500">Pimpinan: {sector.leader}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-[#144f6b]">{sector.memberCount}</p>
+                    <p className="text-2xl font-bold text-[#144f6b]">{sector.liveMemberCount}</p>
                     <p className="text-xs text-gray-500">Total Anggota</p>
                   </div>
                 </div>
@@ -269,8 +272,9 @@ export function SectorTransferHistory() {
           <div className="flex items-center gap-2 p-3 bg-[#f6f4f0] rounded-lg border border-border-[#b8d5e8]">
             <AlertCircle className="w-4 h-4 text-[#144f6b] shrink-0" />
             <p className="text-sm text-[#144f6b]">
-              Status aktif/tidak aktif diperbarui otomatis berdasarkan kehadiran ibadah dan data keanggotaan.
-              Jemaat yang tidak hadir selama 3 bulan berturut-turut akan ditandai sebagai "Perlu Perhatian".
+              Status aktif/tidak aktif di bawah ini mengikuti kolom Status Keanggotaan pada Data Anggota
+              (bukan dihitung otomatis dari kehadiran ibadah). Perbarui status keanggotaan langsung di
+              Data Anggota bila seorang jemaat perlu ditandai tidak aktif.
             </p>
           </div>
           <div className="space-y-2">
