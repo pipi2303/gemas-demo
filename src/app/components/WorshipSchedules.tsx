@@ -2,12 +2,17 @@ import React, { useState, useMemo } from 'react';
 import {
   Calendar, Clock, MapPin, User, Plus, Search, X, Church, BookOpen,
   ChevronLeft, ChevronRight, Edit2, Trash2, Eye, FileText, Users,
-  Music, Mic2, Piano, Filter, LayoutGrid, List, Star, AlertCircle,
+  Music, Mic2, Piano, Video, Filter, LayoutGrid, List, Star, AlertCircle,
   CheckCircle, PlayCircle, XCircle, Printer
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { WorshipSchedule, WorshipType } from '../types';
 import { useDraggable } from '../../lib/useDraggable';
+import { SearchDropdown } from './ui/SearchDropdown';
+import {
+  DEFAULT_OFFICER_CATEGORIES, buildOfficerRecord, officerRecordToArray,
+  deriveLegacyOfficerFields, getDisplayOfficerGroups, getAllOfficerNames,
+} from '../lib/worshipOfficers';
 
 // ─── Tipe Filter ─────────────────────────────────────────────────────────────
 type FilterType = WorshipType | 'All';
@@ -45,13 +50,13 @@ const MONTHS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agu
 const EMPTY_FORM = {
   title: '', type: 'Minggu' as WorshipType, category: '',
   date: '', time: '', location: '',
-  preacher: '', liturgist: '', worship_leader: '', pianist: '',
+  officers: {} as Record<string, string[]>,
   sermon_theme: '', bible_verse: '', description: '',
   status: 'Terjadwal' as 'Terjadwal' | 'Berlangsung' | 'Selesai' | 'Dibatalkan',
 };
 
 export function WorshipSchedules() {
-  const { worshipSchedules, addWorshipSchedule, updateWorshipSchedule, deleteWorshipSchedule, currentUser, logActivity, getMasterDataByCategory, can } = useApp();
+  const { worshipSchedules, members, addWorshipSchedule, updateWorshipSchedule, deleteWorshipSchedule, currentUser, logActivity, getMasterDataByCategory, can } = useApp();
   const worshipTypeList = getMasterDataByCategory('jenis_ibadah').map(m => m.value) as WorshipType[];
   const WORSHIP_TYPE_LIST: WorshipType[] = worshipTypeList.length ? worshipTypeList : [
     'Doa Pagi','Ibadah GP','Ibadah Keluarga Sektor 1','Ibadah Keluarga Sektor 2',
@@ -60,7 +65,8 @@ export function WorshipSchedules() {
   ];
   const kategoriList = getMasterDataByCategory('kategori_ibadah').map(m => m.value);
   const KATEGORI_LIST = kategoriList.length ? kategoriList : ['GP','PA','PKB','PKLU','PKP','PT'];
-  const PELAYAN_LIST = getMasterDataByCategory('daftar_pelayan').map(m => m.value);
+  const officerCategoriesRaw = getMasterDataByCategory('kategori_petugas_ibadah').map(m => m.value);
+  const OFFICER_CATEGORIES = officerCategoriesRaw.length ? officerCategoriesRaw : DEFAULT_OFFICER_CATEGORIES;
   const { offset: offsetDetail, onMouseDown: onMouseDownDetail } = useDraggable();
   const { offset: offsetForm, onMouseDown: onMouseDownForm } = useDraggable();
   const { offset: offsetDelete, onMouseDown: onMouseDownDelete } = useDraggable();
@@ -83,6 +89,7 @@ export function WorshipSchedules() {
   const [showDetail, setShowDetail] = useState<WorshipSchedule | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<WorshipSchedule | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [officerDrafts, setOfficerDrafts] = useState<Record<string, string>>({}); // teks pencarian/manual sementara per kategori
 
 
   // ─── Derived data ─────────────────────────────────────────────────────────
@@ -99,7 +106,7 @@ export function WorshipSchedules() {
         const matchSearch =
           s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
           s.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (s.preacher || '').toLowerCase().includes(searchTerm.toLowerCase());
+          getAllOfficerNames(s).some(n => n.toLowerCase().includes(searchTerm.toLowerCase()));
         const matchType = filterType === 'All' || s.type === filterType;
         const matchStatus = filterStatus === 'All' || s.status === filterStatus;
         return matchSearch && matchType && matchStatus;
@@ -133,6 +140,7 @@ export function WorshipSchedules() {
     setEditingId(null);
     setFormData({ ...EMPTY_FORM });
     setFormErrors({});
+    setOfficerDrafts({});
     setShowForm(true);
   };
 
@@ -145,16 +153,14 @@ export function WorshipSchedules() {
       date: schedule.date,
       time: schedule.time,
       location: schedule.location,
-      preacher: schedule.preacher || '',
-      liturgist: schedule.liturgist || '',
-      worship_leader: schedule.worship_leader || '',
-      pianist: schedule.pianist || '',
+      officers: buildOfficerRecord(schedule, OFFICER_CATEGORIES),
       sermon_theme: schedule.sermon_theme || '',
       bible_verse: schedule.bible_verse || '',
       description: schedule.description || '',
       status: schedule.status || 'Terjadwal',
     });
     setFormErrors({});
+    setOfficerDrafts({});
     setShowForm(true);
   };
 
@@ -171,6 +177,7 @@ export function WorshipSchedules() {
     e.preventDefault();
     if (!validateForm()) return;
 
+    const officersArray = officerRecordToArray(formData.officers);
     const payload = {
       title: formData.title,
       type: formData.type,
@@ -178,10 +185,8 @@ export function WorshipSchedules() {
       date: formData.date,
       time: formData.time,
       location: formData.location,
-      preacher: formData.preacher || undefined,
-      liturgist: formData.liturgist || undefined,
-      worship_leader: formData.worship_leader || undefined,
-      pianist: formData.pianist || undefined,
+      officers: officersArray.length ? officersArray : undefined,
+      ...deriveLegacyOfficerFields(formData.officers),
       sermon_theme: formData.sermon_theme || undefined,
       bible_verse: formData.bible_verse || undefined,
       description: formData.description || undefined,
@@ -431,12 +436,17 @@ export function WorshipSchedules() {
                           <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
                           <span className="truncate">{schedule.location}</span>
                         </div>
-                        {schedule.preacher && (
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Mic2 className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
-                            <span className="truncate">{schedule.preacher}</span>
-                          </div>
-                        )}
+                        {(() => {
+                          const officerNames = getAllOfficerNames(schedule);
+                          if (officerNames.length === 0) return null;
+                          const extra = officerNames.length - 1;
+                          return (
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <Mic2 className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
+                              <span className="truncate">{officerNames[0]}{extra > 0 ? ` +${extra} lainnya` : ''}</span>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
 
@@ -639,45 +649,33 @@ export function WorshipSchedules() {
                 <div>
                   <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Petugas Ibadah</h4>
                   <div className="space-y-2.5">
-                    {showDetail.preacher && (
-                      <div className="flex items-center gap-3">
-                        <Mic2 className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                        <div>
-                          <div className="text-xs text-gray-400">Pengkhotbah</div>
-                          <div className="text-sm text-gray-700">{showDetail.preacher}</div>
-                        </div>
-                      </div>
-                    )}
-                    {showDetail.liturgist && (
-                      <div className="flex items-center gap-3">
-                        <FileText className="w-4 h-4 text-purple-500 flex-shrink-0" />
-                        <div>
-                          <div className="text-xs text-gray-400">Liturgis</div>
-                          <div className="text-sm text-gray-700">{showDetail.liturgist}</div>
-                        </div>
-                      </div>
-                    )}
-                    {showDetail.worship_leader && (
-                      <div className="flex items-center gap-3">
-                        <Music className="w-4 h-4 text-[#1A77A3] flex-shrink-0" />
-                        <div>
-                          <div className="text-xs text-gray-400">Pemimpin Pujian</div>
-                          <div className="text-sm text-gray-700">{showDetail.worship_leader}</div>
-                        </div>
-                      </div>
-                    )}
-                    {showDetail.pianist && (
-                      <div className="flex items-center gap-3">
-                        <Piano className="w-4 h-4 text-green-500 flex-shrink-0" />
-                        <div>
-                          <div className="text-xs text-gray-400">Pianis / Organis</div>
-                          <div className="text-sm text-gray-700">{showDetail.pianist}</div>
-                        </div>
-                      </div>
-                    )}
-                    {!showDetail.preacher && !showDetail.liturgist && !showDetail.worship_leader && !showDetail.pianist && (
+                    {getDisplayOfficerGroups(showDetail).length === 0 && (
                       <p className="text-sm text-gray-400 italic">Belum ada petugas ditentukan</p>
                     )}
+                    {getDisplayOfficerGroups(showDetail).map(group => {
+                      const key = group.category.toLowerCase();
+                      const Icon = key.includes('pengkhotbah') ? Mic2
+                        : key.includes('liturgis') ? FileText
+                        : key.includes('pemimpin pujian') ? Music
+                        : key.includes('pianis') ? Piano
+                        : key.includes('multimedia') ? Video
+                        : User;
+                      const iconColor = key.includes('pengkhotbah') ? 'text-blue-500'
+                        : key.includes('liturgis') ? 'text-purple-500'
+                        : key.includes('pemimpin pujian') ? 'text-[#1A77A3]'
+                        : key.includes('pianis') ? 'text-green-500'
+                        : key.includes('multimedia') ? 'text-orange-500'
+                        : 'text-gray-500';
+                      return (
+                        <div key={group.category} className="flex items-center gap-3">
+                          <Icon className={`w-4 h-4 flex-shrink-0 ${iconColor}`} />
+                          <div>
+                            <div className="text-xs text-gray-400">{group.category}</div>
+                            <div className="text-sm text-gray-700">{group.names.join(', ')}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -847,30 +845,87 @@ export function WorshipSchedules() {
                 </div>
 
                 {/* Petugas Ibadah */}
-                <div className="bg-green-50 rounded-xl p-4 border border-green-100 space-y-4">
+                <div className="bg-green-50 rounded-xl p-4 border border-green-100 space-y-3">
                   <div className="flex items-center gap-2 pb-1">
                     <div className="w-7 h-7 bg-green-600 rounded-lg flex items-center justify-center">
                       <User className="w-3.5 h-3.5 text-white" />
                     </div>
                     <span className="font-semibold text-gray-800 text-sm">Petugas Ibadah</span>
+                    <span className="text-[11px] text-gray-400 ml-auto">Bisa lebih dari 1 orang per kategori</span>
                   </div>
 
-                  {(['preacher','liturgist','worship_leader','pianist'] as const).map(key => {
-                    const labels: Record<string,string> = { preacher:'Pengkhotbah / Pendeta', liturgist:'Liturgis', worship_leader:'Pemimpin Pujian', pianist:'Pianis / Organis' };
+                  {OFFICER_CATEGORIES.map(category => {
+                    const names = formData.officers[category] || [];
+                    const draft = officerDrafts[category] || '';
+                    const keyLc = category.toLowerCase();
+                    const Icon = keyLc.includes('pengkhotbah') ? Mic2
+                      : keyLc.includes('liturgis') ? FileText
+                      : keyLc.includes('pemimpin pujian') ? Music
+                      : keyLc.includes('pianis') ? Piano
+                      : keyLc.includes('multimedia') ? Video
+                      : User;
+                    const addName = (name: string) => {
+                      const trimmed = name.trim();
+                      if (!trimmed) return;
+                      setFormData(p => {
+                        const existing = p.officers[category] || [];
+                        if (existing.includes(trimmed)) return p;
+                        return { ...p, officers: { ...p.officers, [category]: [...existing, trimmed] } };
+                      });
+                      setOfficerDrafts(p => ({ ...p, [category]: '' }));
+                    };
+                    const removeName = (idx: number) => {
+                      setFormData(p => ({
+                        ...p,
+                        officers: { ...p.officers, [category]: (p.officers[category] || []).filter((_, i) => i !== idx) },
+                      }));
+                    };
                     return (
-                      <div key={key}>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">{labels[key]}</label>
-                        {PELAYAN_LIST.length > 0 ? (
-                          <select value={(formData as any)[key]} onChange={e => setFormData(p => ({ ...p, [key]: e.target.value }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
-                            <option value="">— Pilih —</option>
-                            {PELAYAN_LIST.map(n => <option key={n} value={n}>{n}</option>)}
-                          </select>
-                        ) : (
-                          <input type="text" value={(formData as any)[key]} onChange={e => setFormData(p => ({ ...p, [key]: e.target.value }))}
-                            placeholder={`Nama ${labels[key].toLowerCase()}`}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"/>
+                      <div key={category} className="bg-white rounded-lg p-3 border border-green-100">
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <Icon className="w-3.5 h-3.5 text-green-700 flex-shrink-0" />
+                          <label className="text-xs font-medium text-gray-700">{category}</label>
+                          {names.length > 0 && (
+                            <span className="text-[10px] bg-green-100 text-green-700 rounded-full px-1.5 py-0.5">{names.length}</span>
+                          )}
+                        </div>
+
+                        {names.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mb-2">
+                            {names.map((n, i) => (
+                              <span key={`${n}-${i}`} className="inline-flex items-center gap-1 bg-green-50 border border-green-200 text-green-800 text-xs rounded-full pl-2.5 pr-1 py-1">
+                                {n}
+                                <button type="button" onMouseDown={e=>e.preventDefault()} onClick={() => removeName(i)} className="p-0.5 hover:text-red-600 text-green-600">
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
                         )}
+
+                        <div className="flex gap-1.5" onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addName(draft); } }}>
+                          <div className="flex-1">
+                            <SearchDropdown<any>
+                              value={draft}
+                              onChange={v => setOfficerDrafts(p => ({ ...p, [category]: v }))}
+                              placeholder="Cari nama jemaat, atau ketik manual..."
+                              items={members}
+                              filterFn={(m: any, q: string) => (m.fullName || `${m.firstName||''} ${m.lastName||''}`).toLowerCase().includes(q.toLowerCase())}
+                              renderResult={(m: any) => (
+                                <div>
+                                  <div className="text-sm text-gray-800">{m.fullName || `${m.firstName||''} ${m.lastName||''}`}</div>
+                                  {m.position && <div className="text-[10px] text-gray-400">{m.position}</div>}
+                                </div>
+                              )}
+                              onSelect={(m: any) => addName(m.fullName || `${m.firstName||''} ${m.lastName||''}`)}
+                            />
+                          </div>
+                          <button type="button" onMouseDown={e=>e.preventDefault()} onClick={() => addName(draft)}
+                            disabled={!draft.trim()}
+                            className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0">
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     );
                   })}

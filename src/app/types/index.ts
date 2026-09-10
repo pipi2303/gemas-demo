@@ -313,6 +313,11 @@ export interface ThemePreference {
 
 export type WorshipType = string;
 
+export interface WorshipOfficerGroup {
+  category: string; // label kategori petugas, mengikuti Master Data "kategori_petugas_ibadah"
+  names: string[];
+}
+
 export interface WorshipSchedule {
   id: string;
   type: WorshipType;
@@ -321,10 +326,15 @@ export interface WorshipSchedule {
   date: string;
   time: string;
   location: string;
+  /** @deprecated dipertahankan utk kompatibilitas data lama, sumber utama sekarang `officers` */
   preacher?: string;
+  /** @deprecated lihat `officers` */
   liturgist?: string;
+  /** @deprecated lihat `officers` */
   worship_leader?: string;
+  /** @deprecated lihat `officers` */
   pianist?: string;
+  officers?: WorshipOfficerGroup[]; // Petugas Ibadah per kategori (bisa >1 nama per kategori)
   sermon_theme?: string;
   bible_verse?: string;
   description?: string;

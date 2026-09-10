@@ -15,7 +15,7 @@ const GROUPS = [
   },
   {
     id: 'ibadah', label: 'Ibadah & Liturgi', icon: Church, color: '#7c3aed',
-    categories: ['jenis_ibadah','kategori_ibadah','jenis_jadwal_ibadah','daftar_pelayan','buku_nyanyian','tipe_nyanyian_ibadah'],
+    categories: ['jenis_ibadah','kategori_ibadah','jenis_jadwal_ibadah','daftar_pelayan','kategori_petugas_ibadah','buku_nyanyian','tipe_nyanyian_ibadah'],
   },
   {
     id: 'sakramen', label: 'Sakramen & Mutasi', icon: BookOpen, color: '#0f766e',
@@ -51,6 +51,7 @@ const CAT_META: Record<string, { label: string; description: string; color: stri
   kategori_ibadah:           { label: 'Kategori Ibadah',            description: 'GP, PA, PKB, dll',                                           color: '#7c3aed' },
   jenis_jadwal_ibadah:       { label: 'Jenis Jadwal Pelayanan',     description: 'Tipe kegiatan jadwal unit kategorial',                       color: '#dc2626' },
   daftar_pelayan:            { label: 'Daftar Pelayan Ibadah',      description: 'Nama pastor, pendeta, liturgis, dll',                        color: '#0f766e' },
+  kategori_petugas_ibadah:   { label: 'Kategori Petugas Ibadah',     description: 'Peran petugas di jadwal ibadah: Pengkhotbah, Liturgis, Multimedia, dll',   color: '#0f766e' },
   buku_nyanyian:             { label: 'Buku Nyanyian',              description: 'Kidung Jemaat, Gita Bakti, dll',                             color: '#7c3aed' },
   tipe_nyanyian_ibadah:      { label: 'Tipe Nyanyian Ibadah',       description: 'Pembukaan, persembahan, komuni, penutup',                    color: '#0891b2' },
   status_sakramen:           { label: 'Status Sakramen',            description: 'Terjadwal, selesai, ditunda, dll',                           color: '#7c3aed' },

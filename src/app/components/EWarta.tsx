@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Warta, WorshipSchedule } from '../types';
+import { getOfficerNamesByKeyword } from '../lib/worshipOfficers';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const MONTHS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
@@ -190,8 +191,10 @@ export function EWarta() {
           const wsDate = new Date(ws.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
           let line = `📅 ${wsDate} · ${ws.time} WIB\n${ws.title}`;
           if (ws.location) line += `\n📍 ${ws.location}`;
-          if (ws.preacher) line += `\n🎤 Pengkhotbah: ${ws.preacher}`;
-          if (ws.liturgist) line += `\n📖 Liturgis: ${ws.liturgist}`;
+          const wsPreacher = getOfficerNamesByKeyword(ws, 'pengkhotbah', 'preacher');
+          const wsLiturgist = getOfficerNamesByKeyword(ws, 'liturgis', 'liturgist');
+          if (wsPreacher) line += `\n🎤 Pengkhotbah: ${wsPreacher}`;
+          if (wsLiturgist) line += `\n📖 Liturgis: ${wsLiturgist}`;
           if (ws.sermon_theme) line += `\n✝️ Tema: "${ws.sermon_theme}"`;
           if (ws.bible_verse) line += `\n📜 Bacaan: ${ws.bible_verse}`;
           return line;
@@ -204,7 +207,7 @@ export function EWarta() {
     // Build announcements
     const announcements: string[] = sunday.schedules
       .filter(ws => /minggu/i.test(ws.type))
-      .map(ws => `${ws.title} · ${ws.time} WIB di ${ws.location}${ws.preacher ? ` · ${ws.preacher}` : ''}`);
+      .map(ws => { const p = getOfficerNamesByKeyword(ws, 'pengkhotbah', 'preacher'); return `${ws.title} · ${ws.time} WIB di ${ws.location}${p ? ` · ${p}` : ''}`; });
     if (announcements.length === 0) announcements.push('');
 
     setFormData({
@@ -495,7 +498,7 @@ export function EWarta() {
                         <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{ws.time} WIB</span>
                         <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{ws.location}</span>
                       </div>
-                      {ws.preacher && <p className="text-xs text-gray-400 mt-1">🎤 {ws.preacher}</p>}
+                      {getOfficerNamesByKeyword(ws, 'pengkhotbah', 'preacher') && <p className="text-xs text-gray-400 mt-1">🎤 {getOfficerNamesByKeyword(ws, 'pengkhotbah', 'preacher')}</p>}
                     </div>
                   ))}
                 </div>
