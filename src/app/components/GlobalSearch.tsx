@@ -73,7 +73,7 @@ const TYPE_COLOR: Record<string, string> = {
   sidi:        '#144f6b',
   marriage:    '#db2777',
   attestation: '#6366f1',
-  ministry:    '#0d9488',
+  ministry:    '#8b6bb1',
   user:        '#475569',
   aid:         '#7c3aed',
   resource:    '#0891b2',

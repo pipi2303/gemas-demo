@@ -4,24 +4,28 @@ import { toast } from 'sonner';
 import { Event } from '../types';
 import { useDraggable } from '../../lib/useDraggable';
 import { SearchDropdown } from './ui/SearchDropdown';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import {
   Calendar, Clock, MapPin, Plus, Eye, Pencil, Trash2, X, ChevronLeft,
   ChevronRight, Search, Users, CalendarDays, LayoutGrid, List,
   CheckCircle, AlertCircle, PlayCircle, XCircle, Star, Mic2,
-  Flag, Activity, Filter
+  Flag, Activity, Filter, Download, Church, HeartHandshake
 } from 'lucide-react';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 const MONTHS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const DAYS_ID   = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
 
+// Palet resmi: navy #144f6b, emas #caa04a, hijau #2f8f5b, terracotta #d1553f,
+// ungu #8b6bb1, abu #9c9486 — setiap Event['type'] dipetakan ke satu token.
 const TYPE_CONFIG: Record<Event['type'], { gradient: string; bg: string; text: string; border: string; dot: string }> = {
-  Ibadah:      { gradient: 'from-[#144f6b] to-[#144f6b]',  bg: 'bg-[#f0f7fb]', text: 'text-[#144f6b]', border: 'border-[#b8d5e8]', dot: 'bg-[#144f6b]' },
-  Persekutuan: { gradient: 'from-[#144f6b] to-[#1A77A3]',     bg: 'bg-[#f0f7fb]',    text: 'text-[#144f6b]',    border: 'border-[#b8d5e8]',    dot: 'bg-[#144f6b]'    },
-  Retreat:     { gradient: 'from-purple-600 to-violet-600',  bg: 'bg-[#f0f7fb]',  text: 'text-[#3a7fa0]',  border: 'border-[#b8d5e8]',  dot: 'bg-[#3a7fa0]'  },
-  Seminar:     { gradient: 'from-[#144f6b] to-[#3a7fa0]',   bg: 'bg-[#f6f4f0]',  text: 'text-orange-700',  border: 'border-[#b8d5e8]',  dot: 'bg-[#9c9486]'  },
-  Pelayanan:   { gradient: 'from-pink-600 to-rose-600',      bg: 'bg-[#f0f7fb]',    text: 'text-[#144f6b]',    border: 'border-pink-200',    dot: 'bg-[#144f6b]'    },
-  Lainnya:     { gradient: 'from-slate-600 to-gray-600',     bg: 'bg-slate-50',   text: 'text-slate-700',   border: 'border-slate-200',   dot: 'bg-slate-500'   },
+  Ibadah:      { gradient: 'from-[#144f6b] to-[#144f6b]', bg: 'bg-[#f0f7fb]', text: 'text-[#144f6b]', border: 'border-[#b8d5e8]', dot: 'bg-[#144f6b]' },
+  Persekutuan: { gradient: 'from-[#144f6b] to-[#1A77A3]', bg: 'bg-[#f0f7fb]', text: 'text-[#144f6b]', border: 'border-[#b8d5e8]', dot: 'bg-[#1A77A3]' },
+  Retreat:     { gradient: 'from-[#8b6bb1] to-[#6b5490]', bg: 'bg-[#f5f2fa]', text: 'text-[#6b5490]', border: 'border-[#ddd6ec]', dot: 'bg-[#8b6bb1]' },
+  Seminar:     { gradient: 'from-[#caa04a] to-[#a3792f]', bg: 'bg-[#fdf6e8]', text: 'text-[#a3792f]', border: 'border-[#eddca8]', dot: 'bg-[#caa04a]' },
+  Pelayanan:   { gradient: 'from-[#d1553f] to-[#b5453a]', bg: 'bg-[#fdf1ef]', text: 'text-[#d1553f]', border: 'border-[#f3c7bb]', dot: 'bg-[#d1553f]' },
+  Lainnya:     { gradient: 'from-[#9c9486] to-[#7d766a]', bg: 'bg-[#f6f4f0]', text: 'text-[#7d766a]', border: 'border-[#e8e4d8]', dot: 'bg-[#9c9486]' },
 };
 
 const PELAYANAN_OPTIONS = [
@@ -34,12 +38,12 @@ const PELAYANAN_OPTIONS = [
 ];
 
 const PELAYANAN_COLOR: Record<string, { bg: string; text: string; border: string; dot: string }> = {
-  PA:   { bg: 'bg-green-50',  text: 'text-green-700',  border: 'border-green-200',  dot: 'bg-green-500'  },
-  PT:   { bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200', dot: 'bg-yellow-400' },
-  GP:   { bg: 'bg-[#e8ecf0]', text: 'text-[#144f6b]',  border: 'border-[#b8d5e8]',  dot: 'bg-[#144f6b]'  },
-  PKLU: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', dot: 'bg-orange-500' },
-  PKP:  { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', dot: 'bg-purple-400' },
-  PKB:  { bg: 'bg-slate-100', text: 'text-slate-600',  border: 'border-slate-300',  dot: 'bg-slate-400'  },
+  PA:   { bg: 'bg-[#f0f9f4]', text: 'text-[#2f8f5b]', border: 'border-[#bfe3cf]', dot: 'bg-[#2f8f5b]' },
+  PT:   { bg: 'bg-[#fdf6e8]', text: 'text-[#a3792f]', border: 'border-[#eddca8]', dot: 'bg-[#caa04a]' },
+  GP:   { bg: 'bg-[#e8ecf0]', text: 'text-[#144f6b]', border: 'border-[#b8d5e8]', dot: 'bg-[#144f6b]' },
+  PKLU: { bg: 'bg-[#f6f4f0]', text: 'text-[#7d766a]', border: 'border-[#e8e4d8]', dot: 'bg-[#9c9486]' },
+  PKP:  { bg: 'bg-[#f5f2fa]', text: 'text-[#6b5490]', border: 'border-[#ddd6ec]', dot: 'bg-[#8b6bb1]' },
+  PKB:  { bg: 'bg-[#fdf1ef]', text: 'text-[#d1553f]', border: 'border-[#f3c7bb]', dot: 'bg-[#d1553f]' },
 };
 
 const STATUS_CONFIG: Record<Event['status'], { label: string; bg: string; text: string; icon: any }> = {
@@ -54,7 +58,7 @@ const EVENT_TYPES: Event['type'][] = ['Ibadah','Persekutuan','Retreat','Seminar'
 const EMPTY_FORM = {
   title: '', description: '', date: '', time: '', location: '',
   type: 'Ibadah' as Event['type'], organizer: '', status: 'Akan Datang' as Event['status'],
-  pelayanan: '',
+  pelayanan: '', worshipScheduleId: '', ministryId: '',
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -83,7 +87,7 @@ function countdown(d: string): { days: number; label: string; urgent: boolean } 
 
 // ─── Komponen Utama ──────────────────────────────────────────────────────────
 export function EventCalendar() {
-  const { events, addEvent, updateEvent, deleteEvent, addNotification, currentUser, getMasterDataByCategory, can } = useApp();
+  const { events, addEvent, updateEvent, deleteEvent, addNotification, currentUser, getMasterDataByCategory, can, worshipSchedules, ministries } = useApp();
   const eventTypeList = getMasterDataByCategory('jenis_kegiatan').map(m => m.value) as Event['type'][];
   const EVENT_TYPES_LIST: Event['type'][] = eventTypeList.length ? eventTypeList : EVENT_TYPES;
   const statusEventList = getMasterDataByCategory('status_event').map(m => m.value);
@@ -105,6 +109,7 @@ export function EventCalendar() {
   const canCreate = can('events', 'create');
   const canEdit   = can('events', 'edit');
   const canDelete = can('events', 'delete');
+  const canExport = can('events', 'export');
 
   const { offset: offsetDetail, onMouseDown: onMouseDownDetail } = useDraggable();
   const { offset: offsetForm, onMouseDown: onMouseDownForm } = useDraggable();
@@ -163,7 +168,11 @@ export function EventCalendar() {
 
   const openEdit = (e: Event) => {
     setEditingId(e.id);
-    setFormData({ title: e.title, description: e.description, date: e.date, time: e.time, location: e.location, type: e.type, organizer: e.organizer, status: e.status, pelayanan: e.pelayanan || '' });
+    setFormData({
+      title: e.title, description: e.description, date: e.date, time: e.time, location: e.location,
+      type: e.type, organizer: e.organizer, status: e.status, pelayanan: e.pelayanan || '',
+      worshipScheduleId: e.worshipScheduleId || '', ministryId: e.ministryId || '',
+    });
     setShowDetail(false);
     setShowForm(true);
   };
@@ -171,11 +180,16 @@ export function EventCalendar() {
   const handleSubmit = (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!formData.title.trim() || !formData.date) { toast.error('Mohon lengkapi Judul dan Tanggal'); return; }
+    const payload = {
+      ...formData,
+      worshipScheduleId: formData.worshipScheduleId || undefined,
+      ministryId: formData.ministryId || undefined,
+    };
     if (editingId) {
-      updateEvent(editingId, formData);
-      if (selectedEvent?.id === editingId) setSelectedEvent({ ...selectedEvent, ...formData });
+      updateEvent(editingId, payload);
+      if (selectedEvent?.id === editingId) setSelectedEvent({ ...selectedEvent, ...payload });
     } else {
-      addEvent(formData);
+      addEvent(payload);
     }
     setShowForm(false);
     setEditingId(null);
@@ -205,6 +219,74 @@ export function EventCalendar() {
     setTimeout(() => setReminderSetId(null), 2500);
   };
 
+  // Ekspor daftar acara yang sedang ditampilkan (mengikuti pencarian & filter aktif)
+  // sebagai PDF berkop surat navy/emas GPIB Trinitas.
+  const handleExportPDF = () => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const NAVY: [number, number, number] = [20, 79, 107];
+    const GOLD: [number, number, number] = [202, 160, 74];
+    const SLATE: [number, number, number] = [51, 65, 85];
+
+    const drawHeader = () => {
+      doc.setFillColor(...NAVY);
+      doc.rect(0, 0, pageWidth, 22, 'F');
+      doc.setFillColor(...GOLD);
+      doc.rect(0, 22, pageWidth, 1.4, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text('KALENDER KEGIATAN', pageWidth / 2, 9, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.text('GPIB Trinitas', pageWidth / 2, 15, { align: 'center' });
+      doc.setFontSize(7.5);
+      doc.text(`Dicetak ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}`, pageWidth / 2, 19.5, { align: 'center' });
+    };
+    drawHeader();
+
+    const rows = filteredEvents.map((e, i) => [
+      String(i + 1),
+      formatShort(e.date),
+      e.time,
+      e.title,
+      e.type,
+      e.location,
+      e.organizer || '-',
+      e.status,
+    ]);
+
+    autoTable(doc, {
+      startY: 28,
+      head: [['No', 'Tanggal', 'Jam', 'Acara', 'Jenis', 'Lokasi', 'Penyelenggara', 'Status']],
+      body: rows,
+      theme: 'striped',
+      headStyles: { fillColor: SLATE, textColor: 255, fontSize: 8, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 7.5, cellPadding: 2 },
+      columnStyles: { 0: { cellWidth: 8, halign: 'center' }, 1: { cellWidth: 32 }, 2: { cellWidth: 14, halign: 'center' }, 3: { cellWidth: 55 }, 4: { cellWidth: 24 }, 5: { cellWidth: 45 }, 6: { cellWidth: 35 }, 7: { cellWidth: 'auto' } },
+      margin: { left: 12, right: 12 },
+      didDrawPage: () => { if (doc.internal.getNumberOfPages() > 1) drawHeader(); },
+    });
+
+    const totalPages = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.4);
+      doc.line(12, pageHeight - 10, pageWidth - 12, pageHeight - 10);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+      doc.setTextColor(148, 163, 184);
+      doc.text('Dokumen Internal GPIB Trinitas', 12, pageHeight - 6);
+      doc.text(`Halaman ${i} dari ${totalPages}`, pageWidth - 12, pageHeight - 6, { align: 'right' });
+    }
+
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    doc.save(`Kalender-Kegiatan-GPIB-Trinitas-${pad(now.getDate())}${pad(now.getMonth()+1)}${now.getFullYear()}.pdf`);
+  };
+
   // ══════════════════════════════════════════════════════════════════════════
   return (
     <div className="p-6 space-y-6">
@@ -216,16 +298,24 @@ export function EventCalendar() {
             <Calendar className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Kalender Gerejawi</h1>
-            <p className="text-sm text-gray-500">Jadwal kegiatan & acara jemaat GPIB Bahtera Kasih</p>
+            <h1 className="text-2xl font-semibold text-gray-900">Kalender Kegiatan</h1>
+            <p className="text-sm text-gray-500">Jadwal kegiatan & acara jemaat GPIB Trinitas</p>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+        {canExport && (
+          <button onClick={handleExportPDF}
+            className="flex items-center gap-2 px-4 py-2 border border-[#b8d5e8] text-[#144f6b] bg-[#f0f7fb] rounded-lg hover:bg-[#e3eef6] transition-colors text-sm">
+            <Download className="w-4 h-4" /> Unduh PDF
+          </button>
+        )}
         {canCreate && (
           <button onMouseDown={e=>e.preventDefault()} onClick={() => openAdd()}
             className="flex items-center gap-2 px-4 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm">
             <Plus className="w-4 h-4" /> Tambah Acara
           </button>
         )}
+        </div>
       </div>
 
       {/* ── Stats ───────────────────────────────────────────────────────── */}
@@ -646,6 +736,10 @@ export function EventCalendar() {
         const cfg = getEventStyle(ev);
         const stCfg = STATUS_CONFIG[ev.status];
         const cd = countdown(ev.date);
+        const linkedSchedule = ev.worshipScheduleId ? worshipSchedules.find(ws => ws.id === ev.worshipScheduleId) : undefined;
+        const hasOrphanScheduleLink = !!ev.worshipScheduleId && !linkedSchedule;
+        const linkedMinistry = ev.ministryId ? ministries.find(m => m.id === ev.ministryId) : undefined;
+        const hasOrphanMinistryLink = !!ev.ministryId && !linkedMinistry;
         return (
           <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>{setShowDetail(false);setSelectedEvent(null);}}>
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={e=>e.stopPropagation()} style={{ transform: `translate(${offsetDetail.x}px, ${offsetDetail.y}px)` }}>
@@ -702,6 +796,35 @@ export function EventCalendar() {
                   );
                 })()}
 
+                {(linkedSchedule || linkedMinistry || hasOrphanScheduleLink || hasOrphanMinistryLink) && (
+                  <div className="space-y-1.5">
+                    {linkedSchedule && (
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#b8d5e8] bg-[#f0f7fb] text-xs text-[#144f6b]">
+                        <Church className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span>Jadwal Ibadah: <span className="font-semibold">{linkedSchedule.title}</span> · {formatShort(linkedSchedule.date)}</span>
+                      </div>
+                    )}
+                    {hasOrphanScheduleLink && (
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#f3c7bb] bg-[#fdf1ef] text-xs text-[#d1553f]">
+                        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span>Jadwal ibadah yang ditautkan sudah tidak ada (mungkin terhapus).</span>
+                      </div>
+                    )}
+                    {linkedMinistry && (
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#ddd6ec] bg-[#f5f2fa] text-xs text-[#6b5490]">
+                        <HeartHandshake className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span>Komisi/Pelkat: <span className="font-semibold">{linkedMinistry.name}</span></span>
+                      </div>
+                    )}
+                    {hasOrphanMinistryLink && (
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[#f3c7bb] bg-[#fdf1ef] text-xs text-[#d1553f]">
+                        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span>Komisi/Pelkat yang ditautkan sudah tidak ada (mungkin terhapus).</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {ev.description && (
                   <div className={`p-4 rounded-xl ${cfg.bg} border ${cfg.border}`}>
                     <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Deskripsi</p>
@@ -756,7 +879,7 @@ export function EventCalendar() {
             <div className="bg-gradient-to-r from-[#144f6b] to-[#144f6b] px-6 py-5 flex items-center justify-between flex-shrink-0" onMouseDown={onMouseDownForm} style={{ cursor: 'move' }}>
               <div>
                 <h2 className="text-xl font-bold text-white">{editingId ? 'Edit Acara' : 'Tambah Acara Baru'}</h2>
-                <p className="text-indigo-200 text-sm mt-0.5">Kalender Gerejawi GPIB Bahtera Kasih</p>
+                <p className="text-[#cfe0ea] text-sm mt-0.5">Kalender Kegiatan GPIB Trinitas</p>
               </div>
               <button onClick={() => setShowForm(false)} data-tooltip="Tutup" className="p-2 hover:bg-white/20 rounded-lg transition-colors">
                 <X className="w-5 h-5 text-white" />
@@ -812,6 +935,30 @@ export function EventCalendar() {
                     <option value="">— Tidak Spesifik —</option>
                     {PELAYANAN_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
                   </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Jadwal Ibadah Terkait</label>
+                    <select value={formData.worshipScheduleId} onChange={e => setFormData(p => ({ ...p, worshipScheduleId: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
+                      <option value="">— Tidak ditautkan —</option>
+                      {[...worshipSchedules].sort((a, b) => b.date.localeCompare(a.date)).map(ws => (
+                        <option key={ws.id} value={ws.id}>
+                          {new Date(ws.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} — {ws.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Komisi / Pelkat Terkait</label>
+                    <select value={formData.ministryId} onChange={e => setFormData(p => ({ ...p, ministryId: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
+                      <option value="">— Tidak ditautkan —</option>
+                      {[...ministries].sort((a, b) => a.name.localeCompare(b.name)).map(m => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Penyelenggara</label>

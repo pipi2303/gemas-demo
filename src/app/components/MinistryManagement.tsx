@@ -4,10 +4,12 @@ import { toast } from 'sonner';
 import { Ministry, MinistrySchedule } from '../types';
 import { useDraggable } from '../../lib/useDraggable';
 import { SearchDropdown } from './ui/SearchDropdown';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import {
   Heart, Users, Plus, Pencil, Trash2, Eye, X, Search,
   ChevronRight, CheckCircle, UserCheck, Star, Award,
-  Filter, LayoutGrid, List, UserPlus,
+  Filter, LayoutGrid, List, UserPlus, Download, CalendarDays,
   Music, BookOpen, HandHeart, Laptop, UsersRound,
   Coffee, Church, Zap, Calendar, Clock
 } from 'lucide-react';
@@ -15,17 +17,21 @@ import {
 // ─── Kategori Pelayanan ───────────────────────────────────────────────────────
 type MinistryCategory = 'Pujian & Musik' | 'Pengajaran' | 'Pemuda' | 'Diakonia' | 'Teknologi' | 'Kaum Bapak' | 'Kaum Ibu' | 'Lansia' | 'Protokol' | 'Lainnya';
 
+// Palet resmi: navy #144f6b, emas #caa04a, hijau #2f8f5b, terracotta #d1553f,
+// ungu #8b6bb1, abu #9c9486 — setiap kategori komisi dipetakan ke satu token
+// (beberapa kategori berbagi token karena hanya ada 6 warna resmi; ikon & label
+// tetap membedakannya secara visual).
 const CATEGORY_CONFIG: Record<MinistryCategory, { color: string; bg: string; text: string; icon: any; border: string }> = {
-  'Pujian & Musik': { color: 'bg-pink-500',    bg: 'bg-pink-50',    text: 'text-pink-700',    icon: Music,      border: 'border-pink-200' },
-  'Pengajaran':     { color: 'bg-[#144f6b]', bg: 'bg-[#e8ecf0]',  text: 'text-[#144f6b]',   icon: BookOpen,   border: 'border-[#b8d5e8]' },
-  'Pemuda':         { color: 'bg-purple-500',bg: 'bg-purple-50',  text: 'text-purple-700',  icon: Zap,        border: 'border-purple-200' },
-  'Diakonia':       { color: 'bg-[#144f6b]',bg: 'bg-[#f0f7fb]', text: 'text-[#144f6b]', icon: HandHeart,  border: 'border-[#b8d5e8]' },
-  'Teknologi':      { color: 'bg-[#144f6b]',    bg: 'bg-[#f0f7fb]',    text: 'text-cyan-700',    icon: Laptop,     border: 'border-cyan-200' },
-  'Kaum Bapak':     { color: 'bg-[#f6f4f0]',  bg: 'bg-[#f6f4f0]',   text: 'text-[#144f6b]',   icon: UsersRound, border: 'border-[#e8e4d8]' },
-  'Kaum Ibu':       { color: 'bg-fuchsia-500', bg: 'bg-fuchsia-50', text: 'text-fuchsia-700', icon: Heart,      border: 'border-fuchsia-200' },
-  'Lansia':         { color: 'bg-[#144f6b]',    bg: 'bg-[#f0f7fb]',    text: 'text-[#144f6b]',    icon: Coffee,     border: 'border-teal-200' },
-  'Protokol':       { color: 'bg-slate-500',   bg: 'bg-slate-50',   text: 'text-slate-700',   icon: Award,      border: 'border-slate-200' },
-  'Lainnya':        { color: 'bg-gray-500',   bg: 'bg-gray-50',    text: 'text-gray-700',    icon: Church,     border: 'border-gray-200' },
+  'Pujian & Musik': { color: 'bg-[#caa04a]', bg: 'bg-[#fdf6e8]', text: 'text-[#a3792f]', icon: Music,      border: 'border-[#eddca8]' },
+  'Pengajaran':     { color: 'bg-[#144f6b]', bg: 'bg-[#e8ecf0]', text: 'text-[#144f6b]', icon: BookOpen,   border: 'border-[#b8d5e8]' },
+  'Pemuda':         { color: 'bg-[#8b6bb1]', bg: 'bg-[#f5f2fa]', text: 'text-[#6b5490]', icon: Zap,        border: 'border-[#ddd6ec]' },
+  'Diakonia':       { color: 'bg-[#2f8f5b]', bg: 'bg-[#f0f9f4]', text: 'text-[#2f8f5b]', icon: HandHeart,  border: 'border-[#bfe3cf]' },
+  'Teknologi':      { color: 'bg-[#1A77A3]', bg: 'bg-[#f0f7fb]', text: 'text-[#1A77A3]', icon: Laptop,     border: 'border-[#b8d5e8]' },
+  'Kaum Bapak':     { color: 'bg-[#d1553f]', bg: 'bg-[#fdf1ef]', text: 'text-[#d1553f]', icon: UsersRound, border: 'border-[#f3c7bb]' },
+  'Kaum Ibu':       { color: 'bg-[#caa04a]', bg: 'bg-[#fdf6e8]', text: 'text-[#a3792f]', icon: Heart,      border: 'border-[#eddca8]' },
+  'Lansia':         { color: 'bg-[#9c9486]', bg: 'bg-[#f6f4f0]', text: 'text-[#7d766a]', icon: Coffee,     border: 'border-[#e8e4d8]' },
+  'Protokol':       { color: 'bg-[#8b6bb1]', bg: 'bg-[#f5f2fa]', text: 'text-[#6b5490]', icon: Award,      border: 'border-[#ddd6ec]' },
+  'Lainnya':        { color: 'bg-[#9c9486]', bg: 'bg-[#f6f4f0]', text: 'text-[#7d766a]', icon: Church,     border: 'border-[#e8e4d8]' },
 };
 
 const CATEGORIES = Object.keys(CATEGORY_CONFIG) as MinistryCategory[];
@@ -55,7 +61,7 @@ const SERVICE_TYPES = [
 
 // ─── Komponen ─────────────────────────────────────────────────────────────────
 export function MinistryManagement() {
-  const { ministries, members, addMinistry, updateMinistry, deleteMinistry, ministrySchedules, addMinistrySchedule, updateMinistrySchedule, deleteMinistrySchedule, currentUser, can, getMasterDataByCategory } = useApp();
+  const { ministries, members, addMinistry, updateMinistry, deleteMinistry, ministrySchedules, addMinistrySchedule, updateMinistrySchedule, deleteMinistrySchedule, currentUser, can, getMasterDataByCategory, events } = useApp();
   const jenisJadwalList = getMasterDataByCategory('jenis_jadwal_ibadah').map((m: any) => m.value);
   const SERVICE_TYPES_MD = jenisJadwalList.length ? jenisJadwalList : SERVICE_TYPES;
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -85,6 +91,7 @@ export function MinistryManagement() {
   const canCreate = can('ministries', 'create');
   const canEdit   = can('ministries', 'edit');
   const canDelete = can('ministries', 'delete');
+  const canExport = can('ministries', 'export');
 
   const { offset: offsetDetail, onMouseDown: onMouseDownDetail } = useDraggable();
   const { offset: offsetForm, onMouseDown: onMouseDownForm } = useDraggable();
@@ -175,6 +182,78 @@ export function MinistryManagement() {
 
   const openDetail = (m: Ministry) => { setSelectedMinistry(m); setShowDetail(true); };
 
+  // Ekspor daftar/roster anggota satu komisi sebagai PDF berkop surat navy/emas
+  // GPIB Trinitas (gaya sama seperti Arsip Khotbah & Tata Ibadah).
+  const handleExportRoster = (ministry: Ministry) => {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const NAVY: [number, number, number] = [20, 79, 107];
+    const GOLD: [number, number, number] = [202, 160, 74];
+    const SLATE: [number, number, number] = [51, 65, 85];
+
+    doc.setFillColor(...NAVY);
+    doc.rect(0, 0, pageWidth, 24, 'F');
+    doc.setFillColor(...GOLD);
+    doc.rect(0, 24, pageWidth, 1.5, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text('DAFTAR ANGGOTA KOMISI / UNIT PELAYANAN', pageWidth / 2, 10, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text('GPIB Trinitas', pageWidth / 2, 16, { align: 'center' });
+    doc.setFontSize(8);
+    doc.text(`Dicetak ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}`, pageWidth / 2, 21, { align: 'center' });
+
+    let y = 33;
+    doc.setTextColor(30, 41, 59);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text(ministry.name, 14, y);
+    y += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`Ketua: ${ministry.leader || '-'}  ·  Kategori: ${detectCategory(ministry.name)}  ·  Status: ${ministry.isActive ? 'Aktif' : 'Nonaktif'}`, 14, y);
+    y += 7;
+
+    const ministryMembers = ministry.memberIds.map(id => members.find(m => m.id === id)).filter(Boolean) as any[];
+    const rows = ministryMembers.map((m, i) => [
+      String(i + 1),
+      m.fullName || `${m.firstName || ''} ${m.lastName || ''}`.trim(),
+      m.id === ministry.leaderMemberId ? 'Ketua' : 'Anggota',
+      m.pelkatStatus || '-',
+      m.phone || '-',
+    ]);
+
+    autoTable(doc, {
+      startY: y,
+      head: [['No', 'Nama Anggota', 'Peran', 'Status Pelkat', 'No. HP']],
+      body: rows.length ? rows : [['-', 'Belum ada anggota terdaftar', '-', '-', '-']],
+      theme: 'striped',
+      headStyles: { fillColor: SLATE, textColor: 255, fontSize: 8, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 8, cellPadding: 2 },
+      columnStyles: { 0: { cellWidth: 10, halign: 'center' }, 1: { cellWidth: 65 }, 2: { cellWidth: 25 }, 3: { cellWidth: 40 }, 4: { cellWidth: 'auto' } },
+      margin: { left: 14, right: 14 },
+    });
+
+    const totalPages = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.4);
+      doc.line(14, pageHeight - 12, pageWidth - 14, pageHeight - 12);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+      doc.setTextColor(148, 163, 184);
+      doc.text('Dokumen Internal GPIB Trinitas', 14, pageHeight - 7.5);
+      doc.text(`Halaman ${i} dari ${totalPages}`, pageWidth - 14, pageHeight - 7.5, { align: 'right' });
+    }
+
+    doc.save(`Roster-${ministry.name.replace(/[^a-z0-9]+/gi, '-')}.pdf`);
+  };
+
   // ── Jadwal handlers ────────────────────────────────────────────────────────
   const openAddSchedule = (ministryId: string) => {
     setScheduleMinistryId(ministryId);
@@ -222,17 +301,21 @@ export function MinistryManagement() {
   };
 
   // ── Color palette for index-based ─────────────────────────────────────────
+  // Bug lama: 2 entri di sini adalah class rusak ('bg-[#f6f4f0]0' — ada '0'
+  // nyasar) yang bikin kartu/avatar tampil tanpa warna latar. Entri gradient
+  // 'from-lime-500 to-[#144f6b]' juga sudah lama tidak pernah efektif jadi
+  // gradient karena tidak pernah dipasangkan dengan class 'bg-gradient-to-*'
+  // di mana pun palette ini dipakai. Diganti semua dengan token warna resmi
+  // (solid), tidak ada lagi campuran warna di luar palet.
   const PALETTES = [
-    'bg-blue-500',
     'bg-[#144f6b]',
-    'bg-purple-500',
-    'bg-[#f6f4f0]0',
-    'bg-[#f6f4f0]0',
-    'bg-[#144f6b]',
-    'bg-fuchsia-500',
-    'from-lime-500 to-[#144f6b]',
-    'bg-slate-500',
-    'bg-red-500',
+    'bg-[#caa04a]',
+    'bg-[#2f8f5b]',
+    'bg-[#8b6bb1]',
+    'bg-[#d1553f]',
+    'bg-[#9c9486]',
+    'bg-[#1A77A3]',
+    'bg-[#3a7fa0]',
   ];
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -264,7 +347,7 @@ export function MinistryManagement() {
           { label: 'Total Komisi', value: stats.total, icon: Church, color: 'text-[#144f6b]', bg: 'bg-[#f6f4f0]' },
           { label: 'Aktif', value: stats.aktif, icon: CheckCircle, color: 'text-[#144f6b]', bg: 'bg-[#f0f7fb]' },
           { label: 'Tidak Aktif', value: stats.nonaktif, icon: X, color: 'text-gray-500', bg: 'bg-gray-100' },
-          { label: 'Total Anggota', value: stats.totalMembers, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Total Anggota', value: stats.totalMembers, icon: Users, color: 'text-[#2f8f5b]', bg: 'bg-[#f0f9f4]' },
         ].map((s, i) => (
           <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
             <div className={`w-10 h-10 ${s.bg} rounded-lg flex items-center justify-center flex-shrink-0`}>
@@ -516,6 +599,11 @@ export function MinistryManagement() {
                     <Icon className="w-6 h-6 text-white" />
                   </div>
                   <div className="flex items-center gap-2">
+                    {canExport && (
+                      <button onClick={() => handleExportRoster(ministry)} data-tooltip="Unduh PDF roster" className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 text-white rounded-lg text-sm hover:bg-white/30 transition-colors">
+                        <Download className="w-3.5 h-3.5" /> PDF
+                      </button>
+                    )}
                     {canEdit && (
                       <button onMouseDown={e=>e.preventDefault()} onClick={() => openEdit(ministry)} className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 text-white rounded-lg text-sm hover:bg-white/30 transition-colors">
                         <Pencil className="w-3.5 h-3.5" /> Edit
@@ -576,7 +664,12 @@ export function MinistryManagement() {
                             </div>
                             <div className="min-w-0 flex-1">
                               <p data-tooltip={name} data-tooltip-truncate className="text-xs font-medium text-gray-800 truncate">{name}</p>
-                              {isLeader && <p className="text-[10px] text-[#144f6b] font-semibold">Ketua</p>}
+                              <div className="flex items-center gap-1 flex-wrap">
+                                {isLeader && <span className="text-[10px] text-[#144f6b] font-semibold">Ketua</span>}
+                                {m.pelkatStatus && (
+                                  <span data-tooltip="Status Pelkat anggota ini di Data Anggota (independen dari daftar komisi ini)" className="text-[9px] text-gray-400">{isLeader ? '· ' : ''}{m.pelkatStatus}</span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         );
@@ -663,6 +756,37 @@ export function MinistryManagement() {
                     </div>
                   );
                 })()}
+
+                {/* Kegiatan Terkait — acara di Kalender Kegiatan yang ditautkan ke komisi ini (Event.ministryId) */}
+                {(() => {
+                  const linkedEvents = (events || [])
+                    .filter(e => e.ministryId === ministry.id)
+                    .sort((a, b) => b.date.localeCompare(a.date));
+                  if (linkedEvents.length === 0) return null;
+                  return (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Kegiatan Terkait ({linkedEvents.length})</p>
+                      <div className="space-y-1.5">
+                        {linkedEvents.slice(0, 5).map(ev => (
+                          <div key={ev.id} className="flex items-center gap-2.5 p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+                            <div className="w-8 h-8 rounded-lg bg-[#f5f2fa] flex items-center justify-center flex-shrink-0">
+                              <CalendarDays className="w-4 h-4 text-[#6b5490]" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p data-tooltip={ev.title} data-tooltip-truncate className="text-xs font-semibold text-gray-800 truncate">{ev.title}</p>
+                              <p className="text-[10px] text-gray-500">
+                                {new Date(ev.date + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} · {ev.status}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                        {linkedEvents.length > 5 && (
+                          <p className="text-center text-xs text-gray-400 py-1">+{linkedEvents.length - 5} kegiatan lainnya di Kalender Kegiatan</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -738,7 +862,7 @@ export function MinistryManagement() {
                       {formData.memberIds.map(id => (
                         <span key={id} className="flex items-center gap-1 px-2 py-1 bg-[#f0ede5] text-[#144f6b] rounded-full text-xs font-medium">
                           {getMemberName(id)}
-                          <button type="button" onClick={() => toggleMember(id)} className="hover:text-rose-900">
+                          <button type="button" onClick={() => toggleMember(id)} className="hover:text-[#d1553f]">
                             <X className="w-3 h-3" />
                           </button>
                         </span>

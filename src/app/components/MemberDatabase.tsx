@@ -1430,7 +1430,7 @@ function mapGemasFmt(row: Record<string, any>, sectors: any[]): Omit<Member, 'id
     address: String(row['Alamat'] || '').trim(),
     membershipStatus: (row['Status'] === 'Aktif' ? 'Aktif' : 'Tidak Aktif') as any,
     membershipType: 'Warga Jemaat' as any,
-    joinDate: undefined, notes: undefined, otherHistory: undefined, ministries: [],
+    joinDate: undefined, notes: undefined, otherHistory: undefined,
   };
 }
 
@@ -1530,7 +1530,7 @@ function mapJemaatFmt(row: Record<string, any>, sectors: any[]): Omit<Member, 'i
     membershipType: 'Warga Jemaat' as any,
     joinDate: joinDate || undefined,
     notes: undefined,
-    otherHistory: String(row['Riwayat Lain'] || '').trim() || undefined, ministries: [],
+    otherHistory: String(row['Riwayat Lain'] || '').trim() || undefined,
   };
 }
 
@@ -2091,7 +2091,7 @@ export function MemberDatabase() {
       if(data.memberNumber && members.some(m => m.memberNumber && m.memberNumber === data.memberNumber)) {
         toast.error('No. Induk sudah digunakan oleh anggota lain'); return;
       }
-      addMember({ ...data, fullName, age, ministries:[] } as any);
+      addMember({ ...data, fullName, age } as any);
       try { await api.post('/api/admin/sync', {}); await reloadData(); } catch { toast.error('Sinkronisasi gagal. Coba reload halaman.'); }
     } else if(selected) {
       if(data.memberNumber && members.some(m => m.id !== selected.id && m.memberNumber && m.memberNumber === data.memberNumber)) {

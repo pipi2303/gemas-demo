@@ -118,6 +118,12 @@ export interface Member {
   // Data Gereja
   membershipType?: MembershipType; // Status Keanggotaan (BARU)
   position?: string; // Posisi Jabatan
+  // Status Pelkat resmi (PELKAT-PA/PT/GP/PKB/PKP/PKLU, lih. MemberDatabase.tsx)
+  // dipakai untuk sensus/laporan demografi. Ini SENGAJA independen dari
+  // keanggotaan komisi/unit pelayanan (Ministry.memberIds di bawah) — kategori
+  // Ministry (MinistryManagement.tsx CATEGORY_CONFIG) tidak 1:1 dengan 6 Pelkat
+  // resmi (mis. tidak ada kategori Ministry utk PA/PT), jadi keduanya tidak
+  // digabung/disinkronkan otomatis. Lihat catatan di Ministry.memberIds.
   pelkatStatus?: string; // Status Pelkat
   familyId: string;
   sectorId: string;
@@ -126,7 +132,6 @@ export interface Member {
   
   // Lain-lain
   otherHistory?: string; // Riwayat Lain
-  ministries?: string[]; // Array of ministry IDs
   photo?: string;
   notes?: string;
   joinDate?: string;
@@ -182,6 +187,11 @@ export interface Ministry {
   description: string;
   leader: string;
   leaderMemberId: string;
+  // Sumber kebenaran TUNGGAL untuk "siapa anggota komisi/unit pelayanan ini"
+  // (dikelola dari MinistryManagement.tsx). Ini berbeda dari Member.pelkatStatus
+  // (kategori Pelkat resmi PA/PT/GP/PKB/PKP/PKLU untuk sensus) — lihat catatan
+  // di Member.pelkatStatus. Member yang dulu punya field `ministries?: string[]`
+  // sudah dihapus karena tidak pernah dipakai (dead field, selalu array kosong).
   memberIds: string[];
   isActive: boolean;
 }
@@ -195,9 +205,10 @@ export interface Event {
   location: string;
   type: 'Ibadah' | 'Persekutuan' | 'Retreat' | 'Seminar' | 'Pelayanan' | 'Lainnya';
   organizer: string;
-  attendees?: string[]; // member IDs
   status: 'Akan Datang' | 'Berlangsung' | 'Selesai' | 'Dibatalkan';
   pelayanan?: string;
+  worshipScheduleId?: string; // Penaut opsional ke Jadwal Ibadah asal (lih. Liturgy/Resource)
+  ministryId?: string; // Penaut opsional ke Ministry (Pelkat & Komisi) penyelenggara
 }
 
 export interface PrayerRequest {
