@@ -70,6 +70,8 @@ function emptyDraft(createdBy: string): Partial<OutgoingLetter> {
     recipientName: '',
     recipientInstitution: '',
     body: '',
+    memberId: undefined,
+    sectorId: undefined,
     createdBy,
   };
 }
@@ -170,7 +172,7 @@ function downloadBase64Pdf(base64: string, fileName: string) {
 }
 
 export function OutgoingLetters() {
-  const { currentUser, can, masterDataItems = [] } = useApp();
+  const { currentUser, can, masterDataItems = [], members = [], sectors = [], pendingLetterDraft, setPendingLetterDraft } = useApp();
   const canCreate = can('letters-outgoing', 'create');
   const canEditPerm = can('letters-outgoing', 'edit');
   const canApprove = can('letters-outgoing', 'approve');
@@ -233,6 +235,28 @@ export function OutgoingLetters() {
 
   useEffect(() => { loadList(); loadSupportingData(); }, [loadList, loadSupportingData]);
 
+  // Konsumsi prefill dari Sakramen/Atestasi (gap-fix Sept 2026, lihat
+  // AppContext.pendingLetterDraft) — begitu halaman ini mount dengan prefill
+  // menunggu, langsung buka editor Surat Baru terisi, lalu kosongkan lagi
+  // supaya tidak "nyangkut" untuk kunjungan berikutnya ke halaman ini.
+  useEffect(() => {
+    if (!pendingLetterDraft) return;
+    setCurrent({
+      ...emptyDraft(currentUser?.id || ''),
+      memberId: pendingLetterDraft.memberId,
+      recipientName: pendingLetterDraft.recipientName || '',
+      recipientInstitution: pendingLetterDraft.recipientInstitution || '',
+      subject: pendingLetterDraft.subject || '',
+      body: pendingLetterDraft.body || '',
+      relatedModule: pendingLetterDraft.relatedModule,
+      relatedId: pendingLetterDraft.relatedId,
+    });
+    setAttachments([]);
+    setView('edit');
+    setPendingLetterDraft(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingLetterDraft]);
+
   const loadAttachments = useCallback(async (letterId: string) => {
     try {
       const rows = await api.get<OutgoingLetterAttachment[]>('/api/data/outgoingLetterAttachments');
@@ -292,6 +316,9 @@ export function OutgoingLetters() {
         recipientInstitution: current.recipientInstitution?.trim() || undefined,
         body: current.body || '',
         sectorId: current.sectorId,
+        memberId: current.memberId,
+        relatedModule: current.relatedModule,
+        relatedId: current.relatedId,
         createdBy: current.createdBy || currentUser?.id || '',
         createdAt: current.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -553,6 +580,36 @@ export function OutgoingLetters() {
             <label className="text-xs font-medium text-slate-600 block mb-1">Institusi Penerima (opsional)</label>
             <input disabled={!isDraft} value={current?.recipientInstitution || ''} onChange={e => setCurrent(prev => prev && ({ ...prev, recipientInstitution: e.target.value }))}
               className="w-full px-3 py-2 rounded-lg border text-sm disabled:bg-slate-50" style={{ borderColor: '#e2e8f0' }} />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs font-medium text-slate-600 block mb-1">Jemaat Terkait (opsional)</label>
+            <select disabled={!isDraft} value={current?.memberId || ''}
+              onChange={e => {
+                const memberId = e.target.value || undefined;
+                const member = members.find(m => m.id === memberId);
+                setCurrent(prev => prev && ({
+                  ...prev,
+                  memberId,
+                  recipientName: (!prev.recipientName && member) ? member.fullName : prev.recipientName,
+                }));
+              }}
+              className="w-full px-3 py-2 rounded-lg border text-sm bg-white disabled:bg-slate-50" style={{ borderColor: '#e2e8f0' }}>
+              <option value="">— Tidak terhubung ke jemaat tertentu —</option>
+              {members.map(m => <option key={m.id} value={m.id}>{m.fullName}</option>)}
+            </select>
+            <p className="text-[11px] text-slate-400 mt-1">Kalau dipilih, surat ini otomatis muncul di Dokumen Jemaat begitu diarsipkan.</p>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-slate-600 block mb-1">Sektor (opsional)</label>
+            <select disabled={!isDraft} value={current?.sectorId || ''}
+              onChange={e => setCurrent(prev => prev && ({ ...prev, sectorId: e.target.value || undefined }))}
+              className="w-full px-3 py-2 rounded-lg border text-sm bg-white disabled:bg-slate-50" style={{ borderColor: '#e2e8f0' }}>
+              <option value="">— Tidak per sektor —</option>
+              {sectors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
           </div>
         </div>
 

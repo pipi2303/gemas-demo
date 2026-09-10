@@ -950,6 +950,7 @@ export interface OutgoingLetter {
   recipientInstitution?: string;
   body: string; // isi surat setelah placeholder template terisi
   sectorId?: string; // opsional — kalau surat dibuat per-sektor
+  memberId?: string; // opsional — ref Member.id kalau surat ini ditujukan ke/menyangkut satu jemaat tertentu (gap-fix Sept 2026: dipakai auto-link ke Dokumen Jemaat saat Diarsipkan, lihat server/lib/memberDocumentSync.ts)
 
   createdBy: string;
   createdAt: string;
@@ -1034,6 +1035,7 @@ export interface IncomingLetter {
   senderInstitution?: string;
   subject: string;
   category?: string; // ref MasterDataItem kategori 'jenis_surat_masuk'
+  memberId?: string; // opsional — ref Member.id kalau surat ini dari/menyangkut satu jemaat tertentu (gap-fix Sept 2026: dipakai auto-link ke Dokumen Jemaat saat Diarsipkan)
   notes?: string;
 
   disposisi?: IncomingLetterDisposition;
@@ -1067,4 +1069,24 @@ export interface IncomingLetterAttachment {
   fileData: string;
   uploadedAt: string;
   uploadedBy?: string;
+}
+
+// ============================================================
+// MODUL SURAT-MENYURAT — Prefill lintas-modul (gap-fix Sept 2026)
+// ============================================================
+/** Payload sementara (in-memory saja lewat AppContext.pendingLetterDraft, TIDAK
+ *  pernah disimpan ke server) yang membawa data dari record Sakramen/Atestasi
+ *  ke form Surat Keluar baru saat staf klik tombol "Buat Surat" di halaman
+ *  asalnya (SacramentDatabase.tsx / AttestationDatabase.tsx). OutgoingLetters.tsx
+ *  mengonsumsinya lewat efek satu kali di awal render lalu langsung memanggil
+ *  setPendingLetterDraft(null) supaya tidak "nyangkut" kalau staf pindah ke
+ *  halaman Surat Keluar lewat jalur lain sesudahnya. */
+export interface PendingLetterDraft {
+  relatedModule: 'Sakramen' | 'Atestasi';
+  relatedId: string;
+  memberId?: string;
+  recipientName?: string;
+  recipientInstitution?: string;
+  subject?: string;
+  body?: string;
 }

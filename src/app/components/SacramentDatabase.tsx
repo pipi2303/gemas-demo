@@ -10,7 +10,7 @@ import {
   Search, Filter, Download, AlertCircle, ChevronLeft, ChevronRight,
   Baby, Users2, HeartHandshake, Calendar, User, FileText, Printer,
   BadgeCheck, Clock, Ban, CheckCircle, ArrowUp, ArrowDown, ArrowUpDown,
-  Upload, Loader2
+  Upload, Loader2, Mail
 } from 'lucide-react';
 import { useSortable } from '../../hooks/useSortable';
 import { jsPDF } from 'jspdf';
@@ -468,10 +468,10 @@ function SacramentDocumentsModal({ item, label, onClose }: { item: any; label: s
 }
 
 // ── MAIN ──────────────────────────────────────────────────────────────────────
-export function SacramentDatabase() {
+export function SacramentDatabase({ onNavigate }: { onNavigate?: (page: string) => void } = {}) {
   const { offset: offset1, onMouseDown: onMouseDown1 } = useDraggable();
   const { offset: offset2, onMouseDown: onMouseDown2 } = useDraggable();
-  const { baptisms, sidis, marriages, addBaptism, updateBaptism, deleteBaptism, addSidi, updateSidi, deleteSidi, addMarriage, updateMarriage, deleteMarriage, currentUser, can, getMasterDataByCategory } = useApp();
+  const { baptisms, sidis, marriages, addBaptism, updateBaptism, deleteBaptism, addSidi, updateSidi, deleteSidi, addMarriage, updateMarriage, deleteMarriage, currentUser, can, getMasterDataByCategory, setPendingLetterDraft } = useApp();
 
   const canCreate = can('sacraments', 'create');
   const canEdit   = can('sacraments', 'edit');
@@ -568,6 +568,32 @@ export function SacramentDatabase() {
     else if(tab==='sidi') deleteSidi(deleteTarget.id);
     else deleteMarriage(deleteTarget.id);
     setDeleteTarget(null);
+  };
+
+  // Buat Surat (gap-fix Sept 2026): kirim data record ini sebagai prefill ke
+  // form Surat Keluar baru lewat AppContext.pendingLetterDraft, lalu navigasi
+  // ke halaman Surat Keluar — OutgoingLetters.tsx yang mengonsumsinya.
+  // Untuk Pernikahan (dua jemaat sekaligus, mempelai pria & wanita), memberId
+  // surat diarahkan ke mempelai pria kalau tercatat (fallback ke mempelai
+  // wanita) — keputusan pragmatis karena OutgoingLetter.memberId cuma satu
+  // referensi jemaat; nama kedua mempelai tetap muncul lengkap di perihal &
+  // isi surat, jadi tidak ada informasi yang hilang, cuma auto-link Dokumen
+  // Jemaat-nya hanya mendarat di salah satu folder.
+  const handleBuatSurat = (item: any) => {
+    const label = tab === 'baptism' ? 'Baptis' : tab === 'sidi' ? 'Sidi' : 'Nikah';
+    const memberId = tab === 'marriage' ? (item.groomMemberId || item.brideMemberId) : item.memberId;
+    const recipientName = tab === 'marriage' ? `${item.groomName} & ${item.brideName}` : item.memberName;
+    const date = tab === 'baptism' ? item.baptismDate : tab === 'sidi' ? item.sidiDate : item.marriageDate;
+    const place = tab === 'baptism' ? item.baptismPlace : tab === 'sidi' ? item.sidiPlace : item.marriagePlace;
+    setPendingLetterDraft({
+      relatedModule: 'Sakramen',
+      relatedId: item.id,
+      memberId,
+      recipientName,
+      subject: `Surat Keterangan ${label}${recipientName ? ' — ' + recipientName : ''}`,
+      body: `Dengan ini kami menerangkan bahwa ${recipientName || '-'} telah melaksanakan ${label} pada tanggal ${fmtDate(date)} di ${place || '-'}, dilayani oleh ${item.minister || '-'}.`,
+    });
+    onNavigate?.('letters-outgoing');
   };
 
   const exportPDF = () => {
@@ -814,6 +840,7 @@ export function SacramentDatabase() {
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <div className="flex gap-1">
                       <button onClick={()=>setShowDocsFor(item)} data-tooltip="Dokumen" className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><FileText className="w-3.5 h-3.5 text-gray-400"/></button>
+                      {can('letters-outgoing','create') && <button onClick={()=>handleBuatSurat(item)} data-tooltip="Buat Surat" className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><Mail className="w-3.5 h-3.5 text-gray-400"/></button>}
                       {canEdit && <button onMouseDown={e=>e.preventDefault()} onClick={()=>{setEditItem(item);setShowForm(true);}} data-tooltip="Edit" className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><Pencil className="w-3.5 h-3.5 text-gray-400"/></button>}
                       {canDelete && <button onClick={()=>setDeleteTarget(item)} data-tooltip="Hapus" className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5 text-red-400"/></button>}
                     </div>

@@ -338,3 +338,88 @@ describe('GET /mine & /:id/attachments — akses identity-based untuk assignee t
     expect(rows.some(a => a.id === attachmentId)).toBe(true);
   });
 });
+
+
+// ============================================================
+// Auto-link Surat Masuk ke Dokumen Jemaat (gap-fix Sept 2026)
+// ============================================================
+// Simetris dengan test auto-link di outgoingLetters.test.ts, tapi sumbernya
+// lampiran scan (incomingLetterAttachments), bukan finalPdfData — surat masuk
+// tidak punya PDF final sendiri. Surat dijalankan penuh sampai Diarsipkan.
+describe('Auto-link Surat Masuk ke Dokumen Jemaat (gap-fix Sept 2026)', () => {
+  let app: any;
+  const admin = authHeader('tester-admin', { role: 'Admin' });
+  const majelis = authHeader('tester-majelis-autolink-masuk', { role: 'Majelis' });
+
+  const memberId = uniqueCode('test-member-autolink-masuk');
+  const assigneeUserId = uniqueCode('test-autolink-assignee');
+  const fakePdfBase64 = Buffer.from('%PDF-1.4 fake content for incoming autolink test').toString('base64');
+  let letterId: string;
+  let attachmentId: string;
+
+  beforeAll(async () => {
+    app = await getTestApp();
+
+    const member = await request(app).put(`/api/data/members/${memberId}`).set('Authorization', admin).send({
+      id: memberId, firstName: 'Uji', lastName: 'AutolinkMasuk', fullName: 'Uji Autolink Masuk',
+      gender: 'Perempuan', familyRole: 'Anak', birthDate: '1995-01-01',
+    });
+    expect(member.status).toBe(200);
+
+    const userRes = await request(app).put(`/api/data/users/${assigneeUserId}`).set('Authorization', admin).send({
+      id: assigneeUserId, name: assigneeUserId, email: `${assigneeUserId}@test.local`, username: assigneeUserId, password: 'testpass123', role: 'Operator', isActive: true,
+    });
+    expect(userRes.status).toBe(200);
+
+    const create = await request(app).post('/api/data/incomingLetters').set('Authorization', admin).send({
+      id: uniqueCode('inl-autolink'),
+      receivedDate: '2026-01-01', senderName: 'Uji Autolink Masuk', subject: 'Surat Uji Auto-link Masuk',
+      memberId, createdBy: 'tester-admin',
+    });
+    expect(create.status).toBe(200);
+    letterId = create.body.id;
+
+    attachmentId = uniqueCode('inlatt-autolink');
+    const upload = await request(app).post('/api/data/incomingLetterAttachments').set('Authorization', admin).send({
+      id: attachmentId, letterId, fileName: 'scan-autolink.pdf', fileSize: 100, mimeType: 'application/pdf',
+      fileData: fakePdfBase64, uploadedAt: new Date().toISOString(), uploadedBy: 'tester-admin',
+    });
+    expect(upload.status).toBe(200);
+  });
+
+  afterAll(async () => {
+    await request(app).delete(`/api/data/members/${memberId}`).set('Authorization', admin);
+    await request(app).delete(`/api/data/users/${assigneeUserId}`).set('Authorization', admin);
+    const pool = getPool();
+    await pool.query(`DELETE FROM gemas_store WHERE collection = 'incomingLetterAttachments' AND id = $1`, [attachmentId]);
+    if (letterId) {
+      await pool.query(`DELETE FROM gemas_store WHERE collection = 'incomingLetters' AND id = $1`, [letterId]);
+    }
+    const docs = await request(app).get('/api/data/memberDocuments').set('Authorization', admin);
+    const mine = (docs.body as any[]).filter((d: any) => d.memberId === memberId);
+    for (const d of mine) {
+      await request(app).delete(`/api/data/memberDocuments/${d.id}`).set('Authorization', admin);
+    }
+  });
+
+  it('surat masuk dengan memberId, dijalankan sampai Diarsipkan, lampirannya otomatis muncul di Dokumen Jemaat', async () => {
+    let res = await request(app).put(`/api/incoming-letters/${letterId}/disposisikan`).set('Authorization', majelis).send({
+      assignedToUserId: assigneeUserId, instruction: 'Tolong cek surat ini',
+    });
+    expect(res.status).toBe(200);
+
+    res = await request(app).put(`/api/incoming-letters/${letterId}/tindak-lanjut`).set('Authorization', majelis).send({});
+    expect(res.status).toBe(200);
+
+    res = await request(app).put(`/api/incoming-letters/${letterId}/selesai`).set('Authorization', majelis).send({});
+    expect(res.status).toBe(200);
+
+    res = await request(app).put(`/api/incoming-letters/${letterId}/arsipkan`).set('Authorization', majelis).send({});
+    expect(res.status).toBe(200);
+
+    const docs = await request(app).get('/api/data/memberDocuments').set('Authorization', admin);
+    const linked = (docs.body as any[]).find((d: any) => d.memberId === memberId && d.fileData === fakePdfBase64);
+    expect(linked).toBeTruthy();
+    expect(linked.fileName).toBe('scan-autolink.pdf');
+  });
+});

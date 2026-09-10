@@ -37,6 +37,7 @@ import { checkPagePermission } from '../lib/permissionCache.js';
 import { recordLetterAudit } from '../lib/letterAudit.js';
 import { generateLetterNumber } from './letterNumbers.js';
 import { logger } from '../lib/logger.js';
+import { copyToMemberDocuments } from '../lib/memberDocumentSync.js';
 
 const router = Router();
 
@@ -49,7 +50,9 @@ interface OutgoingLetterRecord {
   subject?: string;
   jenisSuratId?: string;
   sectorId?: string;
+  memberId?: string;
   letterNumber?: string;
+  finalPdfData?: string;
   [key: string]: any;
 }
 
@@ -268,6 +271,22 @@ router.put('/:id/arsipkan', requireAuth, async (req: AuthRequest, res: Response)
       archivedBy: req.user!.userId,
       updatedAt: now,
     });
+
+    // Auto-link ke Dokumen Jemaat (gap-fix Sept 2026) — hanya kalau surat ini
+    // terhubung ke satu jemaat tertentu (letter.memberId) DAN sudah punya PDF
+    // final (harusnya selalu ada di titik ini, karena Diarsipkan hanya bisa
+    // dicapai dari Terkirim yang mensyaratkan Ditandatangani lebih dulu).
+    if (letter.memberId && letter.finalPdfData) {
+      const users = await getAll<any>('users').catch(() => []);
+      const archiver = users.find((u: any) => u.id === req.user!.userId);
+      await copyToMemberDocuments({
+        memberId: letter.memberId,
+        fileName: `Surat Keluar - ${letter.subject || letter.id}${letter.letterNumber ? ` (${letter.letterNumber})` : ''}.pdf`,
+        fileData: letter.finalPdfData,
+        mimeType: 'application/pdf',
+        uploadedByLabel: `${archiver?.name || archiver?.username || 'Sistem'} (otomatis dari Surat Keluar${letter.letterNumber ? ' ' + letter.letterNumber : ''})`,
+      });
+    }
 
     await recordLetterAudit(req, 'Diarsipkan', 'OutgoingLetter', letter.id, letterLabel(letter), `Surat "${letter.subject}" (${letter.letterNumber || '-'}) diarsipkan`);
     res.json({ success: true });

@@ -9,7 +9,7 @@ import {
   FileText, Plus, Pencil, Trash2, Eye, X, Search, Download,
   AlertCircle, ChevronLeft, ChevronRight, CheckCircle2, Clock,
   ArrowRight, ArrowLeft, Ban, User, Users, Calendar, Church, MapPin,
-  Printer, FileCheck, RefreshCw, Filter, Lock, Upload, Loader2
+  Printer, FileCheck, RefreshCw, Filter, Lock, Upload, Loader2, Mail
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
@@ -94,12 +94,14 @@ function StatusStepper({ status }: { status: string }) {
 }
 
 // ── DETAIL MODAL ──────────────────────────────────────────────────────────────
-function AttestationDetail({ att, onClose, onEdit, onUpdateStatus }: {
+function AttestationDetail({ att, onClose, onEdit, onUpdateStatus, onBuatSurat }: {
   att: Attestation; onClose:()=>void; onEdit:()=>void;
   onUpdateStatus:(id:string,status:Attestation['status'])=>void;
+  onBuatSurat?: (att: Attestation) => void;
 }) {
   const { offset, onMouseDown } = useDraggable();
   const { can: canFn, currentUser } = useApp();
+  const canBuatSurat = onBuatSurat && canFn('letters-outgoing', 'create');
   const canEditDocs   = canFn('Sakramen & Atestasi', 'edit');
   const canDeleteDocs = canFn('Sakramen & Atestasi', 'delete');
   const isIn = att.type === 'Pindah Masuk';
@@ -296,6 +298,11 @@ function AttestationDetail({ att, onClose, onEdit, onUpdateStatus }: {
 
         <div className="px-6 py-4 border-t flex justify-end gap-3 flex-shrink-0" style={{borderColor:'#f1f5f9'}}>
           <button onClick={onClose} className="px-4 py-2 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50" style={{borderColor:'#e2e8f0'}}>Tutup</button>
+          {canBuatSurat && (
+            <button onClick={()=>onBuatSurat!(att)} className="px-4 py-2 rounded-xl border text-sm font-semibold hover:bg-gray-50" style={{borderColor:'#e2e8f0',color:'#1A77A3'}}>
+              <Mail className="w-3.5 h-3.5 mr-1.5 inline"/> Buat Surat
+            </button>
+          )}
           <button onClick={onEdit} className="px-4 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#1A77A3'}}>
             <Pencil className="w-3.5 h-3.5 mr-1.5 inline"/> Edit
           </button>
@@ -570,9 +577,9 @@ export function AttestationForm({ initial, members, families, onSave, onSaveBatc
 }
 
 // ── MAIN ──────────────────────────────────────────────────────────────────────
-export function AttestationDatabase() {
+export function AttestationDatabase({ onNavigate }: { onNavigate?: (page: string) => void } = {}) {
   const { offset, onMouseDown } = useDraggable();
-  const { attestations, members, families, currentUser, addAttestation: _addAttestation, updateAttestation: _updateAttestation, getMasterDataByCategory } = useApp();
+  const { attestations, members, families, currentUser, addAttestation: _addAttestation, updateAttestation: _updateAttestation, getMasterDataByCategory, can, setPendingLetterDraft } = useApp();
 
   // Use context attestations as source of truth; sync via API
   const [items, setItems] = useState<Attestation[]>(attestations||[]);
@@ -648,6 +655,24 @@ export function AttestationDatabase() {
     setItems(p=>[...newItems,...p]);
     newItems.forEach(it=>apiSave('attestations', it.id, it));
     setShowForm(false); setEditItem(null);
+  };
+
+  // Buat Surat (gap-fix Sept 2026): kirim data atestasi ini sebagai prefill ke
+  // form Surat Keluar baru — surat pengantar/keterangan atestasi biasanya
+  // ditujukan ke gereja tujuan (Pindah Keluar) atau merujuk gereja asal
+  // (Pindah Masuk), makanya recipientName mengikuti arah att.type.
+  const handleBuatSurat = (att: Attestation) => {
+    const isIn = att.type === 'Pindah Masuk';
+    const recipientName = isIn ? att.fromChurch : att.toChurch;
+    setPendingLetterDraft({
+      relatedModule: 'Atestasi',
+      relatedId: att.id,
+      memberId: att.memberId,
+      recipientName,
+      subject: `Surat ${att.type} — ${att.memberName}`,
+      body: `Dengan ini kami ${isIn ? 'menerangkan penerimaan' : 'mengajukan permohonan'} ${att.type.toLowerCase()} atas nama ${att.memberName}, dari ${att.fromChurch} ke ${att.toChurch}. Alasan: ${att.reason || '-'}.`,
+    });
+    onNavigate?.('letters-outgoing');
   };
 
   const handleUpdateStatus = (id:string, status:Attestation['status']) => {
@@ -854,6 +879,7 @@ export function AttestationDatabase() {
                   <td className="px-4 py-3">
                     <div className="flex gap-1" onClick={e=>e.stopPropagation()}>
                       <button onClick={()=>setShowDetail(a)} data-tooltip="Lihat Detail" className="p-1.5 rounded-lg hover:bg-[#f6f4f0] transition-colors"><Eye className="w-3.5 h-3.5 text-[#1A77A3]"/></button>
+                      {can('letters-outgoing','create') && <button onClick={()=>handleBuatSurat(a)} data-tooltip="Buat Surat" className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><Mail className="w-3.5 h-3.5 text-gray-400"/></button>}
                       <button onMouseDown={e=>e.preventDefault()} onClick={()=>{setEditItem(a);setShowForm(true);}} data-tooltip="Edit" className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><Pencil className="w-3.5 h-3.5 text-gray-400"/></button>
                       <button onClick={()=>setDeleteTarget(a)} data-tooltip="Hapus" className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5 text-red-400"/></button>
                     </div>
@@ -880,7 +906,8 @@ export function AttestationDatabase() {
       {showDetail && (
         <AttestationDetail att={showDetail} onClose={()=>setShowDetail(null)}
           onEdit={()=>{setEditItem(showDetail);setShowDetail(null);setShowForm(true);}}
-          onUpdateStatus={handleUpdateStatus}/>
+          onUpdateStatus={handleUpdateStatus}
+          onBuatSurat={handleBuatSurat}/>
       )}
       {showForm && (
         <AttestationForm initial={editItem||undefined} members={members} families={families}

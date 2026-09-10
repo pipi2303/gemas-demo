@@ -124,9 +124,9 @@ function AppContent() {
       case 'sectors':
         return <SectorDatabase />;
       case 'sacraments':
-        return <SacramentDatabase />;
+        return <SacramentDatabase onNavigate={navigate} />;
       case 'attestations':
-        return <AttestationDatabase />;
+        return <AttestationDatabase onNavigate={navigate} />;
       case 'sensus-report':
         return <LaporanSensus />;
       case 'report-center':

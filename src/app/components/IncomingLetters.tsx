@@ -77,12 +77,13 @@ function emptyDraft(createdBy: string): Partial<IncomingLetter> {
     subject: '',
     category: '',
     notes: '',
+    memberId: undefined,
     createdBy,
   };
 }
 
 export function IncomingLetters() {
-  const { currentUser, can, masterDataItems = [], users = [] } = useApp();
+  const { currentUser, can, masterDataItems = [], users = [], members = [] } = useApp();
   const canCreate = can('letters-incoming', 'create');
   const canEditPerm = can('letters-incoming', 'edit');
   // Staf yang ditugaskan lewat disposisi (mis. Operator/Ketua Sektor) tidak punya
@@ -187,6 +188,7 @@ export function IncomingLetters() {
         subject: current.subject!.trim(),
         category: current.category || undefined,
         notes: current.notes || undefined,
+        memberId: current.memberId,
         createdBy: current.createdBy || currentUser?.id || '',
         createdAt: current.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -406,6 +408,17 @@ export function IncomingLetters() {
             <input disabled={!isEditable} value={current?.senderInstitution || ''} onChange={e => setCurrent(prev => prev && ({ ...prev, senderInstitution: e.target.value }))}
               className="w-full px-3 py-2 rounded-lg border text-sm disabled:bg-slate-50" style={{ borderColor: '#e2e8f0' }} />
           </div>
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-slate-600 block mb-1">Jemaat Terkait (opsional)</label>
+          <select disabled={!isEditable} value={current?.memberId || ''}
+            onChange={e => setCurrent(prev => prev && ({ ...prev, memberId: e.target.value || undefined }))}
+            className="w-full px-3 py-2 rounded-lg border text-sm bg-white disabled:bg-slate-50" style={{ borderColor: '#e2e8f0' }}>
+            <option value="">— Tidak terhubung ke jemaat tertentu —</option>
+            {members.map(m => <option key={m.id} value={m.id}>{m.fullName}</option>)}
+          </select>
+          <p className="text-[11px] text-slate-400 mt-1">Kalau dipilih, lampiran scan surat ini otomatis muncul di Dokumen Jemaat begitu diarsipkan.</p>
         </div>
 
         <div>

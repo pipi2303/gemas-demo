@@ -37,6 +37,7 @@ import { getAll, getOne, upsert } from '../lib/db.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { checkPagePermission } from '../lib/permissionCache.js';
 import { recordLetterAudit } from '../lib/letterAudit.js';
+import { copyToMemberDocuments } from '../lib/memberDocumentSync.js';
 import { logger } from '../lib/logger.js';
 
 const router = Router();
@@ -56,6 +57,7 @@ interface IncomingLetterRecord {
   status: 'Diterima' | 'Didisposisikan' | 'DitindakLanjuti' | 'Selesai' | 'Diarsipkan';
   subject?: string;
   senderName?: string;
+  memberId?: string;
   disposisi?: IncomingLetterDisposition;
   [key: string]: any;
 }
@@ -269,6 +271,28 @@ router.put('/:id/arsipkan', requireAuth, async (req: AuthRequest, res: Response)
       archivedBy: req.user!.userId,
       updatedAt: now,
     });
+
+    // Auto-link ke Dokumen Jemaat (gap-fix Sept 2026) — hanya kalau surat ini
+    // terhubung ke satu jemaat tertentu (letter.memberId). Surat masuk tidak
+    // punya finalPdfData sendiri (beda dari Surat Keluar) — sumbernya adalah
+    // lampiran scan yang sudah diunggah (incomingLetterAttachments), jadi
+    // SEMUA lampiran surat ini disalin, bukan cuma satu.
+    if (letter.memberId) {
+      const users = await getAll<any>('users').catch(() => []);
+      const archiver = users.find((u: any) => u.id === req.user!.userId);
+      const uploadedByLabel = `${archiver?.name || archiver?.username || 'Sistem'} (otomatis dari Surat Masuk)`;
+      const allAttachments = await getAll<any>('incomingLetterAttachments').catch(() => []);
+      const ownAttachments = allAttachments.filter((a: any) => a.letterId === letter.id);
+      for (const att of ownAttachments) {
+        await copyToMemberDocuments({
+          memberId: letter.memberId,
+          fileName: att.fileName,
+          fileData: att.fileData,
+          mimeType: att.mimeType || 'application/pdf',
+          uploadedByLabel,
+        });
+      }
+    }
 
     await recordLetterAudit(req, 'Diarsipkan', 'IncomingLetter', letter.id, letterLabel(letter), `Surat "${letter.subject}" diarsipkan`);
     res.json({ success: true });
