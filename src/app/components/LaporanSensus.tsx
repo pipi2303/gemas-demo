@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
+import { SensusSnapshot } from '../types';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -9,8 +10,10 @@ import {
 } from 'recharts';
 import {
   FileText, Download, Printer, Users, Home, Church, TrendingUp,
-  Search, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, Loader2
+  Search, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, Loader2,
+  Archive, Lock, Minus, FileSpreadsheet
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { toast } from 'sonner';
@@ -24,17 +27,22 @@ const COLORS = ['#1A77A3', '#caa04a', '#2f8f5b', '#d1553f', '#8b6bb1', '#9c9486'
 function formatNumber(n: number) { return n.toLocaleString('id-ID'); }
 
 const SENSUS_TABLE_DEFAULT_WIDTHS: Record<string, number> = {
-  fullName: 180, total: 110, laki: 100, perempuan: 100, keluarga: 100, aktif: 90, baptis: 90, sidi: 90,
+  fullName: 180, total: 110, laki: 100, perempuan: 100, keluarga: 100, aktif: 90, baptis: 90, sidi: 90, tamu: 90, simpatisan: 100,
 };
 
 export function LaporanSensus() {
-  const { members, sectors, families } = useApp();
+  const { members, sectors, families, baptisms, sidis, marriages, sensusSnapshots, archiveSensusSnapshot } = useApp();
   const [activeTab, setActiveTab] = useState('sensus');
   // Laporan ini selalu menampilkan data per hari ini (bukan snapshot historis per tahun -
   // dropdown pilih tahun yang sebelumnya ada di sini cuma mengubah teks judul/nama file,
   // tidak benar-benar memfilter data, jadi berpotensi menyesatkan kalau dipakai sebagai arsip
   // resmi. Dihapus atas keputusan pemilik aplikasi.)
   const currentYear = new Date().getFullYear();
+
+  // Capaian sakramen tahun berjalan — dipakai untuk laporan sensus tahunan
+  const baptismsThisYear  = (baptisms  || []).filter(b => new Date(b.baptismDate).getFullYear()  === currentYear).length;
+  const sidisThisYear     = (sidis     || []).filter(s => new Date(s.sidiDate).getFullYear()     === currentYear).length;
+  const marriagesThisYear = (marriages || []).filter(m => new Date(m.marriageDate).getFullYear() === currentYear).length;
 
   // ---- Sensus Calculations ----
   const totalMembers = members.length;
@@ -101,6 +109,8 @@ export function LaporanSensus() {
         aktif: sm.filter(m => !m.membershipStatus || m.membershipStatus === 'Aktif').length,
         baptis: sm.filter(m => m.baptismStatus === 'Sudah').length,
         sidi: sm.filter(m => m.sidiStatus === 'Sudah').length,
+        tamu: sm.filter(m => m.membershipType === 'Warga Tamu').length,
+        simpatisan: sm.filter(m => m.membershipType === 'Simpatisan').length,
       };
     });
   }, [sectors, members, families]);
@@ -126,6 +136,70 @@ export function LaporanSensus() {
   }));
 
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
+
+  // ── Arsip Sensus Tahunan (perbandingan tahun-ke-tahun) ──────────────────────
+  const currentSnapshot  = sensusSnapshots.find(sn => sn.id === `sensus-${currentYear}`);
+  const lastYearSnapshot = sensusSnapshots.find(sn => sn.id === `sensus-${currentYear - 1}`);
+  const archivedYears = [...sensusSnapshots].sort((a, b) => b.year - a.year);
+
+  const buildCurrentSnapshot = (): SensusSnapshot => ({
+    id: `sensus-${currentYear}`,
+    year: currentYear,
+    archivedAt: new Date().toISOString(),
+    totalMembers,
+    totalFamilies,
+    totalSectors: sectors.length,
+    maleCount,
+    femaleCount,
+    statusData,
+    membershipTypeData,
+    maritalData,
+    ageGroups,
+    baptismCount: baptismData[0].value,
+    sidiCount: sidiData[0].value,
+    baptismsThisYear,
+    sidisThisYear,
+    marriagesThisYear,
+    sectorSensus,
+  });
+
+  const handleArchiveSensus = async () => {
+    if (currentSnapshot) {
+      const tgl = new Date(currentSnapshot.archivedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+      const confirmed = window.confirm(`Sensus tahun ${currentYear} sudah pernah diarsipkan pada ${tgl}. Timpa dengan data terbaru?`);
+      if (!confirmed) return;
+    }
+    setIsArchiving(true);
+    try {
+      await archiveSensusSnapshot(buildCurrentSnapshot());
+      toast.success(`Sensus jemaat tahun ${currentYear} berhasil dikunci & diarsipkan!`);
+    } catch (err) {
+      console.error('Error archiving sensus:', err);
+      toast.error('Gagal mengarsipkan sensus jemaat.');
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
+  const DeltaBadge = ({ current, previous }: { current: number; previous: number }) => {
+    const diff = current - previous;
+    const pct = previous > 0 ? ((diff / previous) * 100).toFixed(1) : (current > 0 ? '100.0' : '0.0');
+    if (diff === 0) {
+      return (
+        <span className="inline-flex items-center gap-0.5 text-xs font-semibold" style={{ color: '#94a3b8' }}>
+          <Minus className="w-3 h-3" /> Tetap
+        </span>
+      );
+    }
+    const up = diff > 0;
+    return (
+      <span className="inline-flex items-center gap-0.5 text-xs font-semibold" style={{ color: up ? '#2f8f5b' : '#d1553f' }}>
+        {up ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+        {up ? '+' : ''}{diff} ({up ? '+' : ''}{pct}%)
+      </span>
+    );
+  };
 
   const handleExportPdf = () => {
     setIsExportingPdf(true);
@@ -327,7 +401,120 @@ export function LaporanSensus() {
         margin: { left: 14, right: 14 },
       });
 
-      y = (doc as any).lastAutoTable.finalY + 12;
+      y = (doc as any).lastAutoTable.finalY + 8;
+
+      // Check for page break before section D
+      if (y > 240) {
+        doc.addPage();
+        y = 20;
+      }
+
+      // ── Section D: STATUS & TIPE KEANGGOTAAN, STATUS PERNIKAHAN ──
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(13, 26, 45);
+      doc.text('IV. STATUS & TIPE KEANGGOTAAN, STATUS PERNIKAHAN', 14, y);
+      y += 4;
+
+      autoTable(doc, {
+        startY: y,
+        head: [['Kategori', 'Rincian', 'Jumlah', 'Persentase']],
+        body: [
+          ...statusData.map(d => ['Status Keanggotaan', d.name, formatNumber(d.value), totalMembers > 0 ? `${((d.value / totalMembers) * 100).toFixed(1)}%` : '0%']),
+          ...membershipTypeData.map(d => ['Tipe Keanggotaan', d.name, formatNumber(d.value), totalMembers > 0 ? `${((d.value / totalMembers) * 100).toFixed(1)}%` : '0%']),
+          ...maritalData.map(d => ['Status Pernikahan', d.name, formatNumber(d.value), totalMembers > 0 ? `${((d.value / totalMembers) * 100).toFixed(1)}%` : '0%']),
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [13, 26, 45], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
+        bodyStyles: { fontSize: 8, textColor: [30, 41, 59] },
+        columnStyles: {
+          0: { cellWidth: 42, fontStyle: 'bold' },
+          1: { cellWidth: 60 },
+          2: { cellWidth: 30, halign: 'center' },
+          3: { cellWidth: 30, halign: 'center' },
+        },
+        margin: { left: 14, right: 14 },
+      });
+
+      y = (doc as any).lastAutoTable.finalY + 8;
+
+      if (y > 240) {
+        doc.addPage();
+        y = 20;
+      }
+
+      // ── Section E: CAPAIAN SAKRAMEN TAHUN BERJALAN ──
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(13, 26, 45);
+      doc.text(`V. CAPAIAN SAKRAMEN TAHUN BERJALAN (${currentYear})`, 14, y);
+      y += 4;
+
+      autoTable(doc, {
+        startY: y,
+        head: [['Sakramen / Peristiwa', `Jumlah Tahun ${currentYear}`]],
+        body: [
+          ['Baptis Baru', `${formatNumber(baptismsThisYear)} Jiwa`],
+          ['Sidi Baru', `${formatNumber(sidisThisYear)} Jiwa`],
+          ['Pemberkatan Nikah', `${formatNumber(marriagesThisYear)} Pasang`],
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [13, 26, 45], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
+        bodyStyles: { fontSize: 8, textColor: [30, 41, 59] },
+        columnStyles: {
+          0: { cellWidth: 90, fontStyle: 'bold' },
+          1: { cellWidth: 60, halign: 'center' },
+        },
+        margin: { left: 14, right: 14 },
+      });
+
+      y = (doc as any).lastAutoTable.finalY + 8;
+
+      if (lastYearSnapshot) {
+        if (y > 235) {
+          doc.addPage();
+          y = 20;
+        }
+
+        // ── Section F: PERBANDINGAN DENGAN SENSUS TAHUN LALU ──
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9.5);
+        doc.setTextColor(13, 26, 45);
+        doc.text(`VI. PERBANDINGAN DENGAN SENSUS TAHUN ${lastYearSnapshot.year}`, 14, y);
+        y += 4;
+
+        const cmpRows: [string, number, number][] = [
+          ['Total Jemaat', lastYearSnapshot.totalMembers, totalMembers],
+          ['Total Kepala Keluarga', lastYearSnapshot.totalFamilies, totalFamilies],
+          ['Laki-laki', lastYearSnapshot.maleCount, maleCount],
+          ['Perempuan', lastYearSnapshot.femaleCount, femaleCount],
+          ['Sudah Baptis', lastYearSnapshot.baptismCount, baptismData[0].value],
+          ['Sudah Sidi', lastYearSnapshot.sidiCount, sidiData[0].value],
+        ];
+
+        autoTable(doc, {
+          startY: y,
+          head: [['Indikator', String(lastYearSnapshot.year), `${currentYear} (hari ini)`, 'Selisih']],
+          body: cmpRows.map(([label, prev, cur]) => {
+            const diff = cur - prev;
+            return [label, formatNumber(prev), formatNumber(cur), `${diff > 0 ? '+' : ''}${formatNumber(diff)}`];
+          }),
+          theme: 'grid',
+          headStyles: { fillColor: [13, 26, 45], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
+          bodyStyles: { fontSize: 8, textColor: [30, 41, 59] },
+          columnStyles: {
+            0: { cellWidth: 60, fontStyle: 'bold' },
+            1: { cellWidth: 40, halign: 'center' },
+            2: { cellWidth: 40, halign: 'center' },
+            3: { cellWidth: 40, halign: 'center' },
+          },
+          margin: { left: 14, right: 14 },
+        });
+
+        y = (doc as any).lastAutoTable.finalY + 12;
+      } else {
+        y += 4;
+      }
 
       // Check space for signature
       if (y > 235) {
@@ -380,6 +567,88 @@ export function LaporanSensus() {
     }
   };
 
+  const handleExportExcel = () => {
+    try {
+      const wb = XLSX.utils.book_new();
+
+      // Sheet 1: Ringkasan
+      const ringkasan: any[][] = [
+        [`LAPORAN SENSUS & DEMOGRAFI JEMAAT TAHUN ${currentYear}`],
+        [`Dicetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`],
+        [],
+        ['Kategori Indikator', 'Jumlah'],
+        ['Total Warga Jemaat', totalMembers],
+        ['Jumlah Kepala Keluarga (KK)', totalFamilies],
+        ['Laki-laki', maleCount],
+        ['Perempuan', femaleCount],
+        ['Jumlah Sektor', sectors.length],
+        [],
+        ['Status Keanggotaan', ''],
+        ...statusData.map(d => [d.name, d.value]),
+        [],
+        ['Tipe Keanggotaan', ''],
+        ...membershipTypeData.map(d => [d.name, d.value]),
+        [],
+        ['Status Pernikahan', ''],
+        ...maritalData.map(d => [d.name, d.value]),
+        [],
+        ['Sakramen', ''],
+        ['Sudah Baptis (kumulatif)', baptismData[0].value],
+        ['Sudah Sidi (kumulatif)', sidiData[0].value],
+        [`Baptis Baru Tahun ${currentYear}`, baptismsThisYear],
+        [`Sidi Baru Tahun ${currentYear}`, sidisThisYear],
+        [`Pernikahan Tahun ${currentYear}`, marriagesThisYear],
+      ];
+      const wsRingkasan = XLSX.utils.aoa_to_sheet(ringkasan);
+      wsRingkasan['!cols'] = [{ wch: 32 }, { wch: 14 }];
+      XLSX.utils.book_append_sheet(wb, wsRingkasan, 'Ringkasan');
+
+      // Sheet 2: Distribusi Usia
+      const usia: any[][] = [
+        ['Kelompok Usia', 'Jumlah', 'Persentase'],
+        ...ageGroups.map(ag => [ag.name, ag.value, totalMembers > 0 ? `${((ag.value / totalMembers) * 100).toFixed(1)}%` : '0%']),
+      ];
+      const wsUsia = XLSX.utils.aoa_to_sheet(usia);
+      wsUsia['!cols'] = [{ wch: 20 }, { wch: 10 }, { wch: 12 }];
+      XLSX.utils.book_append_sheet(wb, wsUsia, 'Distribusi Usia');
+
+      // Sheet 3: Per Sektor
+      const perSektor: any[][] = [
+        ['No', 'Sektor', 'Total', 'Laki-laki', 'Perempuan', 'Jml KK', 'Aktif', 'Baptis', 'Sidi', 'Tamu', 'Simpatisan'],
+        ...sectorSensus.map((s, i) => [i + 1, s.fullName, s.total, s.laki, s.perempuan, s.keluarga, s.aktif, s.baptis, s.sidi, s.tamu, s.simpatisan]),
+        ['—', 'TOTAL', totalMembers, maleCount, femaleCount, totalFamilies, statusData[0].value, baptismData[0].value, sidiData[0].value, membershipTypeData[1].value, membershipTypeData[2].value],
+      ];
+      const wsSektor = XLSX.utils.aoa_to_sheet(perSektor);
+      wsSektor['!cols'] = [{ wch: 5 }, { wch: 22 }, { wch: 9 }, { wch: 10 }, { wch: 10 }, { wch: 9 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 11 }];
+      XLSX.utils.book_append_sheet(wb, wsSektor, 'Per Sektor');
+
+      // Sheet 4: Perbandingan Tahunan (jika ada arsip tahun lalu)
+      if (lastYearSnapshot) {
+        const banding: any[][] = [
+          ['Indikator', String(lastYearSnapshot.year), `${currentYear} (hari ini)`, 'Selisih'],
+          ['Total Jemaat', lastYearSnapshot.totalMembers, totalMembers, totalMembers - lastYearSnapshot.totalMembers],
+          ['Total Kepala Keluarga', lastYearSnapshot.totalFamilies, totalFamilies, totalFamilies - lastYearSnapshot.totalFamilies],
+          ['Laki-laki', lastYearSnapshot.maleCount, maleCount, maleCount - lastYearSnapshot.maleCount],
+          ['Perempuan', lastYearSnapshot.femaleCount, femaleCount, femaleCount - lastYearSnapshot.femaleCount],
+          ['Sudah Baptis', lastYearSnapshot.baptismCount, baptismData[0].value, baptismData[0].value - lastYearSnapshot.baptismCount],
+          ['Sudah Sidi', lastYearSnapshot.sidiCount, sidiData[0].value, sidiData[0].value - lastYearSnapshot.sidiCount],
+        ];
+        const wsBanding = XLSX.utils.aoa_to_sheet(banding);
+        wsBanding['!cols'] = [{ wch: 24 }, { wch: 14 }, { wch: 16 }, { wch: 10 }];
+        XLSX.utils.book_append_sheet(wb, wsBanding, 'Perbandingan Tahunan');
+      }
+
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const filename = `Sensus-Jemaat-${currentYear}-${pad(now.getDate())}${pad(now.getMonth() + 1)}${now.getFullYear()}.xlsx`;
+      XLSX.writeFile(wb, filename);
+      toast.success('Laporan sensus berhasil diekspor ke Excel!');
+    } catch (err) {
+      console.error('Error exporting Sensus Excel:', err);
+      toast.error('Gagal mengekspor laporan sensus ke Excel.');
+    }
+  };
+
   const handlePrintSensus = () => {
     const printWin = window.open('', '_blank', 'width=900,height=700');
     if (!printWin) return;
@@ -421,6 +690,33 @@ export function LaporanSensus() {
           ${ageGroups.map(ag => `<tr><td>${ag.name}</td><td>${ag.value}</td><td>${totalMembers > 0 ? ((ag.value/totalMembers)*100).toFixed(1) : 0}%</td></tr>`).join('')}
         </table></div>
 
+        <div class="section"><h3>D. STATUS & TIPE KEANGGOTAAN, STATUS PERNIKAHAN</h3>
+        <table>
+          <tr><th>Kategori</th><th>Rincian</th><th>Jumlah</th></tr>
+          ${statusData.map(d => `<tr><td>Status Keanggotaan</td><td>${d.name}</td><td>${d.value}</td></tr>`).join('')}
+          ${membershipTypeData.map(d => `<tr><td>Tipe Keanggotaan</td><td>${d.name}</td><td>${d.value}</td></tr>`).join('')}
+          ${maritalData.map(d => `<tr><td>Status Pernikahan</td><td>${d.name}</td><td>${d.value}</td></tr>`).join('')}
+        </table></div>
+
+        <div class="section"><h3>E. CAPAIAN SAKRAMEN TAHUN BERJALAN (${currentYear})</h3>
+        <table>
+          <tr><th>Sakramen / Peristiwa</th><th>Jumlah Tahun ${currentYear}</th></tr>
+          <tr><td>Baptis Baru</td><td>${baptismsThisYear} Jiwa</td></tr>
+          <tr><td>Sidi Baru</td><td>${sidisThisYear} Jiwa</td></tr>
+          <tr><td>Pemberkatan Nikah</td><td>${marriagesThisYear} Pasang</td></tr>
+        </table></div>
+
+        ${lastYearSnapshot ? `
+        <div class="section"><h3>F. PERBANDINGAN DENGAN SENSUS TAHUN ${lastYearSnapshot.year}</h3>
+        <table>
+          <tr><th>Indikator</th><th>${lastYearSnapshot.year}</th><th>${currentYear} (hari ini)</th><th>Selisih</th></tr>
+          <tr><td>Total Jemaat</td><td>${lastYearSnapshot.totalMembers}</td><td>${totalMembers}</td><td>${totalMembers - lastYearSnapshot.totalMembers > 0 ? '+' : ''}${totalMembers - lastYearSnapshot.totalMembers}</td></tr>
+          <tr><td>Total Kepala Keluarga</td><td>${lastYearSnapshot.totalFamilies}</td><td>${totalFamilies}</td><td>${totalFamilies - lastYearSnapshot.totalFamilies > 0 ? '+' : ''}${totalFamilies - lastYearSnapshot.totalFamilies}</td></tr>
+          <tr><td>Sudah Baptis</td><td>${lastYearSnapshot.baptismCount}</td><td>${baptismData[0].value}</td><td>${baptismData[0].value - lastYearSnapshot.baptismCount > 0 ? '+' : ''}${baptismData[0].value - lastYearSnapshot.baptismCount}</td></tr>
+          <tr><td>Sudah Sidi</td><td>${lastYearSnapshot.sidiCount}</td><td>${sidiData[0].value}</td><td>${sidiData[0].value - lastYearSnapshot.sidiCount > 0 ? '+' : ''}${sidiData[0].value - lastYearSnapshot.sidiCount}</td></tr>
+        </table></div>
+        ` : ''}
+
         <p>Dicetak: ${new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' })}</p>
       </body></html>
     `);
@@ -460,35 +756,66 @@ export function LaporanSensus() {
             <Printer className="w-4 h-4 text-gray-600" />
             <span>Cetak Sensus</span>
           </Button>
+
+          <Button variant="outline" className="gap-2 border-gray-300" onClick={handleExportExcel}>
+            <FileSpreadsheet className="w-4 h-4 text-gray-600" />
+            <span>Ekspor Excel</span>
+          </Button>
         </div>
       </div>
 
       {/* Summary */}
       <div className="grid grid-cols-5 gap-3">
         {[
-          { label: 'Total Jemaat', value: formatNumber(totalMembers), icon: Users, color: 'emerald' },
-          { label: 'Total KK', value: formatNumber(totalFamilies), icon: Home, color: 'blue' },
-          { label: 'Laki-laki', value: formatNumber(maleCount), icon: Users, color: 'indigo' },
-          { label: 'Perempuan', value: formatNumber(femaleCount), icon: Users, color: 'pink' },
-          { label: 'Jumlah Sektor', value: sectors.length, icon: Church, color: 'purple' },
+          { label: 'Total Jemaat', value: formatNumber(totalMembers), icon: Users, color: '#1A77A3', bg: '#f0f7fb' },
+          { label: 'Total KK', value: formatNumber(totalFamilies), icon: Home, color: '#144f6b', bg: '#e8ecf0' },
+          { label: 'Laki-laki', value: formatNumber(maleCount), icon: Users, color: '#8b6bb1', bg: '#f5f3ff' },
+          { label: 'Perempuan', value: formatNumber(femaleCount), icon: Users, color: '#d1553f', bg: '#fdf2f0' },
+          { label: 'Jumlah Sektor', value: sectors.length, icon: Church, color: '#2f8f5b', bg: '#f0f9f4' },
         ].map((stat, i) => {
           const Icon = stat.icon;
           return (
-            <Card key={i} className={`p-4 bg-${stat.color}-50`}>
+            <Card key={i} className="p-4" style={{ background: stat.bg }}>
               <div className="flex items-center gap-2 mb-1">
-                <Icon className={`w-4 h-4 text-${stat.color}-600`} />
+                <Icon className="w-4 h-4" style={{ color: stat.color }} />
                 <p className="text-xs text-gray-600">{stat.label}</p>
               </div>
-              <p className={`text-2xl font-bold text-${stat.color}-700`}>{stat.value}</p>
+              <p className="text-2xl font-bold" style={{ color: stat.color }}>{stat.value}</p>
             </Card>
           );
         })}
       </div>
 
+      {/* Capaian Sakramen Tahun Ini */}
+      <div className="grid grid-cols-3 gap-3">
+        <Card className="p-4" style={{ background: '#f0f7fb' }}>
+          <div className="flex items-center gap-2 mb-1">
+            <Users className="w-4 h-4" style={{ color: '#1A77A3' }} />
+            <p className="text-xs text-gray-600">Baptis Baru Tahun {currentYear}</p>
+          </div>
+          <p className="text-2xl font-bold" style={{ color: '#1A77A3' }}>{formatNumber(baptismsThisYear)}</p>
+        </Card>
+        <Card className="p-4" style={{ background: '#e8ecf0' }}>
+          <div className="flex items-center gap-2 mb-1">
+            <Users className="w-4 h-4" style={{ color: '#144f6b' }} />
+            <p className="text-xs text-gray-600">Sidi Baru Tahun {currentYear}</p>
+          </div>
+          <p className="text-2xl font-bold" style={{ color: '#144f6b' }}>{formatNumber(sidisThisYear)}</p>
+        </Card>
+        <Card className="p-4" style={{ background: '#f5f3ff' }}>
+          <div className="flex items-center gap-2 mb-1">
+            <Users className="w-4 h-4" style={{ color: '#8b6bb1' }} />
+            <p className="text-xs text-gray-600">Pernikahan Tahun {currentYear}</p>
+          </div>
+          <p className="text-2xl font-bold" style={{ color: '#8b6bb1' }}>{formatNumber(marriagesThisYear)}</p>
+        </Card>
+      </div>
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full max-w-sm grid-cols-2">
+        <TabsList className="grid w-full max-w-md grid-cols-3">
           <TabsTrigger value="sensus">Sensus Tahunan</TabsTrigger>
           <TabsTrigger value="comparison">Perbandingan Sektor</TabsTrigger>
+          <TabsTrigger value="arsip">Arsip Tahunan</TabsTrigger>
         </TabsList>
 
         {/* Sensus */}
@@ -558,6 +885,8 @@ export function LaporanSensus() {
                       ['aktif', 'Aktif', 'text-center'],
                       ['baptis', 'Baptis', 'text-center'],
                       ['sidi', 'Sidi', 'text-center'],
+                      ['tamu', 'Tamu', 'text-center'],
+                      ['simpatisan', 'Simpatisan', 'text-center'],
                     ] as [keyof SensusRow, string, string][]).map(([col, label, align]) => (
                       <th key={col} className={`px-3 py-2 ${align} cursor-pointer select-none hover:bg-[#1a5f80] transition-colors`}
                         style={{fontSize:'11.5px',fontWeight:600,color:'#FFEFB2',width:sensusColW[col],position:'relative'}}
@@ -579,6 +908,8 @@ export function LaporanSensus() {
                       <td className="px-3 py-2 text-center">{s.aktif}</td>
                       <td className="px-3 py-2 text-center">{s.baptis}</td>
                       <td className="px-3 py-2 text-center">{s.sidi}</td>
+                      <td className="px-3 py-2 text-center">{s.tamu}</td>
+                      <td className="px-3 py-2 text-center">{s.simpatisan}</td>
                     </tr>
                   ))}
                   <tr className="bg-[#f0f7fb] font-bold">
@@ -590,6 +921,8 @@ export function LaporanSensus() {
                     <td className="px-3 py-2 text-center">{statusData[0].value}</td>
                     <td className="px-3 py-2 text-center">{baptismData[0].value}</td>
                     <td className="px-3 py-2 text-center">{sidiData[0].value}</td>
+                    <td className="px-3 py-2 text-center">{membershipTypeData[1].value}</td>
+                    <td className="px-3 py-2 text-center">{membershipTypeData[2].value}</td>
                   </tr>
                 </tbody>
               </table>
@@ -648,6 +981,91 @@ export function LaporanSensus() {
               </Card>
             ))}
           </div>
+        </TabsContent>
+
+        {/* Arsip Sensus Tahunan */}
+        <TabsContent value="arsip" className="space-y-4">
+          <Card className="p-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-1">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#e8ecf0' }}>
+                  <Archive className="w-4 h-4" style={{ color: '#144f6b' }} />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Arsip Sensus Tahun {currentYear}</h3>
+                  <p className="text-xs text-gray-500">
+                    {currentSnapshot
+                      ? `Terakhir dikunci: ${new Date(currentSnapshot.archivedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                      : 'Belum diarsipkan tahun ini.'}
+                  </p>
+                </div>
+              </div>
+              <Button onClick={handleArchiveSensus} disabled={isArchiving} className="gap-2 text-white font-semibold" style={{ background: '#144f6b' }}>
+                {isArchiving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+                {currentSnapshot ? 'Kunci Ulang Sensus Tahun Ini' : 'Kunci & Arsipkan Sensus Tahun Ini'}
+              </Button>
+            </div>
+            <p className="text-xs text-gray-400">
+              Mengunci sensus akan menyimpan snapshot angka hari ini sebagai catatan resmi tahun {currentYear}, sehingga tahun depan bisa dibandingkan pertumbuhan/penurunannya secara nyata.
+            </p>
+          </Card>
+
+          {!lastYearSnapshot ? (
+            <Card className="p-8 text-center">
+              <Archive className="w-8 h-8 mx-auto mb-2 text-gray-200" />
+              <p className="text-sm text-gray-500">Belum ada arsip sensus tahun {currentYear - 1} untuk dibandingkan.</p>
+              <p className="text-xs text-gray-400 mt-1">Kunci & arsipkan sensus tahun ini, lalu bandingkan lagi di tahun {currentYear + 1}.</p>
+            </Card>
+          ) : (
+            <Card className="p-5">
+              <h3 className="font-semibold text-gray-900 mb-4">Perbandingan vs Sensus {lastYearSnapshot.year}</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-[#144f6b] text-white">
+                      <th className="px-3 py-2 text-left" style={{ fontSize: '11.5px', fontWeight: 600 }}>Indikator</th>
+                      <th className="px-3 py-2 text-center" style={{ fontSize: '11.5px', fontWeight: 600 }}>{lastYearSnapshot.year}</th>
+                      <th className="px-3 py-2 text-center" style={{ fontSize: '11.5px', fontWeight: 600 }}>{currentYear} (hari ini)</th>
+                      <th className="px-3 py-2 text-center" style={{ fontSize: '11.5px', fontWeight: 600 }}>Perubahan</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { label: 'Total Jemaat', prev: lastYearSnapshot.totalMembers, cur: totalMembers },
+                      { label: 'Total Kepala Keluarga', prev: lastYearSnapshot.totalFamilies, cur: totalFamilies },
+                      { label: 'Laki-laki', prev: lastYearSnapshot.maleCount, cur: maleCount },
+                      { label: 'Perempuan', prev: lastYearSnapshot.femaleCount, cur: femaleCount },
+                      { label: 'Sudah Baptis', prev: lastYearSnapshot.baptismCount, cur: baptismData[0].value },
+                      { label: 'Sudah Sidi', prev: lastYearSnapshot.sidiCount, cur: sidiData[0].value },
+                      { label: 'Baptis Baru (tahun berjalan)', prev: lastYearSnapshot.baptismsThisYear, cur: baptismsThisYear },
+                      { label: 'Sidi Baru (tahun berjalan)', prev: lastYearSnapshot.sidisThisYear, cur: sidisThisYear },
+                      { label: 'Pernikahan (tahun berjalan)', prev: lastYearSnapshot.marriagesThisYear, cur: marriagesThisYear },
+                    ].map((row, i) => (
+                      <tr key={row.label} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        <td className="px-3 py-2 font-medium">{row.label}</td>
+                        <td className="px-3 py-2 text-center text-gray-500">{formatNumber(row.prev)}</td>
+                        <td className="px-3 py-2 text-center font-semibold">{formatNumber(row.cur)}</td>
+                        <td className="px-3 py-2 text-center"><DeltaBadge current={row.cur} previous={row.prev} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+
+          {archivedYears.length > 0 && (
+            <Card className="p-4">
+              <p className="text-xs font-semibold text-gray-500 mb-2">Riwayat arsip tersimpan</p>
+              <div className="flex flex-wrap gap-2">
+                {archivedYears.map(sn => (
+                  <span key={sn.id} className="px-2.5 py-1 rounded-full text-xs font-medium" style={{ background: '#e8ecf0', color: '#144f6b' }}>
+                    Sensus {sn.year} · {formatNumber(sn.totalMembers)} jiwa
+                  </span>
+                ))}
+              </div>
+            </Card>
+          )}
         </TabsContent>
 
       </Tabs>

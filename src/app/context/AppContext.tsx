@@ -10,6 +10,7 @@ import {
   WorshipSchedule, Warta, Liturgy, Offering, BuildingProject,
   ServiceRequest, AidDistribution, Resource, RoomBooking, Attestation,
   Baptism, Sidi, Marriage, MasterDataItem, MasterDataCategory, UserRole,
+  SensusSnapshot,
   PettyCash, PcTopUp,
   ChurchAsset, MaintenanceRecord, LoanHistoryRecord,
   BankAccount, Budget,
@@ -98,6 +99,10 @@ interface AppContextType {
   baptisms: Baptism[];
   sidis: Sidi[];
   marriages: Marriage[];
+
+  // Arsip Sensus Jemaat (snapshot tahunan)
+  sensusSnapshots: SensusSnapshot[];
+  archiveSensusSnapshot: (snapshot: SensusSnapshot) => Promise<void>;
 
   // Master Data
   masterDataItems: MasterDataItem[];
@@ -333,6 +338,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [baptisms, setBaptisms] = useState<Baptism[]>([]);
   const [sidis, setSidis] = useState<Sidi[]>([]);
   const [marriages, setMarriages] = useState<Marriage[]>([]);
+  const [sensusSnapshots, setSensusSnapshots] = useState<SensusSnapshot[]>([]);
   const [masterDataItems, setMasterDataItems] = useState<MasterDataItem[]>([]);
   const [permMatrix, setPermMatrix] = useState<ModulePermission[]>(DEFAULT_PERMISSIONS);
   const [pettyCash, setPettyCash] = useState<PettyCash[]>([]);
@@ -875,6 +881,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     {
       const loaded = sectorTransfersLoaded;
       setSectorTransfers(loaded);
+    }
+
+    // Arsip Sensus Jemaat: koleksi independen, tidak perlu logic seeding
+    try {
+      const snaps = await api.get<SensusSnapshot[]>('/api/data/sensusSnapshots');
+      setSensusSnapshots(snaps);
+    } catch {
+      setSensusSnapshots([]);
     }
 
     return { loadedMembers, loadedEvents, loadedWorshipSchedules, loadedMarriages };
@@ -1908,6 +1922,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
         entityId: id,
         entityName: `${marriage.groomName} & ${marriage.brideName}`,
         details: 'Perkawinan dihapus dari sistem'
+      });
+    }
+  };
+
+  // ── Arsip Sensus Jemaat (snapshot tahunan) ───────────────────────────────────
+  const archiveSensusSnapshot = async (snapshot: SensusSnapshot) => {
+    await api.put(`/api/data/sensusSnapshots/${snapshot.id}`, snapshot);
+    setSensusSnapshots(prev => [...prev.filter(s => s.id !== snapshot.id), snapshot]);
+    if (currentUser) {
+      logActivity({
+        userId: currentUser.id,
+        userName: currentUser.name,
+        action: 'Mengarsipkan',
+        entityType: 'SensusSnapshot',
+        entityId: snapshot.id,
+        entityName: `Sensus Jemaat ${snapshot.year}`,
+        details: `Sensus jemaat tahun ${snapshot.year} dikunci & diarsipkan (${snapshot.totalMembers} jiwa, ${snapshot.totalFamilies} KK)`
       });
     }
   };
@@ -2997,6 +3028,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addMarriage,
       updateMarriage,
       deleteMarriage,
+
+      // NEW: Arsip Sensus Jemaat
+      sensusSnapshots,
+      archiveSensusSnapshot,
 
       // ServiceRequest CRUD
       addServiceRequest,

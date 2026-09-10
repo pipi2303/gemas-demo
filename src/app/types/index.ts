@@ -668,6 +668,50 @@ export interface Marriage {
 }
 
 // ========================================
+// Arsip Sensus Jemaat (snapshot tahunan, untuk perbandingan tahun-ke-tahun)
+// ========================================
+export interface SensusSnapshotSectorRow {
+  name: string;
+  fullName: string;
+  total: number;
+  laki: number;
+  perempuan: number;
+  keluarga: number;
+  aktif: number;
+  baptis: number;
+  sidi: number;
+  tamu: number;
+  simpatisan: number;
+}
+
+export interface SensusSnapshot {
+  id: string; // format: `sensus-${year}` — satu arsip per tahun
+  year: number;
+  archivedAt: string; // ISO timestamp saat diarsipkan
+  archivedBy?: string; // nama/username yang mengarsipkan
+
+  totalMembers: number;
+  totalFamilies: number;
+  totalSectors: number;
+  maleCount: number;
+  femaleCount: number;
+
+  statusData: { name: string; value: number }[]; // Aktif/Tidak Aktif/Pindah/Meninggal
+  membershipTypeData: { name: string; value: number }[]; // Warga Jemaat/Tamu/Simpatisan
+  maritalData: { name: string; value: number }[];
+  ageGroups: { name: string; value: number }[];
+
+  baptismCount: number; // total sudah baptis (kumulatif s.d. tanggal arsip)
+  sidiCount: number; // total sudah sidi (kumulatif s.d. tanggal arsip)
+
+  baptismsThisYear: number;
+  sidisThisYear: number;
+  marriagesThisYear: number;
+
+  sectorSensus: SensusSnapshotSectorRow[];
+}
+
+// ========================================
 // Petty Cash
 // ========================================
 export type PettyCashStatus = 'Lunas' | 'Pending';

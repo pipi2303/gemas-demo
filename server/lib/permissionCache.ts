@@ -104,6 +104,7 @@ export const COLLECTION_PAGE: Record<string, string[]> = {
   sacramentDocuments:    ['sacraments'],
   attestations:          ['attestations'],
   attestationDocuments:  ['attestations'],
+  sensusSnapshots:       ['sensus-report'],
   liturgy:               ['liturgy'],
   events:                ['events'],
   worshipSchedules:      ['worship-schedules'],
