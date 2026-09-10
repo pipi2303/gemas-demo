@@ -319,11 +319,11 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
             onClick={() => onNavigate('dashboard')}
             className="flex items-center gap-3 cursor-pointer group"
           >
-            <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center p-0.5 shadow-sm border border-white/20 flex-shrink-0 group-hover:scale-105 transition-transform">
+            <div className="w-9 h-9 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
               <img
-                src="/logo-gemas.png"
+                src="/logo-gemas-outline.png"
                 alt="Logo GEMAS"
-                className="w-full h-full object-contain rounded-full"
+                className="w-full h-full object-contain drop-shadow-[0_1px_3px_rgba(0,0,0,0.35)]"
               />
             </div>
 

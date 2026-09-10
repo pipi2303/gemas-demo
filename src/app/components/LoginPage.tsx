@@ -118,11 +118,11 @@ export function LoginPage() {
               <div className="relative flex-shrink-0">
                 <div className="pulse-ring" />
                 <div className="pulse-ring-2" />
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white p-1.5 relative z-10 shadow-2xl">
+                <div className="w-12 h-12 flex items-center justify-center relative z-10">
                   <img
-                    src="/logo-gemas.png"
+                    src="/logo-gemas-outline.png"
                     alt="Logo GEMAS"
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)]"
                   />
                 </div>
               </div>
