@@ -436,7 +436,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
           </div>
 
           {/* Navigation Menu List */}
-          <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2.5 space-y-1.5 pb-6">
+          <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2.5 space-y-0.5 pb-6">
             {/* Dashboard Single Item */}
             <button
               onClick={() => onNavigate('dashboard')}
@@ -447,7 +447,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
                 }
               }}
               onMouseLeave={() => sidebarCollapsed && setTooltip(null)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 text-left ${
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 text-left ${
                 currentPage === 'dashboard'
                   ? 'text-white font-bold shadow-sm'
                   : 'text-white/70 hover:text-white hover:bg-white/5 font-medium'
@@ -484,12 +484,12 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
               const SectionIcon = section.icon;
 
               return (
-                <div key={section.id} className="pt-1">
+                <div key={section.id} className="pt-0.5">
                   {/* Category Header */}
                   {!sidebarCollapsed ? (
                     <button
                       onClick={() => toggleSection(section.id)}
-                      className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left text-white/50 hover:text-white/80 hover:bg-white/5 transition-all"
+                      className="w-full flex items-center justify-between px-2.5 py-1 rounded-lg text-left text-white/50 hover:text-white/80 hover:bg-white/5 transition-all"
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <SectionIcon className="w-3.5 h-3.5 text-amber-300/70 flex-shrink-0" />
@@ -509,7 +509,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
 
                   {/* Category Items */}
                   {(sidebarCollapsed || isExpanded) && (
-                    <div className={sidebarCollapsed ? 'space-y-1' : 'space-y-0.5 mt-0.5'}>
+                    <div className={sidebarCollapsed ? 'space-y-1' : 'space-y-0.5 mt-0'}>
                       {visibleItems.map(item => {
                         const active = currentPage === item.page;
                         const ItemIcon = item.icon;
@@ -533,7 +533,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
                             onMouseLeave={() => setTooltip(null)}
                             title={item.label}
                             aria-label={item.label}
-                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-all duration-150 ${
+                            className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-left transition-all duration-150 ${
                               active
                                 ? 'text-white font-bold shadow-xs'
                                 : 'text-white/70 hover:text-white hover:bg-white/5'
