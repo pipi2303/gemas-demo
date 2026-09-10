@@ -7,7 +7,7 @@ import {
   HandHeart, Plus, X, Calendar, DollarSign, User,
   Phone, MapPin, FileText, Pencil, Trash2, Eye,
   CheckCircle, XCircle, Clock, AlertCircle, Gift,
-  ArrowUp, ArrowDown, ArrowUpDown, Upload, Loader2
+  ArrowUp, ArrowDown, ArrowUpDown, Upload, Loader2, Mail
 } from 'lucide-react';
 import { useSortable } from '../../hooks/useSortable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
@@ -56,8 +56,8 @@ interface AidDocument {
   uploadedBy: string;
 }
 
-export function AidDistributionComponent() {
-  const { aidDistributions, members, getMasterDataByCategory, addAidDistribution, updateAidDistribution, deleteAidDistribution, can: canFn, currentUser } = useApp();
+export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: string) => void } = {}) {
+  const { aidDistributions, members, getMasterDataByCategory, addAidDistribution, updateAidDistribution, deleteAidDistribution, can: canFn, currentUser, setPendingLetterDraft } = useApp();
   const canEditDocs = canFn('Pelayanan Kasih & Komunikasi', 'edit');
   const canDeleteDocs = canFn('Pelayanan Kasih & Komunikasi', 'delete');
   const statusBantuanList = getMasterDataByCategory('status_distribusi_bantuan').map((m: any) => m.value);
@@ -203,6 +203,20 @@ export function AidDistributionComponent() {
     if (!window.confirm(`Hapus pengajuan bantuan:\n\n${aid.type} - ${aid.recipientName}\n\nData tidak dapat dikembalikan.`)) return;
     deleteAidDistribution(aid.id);
     setIsDetailDialogOpen(false);
+  };
+
+  // Integrasi Surat-Menyurat (audit gap fix): begitu bantuan DISALURKAN, staf
+  // bisa langsung membuat draf Surat Tanda Terima Bantuan.
+  const handleBuatSurat = (aid: AidDistribution) => {
+    setPendingLetterDraft({
+      relatedModule: 'AidDistribution',
+      relatedId: aid.id,
+      memberId: aid.memberId,
+      recipientName: aid.recipientName,
+      subject: `Tanda Terima Bantuan ${aid.type} — ${aid.recipientName}`,
+      body: `Dengan ini menerangkan bahwa bantuan ${aid.type}${aid.amount ? ` sebesar Rp ${aid.amount.toLocaleString('id-ID')}` : ''} telah disalurkan kepada Saudara/i ${aid.recipientName}${aid.distributedDate ? ` pada tanggal ${new Date(aid.distributedDate).toLocaleDateString('id-ID')}` : ''}. Keperluan: ${aid.reason}.`,
+    });
+    onNavigate?.('letters-outgoing');
   };
 
   const handleStatusChange = (aid: AidDistribution, newStatus: AidStatus) => {
@@ -911,6 +925,22 @@ export function AidDistributionComponent() {
                       </Button>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* Integrasi Surat-Menyurat: hanya muncul setelah bantuan benar-benar
+                  disalurkan, konsisten dengan filosofi "trigger saat selesai" yang
+                  sudah dipakai di seluruh modul Surat-Menyurat. */}
+              {selectedAid && normStatusBantuan(selectedAid.status) === 'Disalurkan' && canFn('letters-outgoing', 'create') && (
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <Button
+                    onClick={() => handleBuatSurat(selectedAid)}
+                    size="sm"
+                    variant="outline"
+                  >
+                    <Mail className="w-3.5 h-3.5 mr-1.5" />
+                    Buat Surat
+                  </Button>
                 </div>
               )}
             </div>

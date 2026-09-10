@@ -182,14 +182,14 @@ function AppContent() {
       case 'assets':
         return <AssetManagement />;
       case 'room-booking':
-        return <RoomBookingComponent />;
+        return <RoomBookingComponent onNavigate={navigate} />;
       case 'resource-library':
         return <ResourceLibrary />;
       // Modul 5: Pelayanan & Komunikasi
       case 'service-requests':
-        return <ServiceRequestsComponent />;
+        return <ServiceRequestsComponent onNavigate={navigate} />;
       case 'aid-distribution':
-        return <AidDistributionComponent />;
+        return <AidDistributionComponent onNavigate={navigate} />;
       case 'prayers':
         return <PrayerRequests />;
       case 'announcements':

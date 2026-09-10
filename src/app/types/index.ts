@@ -521,6 +521,7 @@ export interface RoomBooking {
   roomName: string;
   roomType: RoomType;
   bookedBy: string;
+  memberId?: string; // opsional: peminjam yang juga anggota jemaat terdaftar
   organization?: string; // unit kategorial
   phone: string;
   email?: string;
@@ -1082,7 +1083,7 @@ export interface IncomingLetterAttachment {
  *  setPendingLetterDraft(null) supaya tidak "nyangkut" kalau staf pindah ke
  *  halaman Surat Keluar lewat jalur lain sesudahnya. */
 export interface PendingLetterDraft {
-  relatedModule: 'Sakramen' | 'Atestasi';
+  relatedModule: 'Sakramen' | 'Atestasi' | 'RoomBooking' | 'ServiceRequest' | 'AidDistribution';
   relatedId: string;
   memberId?: string;
   recipientName?: string;

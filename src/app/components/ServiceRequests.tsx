@@ -13,8 +13,8 @@ import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { SearchDropdown } from './ui/SearchDropdown';
 
-export function ServiceRequestsComponent() {
-  const { serviceRequests, members, getMasterDataByCategory, addServiceRequest, updateServiceRequest, deleteServiceRequest, aidDistributions, addAidDistribution, currentUser } = useApp();
+export function ServiceRequestsComponent({ onNavigate }: { onNavigate?: (page: string) => void } = {}) {
+  const { serviceRequests, members, getMasterDataByCategory, addServiceRequest, updateServiceRequest, deleteServiceRequest, aidDistributions, addAidDistribution, currentUser, can, setPendingLetterDraft } = useApp();
   const serviceTypeList = getMasterDataByCategory('jenis_pelayanan').map(m => m.value) as ServiceRequestType[];
   const SERVICE_TYPE_LIST: ServiceRequestType[] = serviceTypeList.length ? serviceTypeList : ['Kunjungan','Doa Khusus','Pelayanan Duka','Konseling','Lainnya'];
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -141,6 +141,20 @@ export function ServiceRequestsComponent() {
   const handleStatusChange = (request: ServiceRequest, newStatus: ServiceStatus) => {
     updateServiceRequest(request.id, { status: newStatus });
     setSelectedRequest(prev => prev ? { ...prev, status: newStatus } : prev);
+  };
+
+  // Integrasi Surat-Menyurat (audit gap fix): begitu permohonan diakonia SELESAI,
+  // staf bisa langsung membuat draf Surat Keterangan Pelayanan Diakonia.
+  const handleBuatSurat = (request: ServiceRequest) => {
+    setPendingLetterDraft({
+      relatedModule: 'ServiceRequest',
+      relatedId: request.id,
+      memberId: request.memberId,
+      recipientName: request.requestedBy,
+      subject: `Surat Keterangan Pelayanan Diakonia — ${request.requestedBy}`,
+      body: `Dengan ini menerangkan bahwa Saudara/i ${request.requestedBy} telah menerima pelayanan diakonia berupa ${request.type} sehubungan dengan: ${request.description}.`,
+    });
+    onNavigate?.('letters-outgoing');
   };
 
   const getStatusColor = (status: string) => {
@@ -315,6 +329,14 @@ export function ServiceRequestsComponent() {
                       className="flex-1 px-3 py-2 border border-[#1A77A3] text-[#1A77A3] rounded-lg hover:bg-[#f0f7fb] transition-colors text-sm"
                     >
                       Buat Distribusi Bantuan
+                    </button>
+                  )}
+                  {can('letters-outgoing', 'create') && (
+                    <button
+                      onClick={() => handleBuatSurat(request)}
+                      className="flex-1 px-3 py-2 border border-[#1A77A3] text-[#1A77A3] rounded-lg hover:bg-[#f0f7fb] transition-colors text-sm"
+                    >
+                      Buat Surat
                     </button>
                   )}
                 </>

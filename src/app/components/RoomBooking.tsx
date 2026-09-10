@@ -5,7 +5,7 @@ import { RoomBooking, RoomBookingStatus } from '../types';
 import { 
   Calendar, Clock, Users, CheckCircle, XCircle, Plus, X,
   MapPin, Phone, User, FileText, Pencil, Trash2, Eye,
-  Building, DoorOpen, Info
+  Building, DoorOpen, Info, Mail
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
@@ -14,8 +14,8 @@ import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { SearchDropdown } from './ui/SearchDropdown';
 
-export function RoomBookingComponent() {
-  const { roomBookings, members, rooms, addRoomBooking, updateRoomBooking, deleteRoomBooking, getMasterDataByCategory } = useApp();
+export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: string) => void } = {}) {
+  const { roomBookings, members, rooms, addRoomBooking, updateRoomBooking, deleteRoomBooking, getMasterDataByCategory, can, setPendingLetterDraft } = useApp();
   const statusRuanganList = getMasterDataByCategory('status_peminjaman_ruangan').map((m: any) => m.value);
   const STATUS_OPTS = statusRuanganList.length ? statusRuanganList : ['Pending', 'Approved', 'Rejected', 'Completed', 'Cancelled'];
   const activeRooms = (rooms || []).filter(r => r.isActive);
@@ -225,6 +225,22 @@ export function RoomBookingComponent() {
   const handleStatusChange = (booking: RoomBooking, newStatus: RoomBookingStatus) => {
     updateRoomBooking(booking.id, { status: newStatus });
     setSelectedBooking(prev => prev ? { ...prev, status: newStatus } : prev);
+  };
+
+  // Integrasi Surat-Menyurat (audit gap fix): begitu peminjaman ruangan DISETUJUI,
+  // staf bisa langsung membuat draf Surat Persetujuan Peminjaman Ruangan tanpa
+  // mengetik ulang detail (ruang, tanggal, jam, keperluan) secara manual.
+  const handleBuatSurat = (booking: RoomBooking) => {
+    setPendingLetterDraft({
+      relatedModule: 'RoomBooking',
+      relatedId: booking.id,
+      memberId: booking.memberId || undefined,
+      recipientName: booking.bookedBy,
+      recipientInstitution: booking.organization,
+      subject: `Persetujuan Peminjaman ${booking.roomName}`,
+      body: `Sehubungan dengan permohonan peminjaman ${booking.roomName} pada tanggal ${new Date(booking.date).toLocaleDateString('id-ID')} pukul ${booking.startTime}-${booking.endTime} untuk keperluan ${booking.purpose}, dengan ini kami sampaikan bahwa permohonan Saudara/i telah DISETUJUI.`,
+    });
+    onNavigate?.('letters-outgoing');
   };
 
   const getStatusColor = (status: string) => {
@@ -866,13 +882,25 @@ export function RoomBookingComponent() {
                       </>
                     )}
                     {selectedBooking.status === 'Approved' && (
-                      <Button 
-                        onClick={() => handleStatusChange(selectedBooking, 'Completed')}
-                        size="sm"
-                      >
-                        <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
-                        Tandai Selesai
-                      </Button>
+                      <>
+                        <Button 
+                          onClick={() => handleStatusChange(selectedBooking, 'Completed')}
+                          size="sm"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
+                          Tandai Selesai
+                        </Button>
+                        {can('letters-outgoing', 'create') && (
+                          <Button
+                            onClick={() => handleBuatSurat(selectedBooking)}
+                            size="sm"
+                            variant="outline"
+                          >
+                            <Mail className="w-3.5 h-3.5 mr-1.5" />
+                            Buat Surat
+                          </Button>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
