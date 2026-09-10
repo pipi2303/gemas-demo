@@ -3,12 +3,15 @@ import {
   Calendar, Clock, MapPin, User, Plus, Search, X, Church, BookOpen,
   ChevronLeft, ChevronRight, Edit2, Trash2, Eye, FileText, Users,
   Music, Mic2, Piano, Video, Filter, LayoutGrid, List, Star, AlertCircle,
-  CheckCircle, PlayCircle, XCircle, Printer
+  CheckCircle, PlayCircle, XCircle, Printer, Download, CalendarPlus, UserCheck
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { WorshipSchedule, WorshipType } from '../types';
 import { useDraggable } from '../../lib/useDraggable';
 import { SearchDropdown } from './ui/SearchDropdown';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { toast } from 'sonner';
 import {
   DEFAULT_OFFICER_CATEGORIES, buildOfficerRecord, officerRecordToArray,
   deriveLegacyOfficerFields, getDisplayOfficerGroups, getAllOfficerNames,
@@ -47,6 +50,90 @@ const STATUS_CONFIG = {
 const DAYS_ID = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 const MONTHS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
+// Deteksi bentrok petugas: cari jadwal LAIN pada tanggal & jam yang sama yang memakai nama petugas yang sama.
+function checkOfficerConflicts(
+  schedules: WorshipSchedule[], date: string, time: string, officerNames: string[], excludeId?: string
+): { schedule: WorshipSchedule; name: string }[] {
+  if (!date || !time || officerNames.length === 0) return [];
+  const conflicts: { schedule: WorshipSchedule; name: string }[] = [];
+  schedules.forEach(s => {
+    if (excludeId && s.id === excludeId) return;
+    if (s.date !== date || s.time !== time) return;
+    const otherNames = getAllOfficerNames(s);
+    officerNames.forEach(n => {
+      if (n && otherNames.includes(n)) conflicts.push({ schedule: s, name: n });
+    });
+  });
+  return conflicts;
+}
+
+// Unduh roster jadwal & petugas ibadah sebagai PDF (jsPDF + autoTable, berkop surat navy GPIB Trinitas).
+function generateWorshipRosterPDF(schedules: WorshipSchedule[], periodLabel: string) {
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const NAVY: [number, number, number] = [20, 79, 107];
+  const GOLD: [number, number, number] = [202, 160, 74];
+  const SLATE: [number, number, number] = [51, 65, 85];
+
+  const drawHeader = () => {
+    doc.setFillColor(...NAVY);
+    doc.rect(0, 0, pageWidth, 22, 'F');
+    doc.setFillColor(...GOLD);
+    doc.rect(0, 22, pageWidth, 1.4, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('ROSTER JADWAL & PETUGAS IBADAH', pageWidth / 2, 9, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.text('GPIB Trinitas', pageWidth / 2, 15, { align: 'center' });
+    doc.setFontSize(7.5);
+    doc.text(`${periodLabel} · Dicetak ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}`, pageWidth / 2, 19.5, { align: 'center' });
+  };
+
+  drawHeader();
+
+  const sorted = [...schedules].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.time.localeCompare(b.time));
+  const rows = sorted.map((s, i) => [
+    String(i + 1),
+    new Date(s.date).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }),
+    s.time,
+    s.title,
+    s.location || '-',
+    getAllOfficerNames(s).join(', ') || '-',
+  ]);
+
+  autoTable(doc, {
+    startY: 28,
+    head: [['No', 'Tanggal', 'Jam', 'Ibadah', 'Lokasi', 'Petugas']],
+    body: rows,
+    theme: 'striped',
+    headStyles: { fillColor: SLATE, textColor: 255, fontSize: 8, fontStyle: 'bold' },
+    bodyStyles: { fontSize: 7.5, cellPadding: 2 },
+    columnStyles: { 0: { cellWidth: 10, halign: 'center' }, 1: { cellWidth: 40 }, 2: { cellWidth: 16, halign: 'center' }, 3: { cellWidth: 60 }, 4: { cellWidth: 50 }, 5: { cellWidth: 'auto' } },
+    margin: { left: 12, right: 12 },
+    didDrawPage: () => { if (doc.internal.getNumberOfPages() > 1) drawHeader(); },
+  });
+
+  const totalPages = (doc as any).internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.4);
+    doc.line(12, pageHeight - 10, pageWidth - 12, pageHeight - 10);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(148, 163, 184);
+    doc.text('Dokumen Internal GPIB Trinitas', 12, pageHeight - 6);
+    doc.text(`Halaman ${i} dari ${totalPages}`, pageWidth - 12, pageHeight - 6, { align: 'right' });
+  }
+
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  doc.save(`Roster-Ibadah-GPIB-Trinitas-${pad(now.getDate())}${pad(now.getMonth()+1)}${now.getFullYear()}.pdf`);
+}
+
 const EMPTY_FORM = {
   title: '', type: 'Minggu' as WorshipType, category: '',
   date: '', time: '', location: '',
@@ -67,6 +154,7 @@ export function WorshipSchedules() {
   const KATEGORI_LIST = kategoriList.length ? kategoriList : ['GP','PA','PKB','PKLU','PKP','PT'];
   const officerCategoriesRaw = getMasterDataByCategory('kategori_petugas_ibadah').map(m => m.value);
   const OFFICER_CATEGORIES = officerCategoriesRaw.length ? officerCategoriesRaw : DEFAULT_OFFICER_CATEGORIES;
+  const canExport = can('worship-schedules', 'export');
   const { offset: offsetDetail, onMouseDown: onMouseDownDetail } = useDraggable();
   const { offset: offsetForm, onMouseDown: onMouseDownForm } = useDraggable();
   const { offset: offsetDelete, onMouseDown: onMouseDownDelete } = useDraggable();
@@ -81,6 +169,9 @@ export function WorshipSchedules() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('All');
   const [filterStatus, setFilterStatus] = useState<StatusFilter>('All');
+  const [myScheduleOnly, setMyScheduleOnly] = useState(false);
+  const [showBulkGenerate, setShowBulkGenerate] = useState(false);
+  const [bulkForm, setBulkForm] = useState({ type: 'Ibadah Minggu Pagi' as WorshipType, time: '07:00', location: '', count: 4 });
 
   // ─── Modal state ──────────────────────────────────────────────────────────
   const [showForm, setShowForm] = useState(false);
@@ -109,10 +200,11 @@ export function WorshipSchedules() {
           getAllOfficerNames(s).some(n => n.toLowerCase().includes(searchTerm.toLowerCase()));
         const matchType = filterType === 'All' || s.type === filterType;
         const matchStatus = filterStatus === 'All' || s.status === filterStatus;
-        return matchSearch && matchType && matchStatus;
+        const matchMine = !myScheduleOnly || (currentUser?.name ? getAllOfficerNames(s).includes(currentUser.name) : false);
+        return matchSearch && matchType && matchStatus && matchMine;
       })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [worshipSchedules, searchTerm, filterType, filterStatus]);
+  }, [worshipSchedules, searchTerm, filterType, filterStatus, myScheduleOnly, currentUser]);
 
   // Calendar: days in month
   const calendarDays = useMemo(() => {
@@ -178,6 +270,15 @@ export function WorshipSchedules() {
     if (!validateForm()) return;
 
     const officersArray = officerRecordToArray(formData.officers);
+    const officerNamesFlat = officersArray.flatMap(g => g.names);
+    const conflicts = checkOfficerConflicts(worshipSchedules, formData.date, formData.time, officerNamesFlat, editingId || undefined);
+    if (conflicts.length > 0) {
+      const uniqueConflicts = Array.from(new Set(conflicts.map(c => `${c.name} (bentrok dengan "${c.schedule.title}")`)));
+      const proceed = window.confirm(
+        `Peringatan bentrok petugas:\n\n${uniqueConflicts.join('\n')}\n\nPetugas di atas sudah dijadwalkan di ibadah lain pada tanggal & jam yang sama. Tetap simpan jadwal ini?`
+      );
+      if (!proceed) return;
+    }
     const payload = {
       title: formData.title,
       type: formData.type,
@@ -241,6 +342,55 @@ export function WorshipSchedules() {
     setShowDeleteConfirm(null);
   };
 
+  const handleBulkGenerate = () => {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const toISO = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const count = Math.min(Math.max(bulkForm.count, 1), 26);
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const daysUntilSunday = (7 - start.getDay()) % 7 || 7;
+    const firstSunday = new Date(start);
+    firstSunday.setDate(start.getDate() + daysUntilSunday);
+
+    let created = 0;
+    let skipped = 0;
+    for (let i = 0; i < count; i++) {
+      const d = new Date(firstSunday);
+      d.setDate(firstSunday.getDate() + i * 7);
+      const dateStr = toISO(d);
+      const alreadyExists = worshipSchedules.some(s => s.date === dateStr && s.type === bulkForm.type);
+      if (alreadyExists) { skipped++; continue; }
+      addWorshipSchedule({
+        title: bulkForm.type,
+        type: bulkForm.type,
+        category: undefined,
+        date: dateStr,
+        time: bulkForm.time,
+        location: bulkForm.location || '-',
+        officers: undefined,
+        sermon_theme: undefined,
+        bible_verse: undefined,
+        description: undefined,
+        status: 'Terjadwal',
+      });
+      created++;
+    }
+    if (currentUser && created > 0) {
+      logActivity({
+        userId: currentUser.id,
+        userName: currentUser.name,
+        action: 'Menambahkan',
+        entityType: 'Event',
+        entityId: `ws-bulk-${Date.now()}`,
+        entityName: bulkForm.type,
+        details: `Generate ${created} jadwal ${bulkForm.type} berturut-turut (Minggu)`,
+      });
+    }
+    setShowBulkGenerate(false);
+    if (created > 0) toast.success(`${created} jadwal berhasil dibuat${skipped > 0 ? `, ${skipped} dilewati (sudah ada)` : ''}`);
+    else toast.error('Semua jadwal pada rentang ini sudah ada sebelumnya');
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -300,18 +450,44 @@ export function WorshipSchedules() {
             </div>
             <div>
               <h1 className="text-2xl font-semibold text-gray-900">Jadwal Ibadah & Kegiatan</h1>
-              <p className="text-sm text-gray-500">Kelola jadwal ibadah dan petugas gereja GPIB Bahtera Kasih</p>
+              <p className="text-sm text-gray-500">Kelola jadwal ibadah dan petugas gereja GPIB Trinitas</p>
             </div>
           </div>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-[#f2f0ea] cursor-pointer group transition-colors text-sm"
-          >
-            <Printer className="w-4 h-4" />
-            Cetak
-          </button>
+        <div className="flex flex-wrap gap-2">
+          {canExport && (
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-[#f2f0ea] cursor-pointer group transition-colors text-sm"
+            >
+              <Printer className="w-4 h-4" />
+              Cetak
+            </button>
+          )}
+          {canExport && (
+            <button
+              onClick={() => {
+                if (filteredSchedules.length === 0) { toast.error('Tidak ada jadwal untuk diunduh'); return; }
+                const label = filterType !== 'All' || filterStatus !== 'All' || searchTerm
+                  ? `${filteredSchedules.length} jadwal terfilter`
+                  : `Bulan ${MONTHS_ID[calendarMonth]} ${calendarYear}`;
+                generateWorshipRosterPDF(filteredSchedules, label);
+              }}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-[#f2f0ea] cursor-pointer group transition-colors text-sm"
+            >
+              <Download className="w-4 h-4" />
+              Roster PDF
+            </button>
+          )}
+          {can('worship-schedules', 'create') && (
+            <button
+              onClick={() => setShowBulkGenerate(true)}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-[#f2f0ea] cursor-pointer group transition-colors text-sm"
+            >
+              <CalendarPlus className="w-4 h-4" />
+              Generate Minggu
+            </button>
+          )}
           {can('worship-schedules', 'create') && (
             <button
               onMouseDown={e=>e.preventDefault()}
@@ -343,6 +519,14 @@ export function WorshipSchedules() {
               <Calendar className="w-4 h-4"/>Kalender
             </button>
           </div>
+          <button
+            onClick={()=>setMyScheduleOnly(v=>!v)}
+            data-tooltip="Tampilkan hanya jadwal tempat saya bertugas"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl border transition-all"
+            style={{borderColor:myScheduleOnly?'#144f6b':'#e2e8f0',background:myScheduleOnly?'#f0f7fb':'#fff',color:myScheduleOnly?'#144f6b':'#64748b',fontWeight:myScheduleOnly?600:400}}
+          >
+            <UserCheck className="w-4 h-4"/>Jadwal Saya
+          </button>
         </div>
         <div className="p-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -1030,6 +1214,59 @@ export function WorshipSchedules() {
               >
                 Ya, Hapus
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* GENERATE JADWAL MINGGU BERTURUT-TURUT MODAL */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {showBulkGenerate && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowBulkGenerate(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-[#144f6b] rounded-full flex items-center justify-center flex-shrink-0">
+                <CalendarPlus className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900">Generate Jadwal Minggu</h3>
+                <p className="text-sm text-gray-500">Buat beberapa jadwal ibadah Minggu berturut-turut sekaligus</p>
+              </div>
+            </div>
+            <div className="space-y-3 mb-5">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Jenis Ibadah</label>
+                <select
+                  value={bulkForm.type}
+                  onChange={e=>setBulkForm(f=>({...f, type: e.target.value as WorshipType}))}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#144f6b]"
+                >
+                  {WORSHIP_TYPE_LIST.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Jam</label>
+                  <input type="time" value={bulkForm.time} onChange={e=>setBulkForm(f=>({...f, time: e.target.value}))}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#144f6b]"/>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Jumlah Minggu</label>
+                  <input type="number" min={1} max={26} value={bulkForm.count} onChange={e=>setBulkForm(f=>({...f, count: parseInt(e.target.value,10) || 1}))}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#144f6b]"/>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Lokasi</label>
+                <input type="text" placeholder="mis. Gedung Gereja Utama" value={bulkForm.location} onChange={e=>setBulkForm(f=>({...f, location: e.target.value}))}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#144f6b]"/>
+              </div>
+              <p className="text-xs text-gray-500">Jadwal akan dibuat mulai hari Minggu terdekat, satu per minggu. Petugas dapat dilengkapi belakangan lewat Edit pada tiap jadwal. Tanggal yang sudah punya jadwal dengan jenis ibadah yang sama akan dilewati otomatis.</p>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={()=>setShowBulkGenerate(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-[#f2f0ea] transition-colors">Batal</button>
+              <button onClick={handleBulkGenerate} className="flex-1 px-4 py-2 bg-[#144f6b] text-white rounded-lg text-sm hover:bg-[#144f6b] transition-colors">Generate</button>
             </div>
           </div>
         </div>

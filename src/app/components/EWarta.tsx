@@ -4,11 +4,14 @@ import { useDraggable } from '../../lib/useDraggable';
 import {
   FileText, BookOpen, Plus, X, Pencil, Trash2, Eye,
   Calendar, MessageSquare, ChevronRight, Church, Zap,
-  Globe, Clock, MapPin, Users, CheckCircle, ExternalLink, Printer
+  Globe, Clock, MapPin, Users, CheckCircle, ExternalLink, Printer,
+  Download, AlertTriangle
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Warta, WorshipSchedule } from '../types';
 import { getOfficerNamesByKeyword } from '../lib/worshipOfficers';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const MONTHS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
@@ -50,6 +53,103 @@ const EMPTY_FORM = {
   worshipSchedules: [] as string[],
   published: false,
 };
+
+// Unduh E-Warta sebagai PDF berkop surat navy GPIB Trinitas (jsPDF + autoTable).
+function generateWartaPDF(warta: Warta) {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const NAVY: [number, number, number] = [20, 79, 107];
+  const GOLD: [number, number, number] = [202, 160, 74];
+  let y = 34;
+
+  doc.setFillColor(...NAVY);
+  doc.rect(0, 0, pageWidth, 26, 'F');
+  doc.setFillColor(...GOLD);
+  doc.rect(0, 26, pageWidth, 1.5, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.text('WARTA JEMAAT', pageWidth / 2, 11, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('GPIB Trinitas', pageWidth / 2, 17, { align: 'center' });
+  doc.setFontSize(8);
+  doc.text(`Minggu ke-${warta.week} · ${MONTHS_ID[warta.month - 1]} ${warta.year}`, pageWidth / 2, 22.5, { align: 'center' });
+
+  doc.setTextColor(30, 41, 59);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  const titleLines = doc.splitTextToSize(warta.title, pageWidth - 28);
+  doc.text(titleLines, 14, y);
+  y += titleLines.length * 5 + 2;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text(formatLongDate(warta.date), 14, y);
+  y += 8;
+
+  warta.sections.forEach(section => {
+    if (!section.content.trim() && !section.title.trim()) return;
+    if (y > pageHeight - 30) { doc.addPage(); y = 16; }
+    doc.setFillColor(240, 247, 251);
+    doc.roundedRect(14, y, pageWidth - 28, 6.5, 1, 1, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.setTextColor(20, 79, 107);
+    doc.text(section.title || 'Tanpa Judul', 17, y + 4.6);
+    y += 10;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(51, 65, 85);
+    const bodyLines = doc.splitTextToSize(section.content || '-', pageWidth - 28);
+    bodyLines.forEach((line: string) => {
+      if (y > pageHeight - 20) { doc.addPage(); y = 16; }
+      doc.text(line, 14, y);
+      y += 4.6;
+    });
+    y += 4;
+  });
+
+  const anns = warta.announcements.filter(a => a.trim());
+  if (anns.length > 0) {
+    if (y > pageHeight - 30) { doc.addPage(); y = 16; }
+    doc.setFillColor(240, 247, 251);
+    doc.roundedRect(14, y, pageWidth - 28, 6.5, 1, 1, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.setTextColor(20, 79, 107);
+    doc.text('Pengumuman', 17, y + 4.6);
+    y += 10;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(51, 65, 85);
+    anns.forEach((a, i) => {
+      const lines = doc.splitTextToSize(`${i + 1}. ${a}`, pageWidth - 30);
+      lines.forEach((line: string) => {
+        if (y > pageHeight - 20) { doc.addPage(); y = 16; }
+        doc.text(line, 14, y);
+        y += 4.6;
+      });
+      y += 1.5;
+    });
+  }
+
+  const totalPages = (doc as any).internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.4);
+    doc.line(14, pageHeight - 12, pageWidth - 14, pageHeight - 12);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(148, 163, 184);
+    doc.text('Dokumen Warta Jemaat GPIB Trinitas', 14, pageHeight - 7.5);
+    doc.text(`Halaman ${i} dari ${totalPages}`, pageWidth - 14, pageHeight - 7.5, { align: 'right' });
+  }
+
+  doc.save(`Warta-GPIB-Trinitas-Minggu${warta.week}-${warta.month}-${warta.year}.pdf`);
+}
 
 // ─── Component ───────────────────────────────────────────────────────────────
 export function EWarta() {
@@ -269,9 +369,11 @@ export function EWarta() {
       .map(id => worshipSchedules.find(ws => ws.id === id))
       .filter(Boolean) as WorshipSchedule[];
 
-  const canCreate = can('e-warta', 'create');
-  const canEdit   = can('e-warta', 'edit');
-  const canDelete = can('e-warta', 'delete');
+  const canCreate  = can('e-warta', 'create');
+  const canEdit    = can('e-warta', 'edit');
+  const canDelete  = can('e-warta', 'delete');
+  const canExport  = can('e-warta', 'export');
+  const canApprove = can('e-warta', 'approve');
 
   const { offset: offsetGenerate, onMouseDown: onMouseDownGenerate } = useDraggable();
   const { offset: offsetForm, onMouseDown: onMouseDownForm } = useDraggable();
@@ -336,7 +438,7 @@ export function EWarta() {
               <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
               <p className="text-gray-500">Belum ada warta jemaat</p>
               {canCreate && (
-                <button onClick={openGenerateModal} className="mt-4 px-4 py-2 bg-[#f0ede5] text-[#3a7fa0] rounded-lg text-sm hover:bg-purple-200 transition-colors">
+                <button onClick={openGenerateModal} className="mt-4 px-4 py-2 bg-[#f0ede5] text-[#3a7fa0] rounded-lg text-sm hover:bg-[#8b6bb1]/15 transition-colors">
                   Generate dari Jadwal Ibadah
                 </button>
               )}
@@ -367,7 +469,7 @@ export function EWarta() {
                       {/* Status + Week */}
                       <div className="flex items-center gap-2 mb-2">
                         <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                          warta.published ? 'bg-green-100 text-green-800' : 'bg-[#f0ede5] text-[#144f6b]'
+                          warta.published ? 'bg-[#f0f9f4] text-[#2f8f5b]' : 'bg-[#f0ede5] text-[#144f6b]'
                         }`}>
                           {warta.published ? '● Published' : '○ Draft'}
                         </span>
@@ -396,6 +498,12 @@ export function EWarta() {
                           )}
                         </div>
                       )}
+                      {warta.worshipSchedules.length > linked.length && (
+                        <div className="flex items-center gap-1 mb-3 px-2 py-0.5 rounded-full text-xs w-fit" style={{ background: 'rgba(209,85,63,0.1)', color: '#d1553f' }}>
+                          <AlertTriangle className="w-3 h-3" />
+                          {warta.worshipSchedules.length - linked.length} jadwal tertaut sudah dihapus
+                        </div>
+                      )}
 
                       {/* Meta */}
                       <div className="flex items-center gap-3 text-xs text-gray-400 mb-3">
@@ -420,7 +528,7 @@ export function EWarta() {
                         )}
                         {canDelete && (
                           <button onClick={() => setShowDeleteConfirm(warta)} data-tooltip="Hapus"
-                            className="px-3 py-1.5 border border-red-200 text-red-500 rounded-lg text-xs hover:bg-red-50 transition-colors">
+                            className="px-3 py-1.5 border border-[#d1553f]/30 text-[#d1553f] rounded-lg text-xs hover:bg-[#d1553f]/10 transition-colors">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         )}
@@ -446,7 +554,7 @@ export function EWarta() {
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                    selectedWarta.published ? 'bg-green-400/30 text-green-100' : 'bg-[#c2baaa]/30 text-[#f0ede5]'
+                    selectedWarta.published ? 'bg-[#2f8f5b]/40 text-[#d9f5e3]' : 'bg-[#c2baaa]/30 text-[#f0ede5]'
                   }`}>
                     {selectedWarta.published ? '● Published' : '○ Draft'}
                   </span>
@@ -465,10 +573,18 @@ export function EWarta() {
                   </button>
                 )}
 
-                <button onClick={() => window.print()}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 text-white rounded-lg text-sm hover:bg-white/30 transition-colors">
-                  <Printer className="w-3.5 h-3.5" /> Cetak
-                </button>
+                {canExport && (
+                  <button onClick={() => generateWartaPDF(selectedWarta)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 text-white rounded-lg text-sm hover:bg-white/30 transition-colors">
+                    <Download className="w-3.5 h-3.5" /> Unduh PDF
+                  </button>
+                )}
+                {canExport && (
+                  <button onClick={() => window.print()}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 text-white rounded-lg text-sm hover:bg-white/30 transition-colors">
+                    <Printer className="w-3.5 h-3.5" /> Cetak
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -476,10 +592,16 @@ export function EWarta() {
           {/* Body */}
           <div className="p-6 space-y-6">
             {/* Linked worship schedules */}
+            {selectedWarta.worshipSchedules.length > 0 && getLinkedSchedules(selectedWarta).length < selectedWarta.worshipSchedules.length && (
+              <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl text-sm" style={{ background: 'rgba(209,85,63,0.08)', color: '#b8442f' }}>
+                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>{selectedWarta.worshipSchedules.length - getLinkedSchedules(selectedWarta).length} jadwal ibadah yang tertaut ke warta ini sudah dihapus dari Jadwal Ibadah. Konten yang sudah ditulis di seksi terkait mungkin sudah tidak sesuai lagi &mdash; periksa kembali sebelum dipublikasikan.</span>
+              </div>
+            )}
             {getLinkedSchedules(selectedWarta).length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <Church className="w-4 h-4 text-purple-500" />
+                  <Church className="w-4 h-4 text-[#8b6bb1]" />
                   <h3 className="font-semibold text-gray-800 text-sm">Jadwal Ibadah Terhubung</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -565,7 +687,7 @@ export function EWarta() {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-white">Generate E-Warta</h2>
-                  <p className="text-purple-200 text-sm mt-0.5">
+                  <p className="text-[#c9bfe0] text-sm mt-0.5">
                     Buat warta otomatis dari jadwal ibadah
                   </p>
                 </div>
@@ -592,13 +714,13 @@ export function EWarta() {
                     <label key={sun.date}
                       className={`flex items-start gap-3 p-4 rounded-xl border  transition-all ${
                         selectedGenerateDate === sun.date
-                          ? 'border-purple-500 bg-[#f0f7fb]'
+                          ? 'border-[#8b6bb1] bg-[#f0f7fb]'
                           : 'border-gray-200 hover:border-[#b8d5e8] hover:bg-[#f2f0ea] cursor-pointer group'
                       }`}>
                       <input type="radio" name="sunday" value={sun.date}
                         checked={selectedGenerateDate === sun.date}
                         onChange={() => setSelectedGenerateDate(sun.date)}
-                        className="mt-0.5 accent-purple-600" />
+                        className="mt-0.5 accent-[#8b6bb1]" />
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-gray-800 text-sm">{sun.label}</div>
                         {sun.schedules.length > 0 ? (
@@ -669,13 +791,19 @@ export function EWarta() {
                 {/* Linked schedule notice */}
                 {formData.worshipSchedules.length > 0 && (
                   <div className="bg-[#f0f7fb] border border-[#b8d5e8] rounded-xl p-3 flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                    <CheckCircle className="w-5 h-5 text-[#8b6bb1] flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-purple-800">Auto-Generated dari Jadwal Ibadah</p>
-                      <p className="text-xs text-purple-600 mt-0.5">
+                      <p className="text-sm font-medium text-[#6d5590]">Auto-Generated dari Jadwal Ibadah</p>
+                      <p className="text-xs text-[#8b6bb1] mt-0.5">
                         Warta ini terhubung dengan {formData.worshipSchedules.length} jadwal ibadah dan konten jadwal sudah terisi otomatis.
                       </p>
                     </div>
+                  </div>
+                )}
+                {formData.worshipSchedules.length > 0 && formData.worshipSchedules.filter(id => worshipSchedules.some(ws => ws.id === id)).length < formData.worshipSchedules.length && (
+                  <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl text-sm" style={{ background: 'rgba(209,85,63,0.08)', color: '#b8442f' }}>
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span>{formData.worshipSchedules.length - formData.worshipSchedules.filter(id => worshipSchedules.some(ws => ws.id === id)).length} jadwal ibadah yang tadinya tertaut sudah dihapus. Periksa kembali isi seksi "Jadwal Ibadah" secara manual sebelum menyimpan.</span>
                   </div>
                 )}
 
@@ -740,11 +868,15 @@ export function EWarta() {
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Status Publikasi</label>
                       <select value={formData.published ? 'true' : 'false'}
+                        disabled={!canApprove}
                         onChange={e => setFormData(p => ({ ...p, published: e.target.value === 'true' }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400">
                         <option value="false">○ Draft</option>
                         <option value="true">● Published</option>
                       </select>
+                      {!canApprove && (
+                        <p className="text-xs text-gray-400 mt-1">Hanya role dengan izin approve yang dapat mengubah status publikasi.</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -753,11 +885,11 @@ export function EWarta() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <BookOpen className="w-4 h-4 text-purple-600" />
+                      <BookOpen className="w-4 h-4 text-[#8b6bb1]" />
                       <span className="font-semibold text-gray-800 text-sm">Konten Warta</span>
                     </div>
                     <button type="button" onClick={addSection}
-                      className="flex items-center gap-1 px-2.5 py-1.5 bg-[#f0ede5] text-[#3a7fa0] rounded-lg text-xs hover:bg-purple-200 transition-colors">
+                      className="flex items-center gap-1 px-2.5 py-1.5 bg-[#f0ede5] text-[#3a7fa0] rounded-lg text-xs hover:bg-[#8b6bb1]/15 transition-colors">
                       <Plus className="w-3.5 h-3.5" /> Tambah Seksi
                     </button>
                   </div>
@@ -767,7 +899,7 @@ export function EWarta() {
                         <span className="text-xs font-medium text-gray-500">Seksi {idx + 1}</span>
                         {formData.sections.length > 1 && (
                           <button type="button" onClick={() => removeSection(idx)} data-tooltip="Hapus Seksi"
-                            className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors">
+                            className="p-1 text-[#d1553f]/70 hover:text-[#d1553f] hover:bg-[#d1553f]/10 rounded transition-colors">
                             <X className="w-3.5 h-3.5" />
                           </button>
                         )}
@@ -806,7 +938,7 @@ export function EWarta() {
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none" />
                       {formData.announcements.length > 1 && (
                         <button type="button" onClick={() => removeAnnouncement(idx)} data-tooltip="Hapus Pengumuman"
-                          className="p-2 text-red-400 hover:text-red-600 self-start hover:bg-red-50 rounded-lg transition-colors">
+                          className="p-2 text-[#d1553f]/70 hover:text-[#d1553f] self-start hover:bg-[#d1553f]/10 rounded-lg transition-colors">
                           <X className="w-4 h-4" />
                         </button>
                       )}
@@ -837,15 +969,15 @@ export function EWarta() {
         <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowDeleteConfirm(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e=>e.stopPropagation()} style={{ transform: `translate(${offsetDeleteWarta.x}px, ${offsetDeleteWarta.y}px)` }}>
             <div className="flex items-center gap-4 mb-4" onMouseDown={onMouseDownDeleteWarta} style={{ cursor: 'move' }}>
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <Trash2 className="w-6 h-6 text-red-600" />
+              <div className="w-12 h-12 bg-[#d1553f]/15 rounded-full flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-[#d1553f]" />
               </div>
               <div>
                 <h3 className="font-bold text-gray-900">Hapus Warta</h3>
                 <p className="text-sm text-gray-500">Tindakan tidak dapat dibatalkan</p>
               </div>
             </div>
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-5">
+            <div className="bg-[#d1553f]/10 border border-[#d1553f]/30 rounded-lg p-3 mb-5">
               <p className="text-sm font-medium text-gray-800">{showDeleteConfirm.title}</p>
               <p className="text-xs text-gray-500 mt-0.5">{formatShortDate(showDeleteConfirm.date)}</p>
             </div>
@@ -855,7 +987,7 @@ export function EWarta() {
                 Batal
               </button>
               <button onClick={() => handleDelete(showDeleteConfirm)}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors">
+                className="flex-1 px-4 py-2 bg-[#d1553f] text-white rounded-lg text-sm hover:bg-[#b8442f] transition-colors">
                 Ya, Hapus
               </button>
             </div>
