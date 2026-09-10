@@ -355,7 +355,8 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
           {/* Theme Switcher (Mode Terang/Gelap) */}
           <ThemeSwitcher dark />
 
-          {/* User Role Pill Button */}
+          {/* User Name Pill Button — menampilkan nama login, bukan role
+              (role tetap terlihat sebagai badge kecil di dalam ProfileDropdown) */}
           <div className="relative">
             <button
               onClick={() => setShowProfile(p => !p)}
@@ -365,8 +366,8 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
                 border: '1px solid rgba(255,255,255,0.14)',
               }}
             >
-              <User className="w-3.5 h-3.5 text-amber-300" />
-              <span>{currentUser?.role || 'Jemaat'}</span>
+              <User className="w-3.5 h-3.5 text-amber-300 flex-shrink-0" />
+              <span className="truncate max-w-[120px]">{currentUser?.name || currentUser?.username || 'Jemaat'}</span>
             </button>
 
             {showProfile && (
