@@ -859,12 +859,12 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
               <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)' }}>
                 {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
               </p>
-              {s.birthdaysThisMonth > 0 && (
+              {s.birthdayToday > 0 && (
                 <div onClick={() => setActiveKPI('birthdays')}
                   className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full cursor-pointer transition-all hover:scale-105"
                   style={{ background: 'rgba(255,239,178,0.2)', border: '1px solid rgba(255,239,178,0.3)' }}>
                   <span>🎂</span>
-                  <span style={{ fontSize: '11.5px', color: '#f0ede5', fontWeight: 600 }}>{s.birthdaysThisMonth} jemaat berulang tahun bulan ini</span>
+                  <span style={{ fontSize: '11.5px', color: '#f0ede5', fontWeight: 600 }}>{s.birthdayToday} jemaat berulang tahun hari ini</span>
                 </div>
               )}
             </div>
