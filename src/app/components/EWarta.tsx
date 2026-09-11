@@ -929,6 +929,9 @@ export function EWarta() {
                       <Plus className="w-3.5 h-3.5" /> Tambah
                     </button>
                   </div>
+                  <p className="text-xs text-gray-400 -mt-1">
+                    Teks bebas khusus buletin cetak edisi ini — terpisah dari menu "Warta & Pengumuman" (tidak saling terhubung).
+                  </p>
                   {formData.announcements.map((ann, idx) => (
                     <div key={idx} className="flex gap-2">
                       <textarea value={ann}
