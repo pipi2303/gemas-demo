@@ -41,7 +41,6 @@ import { LetterSettings } from './components/LetterSettings';
 import { OutgoingLetters } from './components/OutgoingLetters';
 import { LetterTemplates } from './components/LetterTemplates';
 import { IncomingLetters } from './components/IncomingLetters';
-import { FinanceAddonHome } from './components/finance/FinanceAddonHome';
 import { FinanceMasterData } from './components/finance/FinanceMasterData';
 import { FinanceBudget } from './components/finance/FinanceBudget';
 import { FinanceTransaction } from './components/finance/FinanceTransaction';
@@ -151,8 +150,6 @@ function AppContent() {
       // Modul 3: Finance
       case 'offerings':
         return <OfferingsQRIS />;
-      case 'finance-addon':
-        return <FinanceAddonHome onNavigate={navigate} />;
       case 'finance-master-data':
         return <FinanceMasterData onNavigate={navigate} />;
       case 'finance-budget':

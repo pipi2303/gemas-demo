@@ -74,7 +74,6 @@ export const PAGE_LABELS: Record<string, { title: string; category: string }> = 
   'letters-outgoing':    { title: 'Surat Keluar', category: 'Surat Menyurat' },
   'letters-incoming':    { title: 'Surat Masuk', category: 'Surat Menyurat' },
   'letter-templates':    { title: 'Template Surat', category: 'Surat Menyurat' },
-  'finance-addon':         { title: 'Ringkasan Finance', category: 'Finance' },
   'finance-master-data':   { title: 'Master Data Finance', category: 'Finance' },
   'finance-budget':        { title: 'Budget / RKA', category: 'Finance' },
   'finance-transaction':   { title: 'Transaksi & Voucher', category: 'Finance' },
@@ -213,7 +212,6 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
       label: 'Finance',
       icon: Landmark,
       items: [
-        { id: 'finance-addon',       label: 'Ringkasan Finance',     page: 'finance-addon',       icon: Landmark },
         { id: 'offerings',           label: 'Persembahan Digital',   page: 'offerings',           icon: Heart },
         { id: 'finance-dashboard',   label: 'Dashboard Finance',     page: 'finance-dashboard',   icon: LayoutDashboard },
         { id: 'finance-master-data', label: 'Master Data Finance',   page: 'finance-master-data', icon: Layers },

@@ -10,7 +10,6 @@ import dataRoutes from './routes/data.js';
 import backupRoutes from './routes/backup.js';
 import permissionsRoutes from './routes/permissions.js';
 import adminRoutes from './routes/admin.js';
-import financeRoutes from './routes/finance.js';
 import financeMasterDataRoutes from './routes/financeMasterData.js';
 import financeBudgetRoutes from './routes/financeBudget.js';
 import financeTransactionRoutes from './routes/financeTransaction.js';
@@ -84,7 +83,6 @@ export function createApp() {
   app.use('/api/backup', backupRoutes);
   app.use('/api/permissions', permissionsRoutes);
   app.use('/api/admin', adminRoutes);
-  app.use('/api/v1/finance', financeRoutes);
   app.use('/api/v1/finance', financeMasterDataRoutes);
   app.use('/api/v1/finance/budgets', financeBudgetRoutes);
   app.use('/api/v1/finance/transactions', financeTransactionRoutes);

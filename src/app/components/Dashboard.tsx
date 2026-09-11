@@ -556,7 +556,7 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
 const QUICK_NAV = [
   { label: 'Database & Anggota',      icon: Users,     page: 'members',          color: '#1A77A3', bg: '#f0f7fb',                     emoji: '👥' },
   { label: 'Jadwal & Peribadahan',    icon: Church,    page: 'worship-schedules', color: '#8b6bb1', bg: 'rgba(139,107,177,0.08)',      emoji: '⛪' },
-  { label: 'Finance & Persembahan',   icon: DollarSign,page: 'finance-addon',     color: '#144f6b', bg: '#f0f7fb',                    emoji: '💰' },
+  { label: 'Finance & Persembahan',   icon: DollarSign,page: 'finance-dashboard', color: '#144f6b', bg: '#f0f7fb',                    emoji: '💰' },
   { label: 'Laporan Jemaat',          icon: BarChart3,  page: 'sensus-report',    color: '#144f6b', bg: 'rgba(20,79,107,0.08)',        emoji: '📋' },
   { label: 'Pusat Laporan PDF',       icon: Printer,    page: 'report-center',    color: '#caa04a', bg: 'rgba(202,160,74,0.08)',        emoji: '📄' },
   { label: 'Layanan & Bantuan',       icon: Heart,      page: 'service-requests', color: '#d1553f', bg: 'rgba(209,85,63,0.08)',        emoji: '❤️' },
@@ -1328,7 +1328,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
         </div>
         <div className="flex gap-2 mt-4 pt-4 border-t border-gray-50 flex-wrap">
           {[
-            { label: 'Pencatatan Persembahan', page: 'offerings' }, { label: 'Finance Add-on', page: 'finance-addon' },
+            { label: 'Pencatatan Persembahan', page: 'offerings' }, { label: 'Dashboard Finance', page: 'finance-dashboard' },
           ].map(item => (
             <button key={item.page} onClick={() => nav(item.page)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-[#f0f7fb] transition-colors" style={{ fontSize: '12px', fontWeight: 500, color: '#144f6b', background: '#f0f7fb' }}>
               {item.label} <ChevronRight className="w-3 h-3" />

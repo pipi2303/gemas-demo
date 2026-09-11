@@ -67,7 +67,6 @@ export const PAGE_MODULE: Record<string, string> = {
   data:                  'Admin Sistem',
   'master-data':         'Admin Sistem',
   activity:              'Admin Sistem',
-  'finance-addon':       'Keuangan (Finance Add-on)',
   'finance-master-data': 'Keuangan (Finance Add-on)',
   'finance-budget':      'Keuangan (Finance Add-on)',
   'finance-transaction': 'Keuangan (Finance Add-on)',

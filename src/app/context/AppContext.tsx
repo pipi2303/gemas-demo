@@ -2780,7 +2780,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       { id: 'letter-templates', label: 'Template Surat', keywords: ['template surat', 'surat menyurat'], icon: 'file-text', page: 'letter-templates' },
       { id: 'letter-settings', label: 'Pengaturan Surat Menyurat', keywords: ['pengaturan surat', 'kop surat', 'nomor surat', 'tanda tangan', 'cap'], icon: 'mail', page: 'letter-settings' },
       { id: 'master-data-settings', label: 'Pengaturan Master Data', keywords: ['master data', 'pengaturan sistem', 'daftar pilihan'], icon: 'database', page: 'master-data' },
-      { id: 'finance-addon', label: 'Ringkasan Finance', keywords: ['finance add-on', 'ringkasan finance', 'keuangan add-on'], icon: 'landmark', page: 'finance-addon' },
       { id: 'finance-master-data', label: 'Master Data Finance', keywords: ['master data finance', 'akun', 'coa', 'chart of accounts'], icon: 'database', page: 'finance-master-data' },
       { id: 'finance-budget', label: 'Budget / RKA', keywords: ['anggaran finance', 'rka', 'budget finance'], icon: 'calculator', page: 'finance-budget' },
       { id: 'finance-transaction', label: 'Transaksi & Voucher', keywords: ['voucher', 'transaksi finance', 'jurnal transaksi'], icon: 'receipt', page: 'finance-transaction' },
