@@ -11,18 +11,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Switch } from './ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import type { LivestreamLink, LivestreamPlatform, ReminderSetting } from '../types';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import {
   Bell, Clock, Calendar, ExternalLink,
   Plus, Edit3, Trash2, Save, Play, Settings, CheckCircle,
-  Link2, Smartphone, Send,
+  Link2, Smartphone, Send, Download,
 } from 'lucide-react';
 
 const PLATFORM_COLORS: Record<string, string> = {
-  'YouTube':      'bg-red-100 text-red-700',
-  'Zoom':         'bg-[#f0ede5] text-[#144f6b]',
-  'Google Meet':  'bg-green-100 text-green-700',
-  'Facebook Live':'bg-[#f0ede5] text-[#144f6b]',
-  'Lainnya':      'bg-gray-100 text-gray-700',
+  'YouTube':      'bg-[#fdf1ef] text-[#d1553f]',
+  'Zoom':         'bg-[#f0f7fb] text-[#144f6b]',
+  'Google Meet':  'bg-[#f0f9f4] text-[#2f8f5b]',
+  'Facebook Live':'bg-[#f5f2fa] text-[#8b6bb1]',
+  'Lainnya':      'bg-[#f6f4f0] text-[#9c9486]',
 };
 
 const PLATFORM_ICONS: Record<string, string> = {
@@ -32,14 +34,35 @@ const PLATFORM_ICONS: Record<string, string> = {
 const PLATFORMS: LivestreamPlatform[] = ['YouTube', 'Zoom', 'Google Meet', 'Facebook Live', 'Lainnya'];
 const CHANNELS = ['Notifikasi App', 'WhatsApp', 'Email'];
 
+// Opsi lead-time pengingat: dipakai form (leadValue x leadUnit) untuk menghasilkan
+// leadMinutes terstruktur, supaya efek auto-fire di AppContext bisa menghitung kapan
+// notifikasi harus terpicu (bukan sekadar teks bebas seperti sebelumnya).
+const LEAD_UNITS: { value: 'menit' | 'jam' | 'hari'; label: string; minutes: number }[] = [
+  { value: 'menit', label: 'Menit', minutes: 1 },
+  { value: 'jam',   label: 'Jam',   minutes: 60 },
+  { value: 'hari',  label: 'Hari',  minutes: 1440 },
+];
+const leadUnitMinutes = (unit: string) => LEAD_UNITS.find(u => u.value === unit)?.minutes ?? 1;
+const formatTiming = (value: number, unit: string) => {
+  const label = LEAD_UNITS.find(u => u.value === unit)?.label.toLowerCase() ?? unit;
+  return `${value} ${label} sebelum ibadah dimulai`;
+};
+const SERVICE_TYPE_FALLBACK = ['Minggu Pagi', 'Minggu Sore', 'Rabu', 'Pemuda', 'Khusus'];
+
 export function LivestreamReminder() {
   const {
     worshipSchedules,
     livestreamLinks, addLivestreamLink, updateLivestreamLink, deleteLivestreamLink,
     reminderSettings, addReminderSetting, updateReminderSetting, deleteReminderSetting,
+    addNotification, can,
   } = useApp();
   const { offset: offset1, onMouseDown: onMouseDown1 } = useDraggable();
   const { offset: offset2, onMouseDown: onMouseDown2 } = useDraggable();
+
+  const canCreate = can('livestream', 'create');
+  const canEdit   = can('livestream', 'edit');
+  const canDelete = can('livestream', 'delete');
+  const canExport = can('livestream', 'export');
 
   // ── Link state ──────────────────────────────────────────────────────────────
   const [showLinkForm, setShowLinkForm] = useState(false);
@@ -48,7 +71,7 @@ export function LivestreamReminder() {
   const [linkForm, setLinkForm] = useState({
     title: '', date: '', time: '',
     platform: 'YouTube' as LivestreamPlatform,
-    url: '', isActive: true,
+    url: '', isActive: true, scheduleId: '',
   });
 
   // ── Reminder state ──────────────────────────────────────────────────────────
@@ -56,20 +79,27 @@ export function LivestreamReminder() {
   const [editReminder, setEditReminder] = useState<ReminderSetting | null>(null);
   const [deleteReminderId, setDeleteReminderId] = useState<string | null>(null);
   const [reminderForm, setReminderForm] = useState({
-    name: '', timing: '', channel: 'Notifikasi App', serviceType: '', enabled: true,
+    name: '', leadValue: 60, leadUnit: 'menit' as 'menit' | 'jam' | 'hari',
+    channel: 'Notifikasi App', serviceType: '', enabled: true,
   });
   const [sentNotifications, setSentNotifications] = useState<string[]>([]);
+
+  const serviceTypeOptions = React.useMemo(() => {
+    const fromSchedules = Array.from(new Set(worshipSchedules.map(w => w.type).filter(Boolean)));
+    const base = fromSchedules.length > 0 ? fromSchedules : SERVICE_TYPE_FALLBACK;
+    return ['Semua Ibadah', ...base];
+  }, [worshipSchedules]);
 
   // ── Link handlers ───────────────────────────────────────────────────────────
   const openAddLink = () => {
     setEditLink(null);
-    setLinkForm({ title: '', date: '', time: '', platform: 'YouTube', url: '', isActive: true });
+    setLinkForm({ title: '', date: '', time: '', platform: 'YouTube', url: '', isActive: true, scheduleId: '' });
     setShowLinkForm(true);
   };
 
   const openEditLink = (link: LivestreamLink) => {
     setEditLink(link);
-    setLinkForm({ title: link.title, date: link.date, time: link.time, platform: link.platform, url: link.url, isActive: link.isActive });
+    setLinkForm({ title: link.title, date: link.date, time: link.time, platform: link.platform, url: link.url, isActive: link.isActive, scheduleId: link.scheduleId || '' });
     setShowLinkForm(true);
   };
 
@@ -78,7 +108,7 @@ export function LivestreamReminder() {
     if (editLink) {
       updateLivestreamLink(editLink.id, linkForm);
     } else {
-      addLivestreamLink({ ...linkForm, scheduleId: '', views: 0 });
+      addLivestreamLink({ ...linkForm, views: 0 });
     }
     setShowLinkForm(false);
     setEditLink(null);
@@ -90,22 +120,38 @@ export function LivestreamReminder() {
   // ── Reminder handlers ───────────────────────────────────────────────────────
   const openAddReminder = () => {
     setEditReminder(null);
-    setReminderForm({ name: '', timing: '', channel: 'Notifikasi App', serviceType: '', enabled: true });
+    setReminderForm({ name: '', leadValue: 60, leadUnit: 'menit', channel: 'Notifikasi App', serviceType: '', enabled: true });
     setShowReminderForm(true);
   };
 
   const openEditReminder = (r: ReminderSetting) => {
     setEditReminder(r);
-    setReminderForm({ name: r.name, timing: r.timing, channel: r.channel, serviceType: r.serviceType, enabled: r.enabled });
+    // Reminder lama (sebelum fitur lead-time terstruktur) belum punya leadMinutes -- default ke 60 menit
+    // supaya bisa langsung diaktifkan; simpan ulang akan menuliskan leadMinutes yang baru.
+    const leadValue = r.leadMinutes && r.leadMinutes % 1440 === 0 ? r.leadMinutes / 1440
+      : r.leadMinutes && r.leadMinutes % 60 === 0 ? r.leadMinutes / 60
+      : r.leadMinutes || 60;
+    const leadUnit: 'menit' | 'jam' | 'hari' = r.leadMinutes && r.leadMinutes % 1440 === 0 ? 'hari'
+      : r.leadMinutes && r.leadMinutes % 60 === 0 ? 'jam' : 'menit';
+    setReminderForm({ name: r.name, leadValue, leadUnit, channel: r.channel, serviceType: r.serviceType, enabled: r.enabled });
     setShowReminderForm(true);
   };
 
   const saveReminder = () => {
-    if (!reminderForm.name || !reminderForm.timing) return;
+    if (!reminderForm.name || !reminderForm.serviceType) return;
+    const leadMinutes = reminderForm.leadValue * leadUnitMinutes(reminderForm.leadUnit);
+    const payload = {
+      name: reminderForm.name,
+      timing: formatTiming(reminderForm.leadValue, reminderForm.leadUnit),
+      channel: reminderForm.channel,
+      serviceType: reminderForm.serviceType,
+      enabled: reminderForm.enabled,
+      leadMinutes,
+    };
     if (editReminder) {
-      updateReminderSetting(editReminder.id, reminderForm);
+      updateReminderSetting(editReminder.id, payload);
     } else {
-      addReminderSetting(reminderForm);
+      addReminderSetting(payload);
     }
     setShowReminderForm(false);
     setEditReminder(null);
@@ -116,9 +162,101 @@ export function LivestreamReminder() {
   const confirmDeleteReminder = (id: string) => setDeleteReminderId(id);
   const doDeleteReminder = () => { if (deleteReminderId) { deleteReminderSetting(deleteReminderId); setDeleteReminderId(null); } };
 
-  const sendTestNotification = (id: string) => {
-    setSentNotifications(prev => [...prev, id]);
-    setTimeout(() => setSentNotifications(prev => prev.filter(x => x !== id)), 3000);
+  // Kirim notifikasi in-app nyata (bukan cuma toggle UI) supaya tombol "Test" benar-benar
+  // menunjukkan hasil notifikasi di NotificationCenter, dengan link unik per klik agar tidak
+  // ke-dedup oleh addNotification (yang menolak link duplikat).
+  const sendTestNotification = (r: ReminderSetting) => {
+    setSentNotifications(prev => [...prev, r.id]);
+    addNotification({
+      type: 'event',
+      title: `[Uji Coba] ${r.name}`,
+      message: `${r.timing} · ${r.serviceType} · via ${r.channel}`,
+      read: false,
+      link: `livestream-reminder-test-${r.id}-${Date.now()}`,
+      priority: 'low',
+    });
+    setTimeout(() => setSentNotifications(prev => prev.filter(x => x !== r.id)), 3000);
+  };
+
+  // Unduh daftar link livestream & pengaturan pengingat sebagai PDF (jsPDF + autoTable,
+  // berkop surat navy/gold GPIB Trinitas -- konsisten dengan ekspor menu lain).
+  const handleExportPDF = () => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const NAVY: [number, number, number] = [20, 79, 107];
+    const GOLD: [number, number, number] = [202, 160, 74];
+    const SLATE: [number, number, number] = [51, 65, 85];
+
+    const drawHeader = (title: string) => {
+      doc.setFillColor(...NAVY);
+      doc.rect(0, 0, pageWidth, 22, 'F');
+      doc.setFillColor(...GOLD);
+      doc.rect(0, 22, pageWidth, 1.4, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text(title, pageWidth / 2, 9, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.text('GPIB Trinitas', pageWidth / 2, 15, { align: 'center' });
+      doc.setFontSize(7.5);
+      doc.text(`Dicetak ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}`, pageWidth / 2, 19.5, { align: 'center' });
+    };
+    drawHeader('LIVESTREAM & PENGINGAT IBADAH');
+
+    const linkRows = livestreamLinks.map((l, i) => [
+      String(i + 1), l.title,
+      new Date(l.date + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+      l.time, l.platform, l.url, l.isActive ? 'Aktif' : 'Nonaktif', String(l.views),
+    ]);
+    autoTable(doc, {
+      startY: 28,
+      head: [['No', 'Judul', 'Tanggal', 'Jam', 'Platform', 'URL', 'Status', 'Penonton']],
+      body: linkRows,
+      theme: 'striped',
+      headStyles: { fillColor: SLATE, textColor: 255, fontSize: 8, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 7, cellPadding: 2 },
+      columnStyles: { 0: { cellWidth: 8, halign: 'center' }, 1: { cellWidth: 50 }, 2: { cellWidth: 26 }, 3: { cellWidth: 14, halign: 'center' }, 4: { cellWidth: 24 }, 5: { cellWidth: 70 }, 6: { cellWidth: 18 }, 7: { cellWidth: 'auto', halign: 'center' } },
+      margin: { left: 12, right: 12 },
+      didDrawPage: () => { if (doc.internal.getNumberOfPages() > 1) drawHeader('LIVESTREAM & PENGINGAT IBADAH'); },
+    });
+
+    const reminderStartY = (doc as any).lastAutoTable.finalY + 10;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.setTextColor(20, 79, 107);
+    doc.text('Pengaturan Pengingat Ibadah', 12, reminderStartY);
+    const reminderRows = reminderSettings.map((r, i) => [
+      String(i + 1), r.name, r.timing, r.channel, r.serviceType, r.enabled ? 'Aktif' : 'Nonaktif',
+    ]);
+    autoTable(doc, {
+      startY: reminderStartY + 3,
+      head: [['No', 'Nama Pengingat', 'Waktu Kirim', 'Channel', 'Jenis Ibadah', 'Status']],
+      body: reminderRows,
+      theme: 'striped',
+      headStyles: { fillColor: SLATE, textColor: 255, fontSize: 8, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 7.5, cellPadding: 2 },
+      margin: { left: 12, right: 12 },
+      didDrawPage: () => { if (doc.internal.getNumberOfPages() > 1) drawHeader('LIVESTREAM & PENGINGAT IBADAH'); },
+    });
+
+    const totalPages = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.4);
+      doc.line(12, pageHeight - 10, pageWidth - 12, pageHeight - 10);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+      doc.setTextColor(148, 163, 184);
+      doc.text('Dokumen Internal GPIB Trinitas', 12, pageHeight - 6);
+      doc.text(`Halaman ${i} dari ${totalPages}`, pageWidth - 12, pageHeight - 6, { align: 'right' });
+    }
+
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    doc.save(`Livestream-Reminder-GPIB-Trinitas-${pad(now.getDate())}${pad(now.getMonth()+1)}${now.getFullYear()}.pdf`);
   };
 
   // ── Derived ─────────────────────────────────────────────────────────────────
@@ -132,10 +270,20 @@ export function LivestreamReminder() {
           <h1 className="text-2xl font-bold text-gray-900">Livestream & Reminder Ibadah</h1>
           <p className="text-gray-500 mt-1">Kelola link streaming ibadah (YouTube/Zoom) dan atur pengingat otomatis untuk jemaat</p>
         </div>
-        <Button className="gap-2 bg-[#144f6b] hover:bg-[#0f2d41]" onClick={openAddLink}>
-          <Plus className="w-4 h-4" />
-          Tambah Link
-        </Button>
+        <div className="flex items-center gap-2">
+          {canExport && (
+            <button onClick={handleExportPDF}
+              className="flex items-center gap-2 px-4 py-2 border border-[#b8d5e8] text-[#144f6b] bg-[#f0f7fb] rounded-lg hover:bg-[#e3eef6] transition-colors text-sm">
+              <Download className="w-4 h-4" /> Unduh PDF
+            </button>
+          )}
+          {canCreate && (
+            <Button className="gap-2 bg-[#144f6b] hover:bg-[#0f2d41]" onClick={openAddLink}>
+              <Plus className="w-4 h-4" />
+              Tambah Link
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Stats */}
@@ -144,7 +292,7 @@ export function LivestreamReminder() {
           { label: 'Link Aktif',      value: livestreamLinks.filter(l => l.isActive).length,        color: 'text-[#144f6b]',  bg: 'bg-[#f0f7fb]'  },
           { label: 'Total Penonton',  value: livestreamLinks.reduce((a, l) => a + l.views, 0),       color: 'text-[#144f6b]',  bg: 'bg-[#f0f7fb]'  },
           { label: 'Reminder Aktif',  value: activeReminders.length,                                  color: 'text-[#3a7fa0]',  bg: 'bg-[#f0f7fb]'  },
-          { label: 'Jadwal Ibadah',   value: worshipSchedules.length,                                 color: 'text-orange-700', bg: 'bg-[#fffce8]'  },
+          { label: 'Jadwal Ibadah',   value: worshipSchedules.length,                                 color: 'text-[#8b6bb1]',  bg: 'bg-[#f5f2fa]'  },
         ].map((stat, i) => (
           <Card key={i} className={`p-4 ${stat.bg}`}>
             <p className="text-sm text-gray-600">{stat.label}</p>
@@ -203,8 +351,18 @@ export function LivestreamReminder() {
                       <div className="mt-2 flex items-center gap-2">
                         <Link2 className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                         <a href={link.url} target="_blank" rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:underline truncate">{link.url}</a>
+                          className="text-sm text-[#144f6b] hover:underline truncate">{link.url}</a>
                       </div>
+                      {(() => {
+                        const linkedSchedule = link.scheduleId ? worshipSchedules.find(w => w.id === link.scheduleId) : undefined;
+                        if (link.scheduleId && !linkedSchedule) {
+                          return <p className="text-xs text-[#d1553f] mt-1">⚠ Jadwal ibadah tertaut sudah tidak ada</p>;
+                        }
+                        if (linkedSchedule) {
+                          return <p className="text-xs text-[#8b6bb1] mt-1">Terkait Jadwal Ibadah: {linkedSchedule.title}</p>;
+                        }
+                        return <p className="text-xs text-gray-400 mt-1">Belum ditautkan ke Jadwal Ibadah</p>;
+                      })()}
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
@@ -214,15 +372,19 @@ export function LivestreamReminder() {
                           Buka
                         </a>
                       </Button>
-                      <Button variant="outline" size="sm" className="gap-1 text-xs"
-                        onClick={() => openEditLink(link)}>
-                        <Edit3 className="w-3 h-3" />
-                        Edit
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => confirmDeleteLink(link.id)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      {canEdit && (
+                        <Button variant="outline" size="sm" className="gap-1 text-xs"
+                          onClick={() => openEditLink(link)}>
+                          <Edit3 className="w-3 h-3" />
+                          Edit
+                        </Button>
+                      )}
+                      {canDelete && (
+                        <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => confirmDeleteLink(link.id)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
 
@@ -230,7 +392,7 @@ export function LivestreamReminder() {
                     <div className="mt-3 pt-3 border-t border-gray-100">
                       <div className="bg-gray-900 rounded-lg aspect-video max-h-48 flex items-center justify-center relative overflow-hidden">
                         <div className="text-center">
-                          <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <div className="w-16 h-16 bg-[#d1553f] rounded-full flex items-center justify-center mx-auto mb-2">
                             <Play className="w-8 h-8 text-white ml-1" />
                           </div>
                           <p className="text-white text-sm">{link.title}</p>
@@ -247,10 +409,11 @@ export function LivestreamReminder() {
 
         {/* ── Tab: Reminders ── */}
         <TabsContent value="reminders" className="space-y-4">
-          <div className="flex items-center gap-2 p-3 bg-[#f0f7fb] rounded-lg border border-blue-200">
-            <Bell className="w-4 h-4 text-blue-600 shrink-0" />
-            <p className="text-sm text-blue-700">
-              Reminder akan dikirim otomatis ke jemaat sesuai pengaturan. Pastikan notifikasi diizinkan di perangkat masing-masing.
+          <div className="flex items-center gap-2 p-3 bg-[#f0f7fb] rounded-lg border border-[#b8d5e8]">
+            <Bell className="w-4 h-4 text-[#144f6b] shrink-0" />
+            <p className="text-sm text-[#144f6b]">
+              Pengingat dengan lead time terisi akan otomatis memunculkan notifikasi in-app (lonceng notifikasi)
+              begitu waktunya tiba, selama aplikasi ini terbuka. Ini bukan notifikasi push ke perangkat di luar aplikasi.
             </p>
           </div>
 
@@ -276,29 +439,35 @@ export function LivestreamReminder() {
 
                   <div className="flex items-center gap-2 shrink-0">
                     <Button variant="outline" size="sm" className="gap-1 text-xs"
-                      onClick={() => sendTestNotification(reminder.id)}>
+                      onClick={() => sendTestNotification(reminder)}>
                       {sentNotifications.includes(reminder.id)
                         ? <><CheckCircle className="w-3 h-3 text-[#144f6b]" />Terkirim!</>
                         : <><Send className="w-3 h-3" />Test</>}
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => openEditReminder(reminder)}>
-                      <Edit3 className="w-3.5 h-3.5 text-gray-400" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-600 hover:bg-red-50"
-                      onClick={() => confirmDeleteReminder(reminder.id)}>
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-                    <Switch checked={reminder.enabled} onCheckedChange={() => toggleEnabled(reminder)} />
+                    {canEdit && (
+                      <Button variant="ghost" size="sm" onClick={() => openEditReminder(reminder)}>
+                        <Edit3 className="w-3.5 h-3.5 text-gray-400" />
+                      </Button>
+                    )}
+                    {canDelete && (
+                      <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-600 hover:bg-red-50"
+                        onClick={() => confirmDeleteReminder(reminder.id)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                    <Switch checked={reminder.enabled} onCheckedChange={() => toggleEnabled(reminder)} disabled={!canEdit} />
                   </div>
                 </div>
               </Card>
             ))}
           </div>
 
-          <Button variant="outline" className="w-full gap-2" onClick={openAddReminder}>
-            <Plus className="w-4 h-4" />
-            Tambah Pengingat Baru
-          </Button>
+          {canCreate && (
+            <Button variant="outline" className="w-full gap-2" onClick={openAddReminder}>
+              <Plus className="w-4 h-4" />
+              Tambah Pengingat Baru
+            </Button>
+          )}
 
           {/* Active reminder schedule preview */}
           {activeReminders.length > 0 && (
@@ -353,6 +522,18 @@ export function LivestreamReminder() {
               </Select>
             </div>
             <div>
+              <Label>Jadwal Ibadah Terkait (opsional)</Label>
+              <Select value={linkForm.scheduleId || '__none__'} onValueChange={v => setLinkForm(f => ({ ...f, scheduleId: v === '__none__' ? '' : v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Tidak ditautkan</SelectItem>
+                  {worshipSchedules.map(w => (
+                    <SelectItem key={w.id} value={w.id}>{w.title} · {w.date}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <Label>URL Livestream</Label>
               <Input placeholder="https://youtube.com/live/..." value={linkForm.url}
                 onChange={e => setLinkForm(f => ({ ...f, url: e.target.value }))} />
@@ -387,13 +568,26 @@ export function LivestreamReminder() {
             </div>
             <div>
               <Label>Jenis Ibadah</Label>
-              <Input placeholder="Minggu Pagi, Rabu, Pemuda..." value={reminderForm.serviceType}
-                onChange={e => setReminderForm(f => ({ ...f, serviceType: e.target.value }))} />
+              <Select value={reminderForm.serviceType} onValueChange={v => setReminderForm(f => ({ ...f, serviceType: v }))}>
+                <SelectTrigger><SelectValue placeholder="Pilih jenis ibadah" /></SelectTrigger>
+                <SelectContent>
+                  {serviceTypeOptions.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div>
-              <Label>Waktu Pengiriman</Label>
-              <Input placeholder="H-1 pukul 18:00, 1 jam sebelum..." value={reminderForm.timing}
-                onChange={e => setReminderForm(f => ({ ...f, timing: e.target.value }))} />
+              <Label>Kirim Pengingat</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <Input type="number" min={1} value={reminderForm.leadValue}
+                  onChange={e => setReminderForm(f => ({ ...f, leadValue: Math.max(1, Number(e.target.value) || 1) }))} />
+                <Select value={reminderForm.leadUnit} onValueChange={v => setReminderForm(f => ({ ...f, leadUnit: v as 'menit' | 'jam' | 'hari' }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {LEAD_UNITS.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">sebelum jadwal ibadah dimulai — {formatTiming(reminderForm.leadValue, reminderForm.leadUnit)}</p>
             </div>
             <div>
               <Label>Channel</Label>
@@ -411,7 +605,7 @@ export function LivestreamReminder() {
             <div className="flex gap-2 pt-2">
               <Button variant="outline" className="flex-1" onClick={() => { setShowReminderForm(false); setEditReminder(null); }}>Batal</Button>
               <Button className="flex-1 bg-[#144f6b] hover:bg-[#0f2d41] gap-2" onClick={saveReminder}
-                disabled={!reminderForm.name || !reminderForm.timing}>
+                disabled={!reminderForm.name || !reminderForm.serviceType}>
                 <Save className="w-4 h-4" />
                 Simpan
               </Button>

@@ -814,7 +814,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (loaded.length === 0) {
         const DEFAULTS: ReminderSetting[] = [
           { id: 'rs1', name: 'Reminder Ibadah Minggu',  enabled: true,  timing: 'H-1 pukul 18:00',      channel: 'Notifikasi App', serviceType: 'Minggu Pagi'   },
-          { id: 'rs2', name: 'Reminder 1 Jam Sebelum',  enabled: true,  timing: '1 jam sebelum ibadah',  channel: 'Notifikasi App', serviceType: 'Semua Ibadah'  },
+          { id: 'rs2', name: 'Reminder 1 Jam Sebelum',  enabled: true,  timing: '1 jam sebelum ibadah',  channel: 'Notifikasi App', serviceType: 'Semua Ibadah', leadMinutes: 60 },
           { id: 'rs3', name: 'Reminder Ibadah Rabu',    enabled: false, timing: 'H-0 pukul 17:00',       channel: 'WhatsApp',       serviceType: 'Rabu'          },
           { id: 'rs4', name: 'Reminder PA Pemuda',      enabled: true,  timing: 'H-1 pukul 15:00',       channel: 'Notifikasi App', serviceType: 'Pemuda'        },
           { id: 'rs5', name: 'Reminder Doa Pagi',       enabled: false, timing: 'H-0 pukul 05:30',       channel: 'Notifikasi App', serviceType: 'Doa Pagi'      },
@@ -1012,6 +1012,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id, events.length]);
+
+  // ── Livestream & Reminder Ibadah: cek tiap 60 detik, fire notifikasi in-app ──
+  // Reminder dengan leadMinutes terisi (lihat ReminderSetting di types) akan otomatis memicu
+  // addNotification begitu waktu sekarang masuk jendela [jadwal - leadMinutes, jadwal). Ini
+  // notifikasi in-app (butuh app/tab terbuka), BUKAN push background ke perangkat -- sengaja
+  // dijelaskan begitu di LivestreamReminder.tsx supaya tidak menyesatkan pengguna.
+  useEffect(() => {
+    if (!currentUser) return;
+    const checkLivestreamReminders = () => {
+      const enabled = reminderSettings.filter(r => r.enabled && r.leadMinutes != null && r.leadMinutes > 0);
+      if (enabled.length === 0) return;
+      const now = Date.now();
+      const existingLinks = new Set(notifications.map(n => n.link).filter(Boolean));
+      enabled.forEach(r => {
+        const matches = worshipSchedules.filter(w => r.serviceType === 'Semua Ibadah' || w.type === r.serviceType);
+        matches.forEach(w => {
+          const schedTime = new Date(`${w.date}T${w.time}:00`).getTime();
+          if (Number.isNaN(schedTime)) return;
+          const fireAt = schedTime - (r.leadMinutes as number) * 60_000;
+          if (now >= fireAt && now < schedTime) {
+            const link = `livestream-reminder-${r.id}-${w.id}`;
+            if (!existingLinks.has(link)) {
+              addNotification({
+                type: 'event',
+                title: `Pengingat: ${r.name}`,
+                message: `${w.title} · ${w.date} ${w.time} WIB · ${r.timing}`,
+                read: false,
+                link,
+                priority: 'medium',
+              });
+            }
+          }
+        });
+      });
+    };
+    checkLivestreamReminders();
+    const interval = setInterval(checkLivestreamReminders, 60_000);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id, reminderSettings.length, worshipSchedules.length]);
 
   // ── Local demo user (hanya untuk preview lokal tanpa server) ────────────────
   const LOCAL_USERS: Record<string, User> = (() => {

@@ -897,6 +897,10 @@ export interface ReminderSetting {
   timing: string;
   channel: string;
   serviceType: string;
+  /** Menit sebelum jadwal ibadah untuk memicu notifikasi in-app otomatis (lihat efek pengecekan
+   * reminder di AppContext). Opsional untuk kompatibilitas data lama yang belum punya lead time
+   * terstruktur -- reminder tanpa field ini hanya bisa dites manual, tidak terpicu otomatis. */
+  leadMinutes?: number;
 }
 
 export interface Liability {

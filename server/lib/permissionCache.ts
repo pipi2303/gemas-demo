@@ -107,6 +107,14 @@ export const COLLECTION_PAGE: Record<string, string[]> = {
   worshipSchedules:      ['worship-schedules'],
   ministries:            ['ministries'],
   attendance:            ['attendance'],
+  // Audit gap fix: livestreamLinks/reminderSettings/attendanceCheckins/attendanceKegiatan sebelumnya
+  // TIDAK ADA di map ini, sehingga requirePermission() (lihat middleware/checkPermission.ts) langsung
+  // next() tanpa cek izin sama sekali untuk keempatnya -- artinya semua role yang login (bukan cuma
+  // Admin) bisa create/update/delete lewat API meski tidak diberi izin di halaman terkait.
+  livestreamLinks:       ['livestream'],
+  reminderSettings:      ['livestream'],
+  attendanceCheckins:    ['attendance'],
+  attendanceKegiatan:    ['attendance'],
   announcements:         ['announcements'],
   financialTransactions: ['offerings'],
   financialCategories:   ['offerings'],

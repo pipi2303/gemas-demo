@@ -16,10 +16,12 @@ import {
   PolarAngleAxis, PolarRadiusAxis
 } from 'recharts';
 import {
-  Users, TrendingUp, Calendar, CheckCircle, BarChart3,
-  Search, RefreshCw, Clock, MapPin, Plus, Pencil, Trash2, X, AlertTriangle,
+  Users, CheckCircle,
+  Search, RefreshCw, Clock, Plus, Pencil, Trash2, X, AlertTriangle, Download, QrCode,
 } from 'lucide-react';
 import { api } from '../../lib/apiClient';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // ── Absensi Kegiatan ─────────────────────────────────────────────────────────
 interface AbsensiRecord {
@@ -76,7 +78,11 @@ const LAPORAN_MINGGUAN_DEFAULT_WIDTHS: Record<string, number> = {
 };
 
 export function AttendanceStatsQR() {
-  const { members, sectors, worshipSchedules, attendance } = useApp();
+  const { members, sectors, worshipSchedules, can } = useApp();
+  const canCreate = can('attendance', 'create');
+  const canEdit   = can('attendance', 'edit');
+  const canDelete = can('attendance', 'delete');
+  const canExport = can('attendance', 'export');
   const { widths: colW, startResize } = useResizableColumns('attendance-laporan-mingguan', LAPORAN_MINGGUAN_DEFAULT_WIDTHS);
   const { offset: offsetDeleteAbsensi, onMouseDown: onMouseDownDeleteAbsensi } = useDraggable();
   const [isScanning, setIsScanning] = useState(false);
@@ -116,8 +122,13 @@ export function AttendanceStatsQR() {
   // ── Absensi CRUD state ──
   const [absensiRecords, setAbsensiRecords] = useState<AbsensiRecord[]>([]);
 
+  // Audit gap fix: dulu koleksi ini bernama 'attendance', SAMA dengan koleksi asli
+  // AppContext untuk tipe Attendance (per-jemaat, dipakai Dashboard/ReportCenter/BackupRestore/
+  // DataManager) -- dua skema data yang sama sekali berbeda saling menimpa di koleksi yang sama.
+  // Direname jadi 'attendanceKegiatan' supaya data Absensi Mingguan (AbsensiRecord, agregat per
+  // kegiatan) tidak lagi bentrok dengan data Attendance (per jemaat, present/absent).
   useEffect(() => {
-    api.get<AbsensiRecord[]>('/api/data/attendance')
+    api.get<AbsensiRecord[]>('/api/data/attendanceKegiatan')
       .then(data => {
         if (data && data.length > 0) {
           setAbsensiRecords(data);
@@ -125,7 +136,7 @@ export function AttendanceStatsQR() {
           // Seed initial data
           setAbsensiRecords(SEED_ABSENSI);
           SEED_ABSENSI.forEach(item => {
-            api.put(`/api/data/attendance/${item.id}`, item)
+            api.put(`/api/data/attendanceKegiatan/${item.id}`, item)
               .catch(err => console.error('[AttendanceStatsQR] seed:', err));
           });
         }
@@ -190,7 +201,7 @@ export function AttendanceStatsQR() {
       updated = [...absensiRecords, upsertRecord];
     }
     setAbsensiRecords(updated);
-    api.put(`/api/data/attendance/${upsertRecord.id}`, upsertRecord)
+    api.put(`/api/data/attendanceKegiatan/${upsertRecord.id}`, upsertRecord)
       .catch(err => console.error('[AttendanceStatsQR] save:', err));
     setInlineForm({ kegiatan: '', tempat: '', tanggal: '', kehadiran: '' });
   };
@@ -198,7 +209,7 @@ export function AttendanceStatsQR() {
   const deleteAbsensi = (id: string) => {
     const updated = absensiRecords.filter(r => r.id !== id);
     setAbsensiRecords(updated);
-    api.delete(`/api/data/attendance/${id}`)
+    api.delete(`/api/data/attendanceKegiatan/${id}`)
       .catch(err => console.error('[AttendanceStatsQR] delete:', err));
     setDeleteAbsensiId(null);
   };
@@ -258,14 +269,19 @@ export function AttendanceStatsQR() {
     }
     const notScanned = members.filter(m => !scannedMembers.find(s => s.id === m.id));
     if (notScanned.length === 0) { toast.success('Semua jemaat sudah di-scan.'); return; }
-    const randomMember = notScanned[Math.floor(Math.random() * notScanned.length)];
-    const record = {
-      ...randomMember,
-      scanTime: new Date().toLocaleTimeString('id-ID'),
-      session: activeSession,
-    };
-    setScannedMembers(prev => [record, ...prev]);
-    persistCheckin(record);
+    setIsScanning(true);
+    setTimeout(() => {
+      const randomMember = notScanned[Math.floor(Math.random() * notScanned.length)];
+      const record = {
+        ...randomMember,
+        scanTime: new Date().toLocaleTimeString('id-ID'),
+        session: activeSession,
+      };
+      setScannedMembers(prev => [record, ...prev]);
+      persistCheckin(record);
+      setIsScanning(false);
+      toast.success(`${randomMember.fullName} berhasil di-scan.`);
+    }, 600);
   };
 
   const manualCheckin = (member: any) => {
@@ -316,15 +332,88 @@ export function AttendanceStatsQR() {
     }));
   }, [absensiRecords, currentYear]);
 
+  // Unduh Laporan Absensi Mingguan (bulan terpilih) sebagai PDF (jsPDF + autoTable,
+  // berkop surat navy/gold GPIB Trinitas -- konsisten dengan ekspor menu lain).
+  const handleExportPDF = () => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const NAVY: [number, number, number] = [20, 79, 107];
+    const GOLD: [number, number, number] = [202, 160, 74];
+    const SLATE: [number, number, number] = [51, 65, 85];
+
+    const drawHeader = () => {
+      doc.setFillColor(...NAVY);
+      doc.rect(0, 0, pageWidth, 22, 'F');
+      doc.setFillColor(...GOLD);
+      doc.rect(0, 22, pageWidth, 1.4, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text('LAPORAN ABSENSI KEGIATAN IBADAH', pageWidth / 2, 9, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.text('GPIB Trinitas', pageWidth / 2, 15, { align: 'center' });
+      doc.setFontSize(7.5);
+      doc.text(`Periode ${periodeBulan} · Dicetak ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}`, pageWidth / 2, 19.5, { align: 'center' });
+    };
+    drawHeader();
+
+    const rows = filteredMingguan.map((r, i) => [
+      String(i + 1), r.kegiatan, r.tempat, formatTanggalDisplay(r.tanggal),
+      r.kehadiran != null ? `${r.kehadiran} orang` : '-',
+    ]);
+    autoTable(doc, {
+      startY: 28,
+      head: [['No', 'Kegiatan', 'Tempat', 'Hari, Tanggal', 'Kehadiran']],
+      body: rows,
+      theme: 'striped',
+      headStyles: { fillColor: SLATE, textColor: 255, fontSize: 8, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 7.5, cellPadding: 2 },
+      columnStyles: { 0: { cellWidth: 10, halign: 'center' }, 1: { cellWidth: 70 }, 2: { cellWidth: 60 }, 3: { cellWidth: 60 }, 4: { cellWidth: 'auto', halign: 'center' } },
+      margin: { left: 12, right: 12 },
+      didDrawPage: () => { if (doc.internal.getNumberOfPages() > 1) drawHeader(); },
+    });
+
+    const summaryY = (doc as any).lastAutoTable.finalY + 10;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(20, 79, 107);
+    doc.text(`Total Kegiatan: ${totalKegiatanBulan}   ·   Total Kehadiran: ${totalKehadiranBulan}   ·   Rata-rata: ${rataRataBulan}`, 12, summaryY);
+
+    const totalPages = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.4);
+      doc.line(12, pageHeight - 10, pageWidth - 12, pageHeight - 10);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+      doc.setTextColor(148, 163, 184);
+      doc.text('Dokumen Internal GPIB Trinitas', 12, pageHeight - 6);
+      doc.text(`Halaman ${i} dari ${totalPages}`, pageWidth - 12, pageHeight - 6, { align: 'right' });
+    }
+
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    doc.save(`Absensi-Ibadah-GPIB-Trinitas-${pad(now.getDate())}${pad(now.getMonth()+1)}${now.getFullYear()}.pdf`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Record Kehadiran</h1>
-          <p className="text-gray-500 mt-1">Catat absensi kegiatan ibadah dan pantau statistik kehadiran jemaat</p>
+          <h1 className="text-2xl font-bold text-gray-900">Presensi Ibadah & QR</h1>
+          <p className="text-gray-500 mt-1">Catat absensi kegiatan ibadah, presensi jemaat via QR/manual, dan pantau statistik kehadiran</p>
         </div>
         <div className="flex gap-2">
+          {canExport && (
+            <button onClick={handleExportPDF}
+              className="flex items-center gap-2 px-4 py-2 border border-[#b8d5e8] text-[#144f6b] bg-[#f0f7fb] rounded-lg hover:bg-[#e3eef6] transition-colors text-sm">
+              <Download className="w-4 h-4" /> Unduh PDF
+            </button>
+          )}
           <Button variant="outline" className="gap-2" onClick={() => setScannedMembers([])}>
             <RefreshCw className="w-4 h-4" />
             Reset Sesi
@@ -338,7 +427,7 @@ export function AttendanceStatsQR() {
           { label: 'Hadir Sesi Ini', value: todayTotal, sub: `dari ${members.length} jemaat`, color: 'text-[#144f6b]', bg: 'bg-[#f0f7fb]' },
           { label: 'Rata-rata Bulanan', value: `${lastMonthRate}%`, sub: 'kehadiran ibadah', color: 'text-[#144f6b]', bg: 'bg-[#f0f7fb]' },
           { label: 'Total Ibadah', value: worshipSchedules.length || 24, sub: 'jadwal terdaftar', color: 'text-[#3a7fa0]', bg: 'bg-[#f0f7fb]' },
-          { label: 'Scan Manual', value: scannedMembers.filter(s => s.manual).length, sub: 'check-in manual', color: 'text-orange-700', bg: 'bg-[#fffce8]' },
+          { label: 'Scan Manual', value: scannedMembers.filter(s => s.manual).length, sub: 'check-in manual', color: 'text-[#8b6bb1]', bg: 'bg-[#f5f2fa]' },
         ].map((stat, i) => (
           <Card key={i} className={`p-4 ${stat.bg}`}>
             <p className="text-sm text-gray-600">{stat.label}</p>
@@ -348,18 +437,105 @@ export function AttendanceStatsQR() {
         ))}
       </div>
 
-      <Tabs defaultValue="absensi">
-        <TabsList className="grid w-full max-w-lg grid-cols-3">
+      <Tabs defaultValue="qr">
+        <TabsList className="grid w-full max-w-2xl grid-cols-4">
+          <TabsTrigger value="qr" className="gap-1"><QrCode className="w-3.5 h-3.5" />Presensi & QR</TabsTrigger>
           <TabsTrigger value="absensi">Absensi</TabsTrigger>
           <TabsTrigger value="weekly">Tren Mingguan</TabsTrigger>
           <TabsTrigger value="sector">Per Sektor</TabsTrigger>
         </TabsList>
 
+        {/* Tab: Presensi & QR (scan/check-in jemaat per sesi hari ini) */}
+        <TabsContent value="qr" className="space-y-4">
+          <Card className="p-5">
+            <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3 mb-4">
+              <div className="flex-1 w-full">
+                <label className="text-sm font-semibold text-gray-700 mb-1 block">Sesi Ibadah</label>
+                <Select value={activeSession} onValueChange={setActiveSession}>
+                  <SelectTrigger><SelectValue placeholder="Pilih sesi ibadah hari ini" /></SelectTrigger>
+                  <SelectContent>
+                    {serviceTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {canCreate && (
+                <Button className="gap-2 bg-[#144f6b] hover:bg-[#0f2d41]" disabled={!activeSession || isScanning} onClick={simulateScan}>
+                  <QrCode className="w-4 h-4" />
+                  {isScanning ? 'Memindai...' : 'Simulasikan Scan QR'}
+                </Button>
+              )}
+            </div>
+
+            <div className="relative mb-4">
+              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Input placeholder="Cari nama jemaat untuk check-in manual..." value={searchScan}
+                onChange={e => setSearchScan(e.target.value)} className="pl-9 pr-9" />
+              {searchScan && (
+                <button onClick={() => setSearchScan('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {searchScan && (
+              <div className="max-h-56 overflow-y-auto border rounded-lg divide-y mb-4" style={{ borderColor: '#e2e8f0' }}>
+                {filteredMembers.length === 0 ? (
+                  <p className="text-sm text-gray-400 text-center py-4">Tidak ada jemaat ditemukan</p>
+                ) : filteredMembers.slice(0, 20).map(m => {
+                  const already = scannedMembers.find(s => s.id === m.id);
+                  return (
+                    <div key={m.id} className="flex items-center justify-between px-4 py-2.5">
+                      <span className="text-sm text-gray-800">{m.fullName}</span>
+                      {already ? (
+                        <span className="flex items-center gap-1 text-xs text-[#2f8f5b] font-medium">
+                          <CheckCircle className="w-3.5 h-3.5" /> Sudah hadir
+                        </span>
+                      ) : (
+                        <button onClick={() => canCreate && manualCheckin(m)} disabled={!canCreate}
+                          className="text-xs font-medium px-3 py-1 rounded-lg border border-[#b8d5e8] text-[#144f6b] bg-[#f0f7fb] hover:bg-[#e3eef6] disabled:opacity-40">
+                          Check-in Manual
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div>
+              <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                <Users className="w-4 h-4 text-gray-600" />
+                Sudah Check-in Hari Ini ({scannedMembers.length})
+              </h4>
+              {scannedMembers.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-6 border rounded-lg" style={{ borderColor: '#e2e8f0' }}>
+                  Belum ada jemaat yang check-in hari ini
+                </p>
+              ) : (
+                <div className="max-h-72 overflow-y-auto space-y-1.5">
+                  {scannedMembers.map((s, i) => (
+                    <div key={s.id + i} className="flex items-center justify-between px-4 py-2 rounded-lg bg-[#f0f9f4]">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-[#2f8f5b]" />
+                        <span className="text-sm text-gray-800">{s.fullName}</span>
+                        {s.manual && <Badge className="bg-[#f5f2fa] text-[#8b6bb1] text-xs">Manual</Badge>}
+                      </div>
+                      <span className="flex items-center gap-1 text-xs text-gray-500">
+                        <Clock className="w-3 h-3" /> {s.scanTime} · {s.session}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Card>
+        </TabsContent>
+
         {/* Tab Absensi */}
         <TabsContent value="absensi" className="space-y-5">
           {/* Form Input Kegiatan */}
           <div className="bg-white rounded-2xl overflow-hidden border" style={{ borderColor: '#e2e8f0', boxShadow: '0 1px 6px rgba(0,0,0,0.05)' }}>
-            <div className="px-5 py-3.5 text-base font-bold" style={{ background: '#FFEFB2', color: '#2b4265' }}>
+            <div className="px-5 py-3.5 text-base font-bold" style={{ background: '#fdf6e8', color: '#144f6b' }}>
               Form Input Kegiatan
             </div>
             <div className="p-5">
@@ -369,7 +545,7 @@ export function AttendanceStatsQR() {
                   { label: 'Tempat', key: 'tempat', type: 'text', placeholder: 'Contoh: Gereja' },
                 ] as { label: string; key: 'kegiatan' | 'tempat'; type: string; placeholder: string }[]).map(f => (
                   <div key={f.key} className="flex flex-col gap-1.5">
-                    <label className="text-sm font-semibold" style={{ color: '#24324a' }}>{f.label}</label>
+                    <label className="text-sm font-semibold" style={{ color: '#144f6b' }}>{f.label}</label>
                     <input type={f.type} value={inlineForm[f.key]} placeholder={f.placeholder}
                       onChange={e => setInlineForm(p => ({ ...p, [f.key]: e.target.value }))}
                       className="px-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
@@ -377,14 +553,14 @@ export function AttendanceStatsQR() {
                   </div>
                 ))}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-semibold" style={{ color: '#24324a' }}>Tanggal</label>
+                  <label className="text-sm font-semibold" style={{ color: '#144f6b' }}>Tanggal</label>
                   <input type="date" value={inlineForm.tanggal}
                     onChange={e => setInlineForm(p => ({ ...p, tanggal: e.target.value }))}
                     className="px-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
                     style={{ borderColor: '#d1d5db' }} />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-semibold" style={{ color: '#24324a' }}>Jumlah Kehadiran</label>
+                  <label className="text-sm font-semibold" style={{ color: '#144f6b' }}>Jumlah Kehadiran</label>
                   <input type="number" min="0" value={inlineForm.kehadiran} placeholder="0"
                     onChange={e => setInlineForm(p => ({ ...p, kehadiran: e.target.value }))}
                     className="px-3 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
@@ -393,12 +569,14 @@ export function AttendanceStatsQR() {
               </div>
               {inlineError && <p className="text-red-500 text-xs mb-3">{inlineError}</p>}
               <div className="flex items-center gap-2">
-                <button onClick={simpanAbsensi}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors hover:opacity-90"
-                  style={{ background: '#384959', color: '#fff' }}>
-                  <Plus className="w-4 h-4" />
-                  {editingAbsensiId ? 'Simpan Perubahan' : 'Tambah Data'}
-                </button>
+                {(canCreate || (editingAbsensiId && canEdit)) && (
+                  <button onClick={simpanAbsensi}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors hover:opacity-90"
+                    style={{ background: '#144f6b', color: '#fff' }}>
+                    <Plus className="w-4 h-4" />
+                    {editingAbsensiId ? 'Simpan Perubahan' : 'Tambah Data'}
+                  </button>
+                )}
                 {editingAbsensiId && (
                   <button onClick={cancelEdit}
                     className="px-4 py-2.5 rounded-xl text-sm font-medium border transition-colors hover:bg-gray-50"
@@ -412,14 +590,14 @@ export function AttendanceStatsQR() {
 
           {/* Laporan Mingguan */}
           <div className="bg-white rounded-2xl overflow-hidden border" style={{ borderColor: '#e2e8f0', boxShadow: '0 1px 6px rgba(0,0,0,0.05)' }}>
-            <div className="flex items-center justify-between px-5 py-3.5" style={{ background: '#FFEFB2' }}>
-              <span className="text-base font-bold" style={{ color: '#2b4265' }}>Laporan Mingguan</span>
+            <div className="flex items-center justify-between px-5 py-3.5" style={{ background: '#fdf6e8' }}>
+              <span className="text-base font-bold" style={{ color: '#144f6b' }}>Laporan Mingguan</span>
               <input
                 type="month"
                 value={filterBulanMingguan}
                 onChange={e => setFilterBulanMingguan(e.target.value)}
                 className="px-2.5 py-1 text-sm rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#144f6b]"
-                style={{ borderColor: '#d1b84a', background: '#fffce8', color: '#2b4265', fontWeight: 600 }}
+                style={{ borderColor: '#eddca8', background: '#fdf6e8', color: '#144f6b', fontWeight: 600 }}
               />
             </div>
             <div className="overflow-x-auto">
@@ -461,22 +639,26 @@ export function AttendanceStatsQR() {
                             </td>
                           )}
                           <td className="px-5 py-4 text-center">
-                            <span className="font-bold text-lg" style={{ color: '#0f4c75' }}>
+                            <span className="font-bold text-lg" style={{ color: '#144f6b' }}>
                               {r.kehadiran != null ? `${r.kehadiran} orang` : '—'}
                             </span>
                           </td>
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-1.5">
-                              <button onClick={() => openEditAbsensi(r)} title="Edit"
-                                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-blue-50"
-                                style={{ color: '#144f6b' }}>
-                                <Pencil className="w-4 h-4" />
-                              </button>
-                              <button onClick={() => setDeleteAbsensiId(r.id)} title="Hapus"
-                                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-red-50"
-                                style={{ color: '#ef4444' }}>
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              {canEdit && (
+                                <button onClick={() => openEditAbsensi(r)} title="Edit"
+                                  className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-blue-50"
+                                  style={{ color: '#144f6b' }}>
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                              )}
+                              {canDelete && (
+                                <button onClick={() => setDeleteAbsensiId(r.id)} title="Hapus"
+                                  className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-red-50"
+                                  style={{ color: '#ef4444' }}>
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -490,7 +672,7 @@ export function AttendanceStatsQR() {
 
           {/* Laporan Bulanan */}
           <div className="bg-white rounded-2xl overflow-hidden border" style={{ borderColor: '#e2e8f0', boxShadow: '0 1px 6px rgba(0,0,0,0.05)' }}>
-            <div className="px-5 py-3.5 text-base font-bold" style={{ background: '#FFEFB2', color: '#2b4265' }}>
+            <div className="px-5 py-3.5 text-base font-bold" style={{ background: '#fdf6e8', color: '#144f6b' }}>
               Laporan Bulanan
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-5 p-5">
@@ -500,13 +682,13 @@ export function AttendanceStatsQR() {
                 { id: 'rata', label: 'Rata-rata Kehadiran', value: rataRataBulan },
               ].map(box => (
                 <div key={box.id} className="rounded-2xl border p-6 text-center" style={{ background: '#f8fafc', borderColor: '#e5e7eb' }}>
-                  <p className="text-4xl font-bold mb-2" style={{ color: '#1f3b64' }}>{box.value}</p>
+                  <p className="text-4xl font-bold mb-2" style={{ color: '#144f6b' }}>{box.value}</p>
                   <p className="text-sm" style={{ color: '#6b7280' }}>{box.label}</p>
                 </div>
               ))}
               <div className="rounded-2xl border p-6 text-center" style={{ background: '#f8fafc', borderColor: '#e5e7eb' }}>
                 <p className="text-3xl font-bold mb-2">
-                  <span className="inline-block px-4 py-1.5 rounded-full text-base font-bold" style={{ background: '#dbeafe', color: '#1d4ed8' }}>
+                  <span className="inline-block px-4 py-1.5 rounded-full text-base font-bold" style={{ background: '#f0f7fb', color: '#144f6b' }}>
                     {periodeBulan}
                   </span>
                 </p>
