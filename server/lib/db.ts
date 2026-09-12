@@ -1,6 +1,7 @@
 import pg from 'pg';
 import bcrypt from 'bcryptjs';
 import { initFinanceSchema } from './financeSchema.js';
+import { initTenancySchema } from './tenancySchema.js';
 import { handleFinanceInMemoryQuery, initFinanceInMemorySeed } from './financeInMemory.js';
 
 const { Pool } = pg;
@@ -296,6 +297,13 @@ export async function initSchema() {
       )
     `);
     console.log('[DB] PostgreSQL schema initialized successfully');
+
+    try {
+      await initTenancySchema(p);
+      console.log('[DB] Multi-tenant foundation schema initialized successfully');
+    } catch (tenancyErr: any) {
+      console.warn('[DB] Multi-tenant foundation schema initialization failed: ' + tenancyErr.message);
+    }
 
     try {
       await initFinanceSchema(p);
