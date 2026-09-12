@@ -863,6 +863,56 @@ CREATE TABLE IF NOT EXISTS finance.offering_deposit_map (
   CONSTRAINT uq_offering_deposit_map_key UNIQUE (organization_id, map_key)
 );
 
+
+-- ── QRIS CODES (Data QRIS) ────────────────────────────────────────────────────
+-- Menyimpan gambar kode QRIS statis yang dipakai aplikasi (ditampilkan ke
+-- jemaat di Persembahan Digital & E-Warta supaya bisa discan) -- BUKAN
+-- integrasi payment gateway (tidak ada generate QR dinamis/webhook). Boleh
+-- lebih dari satu kode sekaligus (per kategori persembahan, per rekening,
+-- atau per event/musim seperti Natal/Paskah -- lihat qris_code_categories
+-- untuk relasi many-to-many ke kategori). is_active dipakai sebagai
+-- soft-delete (bukan DELETE fisik) karena record persembahan bisa
+-- menyimpan qrisCodeId yang mereferensikan baris ini (lihat
+-- server/routes/data.ts, collection 'offerings') -- kode yang sudah pernah
+-- dipakai tidak boleh hilang total dari database supaya riwayat transaksi
+-- lama tetap bisa ditelusuri ke kode yang dipakai saat itu (nama kode juga
+-- disalin sebagai snapshot ke record offering itu sendiri, jadi tampilan
+-- riwayat tidak bergantung pada baris ini tetap ada). is_displayed terpisah
+-- dari is_active: is_active soal boleh/tidak dipakai mencatat transaksi baru,
+-- is_displayed soal tampil/tidak di kanal publik (Persembahan Digital,
+-- E-Warta) -- kode boleh nonaktif ditampilkan tapi tetap aktif dipakai untuk
+-- pencatatan internal, atau sebaliknya.
+CREATE TABLE IF NOT EXISTS finance.qris_codes (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id   TEXT NOT NULL DEFAULT 'gpib-trinitas',
+  label             VARCHAR(120) NOT NULL,
+  image_data        TEXT NOT NULL,
+  mime_type         VARCHAR(40) NOT NULL,
+  bank_account_id   UUID REFERENCES finance.bank_accounts(id) ON DELETE SET NULL,
+  cash_account_id   UUID REFERENCES finance.cash_accounts(id) ON DELETE SET NULL,
+  event_tag         VARCHAR(120),
+  is_displayed      BOOLEAN NOT NULL DEFAULT TRUE,
+  is_active         BOOLEAN NOT NULL DEFAULT TRUE,
+  sort_order        INT NOT NULL DEFAULT 0,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_by        TEXT NOT NULL,
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_by        TEXT
+);
+
+-- Relasi many-to-many kode QRIS <-> kategori persembahan. `category` teks
+-- biasa (cocok dengan nilai jenis_persembahan), BUKAN foreign key -- alasan
+-- & risikonya sama seperti finance.offering_deposit_map.map_key (lihat
+-- catatan di tabel itu di atas): pendekatan ringan yang disengaja, ditutup
+-- sebagian lewat guard pemakaian di endpoint jenis_persembahan
+-- (server/routes/data.ts), bukan lewat foreign key.
+CREATE TABLE IF NOT EXISTS finance.qris_code_categories (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  qris_code_id  UUID NOT NULL REFERENCES finance.qris_codes(id) ON DELETE CASCADE,
+  category      VARCHAR(60) NOT NULL,
+  CONSTRAINT uq_qris_code_category UNIQUE (qris_code_id, category)
+);
+
 COMMIT;
 `;
 

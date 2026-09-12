@@ -5,9 +5,10 @@ import { toast } from 'sonner';
 import {
   Plus, Pencil, Trash2, X, Loader2, Layers, BookOpen, MapPin,
   FolderTree, ListTree, Wallet, Building2, CalendarRange, Star, ChevronDown, ChevronRight, ArrowLeft, Ticket,
-  Truck, Gift, Target,
+  Truck, Gift, Target, QrCode, Check, ToggleRight, ToggleLeft,
 } from 'lucide-react';
 import { FinancePageHeader } from './FinancePageHeader';
+import type { MasterDataCategory } from '../../types';
 
 const FINANCE_MODULE = 'Finance Add-on (Standar Akuntansi)';
 
@@ -115,6 +116,7 @@ interface Lookups {
   funds: any[];
   accounts: any[];
   costCenters: any[];
+  cashAccounts: any[];
 }
 
 function buildConfigs(lk: Lookups): EntityConfig[] {
@@ -125,6 +127,7 @@ function buildConfigs(lk: Lookups): EntityConfig[] {
   const accountOptions = lk.accounts.map(a => ({ value: a.id, label: `${a.code} — ${a.name}` }));
   const postableAccountOptions = lk.accounts.filter(a => a.is_postable).map(a => ({ value: a.id, label: `${a.code} — ${a.name}` }));
   const costCenterOptions = lk.costCenters.map(c => ({ value: c.id, label: `${c.code} — ${c.name}` }));
+  const cashAccountOptions = lk.cashAccounts.map(c => ({ value: c.id, label: c.name }));
 
   return [
     {
@@ -294,6 +297,29 @@ function buildConfigs(lk: Lookups): EntityConfig[] {
         { key: 'account_name', label: 'Atas Nama', type: 'text', required: true, placeholder: 'GPIB Trinitas' },
         { key: 'currency', label: 'Mata Uang', type: 'text', defaultValue: 'IDR', placeholder: 'IDR' },
         { key: 'opening_balance', label: 'Saldo Awal', type: 'number', defaultValue: 0 },
+      ],
+    },
+    {
+      id: 'offering-deposit-map',
+      label: 'Peta Setoran Persembahan',
+      endpoint: '/api/v1/finance/offering-deposit-map',
+      emptyHint: 'Belum ada Peta Setoran. Tambahkan pemetaan untuk tiap kategori di tab Jenis Persembahan (dan CASH_DEBIT/BANK_DEBIT untuk sisi debit kas/bank) supaya fitur "Setor ke Buku Besar" di Persembahan Digital bisa dipakai.',
+      getLabel: row => row.map_key,
+      columns: [
+        { key: 'map_key', label: 'Kategori / Kunci' },
+        { key: 'account_id', label: 'Akun GL', render: row => lk.accounts.find(a => a.id === row.account_id)?.name ?? '—' },
+        { key: 'fund_id', label: 'Dana', render: row => lk.funds.find(f => f.id === row.fund_id)?.name ?? '—' },
+        { key: 'cash_account_id', label: 'Kas', render: row => lk.cashAccounts.find(c => c.id === row.cash_account_id)?.name ?? '—' },
+      ],
+      fields: [
+        {
+          key: 'map_key', label: 'Kategori / Kunci', type: 'text', required: true,
+          placeholder: 'mis. Mingguan, atau CASH_DEBIT / BANK_DEBIT',
+          hint: 'Harus persis sama (huruf besar/kecil & ejaan) dengan nilai di tab Jenis Persembahan, atau salah satu dari CASH_DEBIT / BANK_DEBIT untuk sisi debit kas/bank saat setor. Ini dicocokkan sebagai teks biasa, bukan dropdown — kalau kategori di-rename di tab Jenis Persembahan, mapping ini TIDAK ikut berubah otomatis.',
+        },
+        { key: 'account_id', label: 'Akun GL (postable)', type: 'select', required: true, options: postableAccountOptions },
+        { key: 'fund_id', label: 'Dana (opsional)', type: 'select', options: fundOptions },
+        { key: 'cash_account_id', label: 'Kas (opsional, khusus CASH_DEBIT)', type: 'select', options: cashAccountOptions },
       ],
     },
     {
@@ -884,40 +910,520 @@ function FiscalYearSection({ canEdit }: { canEdit: boolean }) {
   );
 }
 
+// ── Data QRIS (custom — bukan generic CRUD karena ada upload gambar & relasi
+// many-to-many ke kategori persembahan) ────────────────────────────────────────
+function QrisCodesSection({ canEdit }: { canEdit: boolean }) {
+  const { getMasterDataByCategory } = useApp();
+  const categoryOptions = getMasterDataByCategory('jenis_persembahan').map((m: any) => m.value);
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [lookups, setLookups] = useState<{ bankAccounts: any[]; cashAccounts: any[] }>({ bankAccounts: [], cashAccounts: [] });
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingRow, setEditingRow] = useState<any | null>(null);
+  const [form, setForm] = useState<Record<string, any>>({});
+  const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const [data, bankAccounts, cashAccounts] = await Promise.all([
+        fetchList<any>('/api/v1/finance/qris-codes?all=1'),
+        fetchList<any>('/api/v1/finance/bank-accounts').catch(() => []),
+        fetchList<any>('/api/v1/finance/cash-accounts').catch(() => []),
+      ]);
+      setRows(data);
+      setLookups({ bankAccounts, cashAccounts });
+    } catch (err: any) {
+      setLoadError(err?.message || 'Gagal memuat Data QRIS');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const emptyForm = () => ({
+    label: '', image_data: '', mime_type: '', event_tag: '',
+    bank_account_id: '', cash_account_id: '', is_displayed: true, categories: [] as string[],
+  });
+
+  const openCreate = () => { setForm(emptyForm()); setEditingRow(null); setModalOpen(true); };
+  const openEdit = (row: any) => {
+    setForm({
+      label: row.label, image_data: '', mime_type: row.mime_type, event_tag: row.event_tag || '',
+      bank_account_id: row.bank_account_id || '', cash_account_id: row.cash_account_id || '',
+      is_displayed: !!row.is_displayed, categories: row.categories || [],
+    });
+    setEditingRow(row);
+    setModalOpen(true);
+  };
+
+  const handleFile = (file: File | undefined) => {
+    if (!file) return;
+    if (!['image/png', 'image/jpeg'].includes(file.type)) {
+      toast.error('Gambar QRIS harus berformat PNG atau JPEG');
+      return;
+    }
+    if (file.size > 1 * 1024 * 1024) {
+      toast.error('Ukuran gambar melebihi batas 1MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || '');
+      const base64 = result.split(',')[1] || '';
+      setForm((prev: any) => ({ ...prev, image_data: base64, mime_type: file.type, _previewUrl: result }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const toggleCategory = (cat: string) => {
+    setForm((prev: any) => {
+      const has = prev.categories.includes(cat);
+      return { ...prev, categories: has ? prev.categories.filter((c: string) => c !== cat) : [...prev.categories, cat] };
+    });
+  };
+
+  const handleSubmit = async () => {
+    if (!form.label.trim()) { toast.error('Label wajib diisi'); return; }
+    if (!editingRow && !form.image_data) { toast.error('Gambar QRIS wajib diunggah'); return; }
+    setSaving(true);
+    try {
+      const payload: Record<string, any> = {
+        label: form.label.trim(),
+        event_tag: form.event_tag || null,
+        bank_account_id: form.bank_account_id || null,
+        cash_account_id: form.cash_account_id || null,
+        is_displayed: form.is_displayed,
+        categories: form.categories,
+      };
+      if (form.image_data) { payload.image_data = form.image_data; payload.mime_type = form.mime_type; }
+
+      if (editingRow) {
+        const res = await api.put<{ success: boolean; error?: { message: string } }>(`/api/v1/finance/qris-codes/${editingRow.id}`, payload);
+        if (!res.success) throw new Error(res.error?.message || 'Gagal menyimpan');
+        toast.success('Kode QRIS diperbarui');
+      } else {
+        const res = await api.post<{ success: boolean; error?: { message: string } }>('/api/v1/finance/qris-codes', payload);
+        if (!res.success) throw new Error(res.error?.message || 'Gagal menyimpan');
+        toast.success('Kode QRIS ditambahkan');
+      }
+      setModalOpen(false);
+      await load();
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal menyimpan Kode QRIS');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      const res = await api.delete<{ success: boolean; error?: { message: string } }>(`/api/v1/finance/qris-codes/${deleteTarget.id}`);
+      if (!res.success) throw new Error(res.error?.message || 'Gagal menonaktifkan');
+      toast.success('Kode QRIS dinonaktifkan');
+      setDeleteTarget(null);
+      await load();
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal menonaktifkan Kode QRIS');
+      setDeleteTarget(null);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-slate-500">
+          {loading ? 'Memuat…' : `${rows.length} kode`} — gambar QR statis untuk ditampilkan ke jemaat, bukan integrasi payment gateway
+        </p>
+        {canEdit && (
+          <button onClick={openCreate} className="flex items-center gap-1.5 text-sm font-medium text-white px-3 py-1.5 rounded-lg hover:opacity-90" style={{ background: '#144f6b' }}>
+            <Plus className="w-3.5 h-3.5" /> Tambah Kode QRIS
+          </button>
+        )}
+      </div>
+
+      {loadError && <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">{loadError}</div>}
+
+      {!loadError && (
+        <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-100 text-left text-xs text-slate-500 uppercase tracking-wide">
+                <th className="px-4 py-2.5 font-medium">Gambar</th>
+                <th className="px-4 py-2.5 font-medium">Label</th>
+                <th className="px-4 py-2.5 font-medium">Kategori</th>
+                <th className="px-4 py-2.5 font-medium">Event/Musim</th>
+                <th className="px-4 py-2.5 font-medium">Tampil?</th>
+                <th className="px-4 py-2.5 font-medium">Status</th>
+                {canEdit && <th className="px-4 py-2.5 font-medium text-right">Aksi</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {loading && (
+                <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-400"><Loader2 className="w-4 h-4 animate-spin inline mr-2" />Memuat…</td></tr>
+              )}
+              {!loading && rows.length === 0 && (
+                <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-400">Belum ada Kode QRIS. Tambahkan kode pertama untuk ditampilkan di Persembahan Digital/E-Warta.</td></tr>
+              )}
+              {!loading && rows.map(row => (
+                <tr key={row.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60">
+                  <td className="px-4 py-2.5">
+                    <img src={`data:${row.mime_type};base64,${row.image_data}`} alt={row.label} className="w-10 h-10 object-contain rounded border border-slate-200" />
+                  </td>
+                  <td className="px-4 py-2.5 text-slate-700 whitespace-nowrap">{row.label}</td>
+                  <td className="px-4 py-2.5 text-slate-600">{(row.categories || []).join(', ') || '—'}</td>
+                  <td className="px-4 py-2.5 text-slate-600 whitespace-nowrap">{row.event_tag || '—'}</td>
+                  <td className="px-4 py-2.5">{row.is_displayed ? 'Ya' : 'Tidak'}</td>
+                  <td className="px-4 py-2.5">
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${row.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                      {row.is_active ? 'Aktif' : 'Nonaktif'}
+                    </span>
+                  </td>
+                  {canEdit && (
+                    <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                      <button onClick={() => openEdit(row)} className="text-slate-400 hover:text-[#144f6b] p-1" title="Edit"><Pencil className="w-3.5 h-3.5" /></button>
+                      {row.is_active && (
+                        <button onClick={() => setDeleteTarget(row)} className="text-slate-400 hover:text-red-500 p-1" title="Nonaktifkan"><Trash2 className="w-3.5 h-3.5" /></button>
+                      )}
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {modalOpen && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => !saving && setModalOpen(false)}>
+          <div className="bg-white rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-slate-800">{editingRow ? 'Edit Kode QRIS' : 'Tambah Kode QRIS'}</h3>
+              <button onClick={() => setModalOpen(false)}><X className="w-4 h-4 text-slate-400" /></button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Label <span className="text-red-500">*</span></label>
+                <input type="text" value={form.label} placeholder="mis. QRIS Persembahan Mingguan" onChange={e => setForm((p: any) => ({ ...p, label: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Gambar QR (PNG/JPEG, maks 1MB){!editingRow && <span className="text-red-500"> *</span>}
+                </label>
+                <input type="file" accept="image/png,image/jpeg" onChange={e => handleFile(e.target.files?.[0])} className="w-full text-sm" />
+                {(form._previewUrl || (editingRow && !form.image_data)) && (
+                  <img
+                    src={form._previewUrl || `data:${editingRow?.mime_type};base64,${editingRow?.image_data}`}
+                    alt="Preview"
+                    className="mt-2 w-20 h-20 object-contain rounded border border-slate-200"
+                  />
+                )}
+                {editingRow && <p className="mt-1 text-xs text-slate-400">Biarkan kosong kalau tidak ingin mengganti gambar.</p>}
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Kategori Persembahan (boleh lebih dari satu)</label>
+                <div className="flex flex-wrap gap-2">
+                  {categoryOptions.length === 0 && <p className="text-xs text-slate-400">Belum ada kategori di tab Jenis Persembahan.</p>}
+                  {categoryOptions.map((cat: string) => (
+                    <label key={cat} className={`text-xs px-2.5 py-1 rounded-full border cursor-pointer ${form.categories.includes(cat) ? 'bg-[#144f6b] text-white border-[#144f6b]' : 'text-slate-600 border-slate-200'}`}>
+                      <input type="checkbox" className="hidden" checked={form.categories.includes(cat)} onChange={() => toggleCategory(cat)} />
+                      {cat}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Event/Musim (opsional)</label>
+                <input type="text" value={form.event_tag} placeholder="mis. Natal 2026" onChange={e => setForm((p: any) => ({ ...p, event_tag: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Rekening Bank tujuan (opsional)</label>
+                <select value={form.bank_account_id} onChange={e => setForm((p: any) => ({ ...p, bank_account_id: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
+                  <option value="">— tidak ditautkan —</option>
+                  {lookups.bankAccounts.map((b: any) => <option key={b.id} value={b.id}>{b.bank_name} — {b.account_number}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Kas tujuan (opsional)</label>
+                <select value={form.cash_account_id} onChange={e => setForm((p: any) => ({ ...p, cash_account_id: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]">
+                  <option value="">— tidak ditautkan —</option>
+                  {lookups.cashAccounts.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="flex items-center gap-2 text-sm text-slate-600">
+                  <input type="checkbox" checked={form.is_displayed} onChange={e => setForm((p: any) => ({ ...p, is_displayed: e.target.checked }))} />
+                  Tampilkan di Persembahan Digital & E-Warta
+                </label>
+                <p className="mt-1 text-xs text-slate-400">Nonaktifkan kalau kode ini cuma untuk pencatatan internal, tidak untuk ditampilkan ke jemaat.</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setModalOpen(false)} disabled={saving} className="px-3 py-1.5 rounded-lg text-sm text-slate-600 border border-slate-200">Batal</button>
+              <button onClick={handleSubmit} disabled={saving} className="px-3 py-1.5 rounded-lg text-sm text-white flex items-center gap-1.5 disabled:opacity-60" style={{ background: '#144f6b' }}>
+                {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => setDeleteTarget(null)}>
+          <div className="bg-white rounded-xl w-full max-w-sm p-5 space-y-3" onClick={e => e.stopPropagation()}>
+            <h3 className="text-sm font-semibold text-slate-800">Nonaktifkan Kode QRIS?</h3>
+            <p className="text-sm text-slate-500">
+              "{deleteTarget.label}" akan disembunyikan dari Persembahan Digital & E-Warta. Riwayat persembahan yang sudah memakai kode ini tidak akan terpengaruh.
+            </p>
+            <div className="flex justify-end gap-2 pt-1">
+              <button onClick={() => setDeleteTarget(null)} className="px-3 py-1.5 rounded-lg text-sm text-slate-600 border border-slate-200">Batal</button>
+              <button onClick={handleDelete} className="px-3 py-1.5 rounded-lg text-sm text-white bg-red-500 hover:bg-red-600">Nonaktifkan</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Jenis Persembahan / Metode Pembayaran (custom — bukan tabel finance.*,
+// tetap disimpan di collection generik master data lewat AppContext, cuma
+// tabnya dipindah tampil di sini) ────────────────────────────────────────────
+interface UsageCheckResult { count: number; sources: string[]; }
+
+async function checkOfferingCategoryUsage(categoryValue: string): Promise<UsageCheckResult> {
+  const sources: string[] = [];
+  let count = 0;
+  try {
+    const mapRows = await fetchList<any>('/api/v1/finance/offering-deposit-map');
+    const matches = mapRows.filter((r: any) => r.map_key === categoryValue);
+    if (matches.length > 0) { count += matches.length; sources.push(`${matches.length} Peta Setoran Persembahan`); }
+  } catch { /* endpoint belum aktif / gagal dimuat -- jangan blokir aksi user karena ini */ }
+  try {
+    const res = await api.get<{ success: boolean; data?: { count: number; labels: string[] } }>(
+      `/api/v1/finance/qris-codes/usage/${encodeURIComponent(categoryValue)}`
+    );
+    if (res.success && res.data && res.data.count > 0) {
+      count += res.data.count;
+      sources.push(`${res.data.count} Kode QRIS (${res.data.labels.join(', ')})`);
+    }
+  } catch { /* idem */ }
+  return { count, sources };
+}
+
+function OfferingCategorySection({ category, entityLabel, checkUsage }: { category: MasterDataCategory; entityLabel: string; checkUsage: boolean }) {
+  const { masterDataItems, addMasterDataItem, updateMasterDataItem, deleteMasterDataItem } = useApp();
+  const items = useMemo(
+    () => masterDataItems.filter((m: any) => m.category === category).sort((a: any, b: any) => a.order - b.order),
+    [masterDataItems, category]
+  );
+  const [adding, setAdding] = useState(false);
+  const [newLabel, setNewLabel] = useState('');
+  const [newQrisEligible, setNewQrisEligible] = useState(false);
+  const showQrisToggle = category === 'metode_pembayaran';
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingLabel, setEditingLabel] = useState('');
+  const [pendingWarning, setPendingWarning] = useState<{ action: 'rename' | 'delete' | 'deactivate'; item: any; nextLabel?: string; usage: UsageCheckResult } | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  const handleAdd = () => {
+    if (!newLabel.trim()) return;
+    const maxOrder = items.reduce((max: number, m: any) => Math.max(max, m.order), 0);
+    addMasterDataItem({
+      category, value: newLabel.trim(), label: newLabel.trim(), isActive: true, order: maxOrder + 1,
+      ...(showQrisToggle ? { isQrisEligible: newQrisEligible } : {}),
+    });
+    setNewLabel(''); setNewQrisEligible(false); setAdding(false);
+  };
+
+  const applyRename = (item: any, label: string) => { updateMasterDataItem(item.id, { label, value: label }); setEditingId(null); };
+  const applyDelete = (item: any) => { deleteMasterDataItem(item.id); };
+  const applyToggle = (item: any) => { updateMasterDataItem(item.id, { isActive: !item.isActive }); };
+  const applyToggleQris = (item: any) => { updateMasterDataItem(item.id, { isQrisEligible: !item.isQrisEligible }); };
+  // Hanya relevan untuk tab Metode Pembayaran -- menandai metode mana yang menampilkan
+  // panel pemilihan Kode QRIS di form Persembahan Digital (lihat isQrisCapablePaymentMethod
+  // di OfferingsQRIS.tsx). Data-driven, bukan cek string label, supaya tahan rename.
+
+  const guardedRename = async (item: any, label: string) => {
+    if (!checkUsage || label === item.label) { applyRename(item, label); return; }
+    setChecking(true);
+    const usage = await checkOfferingCategoryUsage(item.value);
+    setChecking(false);
+    if (usage.count > 0) setPendingWarning({ action: 'rename', item, nextLabel: label, usage });
+    else applyRename(item, label);
+  };
+
+  const guardedDelete = async (item: any) => {
+    if (!checkUsage) { applyDelete(item); return; }
+    setChecking(true);
+    const usage = await checkOfferingCategoryUsage(item.value);
+    setChecking(false);
+    if (usage.count > 0) setPendingWarning({ action: 'delete', item, usage });
+    else applyDelete(item);
+  };
+
+  const confirmPending = () => {
+    if (!pendingWarning) return;
+    if (pendingWarning.action === 'rename' && pendingWarning.nextLabel) applyRename(pendingWarning.item, pendingWarning.nextLabel);
+    else if (pendingWarning.action === 'delete') applyDelete(pendingWarning.item);
+    setPendingWarning(null);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-slate-500">{items.length} item{checking ? ' — mengecek pemakaian…' : ''}</p>
+        <button onClick={() => setAdding(true)} className="flex items-center gap-1.5 text-sm font-medium text-white px-3 py-1.5 rounded-lg hover:opacity-90" style={{ background: '#144f6b' }}>
+          <Plus className="w-3.5 h-3.5" /> Tambah {entityLabel}
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
+        {items.length === 0 && <p className="px-4 py-6 text-center text-slate-400 text-sm">Belum ada {entityLabel}.</p>}
+        {items.map((item: any) => (
+          <div key={item.id} className="flex items-center justify-between px-4 py-2.5">
+            {editingId === item.id ? (
+              <input
+                value={editingLabel}
+                onChange={e => setEditingLabel(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') guardedRename(item, editingLabel); if (e.key === 'Escape') setEditingId(null); }}
+                autoFocus
+                className="px-2 py-1 rounded-lg border border-slate-200 text-sm flex-1 mr-3"
+              />
+            ) : (
+              <span className={`text-sm ${item.isActive ? 'text-slate-700' : 'text-slate-400 line-through'}`}>{item.label}</span>
+            )}
+            <div className="flex items-center gap-1">
+              {editingId === item.id ? (
+                <>
+                  <button onClick={() => guardedRename(item, editingLabel)} className="text-emerald-600 hover:text-emerald-700 p-1"><Check className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => setEditingId(null)} className="text-slate-400 hover:text-slate-600 p-1"><X className="w-3.5 h-3.5" /></button>
+                </>
+              ) : (
+                <>
+                  {showQrisToggle && (
+                    <button
+                      onClick={() => applyToggleQris(item)}
+                      className={`p-1 ${item.isQrisEligible ? 'text-violet-600 hover:text-violet-700' : 'text-slate-300 hover:text-slate-400'}`}
+                      title={item.isQrisEligible ? 'Metode ini menampilkan pemilihan Kode QRIS (klik untuk matikan)' : 'Metode ini TIDAK menampilkan pemilihan Kode QRIS (klik untuk aktifkan)'}
+                    >
+                      <QrCode className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  <button onClick={() => { setEditingId(item.id); setEditingLabel(item.label); }} className="text-slate-400 hover:text-[#144f6b] p-1" title="Ubah nama"><Pencil className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => applyToggle(item)} className="text-slate-400 hover:text-[#144f6b] p-1" title={item.isActive ? 'Nonaktifkan' : 'Aktifkan'}>
+                    {item.isActive ? <ToggleRight className="w-3.5 h-3.5" /> : <ToggleLeft className="w-3.5 h-3.5" />}
+                  </button>
+                  <button onClick={() => guardedDelete(item)} className="text-slate-400 hover:text-red-500 p-1" title="Hapus"><Trash2 className="w-3.5 h-3.5" /></button>
+                </>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {adding && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => setAdding(false)}>
+          <div className="bg-white rounded-xl w-full max-w-sm p-5 space-y-3" onClick={e => e.stopPropagation()}>
+            <h3 className="text-sm font-semibold text-slate-800">Tambah {entityLabel}</h3>
+            <input
+              value={newLabel} onChange={e => setNewLabel(e.target.value)} autoFocus
+              onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
+              placeholder="Nama"
+              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+            />
+            {showQrisToggle && (
+              <label className="flex items-center gap-2 text-xs text-slate-600">
+                <input type="checkbox" checked={newQrisEligible} onChange={e => setNewQrisEligible(e.target.checked)} className="rounded border-slate-300" />
+                Tampilkan pemilihan Kode QRIS untuk metode ini (mis. Transfer, QRIS)
+              </label>
+            )}
+            <div className="flex justify-end gap-2 pt-1">
+              <button onClick={() => setAdding(false)} className="px-3 py-1.5 rounded-lg text-sm text-slate-600 border border-slate-200">Batal</button>
+              <button onClick={handleAdd} className="px-3 py-1.5 rounded-lg text-sm text-white" style={{ background: '#144f6b' }}>Simpan</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingWarning && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => setPendingWarning(null)}>
+          <div className="bg-white rounded-xl w-full max-w-sm p-5 space-y-3" onClick={e => e.stopPropagation()}>
+            <h3 className="text-sm font-semibold text-amber-700">Kategori ini masih dipakai</h3>
+            <p className="text-sm text-slate-600">
+              "{pendingWarning.item.label}" masih dipakai di: {pendingWarning.usage.sources.join('; ')}.
+              {pendingWarning.action === 'delete'
+                ? ' Menghapusnya akan membuat referensi itu tidak terhubung ke kategori manapun lagi.'
+                : ' Mengubah namanya TIDAK akan otomatis memperbarui referensi tersebut — perlu disesuaikan manual.'}
+              {' '}Lanjutkan?
+            </p>
+            <div className="flex justify-end gap-2 pt-1">
+              <button onClick={() => setPendingWarning(null)} className="px-3 py-1.5 rounded-lg text-sm text-slate-600 border border-slate-200">Batal</button>
+              <button onClick={confirmPending} className="px-3 py-1.5 rounded-lg text-sm text-white bg-amber-600 hover:bg-amber-700">Lanjutkan</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────────
-const TABS: { id: string; label: string; icon: React.ElementType }[] = [
-  { id: 'account-groups', label: 'Kelompok Akun', icon: Layers },
-  { id: 'accounts', label: 'Chart of Accounts', icon: BookOpen },
-  { id: 'fields', label: 'Bidang', icon: MapPin },
-  { id: 'programs', label: 'Program', icon: FolderTree },
-  { id: 'activities', label: 'Kegiatan', icon: ListTree },
-  { id: 'funds', label: 'Dana', icon: Wallet },
-  { id: 'cash-accounts', label: 'Kas', icon: Wallet },
-  { id: 'bank-accounts', label: 'Bank', icon: Building2 },
-  { id: 'voucher-types', label: 'Jenis Voucher', icon: Ticket },
-  { id: 'vendors', label: 'Pemasok', icon: Truck },
-  { id: 'donors', label: 'Donatur', icon: Gift },
-  { id: 'cost-centers', label: 'Pusat Biaya', icon: Target },
-  { id: 'fiscal-years', label: 'Tahun Fiskal', icon: CalendarRange },
+const TAB_GROUPS: { label: string; tabs: { id: string; label: string; icon: React.ElementType }[] }[] = [
+  { label: 'Struktur Akuntansi', tabs: [
+    { id: 'account-groups', label: 'Kelompok Akun', icon: Layers },
+    { id: 'accounts', label: 'Chart of Accounts', icon: BookOpen },
+    { id: 'funds', label: 'Dana', icon: Wallet },
+  ] },
+  { label: 'Struktur Pelayanan', tabs: [
+    { id: 'fields', label: 'Bidang', icon: MapPin },
+    { id: 'programs', label: 'Program', icon: FolderTree },
+    { id: 'activities', label: 'Kegiatan', icon: ListTree },
+    { id: 'cost-centers', label: 'Pusat Biaya', icon: Target },
+  ] },
+  { label: 'Operasional', tabs: [
+    { id: 'cash-accounts', label: 'Kas', icon: Wallet },
+    { id: 'bank-accounts', label: 'Bank', icon: Building2 },
+    { id: 'voucher-types', label: 'Jenis Voucher', icon: Ticket },
+  ] },
+  { label: 'Pihak Terkait', tabs: [
+    { id: 'vendors', label: 'Pemasok', icon: Truck },
+    { id: 'donors', label: 'Donatur', icon: Gift },
+  ] },
+  { label: 'Kalender', tabs: [
+    { id: 'fiscal-years', label: 'Tahun Fiskal', icon: CalendarRange },
+  ] },
+  { label: 'Integrasi Persembahan', tabs: [
+    { id: 'jenis-persembahan', label: 'Jenis Persembahan', icon: Gift },
+    { id: 'metode-pembayaran', label: 'Metode Pembayaran', icon: Ticket },
+    { id: 'offering-deposit-map', label: 'Peta Setoran Persembahan', icon: Layers },
+    { id: 'qris-codes', label: 'Data QRIS', icon: QrCode },
+  ] },
 ];
 
 export function FinanceMasterData({ onNavigate }: { onNavigate?: (page: string) => void }) {
   const { can: canFn } = useApp();
   const canEdit = canFn(FINANCE_MODULE, 'edit');
   const [activeTab, setActiveTab] = useState<string>('account-groups');
-  const [lookups, setLookups] = useState<Lookups>({ accountGroups: [], fields: [], programs: [], funds: [], accounts: [], costCenters: [] });
+  const [lookups, setLookups] = useState<Lookups>({ accountGroups: [], fields: [], programs: [], funds: [], accounts: [], costCenters: [], cashAccounts: [] });
 
   const loadLookups = useCallback(async () => {
     try {
-      const [accountGroups, fields, programs, funds, accounts, costCenters] = await Promise.all([
+      const [accountGroups, fields, programs, funds, accounts, costCenters, cashAccounts] = await Promise.all([
         fetchList<any>('/api/v1/finance/account-groups').catch(() => []),
         fetchList<any>('/api/v1/finance/fields').catch(() => []),
         fetchList<any>('/api/v1/finance/programs').catch(() => []),
         fetchList<any>('/api/v1/finance/funds').catch(() => []),
         fetchList<any>('/api/v1/finance/accounts').catch(() => []),
         fetchList<any>('/api/v1/finance/cost-centers').catch(() => []),
+        fetchList<any>('/api/v1/finance/cash-accounts').catch(() => []),
       ]);
-      setLookups({ accountGroups, fields, programs, funds, accounts, costCenters });
+      setLookups({ accountGroups, fields, programs, funds, accounts, costCenters, cashAccounts });
     } catch {
       // Skema belum aktif — masing-masing tab akan menampilkan pesan errornya sendiri.
     }
@@ -940,7 +1446,7 @@ export function FinanceMasterData({ onNavigate }: { onNavigate?: (page: string) 
         infoStrip={[
           {
             label: 'Kelompok Master',
-            value: '13 Entitas Rujukan',
+            value: '13 Entitas + Fiskal',
             color: 'emerald',
           },
           {
@@ -961,25 +1467,36 @@ export function FinanceMasterData({ onNavigate }: { onNavigate?: (page: string) 
         ]}
       />
 
-      <div className="flex flex-wrap gap-1.5 border-b border-slate-200 pb-2">
-        {TABS.map(tab => {
-          const Icon = tab.icon;
-          const active = tab.id === activeTab;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg transition-colors"
-              style={active ? { background: '#144f6b', color: '#fff' } : { color: '#475569' }}
-            >
-              <Icon className="w-3.5 h-3.5" /> {tab.label}
-            </button>
-          );
-        })}
+      <div className="space-y-3 border-b border-slate-200 pb-3">
+        {TAB_GROUPS.map(group => (
+          <div key={group.label} className="flex flex-wrap items-center gap-1.5">
+            <span className="w-full text-[11px] font-semibold uppercase tracking-wide text-slate-400 sm:w-auto sm:mr-1">{group.label}</span>
+            {group.tabs.map(tab => {
+              const Icon = tab.icon;
+              const active = tab.id === activeTab;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg transition-colors"
+                  style={active ? { background: '#144f6b', color: '#fff' } : { color: '#475569' }}
+                >
+                  <Icon className="w-3.5 h-3.5" /> {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
       {activeTab === 'fiscal-years' ? (
         <FiscalYearSection canEdit={canEdit} />
+      ) : activeTab === 'qris-codes' ? (
+        <QrisCodesSection canEdit={canEdit} />
+      ) : activeTab === 'jenis-persembahan' ? (
+        <OfferingCategorySection category="jenis_persembahan" entityLabel="Jenis Persembahan" checkUsage />
+      ) : activeTab === 'metode-pembayaran' ? (
+        <OfferingCategorySection category="metode_pembayaran" entityLabel="Metode Pembayaran" checkUsage={false} />
       ) : activeConfig ? (
         <EntitySection key={activeTab} config={activeConfig} canEdit={canEdit} onMutated={loadLookups} />
       ) : null}

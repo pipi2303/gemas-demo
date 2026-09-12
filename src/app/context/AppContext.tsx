@@ -84,6 +84,7 @@ interface AppContextType {
   addOffering: (offering: Omit<Offering, 'id' | 'createdAt'>) => void;
   updateOffering: (id: string, offering: Partial<Offering>) => void;
   deleteOffering: (id: string) => void;
+  markOfferingsDeposited: (updates: { id: string; transactionId: string; depositedAt: string }[]) => void;
   
   // NEW: Modul 4 - Pelayanan Kasih & Diakonia
   serviceRequests: ServiceRequest[];
@@ -1175,10 +1176,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ...['Doa Pagi','Ibadah GP','Ibadah Keluarga Sektor 1','Ibadah Keluarga Sektor 2','Ibadah Keluarga Sektor 3','Ibadah Keluarga Sektor 4','Ibadah Minggu Pagi','Ibadah Minggu Sore','Ibadah PKB','Ibadah PKLU','Ibadah PKP','IHMPA','IHMPT'].map((v,i)=>({ category:'jenis_ibadah' as MasterDataCategory, value:v, label:v, isActive:true, order:i+1 })),
     // Kategori Ibadah
     ...['GP','PA','PKB','PKLU','PKP','PT'].map((v,i)=>({ category:'kategori_ibadah' as MasterDataCategory, value:v, label:v, isActive:true, order:i+1 })),
-    // Tipe Rekening
-    ...['Operasional','Tabungan','Pembangunan','Diakonia'].map((v,i)=>({ category:'tipe_rekening' as MasterDataCategory, value:v, label:v, isActive:true, order:i+1 })),
     // Metode Pembayaran
-    ...['Tunai','Transfer','QRIS'].map((v,i)=>({ category:'metode_pembayaran' as MasterDataCategory, value:v, label:v, isActive:true, order:i+1 })),
+    ...['Tunai','Transfer','QRIS'].map((v,i)=>({ category:'metode_pembayaran' as MasterDataCategory, value:v, label:v, isActive:true, order:i+1, isQrisEligible: v !== 'Tunai' })),
     // Status Sakramen
     ...['Terjadwal','Selesai','Ditunda','Dibatalkan'].map((v,i)=>({ category:'status_sakramen' as MasterDataCategory, value:v, label:v, isActive:true, order:i+1 })),
     // Daftar Pelayan
@@ -1191,8 +1190,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ...['opening','offering','communion','closing'].map((v,i)=>{ const labels:Record<string,string>={opening:'Pembukaan',offering:'Persembahan',communion:'Komuni',closing:'Penutup'}; return { category:'tipe_nyanyian_ibadah' as MasterDataCategory, value:v, label:labels[v], isActive:true, order:i+1 }; }),
     // Tempat Sakramen
     ...['GPIB Bahtera Kasih','Aula Utama','Ruang Ibadah','Lainnya'].map((v,i)=>({ category:'tempat_sakramen' as MasterDataCategory, value:v, label:v, isActive:true, order:i+1 })),
-    // Sumber Kas Kecil
-    ...['Kas Majelis','Donasi Khusus','Lainnya'].map((v,i)=>({ category:'sumber_kas_kecil' as MasterDataCategory, value:v, label:v, isActive:true, order:i+1 })),
     // Prioritas Pengumuman
     ...['normal','important','urgent'].map((v,i)=>{ const labels:Record<string,string>={normal:'Normal',important:'Penting',urgent:'Mendesak'}; return { category:'prioritas_pengumuman' as MasterDataCategory, value:v, label:labels[v], isActive:true, order:i+1 }; }),
     // Status Peminjaman Ruangan
@@ -1211,8 +1208,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ...['Warga Jemaat','Warga Tamu','Simpatisan'].map((v,i)=>({ category:'tipe_keanggotaan' as MasterDataCategory, value:v, label:v, isActive:true, order:i+1 })),
     // Golongan Darah
     ...['A','B','AB','O','A+','A-','B+','B-','AB+','AB-','O+','O-'].map((v,i)=>({ category:'golongan_darah' as MasterDataCategory, value:v, label:v, isActive:true, order:i+1 })),
-    // Status Kas Kecil
-    ...['Lunas','Pending'].map((v,i)=>({ category:'status_kas_kecil' as MasterDataCategory, value:v, label:v, isActive:true, order:i+1 })),
     // Jenis Kegiatan
     ...['Ibadah','Persekutuan','Retreat','Seminar','Pelayanan','Lainnya'].map((v,i)=>({ category:'jenis_kegiatan' as MasterDataCategory, value:v, label:v, isActive:true, order:i+1 })),
     // Jenis Permohonan Pelayanan
@@ -1221,12 +1216,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ...['Ekonomi','Beasiswa','Kesehatan','Bencana','Lainnya'].map((v,i)=>({ category:'kategori_bantuan' as MasterDataCategory, value:v, label:v, isActive:true, order:i+1 })),
     // Pendidikan Terakhir
     ...['SD','SMP','SMA/SMK','D3','S1','S2','S3','Lainnya'].map((v,i)=>({ category:'pendidikan' as MasterDataCategory, value:v, label:v, isActive:true, order:i+1 })),
-    // Kategori Keuangan — Pemasukan
-    ...['Persembahan Minggu','Persepuluhan','Dana Pembangunan','Hibah & Donasi','Persembahan Khusus','Sewa Fasilitas','Lainnya'].map((v,i)=>({ category:'kategori_keuangan_masuk' as MasterDataCategory, value:v, label:v, isActive:true, order:i+1 })),
-    // Kategori Keuangan — Pengeluaran
-    ...['Gaji & Tunjangan','Operasional Gedung','Pelayanan & Diakonia','Kegiatan Kategorial','ATK & Perlengkapan','Pemeliharaan Aset','Lainnya'].map((v,i)=>({ category:'kategori_keuangan_keluar' as MasterDataCategory, value:v, label:v, isActive:true, order:i+1 })),
-    // Kategori Kas Kecil
-    ...['ATK & Alat Tulis','Konsumsi & Snack','Transportasi','Kebersihan','Perlengkapan Ibadah','Komunikasi','Percetakan','Lainnya'].map((v,i)=>({ category:'kategori_kas_kecil' as MasterDataCategory, value:v, label:v, isActive:true, order:i+1 })),
   ];
 
 
@@ -2587,6 +2576,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Menandai offering sudah disetor ke Buku Besar HANYA di state lokal (TIDAK lewat
+  // apiSave/PUT /api/data/offerings) -- backend (POST /api/v1/finance/transactions/
+  // deposit-offerings) sudah menulis depositedTransactionId/depositedAt langsung ke
+  // gemas_store dalam transaksi Postgres yang sama dengan pembuatan voucher, jadi data
+  // di server SUDAH benar saat fungsi ini dipanggil. Sengaja TIDAK pakai updateOffering
+  // (yang akan memicu PUT /api/data/offerings/:id) karena endpoint itu sekarang menolak
+  // PUT untuk offering yang sudah ber-depositedTransactionId (lihat
+  // blockNonEditableOfferingWrite di server/routes/data.ts) -- PUT susulan ini akan
+  // selalu 403 walau datanya sudah benar, cukup untuk sinkronisasi state React saja.
+  const markOfferingsDeposited = (updates: { id: string; transactionId: string; depositedAt: string }[]) => {
+    if (updates.length === 0) return;
+    const byId = new Map(updates.map(u => [u.id, u]));
+    setOfferings(prev => prev.map(o => {
+      const u = byId.get(o.id);
+      return u ? { ...o, depositedTransactionId: u.transactionId, depositedAt: u.depositedAt } : o;
+    }));
+  };
+
   const deleteOffering = (id: string) => {
     const off = offerings.find(o => o.id === id);
     setOfferings(offerings.filter(o => o.id !== id));
@@ -3065,6 +3072,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       buildingProjects,
       addOffering,
       updateOffering,
+      markOfferingsDeposited,
       deleteOffering,
 
       // NEW: Modul 4 - Pelayanan Kasih & Diakonia

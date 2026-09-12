@@ -142,6 +142,62 @@ async function resolveOfferingMap(client: any, mapKey: string): Promise<{ accoun
   return { accountId: row.account_id, fundId: row.fund_id ?? null, cashAccountId: row.cash_account_id ?? null };
 }
 
+// Resolve rekening bank spesifik yang dipasangkan ke satu Kode QRIS (Data QRIS di
+// Master Data Finance), untuk memisahkan setoran Transfer/QRIS per rekening tujuan
+// alih-alih selalu masuk ke satu akun default BANK_DEBIT. Mengembalikan null kalau
+// offering tidak mereferensikan Kode QRIS manapun, atau Kode QRIS itu tidak/tidak lagi
+// punya rekening bank terpasang (qris_codes.bank_account_id NULL, atau soft-deleted) --
+// keduanya jatuh ke perilaku default lama (satu voucher BBM per rentang setoran) supaya
+// instalasi yang belum memakai fitur Data QRIS/rekening-per-kode tidak berubah sama sekali.
+async function resolveQrisCodeBankAccount(client: any, qrisCodeId: string): Promise<{ bankAccountId: string; glAccountId: string; label: string } | null> {
+  const r = await client.query(
+    `SELECT ba.id AS bank_account_id, ba.account_id AS gl_account_id, ba.bank_name, ba.account_number
+     FROM finance.qris_codes qc
+     JOIN finance.bank_accounts ba ON ba.id = qc.bank_account_id AND ba.is_active = TRUE
+     WHERE qc.id = $1 AND qc.organization_id = $2`,
+    [qrisCodeId, FINANCE_ORG]
+  );
+  const row = r.rows[0];
+  if (!row) return null;
+  return { bankAccountId: row.bank_account_id, glAccountId: row.gl_account_id, label: `${row.bank_name} ${row.account_number}` };
+}
+
+// Kelompokkan offering bucket BANK berdasarkan rekening bank spesifik yang dipakai
+// (lewat qrisCodeId → resolveQrisCodeBankAccount). Offering tanpa qrisCodeId, atau
+// yang Kode QRIS-nya tidak/tidak lagi terpasang ke rekening manapun, dikumpulkan di
+// grup 'DEFAULT' -- diproses persis seperti sebelum fitur ini ada (satu voucher BBM,
+// akun dari finance.offering_deposit_map map_key='BANK_DEBIT').
+interface BankGroup {
+  key: string;
+  bankAccountId: string | null;
+  glAccountId: string | null;
+  label: string | null;
+  items: OfferingRecord[];
+}
+async function groupBankOfferingsByAccount(client: any, items: OfferingRecord[]): Promise<BankGroup[]> {
+  const groups = new Map<string, BankGroup>();
+  const cache = new Map<string, { bankAccountId: string; glAccountId: string; label: string } | null>();
+  for (const o of items) {
+    let resolved: { bankAccountId: string; glAccountId: string; label: string } | null = null;
+    if (o.qrisCodeId) {
+      if (!cache.has(o.qrisCodeId)) cache.set(o.qrisCodeId, await resolveQrisCodeBankAccount(client, o.qrisCodeId));
+      resolved = cache.get(o.qrisCodeId) ?? null;
+    }
+    const key = resolved ? `BANK:${resolved.bankAccountId}` : 'DEFAULT';
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        bankAccountId: resolved?.bankAccountId ?? null,
+        glAccountId: resolved?.glAccountId ?? null,
+        label: resolved?.label ?? null,
+        items: [],
+      });
+    }
+    groups.get(key)!.items.push(o);
+  }
+  return Array.from(groups.values());
+}
+
 async function collectUndepositedOfferings(startDate: string, endDate: string): Promise<OfferingRecord[]> {
   const all = await getAll<OfferingRecord>('offerings');
   // amount > 0 disaring di sini (sumber data), bukan cuma saat generate baris
@@ -190,6 +246,12 @@ async function createDepositTransaction(client: any, req: AuthRequest, opts: {
   transactionDate: string;
   fiscalYearId: string;
   description: string;
+  // Override akun debit ke rekening bank spesifik (lihat resolveQrisCodeBankAccount) --
+  // dipakai saat setoran Transfer/QRIS dipecah per rekening tujuan Kode QRIS. Kalau
+  // tidak diisi, tetap pakai mapping default dari finance.offering_deposit_map seperti
+  // sebelumnya (mengisi cash_account_id, BUKAN bank_account_id, pada baris debit --
+  // itu perilaku lama yang sengaja tidak diubah supaya instalasi existing tidak berubah).
+  debitBankOverride?: { glAccountId: string; bankAccountId: string };
 }): Promise<{ transactionId: string; voucherNumber: string }> {
   const vt = await client.query(
     'SELECT * FROM finance.voucher_types WHERE organization_id = $1 AND code = $2 AND is_active = TRUE',
@@ -210,12 +272,20 @@ async function createDepositTransaction(client: any, req: AuthRequest, opts: {
   const period = periodRes.rows[0];
   if (period.status !== 'OPEN') throw Object.assign(new Error('Periode untuk tanggal setor sudah tidak Terbuka (Open)'), { status: 400 });
 
-  const debitMap = await resolveOfferingMap(client, opts.mapKey);
-  if (!debitMap) {
-    throw Object.assign(new Error(`Peta akun setoran "${opts.mapKey}" belum dikonfigurasi — jalankan seed Master Data Finance terlebih dahulu`), { status: 400 });
+  let debitAccountId: string;
+  let debitCashAccountId: string | null = null;
+  let debitBankAccountId: string | null = null;
+  if (opts.debitBankOverride) {
+    debitAccountId = opts.debitBankOverride.glAccountId;
+    debitBankAccountId = opts.debitBankOverride.bankAccountId;
+  } else {
+    const debitMap = await resolveOfferingMap(client, opts.mapKey);
+    if (!debitMap) {
+      throw Object.assign(new Error(`Peta akun setoran "${opts.mapKey}" belum dikonfigurasi — jalankan seed Master Data Finance terlebih dahulu`), { status: 400 });
+    }
+    debitAccountId = debitMap.accountId;
+    debitCashAccountId = debitMap.cashAccountId;
   }
-  const debitAccountId = debitMap.accountId;
-  const debitCashAccountId = debitMap.cashAccountId;
 
   const seqRes = await client.query(
     `INSERT INTO finance.voucher_sequences (organization_id, fiscal_year_id, voucher_type_id, current_number)
@@ -247,9 +317,9 @@ async function createDepositTransaction(client: any, req: AuthRequest, opts: {
   const totalAmount = Object.values(opts.categoryTotals).reduce((s, v) => s + v, 0);
   let lineNumber = 1;
   await client.query(
-    `INSERT INTO finance.transaction_lines (transaction_id, line_number, account_id, cash_account_id, description, debit, credit)
-     VALUES ($1,$2,$3,$4,$5,$6,0)`,
-    [tx.id, lineNumber++, debitAccountId, debitCashAccountId, opts.description, totalAmount]
+    `INSERT INTO finance.transaction_lines (transaction_id, line_number, account_id, cash_account_id, bank_account_id, description, debit, credit)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,0)`,
+    [tx.id, lineNumber++, debitAccountId, debitCashAccountId, debitBankAccountId, opts.description, totalAmount]
   );
 
   for (const [type, amount] of Object.entries(opts.categoryTotals)) {
@@ -329,6 +399,14 @@ router.get('/deposit-preview', requireFinancePermission('view'), async (req: Aut
     }
     const items = await collectUndepositedOfferings(startDate, endDate);
     const summary = summarizeOfferings(items);
+    const pool2 = getPool();
+    const bankGroups = await groupBankOfferingsByAccount(pool2 as any, items.filter(o => offeringMethodBucket(o.paymentMethod) === 'BANK'));
+    const bankByAccount = bankGroups.map(g => ({
+      label: g.label ?? 'Rekening default (belum ada Kode QRIS dengan rekening spesifik)',
+      bankAccountId: g.bankAccountId,
+      total: g.items.reduce((s, o) => s + (Number(o.amount) || 0), 0),
+      count: g.items.length,
+    }));
     res.json({
       success: true,
       data: {
@@ -336,6 +414,7 @@ router.get('/deposit-preview', requireFinancePermission('view'), async (req: Aut
         totalAmount: items.reduce((s, o) => s + (Number(o.amount) || 0), 0),
         cash: summary.CASH,
         bank: summary.BANK,
+        bankByAccount,
       },
     });
   } catch (err) {
@@ -390,7 +469,7 @@ router.post('/deposit-offerings', requireFinancePermission('create'), async (req
 
     const fiscalYearId = await resolveDepositFiscalYearId(client, body.fiscal_year_id);
     const summary = summarizeOfferings(items);
-    const results: { bucket: 'CASH' | 'BANK'; transactionId: string; voucherNumber: string; amount: number }[] = [];
+    const results: { bucket: 'CASH' | 'BANK'; groupKey: string; transactionId: string; voucherNumber: string; amount: number; itemIds: Set<string> }[] = [];
 
     if (summary.CASH.count > 0) {
       const categoryTotals: Record<string, number> = {};
@@ -403,20 +482,40 @@ router.post('/deposit-offerings', requireFinancePermission('create'), async (req
         fiscalYearId,
         description: `Setor Persembahan Tunai ${startDate} s/d ${endDate}`,
       });
-      results.push({ bucket: 'CASH', ...r, amount: summary.CASH.total });
+      const cashItems = items.filter(o => offeringMethodBucket(o.paymentMethod) === 'CASH');
+      results.push({ bucket: 'CASH', groupKey: 'CASH', ...r, amount: summary.CASH.total, itemIds: new Set(cashItems.map(o => o.id)) });
     }
-    if (summary.BANK.count > 0) {
-      const categoryTotals: Record<string, number> = {};
-      for (const [type, v] of Object.entries(summary.BANK.byCategory)) categoryTotals[type] = v.amount;
-      const r = await createDepositTransaction(client, req, {
-        voucherTypeCode: 'BBM',
-        mapKey: 'BANK_DEBIT',
-        categoryTotals,
-        transactionDate: depositDate,
-        fiscalYearId,
-        description: `Setor Persembahan Transfer/QRIS ${startDate} s/d ${endDate}`,
-      });
-      results.push({ bucket: 'BANK', ...r, amount: summary.BANK.total });
+
+    // Transfer/QRIS: dipecah per rekening bank spesifik yang dipasangkan ke Kode QRIS
+    // yang dipakai (lihat groupBankOfferingsByAccount) -- offering tanpa Kode QRIS
+    // atau yang Kode QRIS-nya tidak/tidak lagi punya rekening tetap masuk grup
+    // 'DEFAULT' dan diproses persis seperti perilaku lama (satu voucher BBM, akun
+    // dari offering_deposit_map map_key='BANK_DEBIT'). Jadi kalau tidak ada satupun
+    // offering yang memakai Kode QRIS beratribut rekening, hasilnya identik dengan
+    // sebelum perubahan ini: tepat satu voucher BBM.
+    const bankItemsAll = items.filter(o => offeringMethodBucket(o.paymentMethod) === 'BANK');
+    if (bankItemsAll.length > 0) {
+      const bankGroups = await groupBankOfferingsByAccount(client, bankItemsAll);
+      for (const group of bankGroups) {
+        const categoryTotals: Record<string, number> = {};
+        for (const o of group.items) categoryTotals[o.type] = (categoryTotals[o.type] ?? 0) + (Number(o.amount) || 0);
+        const groupAmount = group.items.reduce((s, o) => s + (Number(o.amount) || 0), 0);
+        const description = group.label
+          ? `Setor Persembahan Transfer/QRIS (${group.label}) ${startDate} s/d ${endDate}`
+          : `Setor Persembahan Transfer/QRIS ${startDate} s/d ${endDate}`;
+        const r = await createDepositTransaction(client, req, {
+          voucherTypeCode: 'BBM',
+          mapKey: 'BANK_DEBIT',
+          categoryTotals,
+          transactionDate: depositDate,
+          fiscalYearId,
+          description,
+          debitBankOverride: group.bankAccountId && group.glAccountId
+            ? { bankAccountId: group.bankAccountId, glAccountId: group.glAccountId }
+            : undefined,
+        });
+        results.push({ bucket: 'BANK', groupKey: group.key, ...r, amount: groupAmount, itemIds: new Set(group.items.map(o => o.id)) });
+      }
     }
 
     // Tandai offerings sebagai sudah disetor DALAM transaksi Postgres yang sama
@@ -425,7 +524,7 @@ router.post('/deposit-offerings', requireFinancePermission('create'), async (req
     // jadi tapi tandanya gagal tertulis (atau sebaliknya).
     const now = new Date().toISOString();
     for (const o of items) {
-      const match = results.find(r => r.bucket === offeringMethodBucket(o.paymentMethod));
+      const match = results.find(r => r.itemIds.has(o.id));
       if (!match) continue;
       const updated = { ...o, depositedTransactionId: match.transactionId, depositedAt: now };
       await client.query(
@@ -441,13 +540,14 @@ router.post('/deposit-offerings', requireFinancePermission('create'), async (req
     for (const r of results) {
       await recordFinanceAudit(
         req, 'Setor ke Buku Besar', 'FinanceTransaction', r.transactionId, r.voucherNumber,
-        `Setor persembahan ${r.bucket === 'CASH' ? 'Tunai' : 'Transfer/QRIS'} ${startDate} s/d ${endDate}, total Rp${r.amount.toLocaleString('id-ID')} (${items.filter(o => offeringMethodBucket(o.paymentMethod) === r.bucket).length} catatan)`,
+        `Setor persembahan ${r.bucket === 'CASH' ? 'Tunai' : 'Transfer/QRIS'} ${startDate} s/d ${endDate}, total Rp${r.amount.toLocaleString('id-ID')} (${r.itemIds.size} catatan)`,
         'sensitive'
       );
     }
 
-    logger.info('Deposit persembahan created', { user: req.user?.username, results, offeringCount: items.length });
-    res.status(201).json({ success: true, data: { transactions: results, offeringCount: items.length } });
+    const responseResults = results.map(({ itemIds, ...rest }) => ({ ...rest, offeringIds: Array.from(itemIds) }));
+    logger.info('Deposit persembahan created', { user: req.user?.username, results: responseResults, offeringCount: items.length });
+    res.status(201).json({ success: true, data: { transactions: responseResults, offeringCount: items.length } });
   } catch (err: any) {
     await client.query('ROLLBACK').catch(() => {});
     logger.error('POST transactions/deposit-offerings', { message: String(err), stack: err?.stack });

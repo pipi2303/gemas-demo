@@ -8,14 +8,12 @@ export type MasterDataCategory =
   | 'jenis_ibadah'
   | 'kategori_ibadah'
   | 'daftar_pelayan'
-  | 'tipe_rekening'
   | 'metode_pembayaran'
   | 'status_sakramen'
   | 'jenis_jadwal_ibadah'
   | 'buku_nyanyian'
   | 'tipe_nyanyian_ibadah'
   | 'tempat_sakramen'
-  | 'sumber_kas_kecil'
   | 'prioritas_pengumuman'
   | 'status_peminjaman_ruangan'
   | 'status_distribusi_bantuan'
@@ -25,14 +23,10 @@ export type MasterDataCategory =
   | 'status_pernikahan'
   | 'tipe_keanggotaan'
   | 'golongan_darah'
-  | 'status_kas_kecil'
   | 'jenis_kegiatan'
   | 'jenis_pelayanan'
   | 'kategori_bantuan'
   | 'pendidikan'
-  | 'kategori_keuangan_masuk'
-  | 'kategori_keuangan_keluar'
-  | 'kategori_kas_kecil'
   | 'jenis_surat_keluar'
   | 'jenis_surat_masuk';
 
@@ -44,6 +38,13 @@ export interface MasterDataItem {
   isActive: boolean;
   order: number;
   createdAt: string;
+  // Hanya relevan untuk category === 'metode_pembayaran': menandai apakah metode ini
+  // mendukung pemilihan Kode QRIS & field referensi QRIS/Transfer di form Persembahan
+  // Digital. Dibuat sebagai flag data-driven (bukan cek string label 'QRIS'/'Transfer'
+  // yang hardcode) supaya tetap benar walau admin me-rename label metode pembayaran.
+  // Opsional & backward-compatible -- item lama tanpa field ini di-fallback lewat
+  // heuristik keyword di OfferingsQRIS.tsx (lihat isQrisCapablePaymentMethod).
+  isQrisEligible?: boolean;
 }
 
 export type UserRole = 'Admin' | 'Majelis' | 'Ketua Sektor' | 'Operator';
@@ -428,6 +429,14 @@ export interface Offering {
   date: string;
   description?: string;
   qrisReference?: string;
+  /** Referensi ke finance.qris_codes.id (Data QRIS di Master Data Finance) --
+   *  kode QRIS spesifik yang dipakai jemaat/donatur untuk transfer, kalau
+   *  dipilih dari daftar (bukan cuma diketik manual di qrisReference).
+   *  qrisCodeLabel disalin sebagai snapshot pada saat input supaya riwayat
+   *  persembahan lama tetap menampilkan nama yang benar meski kode itu
+   *  kemudian di-rename atau dinonaktifkan di Master Data Finance. */
+  qrisCodeId?: string;
+  qrisCodeLabel?: string;
   createdAt: string;
   /** Diisi otomatis oleh fitur "Setor ke Buku Besar" (OfferingsQRIS.tsx /
    *  server/routes/financeTransaction.ts POST /deposit-offerings) begitu

@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
+import { api } from '../../lib/apiClient';
 import { useDraggable } from '../../lib/useDraggable';
 import {
   FileText, BookOpen, Plus, X, Pencil, Trash2, Eye,
@@ -54,8 +55,12 @@ const EMPTY_FORM = {
   published: false,
 };
 
+// Kode QRIS yang ditampilkan (is_displayed=true) -- dipakai baik di tampilan layar
+// maupun di export PDF di bawah, supaya E-Warta cetak/unduh konsisten dengan versi digital.
+interface EWartaQrisCode { id: string; label: string; image_data: string; mime_type: string; is_displayed: boolean; }
+
 // Unduh E-Warta sebagai PDF berkop surat navy GPIB Trinitas (jsPDF + autoTable).
-function generateWartaPDF(warta: Warta) {
+function generateWartaPDF(warta: Warta, qrisCodes: EWartaQrisCode[] = []) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -135,6 +140,43 @@ function generateWartaPDF(warta: Warta) {
     });
   }
 
+  // Kode QRIS Persembahan (is_displayed=true) -- sama seperti section lain, dilewati kalau kosong.
+  const activeQris = qrisCodes.filter(q => q.is_displayed);
+  if (activeQris.length > 0) {
+    if (y > pageHeight - 40) { doc.addPage(); y = 16; }
+    doc.setFillColor(240, 247, 251);
+    doc.roundedRect(14, y, pageWidth - 28, 6.5, 1, 1, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.setTextColor(20, 79, 107);
+    doc.text('Kode QRIS Persembahan', 17, y + 4.6);
+    y += 10;
+
+    const imgSize = 32;
+    const gap = 6;
+    const perRow = Math.max(1, Math.floor((pageWidth - 28 + gap) / (imgSize + gap)));
+    let col = 0;
+    activeQris.forEach(q => {
+      if (col === 0 && y + imgSize + 8 > pageHeight - 20) { doc.addPage(); y = 16; }
+      const x = 14 + col * (imgSize + gap);
+      try {
+        const format = /png/i.test(q.mime_type) ? 'PNG' : 'JPEG';
+        doc.addImage(`data:${q.mime_type};base64,${q.image_data}`, format, x, y, imgSize, imgSize);
+      } catch {
+        // Gambar korup/format tak dikenal -- jangan gagalkan seluruh PDF, cukup lewati satu kode ini.
+      }
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(51, 65, 85);
+      const labelLines = doc.splitTextToSize(q.label, imgSize);
+      doc.text(labelLines, x + imgSize / 2, y + imgSize + 4, { align: 'center' });
+      col += 1;
+      if (col >= perRow) { col = 0; y += imgSize + 10; }
+    });
+    if (col !== 0) y += imgSize + 10;
+    y += 2;
+  }
+
   const totalPages = (doc as any).internal.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
@@ -168,6 +210,17 @@ export function EWarta() {
   const [selectedGenerateDate, setSelectedGenerateDate] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'published' | 'draft'>('all');
 
+  // Kode QRIS Persembahan (Master Data Finance) yang sedang ditampilkan
+  // (is_displayed = true) -- ditampilkan sebagai gambar scannable di tampilan
+  // baca E-Warta. Endpoint publik view-only ini TIDAK memfilter is_active di
+  // sisi query (server sudah default hanya is_active=TRUE), jadi cukup
+  // dipanggil apa adanya di sini.
+  const [displayedQrisCodes, setDisplayedQrisCodes] = useState<EWartaQrisCode[]>([]);
+  useEffect(() => {
+    api.get<{ success: boolean; data?: EWartaQrisCode[] }>('/api/v1/finance/qris-codes/displayed')
+      .then(res => setDisplayedQrisCodes(res.data || []))
+      .catch(() => setDisplayedQrisCodes([]));
+  }, []);
 
   // Upcoming Sundays for auto-generate
   const upcomingSundays = useMemo(() => {
@@ -574,7 +627,7 @@ export function EWarta() {
                 )}
 
                 {canExport && (
-                  <button onClick={() => generateWartaPDF(selectedWarta)}
+                  <button onClick={() => generateWartaPDF(selectedWarta, displayedQrisCodes)}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 text-white rounded-lg text-sm hover:bg-white/30 transition-colors">
                     <Download className="w-3.5 h-3.5" /> Unduh PDF
                   </button>
@@ -652,6 +705,23 @@ export function EWarta() {
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Kode QRIS Persembahan (Master Data Finance > Data QRIS, is_displayed = true) */}
+            {displayedQrisCodes.length > 0 && (
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-200">
+                  <h4 className="font-semibold text-gray-800 text-sm">Kode QRIS Persembahan</h4>
+                </div>
+                <div className="px-4 py-3 flex flex-wrap gap-4">
+                  {displayedQrisCodes.map(q => (
+                    <div key={q.id} className="flex flex-col items-center gap-1.5 text-center" style={{ width: 120 }}>
+                      <img src={`data:${q.mime_type};base64,${q.image_data}`} alt={q.label} className="w-28 h-28 object-contain rounded-lg border border-gray-200" />
+                      <span className="text-xs text-gray-600">{q.label}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

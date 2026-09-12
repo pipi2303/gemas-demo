@@ -232,6 +232,21 @@ export async function checkPagePermission(
   return false;
 }
 
+/** Cek izin lintas beberapa submenu sekaligus (true kalau role punya `action` di
+ *  SALAH SATU submenu yang disebut) -- dipakai untuk endpoint referensi bersama
+ *  yang dipakai banyak submenu Finance Add-on sekaligus (mis. daftar Tahun
+ *  Fiskal), supaya tidak digating ke satu submenu spesifik saja dan malah
+ *  menolak role yang cuma dikasih akses submenu lain. */
+export async function checkAnyPagePermission(
+  role: string, pageKeys: string[], action: string, customRoles?: any[]
+): Promise<boolean> {
+  if (role === 'Admin') return true;
+  for (const pageKey of pageKeys) {
+    if (await checkPagePermission(role, pageKey, action, customRoles)) return true;
+  }
+  return false;
+}
+
 export async function checkPermission(
   role: string, collection: string, method: string,
   customRoles?: any[]

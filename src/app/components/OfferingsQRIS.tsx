@@ -8,7 +8,7 @@ import {
   DollarSign, Plus, X, Calendar, CreditCard, User, FileText,
   Pencil, Trash2, Filter, Download, TrendingUp, Search,
   ChevronLeft, ChevronRight, Printer, ArrowUpRight, QrCode, Wallet,
-  ArrowUp, ArrowDown, ArrowUpDown, Landmark, Loader2, CheckCircle2, BadgeCheck
+  ArrowUp, ArrowDown, ArrowUpDown, Landmark, Loader2, CheckCircle2, BadgeCheck, Maximize2
 } from 'lucide-react';
 import { useSortable } from '../../hooks/useSortable';
 import { useResizableColumns } from '../../hooks/useResizableColumns';
@@ -27,9 +27,14 @@ interface DepositPreview {
   totalAmount: number;
   cash: { total: number; count: number; byCategory: Record<string, { amount: number; count: number }> };
   bank: { total: number; count: number; byCategory: Record<string, { amount: number; count: number }> };
+  // Rincian Transfer/QRIS per rekening bank tujuan -- muncul kalau ada offering yang
+  // memakai Kode QRIS beratribut rekening spesifik (Master Data Finance > Data QRIS).
+  // "Rekening default" = offering Transfer/QRIS tanpa Kode QRIS spesifik, tetap masuk
+  // satu voucher BBM seperti perilaku lama.
+  bankByAccount?: { label: string; bankAccountId: string | null; total: number; count: number }[];
 }
 interface DepositResult {
-  transactions: { bucket: 'CASH' | 'BANK'; transactionId: string; voucherNumber: string; amount: number }[];
+  transactions: { bucket: 'CASH' | 'BANK'; groupKey: string; transactionId: string; voucherNumber: string; amount: number; offeringIds: string[] }[];
   offeringCount: number;
 }
 async function financeApiCall<T = any>(method: 'get' | 'post', url: string, body?: any): Promise<T> {
@@ -132,12 +137,25 @@ function Sparkline({ data, color = '#144f6b' }: { data: { name: string; v: numbe
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 export function OfferingsQRIS() {
-  const { offerings, members, sectors, addOffering, updateOffering, deleteOffering, currentUser, getMasterDataByCategory } = useApp();
+  const { offerings, members, sectors, addOffering, updateOffering, deleteOffering, currentUser, getMasterDataByCategory, markOfferingsDeposited } = useApp();
   const { offset, onMouseDown } = useDraggable();
   const offeringTypes = getMasterDataByCategory('jenis_persembahan').map(m => m.value) as OfferingType[];
   const OFFERING_TYPE_LIST = offeringTypes.length ? offeringTypes : ['Mingguan','Syukur','Persepuluhan','Pembangunan','Diakonia','Lainnya'] as OfferingType[];
-  const metodePembayaranList = getMasterDataByCategory('metode_pembayaran').map(m => m.value);
+  const metodePembayaranItems = getMasterDataByCategory('metode_pembayaran');
+  const metodePembayaranList = metodePembayaranItems.map(m => m.value);
   const METODE_PEMBAYARAN = metodePembayaranList.length ? metodePembayaranList : ['Tunai','Transfer','QRIS'];
+  // Menentukan apakah metode pembayaran terpilih perlu menampilkan panel Kode QRIS.
+  // TIDAK dicek lewat literal string ('QRIS'/'Transfer') karena label metode pembayaran
+  // sekarang bisa di-rename admin lewat Master Data Finance > Metode Pembayaran -- kalau
+  // dicek pakai literal, panel ini akan diam-diam hilang setelah rename (bug lama).
+  // Sumber kebenaran: flag `isQrisEligible` pada item master data (data-driven, tahan rename).
+  // Fallback keyword dipakai HANYA untuk data lama yang belum punya flag ini sama sekali
+  // (mis. environment yang belum sempat set toggle-nya di UI) -- lihat FinanceMasterData.tsx.
+  const isQrisCapablePaymentMethod = (methodLabel: string): boolean => {
+    const item = metodePembayaranItems.find(m => m.value === methodLabel);
+    if (item && typeof item.isQrisEligible === 'boolean') return item.isQrisEligible;
+    return /qris|transfer/i.test(methodLabel);
+  };
 
   const { widths: colW, startResize } = useResizableColumns('offerings-qris-main', OFFERINGS_TABLE_DEFAULT_WIDTHS);
   const monthlyRecapDefaultWidths: Record<string, number> = { bulan: 100 };
@@ -179,8 +197,45 @@ export function OfferingsQRIS() {
     donorEmail: '',
     description: '',
     qrisReference: '',
+    qrisCodeId: '',
+    qrisCodeLabel: '',
   });
-  const resetForm = () => { setForm({ date: now.toISOString().split('T')[0], type: 'Mingguan', amount: '', paymentMethod: 'Tunai', memberId: '', donorName: '', donorPhone: '', donorEmail: '', description: '', qrisReference: '' }); setMemberSearch(''); };
+  const resetForm = () => { setForm({ date: now.toISOString().split('T')[0], type: 'Mingguan', amount: '', paymentMethod: 'Tunai', memberId: '', donorName: '', donorPhone: '', donorEmail: '', description: '', qrisReference: '', qrisCodeId: '', qrisCodeLabel: '' }); setMemberSearch(''); };
+
+  // ── Data QRIS (Master Data Finance) -- kode QR statis untuk ditunjukkan ke
+  // jemaat/donatur saat mencatat persembahan Transfer/QRIS. Diambil dari daftar
+  // yang masih aktif (is_active); tidak disaring is_displayed karena
+  // is_displayed cuma soal tampil-tidaknya di kanal publik (E-Warta), bukan
+  // soal boleh-tidaknya dipakai untuk pencatatan internal di sini.
+  interface QrisCodeOption { id: string; label: string; image_data: string; mime_type: string; categories: string[]; }
+  const [qrisCodes, setQrisCodes] = useState<QrisCodeOption[]>([]);
+  useEffect(() => {
+    financeApiCall<QrisCodeOption[]>('get', '/api/v1/finance/qris-codes/active').then(setQrisCodes).catch(() => setQrisCodes([]));
+  }, []);
+  // Kios/tampilan layar penuh untuk ditunjukkan selama ibadah -- dipakai
+  // operator, bukan endpoint publik tanpa login (perubahan RBAC/route publik
+  // sengaja tidak dibuat di sini, itu keputusan keamanan terpisah). Sumber
+  // data sama seperti E-Warta: hanya kode dengan is_displayed=true.
+  interface KioskQrisCode { id: string; label: string; image_data: string; mime_type: string; is_displayed: boolean; }
+  const [showKiosk, setShowKiosk] = useState(false);
+  const [kioskCodes, setKioskCodes] = useState<KioskQrisCode[]>([]);
+  const [kioskLoading, setKioskLoading] = useState(false);
+  const openKiosk = () => {
+    setShowKiosk(true);
+    setKioskLoading(true);
+    financeApiCall<KioskQrisCode[]>('get', '/api/v1/finance/qris-codes/displayed')
+      .then(setKioskCodes)
+      .catch(() => { setKioskCodes([]); toast.error('Gagal memuat Kode QRIS untuk tampilan kios'); })
+      .finally(() => setKioskLoading(false));
+  };
+  useEffect(() => {
+    if (!showKiosk) return;
+    const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowKiosk(false); };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showKiosk]);
+
+  const relevantQrisCodes = qrisCodes.filter(q => q.categories.length === 0 || q.categories.includes(form.type));
 
 
   // ── Computed stats ──────────────────────────────────────────────────────────
@@ -281,7 +336,7 @@ export function OfferingsQRIS() {
   const openCreate = () => { resetForm(); setEditId(null); setShowForm(true); };
   const openEdit = (o: Offering) => {
     setEditId(o.id);
-    setForm({ date: o.date, type: o.type, amount: o.amount.toString(), paymentMethod: o.paymentMethod, memberId: o.memberId||'', donorName: o.donorName||'', donorPhone: o.donorPhone||'', donorEmail: o.donorEmail||'', description: o.description||'', qrisReference: o.qrisReference||'' });
+    setForm({ date: o.date, type: o.type, amount: o.amount.toString(), paymentMethod: o.paymentMethod, memberId: o.memberId||'', donorName: o.donorName||'', donorPhone: o.donorPhone||'', donorEmail: o.donorEmail||'', description: o.description||'', qrisReference: o.qrisReference||'', qrisCodeId: o.qrisCodeId||'', qrisCodeLabel: o.qrisCodeLabel||'' });
     setMemberSearch(o.memberId ? members.find(m => m.id === o.memberId)?.fullName || '' : '');
     setShowForm(true);
   };
@@ -332,19 +387,18 @@ export function OfferingsQRIS() {
         startDate: depositRange.startDate, endDate: depositRange.endDate,
       });
       // Sinkronkan status "sudah disetor" ke state lokal supaya badge di tabel
-      // langsung tampil tanpa perlu reload halaman -- backend sudah menulis
-      // tanda ini secara atomik bersama transaksinya; write di sini cuma
-      // menyalinnya ke local state (lewat updateOffering yang sudah ada),
-      // idempoten dengan yang backend tulis.
+      // langsung tampil tanpa perlu reload halaman -- backend sudah menulis tanda
+      // ini secara atomik bersama transaksinya (dan sekarang bisa jadi beberapa
+      // voucher BBM sekaligus kalau Transfer/QRIS dipecah per rekening Kode QRIS
+      // -- lihat groupBankOfferingsByAccount di server), jadi dipetakan lewat
+      // offeringIds per transaksi dari respons, BUKAN ditebak dari paymentMethod.
+      // markOfferingsDeposited HANYA mengubah state lokal (tidak PUT ke server)
+      // karena server sudah menulis field ini duluan dalam transaksi yang sama
+      // dengan pembuatan voucher, dan PUT susulan akan ditolak 403 oleh kunci
+      // offering-sudah-disetor (lihat blockNonEditableOfferingWrite).
       const nowIso = new Date().toISOString();
-      const cashTx = result.transactions.find(t => t.bucket === 'CASH');
-      const bankTx = result.transactions.find(t => t.bucket === 'BANK');
-      offerings
-        .filter(o => !o.depositedTransactionId && o.date >= depositRange.startDate && o.date <= depositRange.endDate)
-        .forEach(o => {
-          const txId = o.paymentMethod === 'Tunai' ? cashTx?.transactionId : bankTx?.transactionId;
-          if (txId) updateOffering(o.id, { depositedTransactionId: txId, depositedAt: nowIso });
-        });
+      const updates = result.transactions.flatMap(t => t.offeringIds.map(id => ({ id, transactionId: t.transactionId, depositedAt: nowIso })));
+      markOfferingsDeposited(updates);
       setDepositResult(result);
       toast.success(`Berhasil membuat ${result.transactions.length} voucher setoran (${result.offeringCount} persembahan)`);
     } catch (err: any) {
@@ -447,6 +501,9 @@ export function OfferingsQRIS() {
         <div className="flex gap-2">
           <button onClick={handlePrint} className="flex items-center gap-2 px-3 py-2 rounded-xl border transition-colors hover:bg-gray-50" style={{ fontSize: '13px', borderColor: '#e2e8f0' }}>
             <Printer className="w-4 h-4 text-gray-500" />Cetak
+          </button>
+          <button onClick={openKiosk} data-tooltip="Tampilkan Kode QRIS layar penuh untuk ditunjukkan ke jemaat saat ibadah" className="flex items-center gap-2 px-3 py-2 rounded-xl border transition-colors hover:bg-gray-50" style={{ fontSize: '13px', borderColor: '#e2e8f0' }}>
+            <Maximize2 className="w-4 h-4 text-gray-500" />Tampilan Kios
           </button>
           <button onMouseDown={e=>e.preventDefault()} onClick={openDepositModal} data-tooltip="Agregasi persembahan yang belum disetor menjadi transaksi Finance Add-on" className="flex items-center gap-2 px-3 py-2 rounded-xl border font-semibold transition-colors hover:bg-[#f0f7fb]" style={{ fontSize: '13px', borderColor: '#144f6b', color: '#144f6b' }}>
             <Landmark className="w-4 h-4" />Setor ke Buku Besar
@@ -843,9 +900,33 @@ export function OfferingsQRIS() {
                         {METODE_PEMBAYARAN.map(m => <option key={m} value={m}>{m}</option>)}
                       </select></div>
                   </div>
-                  {form.paymentMethod === 'QRIS' && (
-                    <div><label className="block text-xs font-semibold text-gray-600 mb-1.5">Referensi QRIS</label>
-                      <input value={form.qrisReference} onChange={e => setForm(f => ({...f, qrisReference: e.target.value}))} placeholder="Nomor referensi transaksi" className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: '#e2e8f0' }} /></div>
+                  {isQrisCapablePaymentMethod(form.paymentMethod) && (
+                    <div className="space-y-3">
+                      <div><label className="block text-xs font-semibold text-gray-600 mb-1.5">Kode QRIS yang dipakai (opsional)</label>
+                        <select
+                          value={form.qrisCodeId}
+                          onChange={e => {
+                            const picked = qrisCodes.find(q => q.id === e.target.value);
+                            setForm(f => ({ ...f, qrisCodeId: picked?.id || '', qrisCodeLabel: picked?.label || '' }));
+                          }}
+                          className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: '#e2e8f0' }}
+                        >
+                          <option value="">— tidak dipilih —</option>
+                          {relevantQrisCodes.map(q => <option key={q.id} value={q.id}>{q.label}</option>)}
+                        </select>
+                        {relevantQrisCodes.length === 0 && (
+                          <p className="mt-1 text-xs" style={{ color: '#94a3b8' }}>Belum ada Kode QRIS untuk kategori "{form.type}" — kelola di Master Data Finance &gt; Data QRIS.</p>
+                        )}
+                        {form.qrisCodeId && (() => {
+                          const picked = qrisCodes.find(q => q.id === form.qrisCodeId);
+                          return picked ? (
+                            <img src={`data:${picked.mime_type};base64,${picked.image_data}`} alt={picked.label} className="mt-2 w-24 h-24 object-contain rounded-lg border" style={{ borderColor: '#e2e8f0' }} />
+                          ) : null;
+                        })()}
+                      </div>
+                      <div><label className="block text-xs font-semibold text-gray-600 mb-1.5">Referensi QRIS/Transfer (opsional)</label>
+                        <input value={form.qrisReference} onChange={e => setForm(f => ({...f, qrisReference: e.target.value}))} placeholder="Nomor referensi transaksi" className="w-full px-3 py-2.5 rounded-xl border text-sm" style={{ borderColor: '#e2e8f0' }} /></div>
+                    </div>
                   )}
                 </div>
                 {/* Donatur */}
@@ -928,15 +1009,19 @@ export function OfferingsQRIS() {
                     <p style={{ fontSize: '12.5px', color: '#64748b' }}>{depositResult.offeringCount} catatan persembahan sudah ditandai "Disetor" dan siap diverifikasi di modul Finance Add-on (masih berstatus Draft).</p>
                   </div>
                   <div className="space-y-2">
-                    {depositResult.transactions.map(t => (
-                      <div key={t.transactionId} className="flex items-center justify-between px-4 py-3 rounded-xl" style={{ background: '#f8fafc', border: '1px solid #f1f5f9' }}>
-                        <div>
-                          <p style={{ fontSize: '12px', fontWeight: 700, color: '#144f6b' }}>{t.bucket === 'CASH' ? 'Tunai (BKM)' : 'Transfer/QRIS (BBM)'}</p>
-                          <p style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace' }}>{t.voucherNumber}</p>
+                    {depositResult.transactions.map(t => {
+                      const bankLabel = depositPreview?.bankByAccount?.find(b => t.groupKey === (b.bankAccountId ? `BANK:${b.bankAccountId}` : 'DEFAULT'))?.label;
+                      const title = t.bucket === 'CASH' ? 'Tunai (BKM)' : `Transfer/QRIS (BBM)${bankLabel ? ` · ${bankLabel}` : ''}`;
+                      return (
+                        <div key={t.transactionId} className="flex items-center justify-between px-4 py-3 rounded-xl" style={{ background: '#f8fafc', border: '1px solid #f1f5f9' }}>
+                          <div>
+                            <p style={{ fontSize: '12px', fontWeight: 700, color: '#144f6b' }}>{title}</p>
+                            <p style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace' }}>{t.voucherNumber}</p>
+                          </div>
+                          <p style={{ fontSize: '13.5px', fontWeight: 800, color: '#144f6b' }}>{formatRp(t.amount)}</p>
                         </div>
-                        <p style={{ fontSize: '13.5px', fontWeight: 800, color: '#144f6b' }}>{formatRp(t.amount)}</p>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               ) : (
@@ -991,6 +1076,19 @@ export function OfferingsQRIS() {
                             </div>
                           )}
                         </div>
+                        {depositPreview.bankByAccount && depositPreview.bankByAccount.length > 1 && (
+                          <div className="rounded-xl p-3.5" style={{ background: '#f8fafc', border: '1px solid #f1f5f9' }}>
+                            <p style={{ fontSize: '11px', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>Transfer/QRIS akan dipecah per rekening ({depositPreview.bankByAccount.length} voucher BBM)</p>
+                            <div className="space-y-1">
+                              {depositPreview.bankByAccount.map((b, i) => (
+                                <div key={i} className="flex items-center justify-between" style={{ fontSize: '12.5px' }}>
+                                  <span style={{ color: '#475569' }}>{b.label} · {b.count} catatan</span>
+                                  <span style={{ color: '#0f172a', fontWeight: 600 }}>{formatRp(b.total)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         <p style={{ fontSize: '11.5px', color: '#94a3b8' }}>
                           Transaksi akan dibuat berstatus <strong>Draft</strong> — tetap perlu diajukan, diverifikasi, dan disetujui seperti transaksi manual lainnya di modul Finance Add-on.
                         </p>
@@ -1021,6 +1119,41 @@ export function OfferingsQRIS() {
                 </>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── KIOS QRIS: layar penuh untuk ditunjukkan ke jemaat saat ibadah ── */}
+      {showKiosk && (
+        <div className="fixed inset-0 z-[100] flex flex-col" style={{ background: '#0b2531' }}>
+          <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
+            <div>
+              <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: '18px', color: 'white' }}>Kode QRIS Persembahan</p>
+              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>Pindai untuk memberi persembahan · GPIB Trinitas</p>
+            </div>
+            <button onClick={() => setShowKiosk(false)} className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/10 hover:bg-white/20 transition-colors" data-tooltip="Tutup (Esc)">
+              <X className="w-5 h-5 text-white" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-8">
+            {kioskLoading ? (
+              <div className="h-full flex items-center justify-center"><Loader2 className="w-8 h-8 text-white/60 animate-spin" /></div>
+            ) : kioskCodes.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center gap-2 text-white/60">
+                <QrCode className="w-10 h-10" />
+                <p className="text-sm">Belum ada Kode QRIS yang ditandai tampil.</p>
+                <p className="text-xs">Atur di Master Data Finance &gt; Data QRIS (toggle "Tampilkan").</p>
+              </div>
+            ) : (
+              <div className="grid gap-8 mx-auto" style={{ maxWidth: '1100px', gridTemplateColumns: `repeat(${Math.min(kioskCodes.length, 3)}, minmax(0, 1fr))` }}>
+                {kioskCodes.map(q => (
+                  <div key={q.id} className="bg-white rounded-2xl p-6 flex flex-col items-center gap-4 shadow-2xl">
+                    <img src={`data:${q.mime_type};base64,${q.image_data}`} alt={q.label} className="w-full max-w-[320px] aspect-square object-contain" />
+                    <p className="text-center font-bold" style={{ fontSize: '16px', color: '#0f172a' }}>{q.label}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

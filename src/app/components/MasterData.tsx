@@ -4,7 +4,7 @@ import { useDraggable } from '../../lib/useDraggable';
 import { MasterDataCategory, MasterDataItem } from '../types';
 import {
   Layers, Plus, Pencil, Trash2, Check, X, ToggleLeft, ToggleRight,
-  Users, Church, DollarSign, Package, Calendar, BookOpen, Search, Mail,
+  Users, Church, Package, Calendar, BookOpen, Search, Mail,
 } from 'lucide-react';
 
 // ── Grup kategori per modul ───────────────────────────────────────────────────
@@ -20,10 +20,6 @@ const GROUPS = [
   {
     id: 'sakramen', label: 'Sakramen & Mutasi', icon: BookOpen, color: '#0f766e',
     categories: ['status_sakramen','tempat_sakramen','tipe_atestasi','status_permohonan_surat'],
-  },
-  {
-    id: 'keuangan', label: 'Keuangan', icon: DollarSign, color: '#16a34a',
-    categories: ['jenis_persembahan','tipe_rekening','metode_pembayaran','kategori_keuangan_masuk','kategori_keuangan_keluar','kategori_kas_kecil','sumber_kas_kecil','status_kas_kecil'],
   },
   {
     id: 'fasilitas', label: 'Fasilitas & Layanan', icon: Package, color: '#b45309',
@@ -58,14 +54,6 @@ const CAT_META: Record<string, { label: string; description: string; color: stri
   tempat_sakramen:           { label: 'Tempat Sakramen',            description: 'Lokasi baptis, sidi, pemberkatan',                           color: '#059669' },
   tipe_atestasi:             { label: 'Tipe Atestasi',              description: 'Pindah masuk / pindah keluar',                               color: '#0f766e' },
   status_permohonan_surat:   { label: 'Status Permohonan Surat',    description: 'Diajukan, diproses, selesai, ditolak',                       color: '#64748b' },
-  jenis_persembahan:         { label: 'Jenis Persembahan',          description: 'Mingguan, syukur, persepuluhan, dll',                        color: '#d97706' },
-  tipe_rekening:             { label: 'Tipe Rekening Bank',         description: 'Operasional, tabungan, pembangunan, dll',                    color: '#0f766e' },
-  metode_pembayaran:         { label: 'Metode Pembayaran',          description: 'Tunai, transfer, QRIS',                                      color: '#0891b2' },
-  kategori_keuangan_masuk:   { label: 'Kategori Pemasukan',         description: 'Kategori penerimaan keuangan',                               color: '#16a34a' },
-  kategori_keuangan_keluar:  { label: 'Kategori Pengeluaran',       description: 'Kategori pengeluaran keuangan',                              color: '#dc2626' },
-  kategori_kas_kecil:        { label: 'Kategori Kas Kecil',         description: 'Kategori pengeluaran petty cash',                            color: '#78350f' },
-  sumber_kas_kecil:          { label: 'Sumber Kas Kecil',           description: 'Kas majelis, donasi, dll',                                   color: '#b45309' },
-  status_kas_kecil:          { label: 'Status Kas Kecil',           description: 'Lunas, pending',                                             color: '#b45309' },
   status_peminjaman_ruangan: { label: 'Status Peminjaman Ruangan',  description: 'Pending, disetujui, ditolak, dll',                           color: '#6366f1' },
   kategori_aset:             { label: 'Kategori Aset',              description: 'Tanah, bangunan, kendaraan, dll',                            color: '#059669' },
   jenis_pelayanan:           { label: 'Jenis Permohonan Layanan',   description: 'Kunjungan, doa, konseling, dll',                             color: '#be185d' },

@@ -205,6 +205,22 @@ async function blockNonEditableLetterWrite(collection: string, id: string): Prom
   return !!existing && existing.status !== editableStatus;
 }
 
+// Persembahan (`offerings`) yang sudah "Setor ke Buku Besar" (lihat
+// server/routes/financeTransaction.ts POST /deposit-offerings) ditandai
+// `depositedTransactionId` -- record itu sudah jadi bagian voucher/transaksi
+// resmi di Finance Add-on (finance.transaction_lines), jadi TIDAK BOLEH lagi
+// diedit/dihapus langsung lewat CRUD generik ini, supaya sumber data mentah
+// persembahan tidak diam-diam menyimpang dari yang sudah tercatat di buku
+// besar. Prinsipnya sama persis dengan blockNonEditableLetterWrite() di
+// atas: begitu sebuah record sudah "dikunci" oleh proses di modul lain,
+// koreksinya harus lewat alur resmi modul itu (di sini: reversal/adjustment
+// transaksi di Finance Add-on), bukan lewat PUT/DELETE biasa.
+async function blockNonEditableOfferingWrite(collection: string, id: string): Promise<boolean> {
+  if (collection !== 'offerings') return false;
+  const existing = await getOne<any>(collection, id).catch(() => null);
+  return !!existing && !!existing.depositedTransactionId;
+}
+
 function stripPassword(items: any[]): any[] {
   return items.map(({ password: _pw, ...u }) => u);
 }
@@ -266,6 +282,11 @@ router.put('/:collection/:id', requireAuth, requirePermission(), async (req: Aut
 
   if (await blockNonEditableLetterWrite(collection, id)) {
     res.status(403).json({ error: 'Surat ini sudah diproses lebih lanjut dan tidak bisa diedit langsung — gunakan aksi alur kerja di halaman Surat Keluar/Surat Masuk' });
+    return;
+  }
+
+  if (await blockNonEditableOfferingWrite(collection, id)) {
+    res.status(403).json({ error: 'Persembahan ini sudah disetor ke Buku Besar (Finance Add-on) dan tidak bisa diedit langsung — gunakan alur reversal/adjustment di modul Finance untuk koreksi' });
     return;
   }
 
@@ -414,6 +435,11 @@ router.delete('/:collection/:id', requireAuth, requirePermission(), async (req: 
 
   if (await blockNonEditableLetterWrite(collection, id)) {
     res.status(403).json({ error: 'Surat ini sudah diproses lebih lanjut dan tidak bisa dihapus langsung — gunakan aksi alur kerja di halaman Surat Keluar/Surat Masuk' });
+    return;
+  }
+
+  if (await blockNonEditableOfferingWrite(collection, id)) {
+    res.status(403).json({ error: 'Persembahan ini sudah disetor ke Buku Besar (Finance Add-on) dan tidak bisa dihapus langsung — gunakan alur reversal/adjustment di modul Finance untuk koreksi' });
     return;
   }
 
