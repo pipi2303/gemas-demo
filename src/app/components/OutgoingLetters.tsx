@@ -65,6 +65,7 @@ function emptyDraft(createdBy: string): Partial<OutgoingLetter> {
     status: 'Draft',
     letterDate: todayISODate(),
     jenisSuratId: '',
+    replacesLetterId: undefined,
     templateId: undefined,
     subject: '',
     recipientName: '',
@@ -319,6 +320,7 @@ export function OutgoingLetters() {
         memberId: current.memberId,
         relatedModule: current.relatedModule,
         relatedId: current.relatedId,
+        replacesLetterId: current.replacesLetterId || undefined,
         createdBy: current.createdBy || currentUser?.id || '',
         createdAt: current.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -364,6 +366,16 @@ export function OutgoingLetters() {
     if (!window.confirm('Hapus draft surat ini?')) return;
     try {
       await api.delete(`/api/data/outgoingLetters/${current.id}`);
+      // Audit gap fix: hapus juga semua lampiran (outgoingLetterAttachments)
+      // milik draft ini -- sebelumnya tidak ada cascade delete sama sekali,
+      // jadi file PDF (base64, s.d. 2MB per lampiran) numpuk permanen di
+      // gemas_store menunjuk ke letterId yang sudah tidak ada. Pola bug yang
+      // sama seperti yang sudah diperbaiki di AssetManagement/ResourceLibrary/
+      // AidDistribution. Non-blocking: draft tetap terhapus walau salah satu
+      // cleanup lampiran gagal.
+      await Promise.all(attachments.map(att =>
+        api.delete(`/api/data/outgoingLetterAttachments/${att.id}`).catch(() => {})
+      ));
       toast.success('Draft dihapus');
       backToList();
     } catch (err: any) {
@@ -611,6 +623,28 @@ export function OutgoingLetters() {
               {sectors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
+        </div>
+
+        {/* Audit gap fix: field replacesLetterId sudah lama ada di tipe
+            OutgoingLetter (untuk menandai surat ini revisi/pengganti surat
+            yang sudah ditandatangani) tapi belum pernah punya UI sama sekali.
+            Hanya bisa dipilih saat masih Draft, sama seperti field lain di
+            atas. Daftar pilihan dibatasi ke surat yang statusnya sudah lewat
+            tahap tandatangan (sudah punya letterNumber resmi) dan bukan
+            dirinya sendiri. */}
+        <div>
+          <label className="text-xs font-medium text-slate-600 block mb-1">Surat yang Digantikan/Direvisi (opsional)</label>
+          <select disabled={!isDraft} value={current?.replacesLetterId || ''}
+            onChange={e => setCurrent(prev => prev && ({ ...prev, replacesLetterId: e.target.value || undefined }))}
+            className="w-full px-3 py-2 rounded-lg border text-sm bg-white disabled:bg-slate-50" style={{ borderColor: '#e2e8f0' }}>
+            <option value="">— Bukan revisi/pengganti surat lain —</option>
+            {letters
+              .filter(l => l.id !== current?.id && !!l.letterNumber)
+              .map(l => (
+                <option key={l.id} value={l.id}>{l.letterNumber} — {l.subject}</option>
+              ))}
+          </select>
+          <p className="text-[11px] text-slate-400 mt-1">Pilih kalau surat ini menggantikan/merevisi surat resmi yang sudah pernah ditandatangani sebelumnya.</p>
         </div>
 
         <div>

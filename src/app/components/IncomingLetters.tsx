@@ -72,6 +72,7 @@ function emptyDraft(createdBy: string): Partial<IncomingLetter> {
   return {
     status: 'Diterima',
     receivedDate: todayISODate(),
+    letterNumber: '',
     senderName: '',
     senderInstitution: '',
     subject: '',
@@ -183,6 +184,7 @@ export function IncomingLetters() {
         id,
         status: 'Diterima',
         receivedDate: current.receivedDate || todayISODate(),
+        letterNumber: current.letterNumber?.trim() || undefined,
         senderName: current.senderName!.trim(),
         senderInstitution: current.senderInstitution?.trim() || undefined,
         subject: current.subject!.trim(),
@@ -235,6 +237,13 @@ export function IncomingLetters() {
     if (!window.confirm('Hapus surat masuk ini?')) return;
     try {
       await api.delete(`/api/data/incomingLetters/${current.id}`);
+      // Audit gap fix: hapus juga semua lampiran (incomingLetterAttachments)
+      // milik surat ini -- sebelumnya tidak ada cascade delete, lampiran
+      // (scan surat, s.d. 2MB) numpuk permanen menunjuk ke letterId yang
+      // sudah tidak ada. Pola sama seperti OutgoingLetters.tsx.
+      await Promise.all(attachments.map(att =>
+        api.delete(`/api/data/incomingLetterAttachments/${att.id}`).catch(() => {})
+      ));
       toast.success('Surat dihapus');
       backToList();
     } catch (err: any) {
@@ -339,6 +348,7 @@ export function IncomingLetters() {
               <thead>
                 <tr style={{ background: '#f8fafc' }}>
                   <th className="text-left px-4 py-2.5 font-semibold text-slate-600">Tanggal Diterima</th>
+                  <th className="text-left px-4 py-2.5 font-semibold text-slate-600">No. Surat Pengirim</th>
                   <th className="text-left px-4 py-2.5 font-semibold text-slate-600">Perihal</th>
                   <th className="text-left px-4 py-2.5 font-semibold text-slate-600">Pengirim</th>
                   <th className="text-left px-4 py-2.5 font-semibold text-slate-600">Kategori</th>
@@ -350,6 +360,7 @@ export function IncomingLetters() {
                 {filteredLetters.map(l => (
                   <tr key={l.id} className="border-t cursor-pointer hover:bg-slate-50" style={{ borderColor: '#e2e8f0' }} onClick={() => openExisting(l)}>
                     <td className="px-4 py-2.5 text-slate-600">{l.receivedDate}</td>
+                    <td className="px-4 py-2.5 text-slate-500">{l.letterNumber || '—'}</td>
                     <td className="px-4 py-2.5 font-medium text-slate-800">{l.subject}</td>
                     <td className="px-4 py-2.5 text-slate-600">{l.senderName}</td>
                     <td className="px-4 py-2.5 text-slate-600">{categoryLabel(l.category)}</td>
@@ -395,6 +406,19 @@ export function IncomingLetters() {
               {categoryOptions.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
             </select>
           </div>
+        </div>
+
+        {/* Audit gap fix: field ini sudah lama ada di tipe IncomingLetter
+            (untuk mencatat nomor surat ASLI dari pengirim, bukan penomoran
+            internal gereja -- lihat komentar di types/index.ts) tapi belum
+            pernah punya input di form ini sama sekali -- data tidak pernah
+            bisa diisi. */}
+        <div>
+          <label className="text-xs font-medium text-slate-600 block mb-1">Nomor Surat dari Pengirim (opsional)</label>
+          <input disabled={!isEditable} value={current?.letterNumber || ''} onChange={e => setCurrent(prev => prev && ({ ...prev, letterNumber: e.target.value }))}
+            placeholder="mis. 045/SEK-GKI/IX/2026"
+            className="w-full px-3 py-2 rounded-lg border text-sm disabled:bg-slate-50" style={{ borderColor: '#e2e8f0' }} />
+          <p className="text-[11px] text-slate-400 mt-1">Nomor surat asli seperti tertulis di kop/kepala surat dari pengirim — untuk pencatatan/pencarian arsip, bukan nomor internal gereja.</p>
         </div>
 
         <div className="grid grid-cols-2 gap-4">

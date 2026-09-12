@@ -162,6 +162,7 @@ export const COLLECTION_PAGE: Record<string, string[]> = {
   letterTemplates:       ['letter-templates'],
   letterNumberFormats:   ['letter-settings'],
   signatureAssets:       ['letter-settings'],
+  signingOfficials:      ['letter-settings'],
   letterNumberCounters:  ['letter-settings'], // internal, dibatasi juga lewat ADMIN_WRITE di data.ts
   // Fase 2 — Surat Keluar (alur inti)
   outgoingLetters:           ['letters-outgoing'],

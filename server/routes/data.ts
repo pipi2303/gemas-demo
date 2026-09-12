@@ -56,6 +56,7 @@ const AUDITED_COLLECTIONS: Record<string, { domain: 'Member' | 'Financial' | 'As
   letterTemplates:     { domain: 'Correspondence', entityType: 'LetterTemplate',      nameField: 'name' },
   letterNumberFormats: { domain: 'Correspondence', entityType: 'LetterNumberFormat',  nameField: 'pattern' },
   signatureAssets:     { domain: 'Correspondence', entityType: 'SignatureAsset',      nameField: 'type' },
+  signingOfficials:    { domain: 'Correspondence', entityType: 'SigningOfficial',     nameField: 'userId' },
   outgoingLetters:           { domain: 'Correspondence', entityType: 'OutgoingLetter',           nameField: 'subject' },
   outgoingLetterAttachments: { domain: 'Correspondence', entityType: 'OutgoingLetterAttachment',  nameField: 'fileName' },
   incomingLetters:           { domain: 'Correspondence', entityType: 'IncomingLetter',            nameField: 'subject' },
@@ -224,6 +225,14 @@ function validateResourceFileData(data: Record<string, any>): string | null {
   }
   if (buf.length === 0) return 'Data file tidak valid';
   if (buf.length > MAX_DOCUMENT_BYTES) return 'Ukuran file melebihi batas 2MB';
+  return null;
+}
+
+// Validasi minimal untuk daftar Pejabat Penandatangan (SigningOfficial) --
+// userId wajib diisi supaya tidak ada baris "pejabat" yatim tanpa user
+// yang jelas (lihat catatan lengkap di types/index.ts).
+function validateSigningOfficialData(data: Record<string, any>): string | null {
+  if (!data.userId || typeof data.userId !== 'string' || !data.userId.trim()) return 'User wajib dipilih';
   return null;
 }
 
@@ -412,6 +421,11 @@ router.put('/:collection/:id', requireAuth, requirePermission(), async (req: Aut
   }
   if (collection === 'resourceFiles') {
     const valErr = validateResourceFileData(data);
+    if (valErr) { res.status(400).json({ error: valErr }); return; }
+  }
+
+  if (collection === 'signingOfficials') {
+    const valErr = validateSigningOfficialData(data);
     if (valErr) { res.status(400).json({ error: valErr }); return; }
   }
 

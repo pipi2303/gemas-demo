@@ -1061,6 +1061,25 @@ export interface SignatureAsset {
   uploadedBy?: string;
 }
 
+/** Daftar Pejabat Penandatangan -- kurasi terpisah dari daftar User penuh.
+ *  Sebelumnya tab "TTD & Cap" otomatis menampilkan SEMUA user di sistem
+ *  (termasuk yang tidak pernah menandatangani surat), tanpa cara memilih
+ *  siapa saja yang benar-benar berwenang. SigningOfficial cuma menandai
+ *  SUBSET user mana yang tampil di daftar itu -- menambah/menghapus dari
+ *  sini TIDAK mengubah/menghapus akun User itu sendiri, dan TIDAK memengaruhi
+ *  alur tandatangan Surat Keluar (OutgoingLetters.tsx tetap mencocokkan
+ *  SignatureAsset.ownerId === currentUser.id saat proses tandatangan --
+ *  jadi tetap cuma pemilik akun yang login yang bisa pakai TTD-nya sendiri). */
+export interface SigningOfficial {
+  id: string;
+  userId: string; // ref User.id
+  jabatan?: string; // jabatan/gelar resmi saat menandatangani, mis. "Ketua Majelis" -- opsional, kalau kosong tampilkan role user apa adanya
+  isActive: boolean;
+  order?: number;
+  addedBy?: string;
+  addedAt: string;
+}
+
 // ============================================================
 // MODUL SURAT-MENYURAT — Fase 2 (Surat Keluar, alur inti)
 // ============================================================

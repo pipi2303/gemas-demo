@@ -5,9 +5,9 @@ import { toast } from 'sonner';
 import { Card } from './ui/card';
 import {
   Mail, Building2, Hash, PenTool, Upload, Save, Loader2,
-  ImageIcon, Stamp, Trash2, Eye,
+  ImageIcon, Stamp, Trash2, Eye, UserPlus,
 } from 'lucide-react';
-import type { OrgLetterhead, LetterNumberFormat, SignatureAsset } from '../types';
+import type { OrgLetterhead, LetterNumberFormat, SignatureAsset, SigningOfficial } from '../types';
 
 // ============================================================
 // Pengaturan Surat Menyurat — Fase 1 (Fondasi)
@@ -367,16 +367,24 @@ function FormatNomorTab({ canEdit, currentUser, masterDataItems }: { canEdit: bo
 // ── Tab: TTD & Cap ────────────────────────────────────────────────────────────
 function TtdCapTab({ canEdit, currentUser, users }: { canEdit: boolean; currentUser: any; users: any[] }) {
   const [assets, setAssets] = useState<SignatureAsset[]>([]);
+  const [officials, setOfficials] = useState<SigningOfficial[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [addUserId, setAddUserId] = useState('');
+  const [addJabatan, setAddJabatan] = useState('');
+  const [adding, setAdding] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const rows = await api.get<SignatureAsset[]>('/api/data/signatureAssets');
-      setAssets(rows);
+      const [assetRows, officialRows] = await Promise.all([
+        api.get<SignatureAsset[]>('/api/data/signatureAssets'),
+        api.get<SigningOfficial[]>('/api/data/signingOfficials'),
+      ]);
+      setAssets(assetRows);
+      setOfficials(officialRows.filter(o => o.isActive));
     } catch {
-      // belum ada TTD/cap tersimpan — wajar
+      // belum ada TTD/cap/pejabat tersimpan — wajar
     } finally {
       setLoading(false);
     }
@@ -385,6 +393,58 @@ function TtdCapTab({ canEdit, currentUser, users }: { canEdit: boolean; currentU
   useEffect(() => { load(); }, [load]);
 
   const stamp = assets.find(a => a.type === 'stamp' && a.ownerId === 'org');
+
+  // Audit gap fix: sebelumnya daftar ini otomatis menampilkan SEMUA user di
+  // sistem (termasuk yang tidak berwenang menandatangani surat sama sekali).
+  // Sekarang dikurasi lewat collection signingOfficials terpisah -- menambah/
+  // menghapus dari daftar ini TIDAK mengubah/menghapus akun User itu sendiri,
+  // dan TIDAK memengaruhi alur tandatangan Surat Keluar (tetap dikunci ke
+  // SignatureAsset.ownerId === currentUser.id di OutgoingLetters.tsx).
+  const availableUsers = useMemo(
+    () => users.filter(u => !officials.some(o => o.userId === u.id)),
+    [users, officials]
+  );
+
+  const handleAddOfficial = async () => {
+    if (!addUserId) { toast.error('Pilih user terlebih dahulu'); return; }
+    setAdding(true);
+    try {
+      const id = `signoff_${Date.now()}`;
+      const data: SigningOfficial = {
+        id, userId: addUserId, jabatan: addJabatan.trim() || undefined,
+        isActive: true, addedBy: currentUser?.name || 'Administrator',
+        addedAt: new Date().toISOString(),
+      };
+      await api.post('/api/data/signingOfficials', data);
+      setOfficials(prev => [...prev, data]);
+      setAddUserId(''); setAddJabatan('');
+      toast.success('Pejabat ditambahkan ke daftar penandatangan');
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal menambah pejabat');
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleRemoveOfficial = async (official: SigningOfficial) => {
+    const u = users.find(x => x.id === official.userId);
+    if (!window.confirm(`Hapus "${u?.name || official.userId}" dari daftar Pejabat Penandatangan?\n\nAkun user-nya TIDAK ikut terhapus, hanya dikeluarkan dari daftar ini (beserta gambar TTD yang sudah diunggah, kalau ada).`)) return;
+    try {
+      await api.delete(`/api/data/signingOfficials/${official.id}`);
+      setOfficials(prev => prev.filter(o => o.id !== official.id));
+      // Bersihkan juga gambar TTD-nya (kalau ada) supaya tidak jadi sampah
+      // menunjuk ke pejabat yang sudah dikeluarkan dari daftar -- pola sama
+      // seperti pembersihan lampiran surat.
+      const sig = assets.find(a => a.type === 'signature' && a.ownerId === official.userId);
+      if (sig) {
+        await api.delete(`/api/data/signatureAssets/${sig.id}`).catch(() => {});
+        setAssets(prev => prev.filter(a => a.id !== sig.id));
+      }
+      toast.success('Pejabat dikeluarkan dari daftar penandatangan');
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal menghapus pejabat');
+    }
+  };
 
   const handleUpload = async (id: string, ownerType: SignatureAsset['ownerType'], ownerId: string, type: SignatureAsset['type'], file: File) => {
     const err = validateImage(file);
@@ -447,27 +507,53 @@ function TtdCapTab({ canEdit, currentUser, users }: { canEdit: boolean; currentU
           <h3 className="text-sm font-bold" style={{ color: '#1e293b' }}>Tanda Tangan Pejabat</h3>
         </div>
         <p className="text-xs" style={{ color: '#94a3b8' }}>
-          Tiap pejabat yang berwenang menandatangani surat perlu gambar tanda tangannya diunggah di sini.
+          Hanya user yang ditambahkan ke daftar ini yang tampil sebagai pejabat penandatangan. Menambah/menghapus dari sini tidak mengubah akun user-nya.
         </p>
+
+        {canEdit && (
+          <div className="flex flex-col sm:flex-row gap-2 p-3 rounded-lg" style={{ background: '#f8fafc', border: '1px solid #f1f5f9' }}>
+            <select value={addUserId} onChange={e => setAddUserId(e.target.value)}
+              className="flex-1 px-3 py-2 rounded-lg border text-sm bg-white" style={{ borderColor: '#e2e8f0' }}>
+              <option value="">— Pilih user untuk ditambahkan —</option>
+              {availableUsers.map(u => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
+            </select>
+            <input value={addJabatan} onChange={e => setAddJabatan(e.target.value)}
+              placeholder="Jabatan saat menandatangani (opsional), mis. Ketua Majelis"
+              className="flex-1 px-3 py-2 rounded-lg border text-sm" style={{ borderColor: '#e2e8f0' }} />
+            <button onClick={handleAddOfficial} disabled={adding || !addUserId}
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-60 whitespace-nowrap"
+              style={{ background: '#0369a1' }}>
+              {adding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserPlus className="w-3.5 h-3.5" />}
+              Tambah Pejabat
+            </button>
+          </div>
+        )}
+
         <div className="space-y-2">
-          {users.length === 0 && <p className="text-sm text-gray-400 py-4 text-center">Belum ada user terdaftar.</p>}
-          {users.map(u => {
-            const sig = assets.find(a => a.type === 'signature' && a.ownerId === u.id);
+          {officials.length === 0 && <p className="text-sm text-gray-400 py-4 text-center">Belum ada pejabat penandatangan ditambahkan.</p>}
+          {officials.map(o => {
+            const u = users.find(x => x.id === o.userId);
+            const sig = assets.find(a => a.type === 'signature' && a.ownerId === o.userId);
             return (
-              <div key={u.id} className="flex items-center gap-3 p-2.5 rounded-lg border" style={{ borderColor: '#f1f5f9' }}>
+              <div key={o.id} className="flex items-center gap-3 p-2.5 rounded-lg border" style={{ borderColor: '#f1f5f9' }}>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate" style={{ color: '#334155' }}>{u.name}</p>
-                  <p className="text-[11px]" style={{ color: '#94a3b8' }}>{u.role}</p>
+                  <p className="text-sm font-semibold truncate" style={{ color: '#334155' }}>{u?.name || '(user tidak ditemukan)'}</p>
+                  <p className="text-[11px]" style={{ color: '#94a3b8' }}>{o.jabatan || u?.role || '-'}</p>
                 </div>
                 <ImageSlot
                   compact
                   image={sig}
                   canEdit={canEdit}
-                  uploading={uploadingId === `sig-${u.id}`}
-                  onUpload={file => handleUpload(`sig-${u.id}`, 'user', u.id, 'signature', file)}
-                  onDelete={sig ? () => handleDelete(`sig-${u.id}`) : undefined}
+                  uploading={uploadingId === `sig-${o.userId}`}
+                  onUpload={file => handleUpload(`sig-${o.userId}`, 'user', o.userId, 'signature', file)}
+                  onDelete={sig ? () => handleDelete(`sig-${o.userId}`) : undefined}
                   emptyLabel="Belum ada TTD"
                 />
+                {canEdit && (
+                  <button onClick={() => handleRemoveOfficial(o)} className="p-1.5 rounded-lg hover:bg-red-50 flex-shrink-0" title="Keluarkan dari daftar Pejabat">
+                    <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                  </button>
+                )}
               </div>
             );
           })}
