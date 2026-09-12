@@ -202,33 +202,26 @@ export function SermonArchive() {
 
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
-      <div
-        className="rounded-2xl shadow-sm border p-6 text-white"
-        style={{
-          background: 'linear-gradient(135deg, #0d1a2d 0%, #152744 100%)',
-          borderColor: 'rgba(212,175,55,0.25)',
-        }}
-      >
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-amber-400/20 text-amber-300 border border-amber-400/30">
-              <BookOpen className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-xl lg:text-2xl font-bold font-serif-heading tracking-wide">
-                Arsip Khotbah &amp; Renungan Firman
-              </h1>
-              <p className="text-xs lg:text-sm text-gray-300 mt-1">
-                Dengarkan rekaman suara khotbah, pelajari nats Alkitab, dan unduh naskah renungan mingguan.
-              </p>
-            </div>
+      {/* Header -- disamakan dengan template menu sejenis lain (Tata Ibadah,
+          Jadwal Ibadah, E-Warta, Unit Pelayanan): kartu putih polos + ikon
+          kotak berwarna, bukan banner gradasi gelap yang sebelumnya beda
+          sendiri di modul ini. */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-[#144f6b] to-[#1A77A3] rounded-xl flex items-center justify-center shadow">
+            <BookOpen className="w-5 h-5 text-white" />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-white/10 text-amber-300 border border-white/15">
-              {sermons.length} Khotbah Tersedia
-            </span>
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900">Arsip Khotbah &amp; Renungan Firman</h1>
+            <p className="text-sm text-gray-500">
+              Dengarkan rekaman suara khotbah, pelajari nats Alkitab, dan unduh naskah renungan mingguan.
+            </p>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-[#f0f7fb] text-[#144f6b] border border-[#b8d5e8]">
+            {sermons.length} Khotbah Tersedia
+          </span>
         </div>
       </div>
 
