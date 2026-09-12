@@ -158,3 +158,34 @@ jobs:
             echo "::error::Portainer redeploy failed with HTTP $code"
             exit 1
           fi
+
+      # Audit gap fix (Infra & Ops): sebelumnya job ini berhenti begitu Portainer
+      # MENERIMA permintaan redeploy (HTTP 2xx) -- tidak pernah dicek apakah
+      # container baru benar-benar naik & sehat setelahnya. Kalau image baru
+      # gagal start (mis. migrasi/env var salah), pipeline tetap melapor
+      # "sukses" padahal produksi sedang down. Dockerfile sudah punya
+      # HEALTHCHECK yang hit /api/health (lihat db.ts getPool().query('SELECT 1')),
+      # jadi di sini kita poll endpoint publik yang sama lewat STACK_CLIENT_ORIGIN
+      # (secret yang sama dipakai utk CORS) sampai sehat atau timeout.
+      - name: Wait for deployment health check
+        env:
+          STACK_CLIENT_ORIGIN: ${{ secrets.STACK_CLIENT_ORIGIN }}
+        run: |
+          set -euo pipefail
+
+          HEALTH_URL="${STACK_CLIENT_ORIGIN%/}/api/health"
+          echo "Menunggu $HEALTH_URL sehat (maks 5 menit)..."
+
+          for i in $(seq 1 30); do
+            code=$(curl -sk -o /tmp/health_response.json -w "%{http_code}" "$HEALTH_URL" || echo "000")
+            if [ "$code" -eq 200 ]; then
+              echo "Deployment sehat setelah percobaan ke-$i (HTTP 200)."
+              cat /tmp/health_response.json 2>/dev/null || true
+              exit 0
+            fi
+            echo "Percobaan $i/30: HTTP $code, coba lagi dalam 10 detik..."
+            sleep 10
+          done
+
+          echo "::error::Deployment baru tidak sehat setelah 5 menit (endpoint /api/health tidak pernah 200). Periksa log container di Portainer -- rollback manual mungkin diperlukan."
+          exit 1

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useId } from 'react';
 import { useApp } from '../context/AppContext';
 import { api } from '../../lib/apiClient';
 import { roleStyle } from '../../lib/familyRole';
@@ -909,19 +909,25 @@ function MemberField({ label, value, onChange, type='text', opts, required, auto
   label:string; value:string; onChange:(v:string)=>void;
   type?:string; opts?:string[]; required?:boolean; autoFocus?:boolean;
 }) {
+  // Audit gap fix (Frontend/UX): sebelumnya <label> di sini tidak punya
+  // htmlFor/id sama sekali -- padahal komponen ini dipakai untuk hampir
+  // semua field di form Jemaat (form dengan traffic tertinggi di aplikasi).
+  // useId() dipakai (bukan slug dari label) supaya id selalu unik walau ada
+  // dua MemberField dengan label yang sama di form/instance berbeda.
+  const fieldId = useId();
   return (
     <div>
-      <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>
+      <label htmlFor={fieldId} className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>
         {label}{required && <span className="text-red-400 ml-0.5">*</span>}
       </label>
       {opts ? (
-        <select autoFocus={autoFocus} value={value} onChange={e=>onChange(e.target.value)}
+        <select id={fieldId} autoFocus={autoFocus} value={value} onChange={e=>onChange(e.target.value)}
           className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}>
           <option value="">— Pilih —</option>
           {opts.map(o=><option key={o} value={o}>{o}</option>)}
         </select>
       ) : (
-        <input autoFocus={autoFocus} type={type} value={value} onChange={e=>onChange(e.target.value)}
+        <input id={fieldId} autoFocus={autoFocus} type={type} value={value} onChange={e=>onChange(e.target.value)}
           className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/>
       )}
     </div>

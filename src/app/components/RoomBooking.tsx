@@ -26,6 +26,9 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<RoomBooking | null>(null);
+  // Audit gap fix (Frontend/UX): cegah submit ganda kalau staf klik tombol
+  // berkali-kali dengan cepat sebelum dialog sempat tertutup.
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // memberSearch state for SearchDropdown display
   const [memberSearch, setMemberSearch] = useState('');
@@ -201,7 +204,8 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+    if (isSubmitting) return;
+
     // Validasi
     if (!formData.date || !formData.startTime || !formData.endTime) {
       toast.error('Mohon lengkapi Tanggal, Waktu Mulai, dan Waktu Selesai');
@@ -230,9 +234,11 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
       return;
     }
 
+    setIsSubmitting(true);
     addRoomBooking({ ...formData, roomType: roomTypeFor(formData.roomName), email: '' });
     resetForm();
     setIsCreateDialogOpen(false);
+    setIsSubmitting(false);
   };
 
   const handleEdit = (booking: RoomBooking) => {
@@ -260,7 +266,8 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
 
   const handleUpdate = (e: React.FormEvent) => {
     e.preventDefault();
-    
+    if (isSubmitting) return;
+
     // Validasi
     if (!formData.date || !formData.startTime || !formData.endTime) {
       toast.error('Mohon lengkapi Tanggal, Waktu Mulai, dan Waktu Selesai');
@@ -289,11 +296,13 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
       return;
     }
 
+    setIsSubmitting(true);
     if (selectedBooking) updateRoomBooking(selectedBooking.id, { ...formData, roomType: roomTypeFor(formData.roomName) });
     resetForm();
     setIsCreateDialogOpen(false);
     setIsEditMode(false);
     setSelectedBooking(null);
+    setIsSubmitting(false);
   };
 
   const handleViewDetail = (booking: RoomBooking) => {
@@ -937,9 +946,9 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
                   <X className="w-4 h-4 mr-1.5" />
                   Batal
                 </Button>
-                <Button type="submit">
+                <Button type="submit" disabled={isSubmitting}>
                   <Plus className="w-4 h-4 mr-1.5" />
-                  {isEditMode ? 'Simpan Perubahan' : 'Buat Booking'}
+                  {isSubmitting ? 'Menyimpan...' : (isEditMode ? 'Simpan Perubahan' : 'Buat Booking')}
                 </Button>
               </div>
             </div>

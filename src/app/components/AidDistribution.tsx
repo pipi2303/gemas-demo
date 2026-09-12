@@ -75,6 +75,9 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  // Audit gap fix (Frontend/UX): cegah submit ganda kalau staf klik tombol
+  // berkali-kali dengan cepat sebelum dialog sempat tertutup.
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedAid, setSelectedAid] = useState<AidDistribution | null>(null);
 
   // memberSearch state for SearchDropdown display
@@ -159,13 +162,16 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (!formData.recipientName || !formData.phone || !formData.reason) {
       toast.error('Mohon lengkapi Nama Penerima, Telepon, dan Alasan Pengajuan');
       return;
     }
+    setIsSubmitting(true);
     addAidDistribution(formData);
     resetForm();
     setIsCreateDialogOpen(false);
+    setIsSubmitting(false);
   };
 
   const handleEdit = (aid: AidDistribution) => {
@@ -191,15 +197,18 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
 
   const handleUpdate = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (!formData.recipientName || !formData.phone || !formData.reason) {
       toast.error('Mohon lengkapi Nama Penerima, Telepon, dan Alasan Pengajuan');
       return;
     }
+    setIsSubmitting(true);
     if (selectedAid) updateAidDistribution(selectedAid.id, formData);
     resetForm();
     setIsCreateDialogOpen(false);
     setIsEditMode(false);
     setSelectedAid(null);
+    setIsSubmitting(false);
   };
 
   const handleViewDetail = (aid: AidDistribution) => {
@@ -766,9 +775,9 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
                   <X className="w-4 h-4 mr-1.5" />
                   Batal
                 </Button>
-                <Button type="submit">
+                <Button type="submit" disabled={isSubmitting}>
                   <Plus className="w-4 h-4 mr-1.5" />
-                  {isEditMode ? 'Simpan Perubahan' : 'Simpan Pengajuan'}
+                  {isSubmitting ? 'Menyimpan...' : (isEditMode ? 'Simpan Perubahan' : 'Simpan Pengajuan')}
                 </Button>
               </div>
             </div>
