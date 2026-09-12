@@ -143,7 +143,13 @@ export const COLLECTION_PAGE: Record<string, string[]> = {
   serviceRequests:       ['service-requests'],
   aidDistributions:      ['aid-distribution'],
   aidDistributionDocuments: ['aid-distribution'],
-  prayers:               ['prayers'],
+  // Audit gap fix: key sebelumnya 'prayers' TIDAK PERNAH cocok dengan nama
+  // collection sungguhan ('prayerRequests', lihat AppContext.tsx apiSave
+  // calls) -- requirePermission() selalu next() tanpa cek izin sama sekali
+  // untuk Pokok Doa. Siapa pun yang login (peran apa pun) bisa tambah/ubah/
+  // hapus pokok doa lewat API langsung. Pola bug persis sama seperti
+  // resourceLibrary->resources yang sudah diperbaiki sebelumnya.
+  prayerRequests:        ['prayers'],
   users:                 ['users'],
   customRoles:           ['roles'],
   rbac_permissions:      ['roles'],

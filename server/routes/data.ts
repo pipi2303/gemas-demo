@@ -28,6 +28,10 @@ const AUDITED_COLLECTIONS: Record<string, { domain: 'Member' | 'Financial' | 'As
   sidis:            { domain: 'Member',    entityType: 'Sidi',            nameField: 'memberName' },
   marriages:        { domain: 'Member',    entityType: 'Marriage',        nameField: 'groomName' },
   attestations:     { domain: 'Member',    entityType: 'Attestation',     nameField: 'memberName' },
+  prayerRequests:   { domain: 'Member',    entityType: 'PrayerRequest',   nameField: 'request' },
+  serviceRequests:  { domain: 'Member',    entityType: 'ServiceRequest',  nameField: 'requestedBy' },
+  aidDistributions: { domain: 'Member',    entityType: 'AidDistribution', nameField: 'recipientName' },
+  aidDistributionDocuments: { domain: 'Member', entityType: 'AidDistributionDocument', nameField: 'fileName' },
   financialRecords: { domain: 'Financial', entityType: 'FinancialRecord', nameField: 'description' },
   financialCategories: { domain: 'Financial', entityType: 'FinancialCategory', nameField: 'name' },
   offerings:        { domain: 'Financial', entityType: 'Offering',        nameField: 'donorName' },
@@ -223,6 +227,40 @@ function validateResourceFileData(data: Record<string, any>): string | null {
   return null;
 }
 
+// Validasi minimal untuk Pelayanan Kasih & Doa (prayerRequests, serviceRequests,
+// aidDistributions) -- sebelumnya ketiga collection ini TIDAK PUNYA validasi
+// server-side sama sekali, hanya required-check di client yang trivial
+// dilewati lewat panggilan API langsung.
+const PRAYER_CATEGORIES = new Set(['Kesehatan', 'Keuangan', 'Keluarga', 'Pekerjaan', 'Rohani', 'Lainnya']);
+function validatePrayerRequestData(data: Record<string, any>): string | null {
+  if (!data.memberId || typeof data.memberId !== 'string') return 'Jemaat wajib dipilih';
+  if (!data.request || typeof data.request !== 'string' || !data.request.trim()) return 'Isi pokok doa wajib diisi';
+  if (data.category && !PRAYER_CATEGORIES.has(data.category)) return 'Kategori pokok doa tidak valid';
+  return null;
+}
+
+const SERVICE_REQUEST_TYPES = new Set(['Kunjungan', 'Doa Khusus', 'Pelayanan Duka', 'Konseling', 'Lainnya']);
+function validateServiceRequestData(data: Record<string, any>): string | null {
+  if (!data.type || !SERVICE_REQUEST_TYPES.has(data.type)) return 'Jenis layanan tidak valid';
+  if (!data.requestedBy || typeof data.requestedBy !== 'string' || !data.requestedBy.trim()) return 'Nama pemohon wajib diisi';
+  if (!data.phone || typeof data.phone !== 'string') return 'Nomor telepon wajib diisi';
+  if (!data.address || typeof data.address !== 'string') return 'Alamat wajib diisi';
+  if (!data.description || typeof data.description !== 'string') return 'Deskripsi permohonan wajib diisi';
+  return null;
+}
+
+const AID_TYPES = new Set(['Ekonomi', 'Beasiswa', 'Kesehatan', 'Bencana', 'Lainnya']);
+function validateAidDistributionData(data: Record<string, any>): string | null {
+  if (!data.type || !AID_TYPES.has(data.type)) return 'Jenis bantuan tidak valid';
+  if (!data.recipientName || typeof data.recipientName !== 'string' || !data.recipientName.trim()) return 'Nama penerima wajib diisi';
+  if (!data.phone || typeof data.phone !== 'string') return 'Nomor telepon wajib diisi';
+  if (!data.address || typeof data.address !== 'string') return 'Alamat wajib diisi';
+  if (!data.description || typeof data.description !== 'string') return 'Deskripsi bantuan wajib diisi';
+  if (!data.reason || typeof data.reason !== 'string') return 'Alasan pengajuan wajib diisi';
+  if (data.amount !== undefined && data.amount !== null && (typeof data.amount !== 'number' || data.amount < 0)) return 'Nominal bantuan tidak valid';
+  return null;
+}
+
 // Surat Keluar & Surat Masuk: field WAJIB tetap bisa diedit generik SELAMA
 // statusnya masih tahap awal (Draft untuk outgoingLetters, Diterima untuk
 // incomingLetters — lihat LETTER_EDITABLE_STATUS) — tapi begitu sudah masuk
@@ -374,6 +412,20 @@ router.put('/:collection/:id', requireAuth, requirePermission(), async (req: Aut
   }
   if (collection === 'resourceFiles') {
     const valErr = validateResourceFileData(data);
+    if (valErr) { res.status(400).json({ error: valErr }); return; }
+  }
+
+  // Validasi Pelayanan Kasih & Doa (prayerRequests, serviceRequests, aidDistributions)
+  if (collection === 'prayerRequests') {
+    const valErr = validatePrayerRequestData(data);
+    if (valErr) { res.status(400).json({ error: valErr }); return; }
+  }
+  if (collection === 'serviceRequests') {
+    const valErr = validateServiceRequestData(data);
+    if (valErr) { res.status(400).json({ error: valErr }); return; }
+  }
+  if (collection === 'aidDistributions') {
+    const valErr = validateAidDistributionData(data);
     if (valErr) { res.status(400).json({ error: valErr }); return; }
   }
 
