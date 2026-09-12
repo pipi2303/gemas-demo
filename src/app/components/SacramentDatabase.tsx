@@ -620,11 +620,40 @@ export function SacramentDatabase({ onNavigate }: { onNavigate?: (page: string) 
     setShowForm(false); setEditItem(null);
   };
 
-  const handleDelete = () => {
+  // Audit gap fix (Database Jemaat): sebelumnya hapus Baptis/Sidi/Pernikahan
+  // tidak punya pengaman sama sekali -- beda dengan Aset/Bantuan/Perpustakaan
+  // Digital yang sudah bersih-bersih dokumen terkait saat dihapus,
+  // sacramentDocuments (dokumen PDF terlampir) di sini jadi sampah base64
+  // permanen begitu record induknya dihapus. Juga tidak ada peringatan
+  // kalau sudah ada Surat Keluar terkait (relatedModule: 'Sakramen') --
+  // referensinya jadi yatim. Ini cuma peringatan (bukan blokir), pola sama
+  // seperti ServiceRequests.tsx/AidDistribution.tsx/RoomBooking.tsx.
+  const handleDelete = async () => {
     if(!deleteTarget) return;
+    let linkedLetterCount = 0;
+    try {
+      const letters = await api.get<any[]>('/api/data/outgoingLetters');
+      linkedLetterCount = (letters || []).filter(l => l.relatedModule === 'Sakramen' && l.relatedId === deleteTarget.id).length;
+    } catch {
+      // non-blocking: kalau gagal cek, lanjutkan tanpa info surat terkait
+    }
+    if (linkedLetterCount > 0) {
+      const proceed = window.confirm(`PERINGATAN: ${linkedLetterCount} Surat Keluar sudah dibuat terkait data ini. Data tertaut TIDAK ikut terhapus dan referensinya akan jadi yatim (tidak bisa dilacak balik). Tetap hapus?`);
+      if (!proceed) return;
+    }
     if(tab==='baptism') deleteBaptism(deleteTarget.id);
     else if(tab==='sidi') deleteSidi(deleteTarget.id);
     else deleteMarriage(deleteTarget.id);
+    // Bersihkan juga dokumen pendukung (base64) yang tersimpan di
+    // sacramentDocuments, kalau ada -- sama seperti pola AssetManagement/
+    // AidDistribution/ResourceLibrary.
+    try {
+      const allDocs = await api.get<any[]>('/api/data/sacramentDocuments');
+      const orphaned = (allDocs || []).filter(d => d.sacramentId === deleteTarget.id);
+      await Promise.all(orphaned.map(d => api.delete(`/api/data/sacramentDocuments/${d.id}`).catch(() => {})));
+    } catch {
+      // non-blocking: record tetap terhapus walau cleanup dokumen gagal
+    }
     setDeleteTarget(null);
   };
 
