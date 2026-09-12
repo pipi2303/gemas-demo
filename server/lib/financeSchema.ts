@@ -900,7 +900,7 @@ CREATE TABLE IF NOT EXISTS finance.qris_codes (
   updated_by        TEXT
 );
 
--- Relasi many-to-many kode QRIS <-> kategori persembahan. `category` teks
+-- Relasi many-to-many kode QRIS <-> kategori persembahan. category teks
 -- biasa (cocok dengan nilai jenis_persembahan), BUKAN foreign key -- alasan
 -- & risikonya sama seperti finance.offering_deposit_map.map_key (lihat
 -- catatan di tabel itu di atas): pendekatan ringan yang disengaja, ditutup
