@@ -549,6 +549,15 @@ qrisRouter.put('/:id', requireFinancePermission('edit'), async (req: AuthRequest
 // Soft-delete saja (is_active = FALSE) -- TIDAK dihapus fisik, karena record
 // persembahan (offerings.qrisCodeId) bisa mereferensikan baris ini untuk
 // riwayat. Lihat catatan di CREATE TABLE finance.qris_codes (financeSchema.ts).
+//
+// Audit gap catatan (Finance Add-on, minor): endpoint ini sengaja memakai
+// action permission 'edit', BUKAN 'delete' tersendiri -- konsisten dengan
+// pola nonaktifkan-bukan-hapus di modul ini (operasinya memang UPDATE
+// is_active, bukan DELETE fisik). Dampaknya: role dengan izin 'edit' tapi
+// bukan 'delete' pada submenu finance-master-data tetap bisa menonaktifkan
+// kode QRIS. Ini keputusan desain yang didokumentasikan, bukan bug -- kalau
+// ke depan granularitas izin nonaktifkan-QRIS perlu dipisah dari edit biasa,
+// baru action 'delete' perlu ditambahkan di sini.
 qrisRouter.delete('/:id', requireFinancePermission('edit'), async (req: AuthRequest, res: Response) => {
   try {
     const pool = getPool();
