@@ -123,7 +123,7 @@ export const PAGE_LABEL: Record<string, string> = {
   announcements:         'Warta & Pengumuman',
   offerings:             'Persembahan Digital',
   assets:                'Manajemen Aset',
-  'room-booking':        'Peminjaman Ruangan',
+  'room-booking':        'Manajemen Ruangan',
   'resource-library':    'Perpustakaan Digital',
   'service-requests':    'Permohonan Diakonia',
   'aid-distribution':    'Distribusi Bantuan',

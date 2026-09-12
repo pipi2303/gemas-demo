@@ -59,7 +59,7 @@ export const PAGE_LABELS: Record<string, { title: string; category: string }> = 
   announcements:         { title: 'Warta & Pengumuman', category: 'Peribadahan & Kegiatan' },
   offerings:             { title: 'Persembahan & QRIS', category: 'Finance' },
   assets:                { title: 'Manajemen Aset & Inventaris', category: 'Fasilitas & Inventaris' },
-  'room-booking':        { title: 'Peminjaman Ruangan & Fasilitas', category: 'Fasilitas & Inventaris' },
+  'room-booking':        { title: 'Manajemen Ruangan & Fasilitas', category: 'Fasilitas & Inventaris' },
   'resource-library':    { title: 'Perpustakaan Digital', category: 'Fasilitas & Inventaris' },
   'service-requests':    { title: 'Layanan Diakonia & Bantuan', category: 'Pelayanan Kasih & Doa' },
   'aid-distribution':    { title: 'Distribusi Bantuan Sosial', category: 'Pelayanan Kasih & Doa' },
@@ -230,7 +230,7 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
       icon: Package,
       items: [
         { id: 'assets',           label: 'Manajemen Aset',         page: 'assets',           icon: Package },
-        { id: 'room-booking',     label: 'Peminjaman Ruangan',     page: 'room-booking',     icon: DoorOpen },
+        { id: 'room-booking',     label: 'Manajemen Ruangan',     page: 'room-booking',     icon: DoorOpen },
         { id: 'resource-library', label: 'Perpustakaan Digital',   page: 'resource-library', icon: Library },
       ],
     },

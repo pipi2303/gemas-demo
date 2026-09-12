@@ -41,7 +41,7 @@ const COLLECTION_LABELS: Record<string, string> = {
   serviceRequests:    'Permohonan Diakonia',
   aidDistributions:   'Distribusi Bantuan Sosial',
   resources:          'Perpustakaan Digital',
-  roomBookings:       'Peminjaman Ruangan',
+  roomBookings:       'Manajemen Ruangan',
   notifications:      'Notifikasi',
   pettyCash:          'Kas Kecil',
   pettyCashTopUps:    'Top-Up Kas Kecil',
