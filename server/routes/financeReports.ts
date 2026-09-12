@@ -280,15 +280,6 @@ router.get('/cash-flow', async (req: AuthRequest, res: Response) => {
       cashBalanceAsOf(to),
     ]);
 
-    const dayBefore = new Date(from);
-    dayBefore.setDate(dayBefore.getDate() - 1);
-    const beginningDate = dayBefore.toISOString().slice(0, 10);
-
-    const [beginningCash, endingCash] = await Promise.all([
-      cashBalanceAsOf(beginningDate),
-      cashBalanceAsOf(to),
-    ]);
-
     // Baris non-kas dari jurnal yang pergerakan kasnya TIDAK NOL dalam rentang tanggal.
     const result = await pool.query(
       `WITH cash_gl AS (
