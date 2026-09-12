@@ -101,10 +101,21 @@ export const COLLECTION_PAGE: Record<string, string[]> = {
   attestationDocuments:  ['attestations'],
   sensusSnapshots:       ['sensus-report'],
   consolidatedReportSnapshots: ['report-center'],
+  // Audit gap fix (Peribadahan & Kegiatan): wartas/liturgies/ministrySchedules
+  // sebelumnya TIDAK ADA (atau salah nama) di map ini, sehingga
+  // requirePermission() next() tanpa cek izin sama sekali -- role apa pun
+  // yang login (bukan cuma yang diberi izin di halaman terkait) bisa
+  // create/update/delete E-Warta, Liturgi, dan jadwal Pelkat & Komisi lewat
+  // API langsung. Key lama 'liturgy' (tunggal) dipertahankan sebagai alias
+  // tak berbahaya -- collection sungguhannya 'liturgies' (jamak, lihat
+  // AppContext.tsx apiSave calls).
   liturgy:               ['liturgy'],
+  liturgies:             ['liturgy'],
+  wartas:                ['e-warta'],
   events:                ['events'],
   worshipSchedules:      ['worship-schedules'],
   ministries:            ['ministries'],
+  ministrySchedules:     ['ministries'],
   attendance:            ['attendance'],
   // Audit gap fix: livestreamLinks/reminderSettings/attendanceCheckins/attendanceKegiatan sebelumnya
   // TIDAK ADA di map ini, sehingga requirePermission() (lihat middleware/checkPermission.ts) langsung

@@ -333,6 +333,65 @@ function validateAidDistributionData(data: Record<string, any>): string | null {
   return null;
 }
 
+// Validasi minimal untuk Peribadahan & Kegiatan (worshipSchedules, wartas,
+// liturgies, events, ministrySchedules, attendance) -- sama seperti
+// prayerRequests/serviceRequests/aidDistributions sebelumnya, keenam
+// collection ini TIDAK PUNYA validasi server-side sama sekali, hanya
+// required-check trivial di client yang gampang dilewati lewat panggilan
+// API langsung.
+function validateWorshipScheduleData(data: Record<string, any>): string | null {
+  if (!data.type || typeof data.type !== 'string' || !data.type.trim()) return 'Jenis ibadah wajib diisi';
+  if (!data.title || typeof data.title !== 'string' || !data.title.trim()) return 'Judul ibadah wajib diisi';
+  if (!data.date || typeof data.date !== 'string') return 'Tanggal ibadah wajib diisi';
+  if (!data.time || typeof data.time !== 'string') return 'Waktu ibadah wajib diisi';
+  if (!data.location || typeof data.location !== 'string' || !data.location.trim()) return 'Lokasi ibadah wajib diisi';
+  return null;
+}
+
+function validateWartaData(data: Record<string, any>): string | null {
+  if (!data.title || typeof data.title !== 'string' || !data.title.trim()) return 'Judul warta wajib diisi';
+  if (!data.date || typeof data.date !== 'string') return 'Tanggal warta wajib diisi';
+  if (typeof data.week !== 'number' || data.week < 1) return 'Minggu ke- warta tidak valid';
+  if (typeof data.month !== 'number' || data.month < 1 || data.month > 12) return 'Bulan warta tidak valid';
+  if (typeof data.year !== 'number' || data.year < 2000) return 'Tahun warta tidak valid';
+  if (data.sections !== undefined && !Array.isArray(data.sections)) return 'Format seksi warta tidak valid';
+  return null;
+}
+
+function validateLiturgyData(data: Record<string, any>): string | null {
+  if (!data.date || typeof data.date !== 'string') return 'Tanggal liturgi wajib diisi';
+  if (!data.worshipType || typeof data.worshipType !== 'string' || !data.worshipType.trim()) return 'Jenis ibadah liturgi wajib diisi';
+  if (!data.theme || typeof data.theme !== 'string' || !data.theme.trim()) return 'Tema liturgi wajib diisi';
+  return null;
+}
+
+const EVENT_TYPES = new Set(['Ibadah', 'Persekutuan', 'Retreat', 'Seminar', 'Pelayanan', 'Lainnya']);
+const EVENT_STATUSES = new Set(['Akan Datang', 'Berlangsung', 'Selesai', 'Dibatalkan']);
+function validateEventData(data: Record<string, any>): string | null {
+  if (!data.title || typeof data.title !== 'string' || !data.title.trim()) return 'Judul kegiatan wajib diisi';
+  if (!data.date || typeof data.date !== 'string') return 'Tanggal kegiatan wajib diisi';
+  if (!data.type || !EVENT_TYPES.has(data.type)) return 'Jenis kegiatan tidak valid';
+  if (data.status && !EVENT_STATUSES.has(data.status)) return 'Status kegiatan tidak valid';
+  return null;
+}
+
+function validateMinistryScheduleData(data: Record<string, any>): string | null {
+  if (!data.date || typeof data.date !== 'string') return 'Tanggal jadwal pelayanan wajib diisi';
+  if (!data.serviceType || typeof data.serviceType !== 'string' || !data.serviceType.trim()) return 'Jenis ibadah jadwal pelayanan wajib diisi';
+  if (!data.ministryId || typeof data.ministryId !== 'string') return 'Pelkat/Komisi wajib dipilih';
+  if (data.assignedMembers !== undefined && !Array.isArray(data.assignedMembers)) return 'Format anggota bertugas tidak valid';
+  return null;
+}
+
+const ATTENDANCE_SERVICE_TYPES = new Set(['Minggu Pagi', 'Minggu Sore', 'Rabu', 'Jumat', 'Doa Pagi', 'Pemuda', 'Khusus']);
+function validateAttendanceData(data: Record<string, any>): string | null {
+  if (!data.date || typeof data.date !== 'string') return 'Tanggal presensi wajib diisi';
+  if (!data.serviceType || !ATTENDANCE_SERVICE_TYPES.has(data.serviceType)) return 'Jenis ibadah presensi tidak valid';
+  if (!data.memberId || typeof data.memberId !== 'string') return 'Jemaat wajib dipilih';
+  if (data.present !== undefined && typeof data.present !== 'boolean') return 'Format status hadir tidak valid';
+  return null;
+}
+
 // Surat Keluar & Surat Masuk: field WAJIB tetap bisa diedit generik SELAMA
 // statusnya masih tahap awal (Draft untuk outgoingLetters, Diterima untuk
 // incomingLetters — lihat LETTER_EDITABLE_STATUS) — tapi begitu sudah masuk
@@ -534,6 +593,32 @@ router.put('/:collection/:id', requireAuth, requirePermission(), async (req: Aut
   }
   if (collection === 'aidDistributions') {
     const valErr = validateAidDistributionData(data);
+    if (valErr) { res.status(400).json({ error: valErr }); return; }
+  }
+
+  // Validasi Peribadahan & Kegiatan (worshipSchedules, wartas, liturgies, events, ministrySchedules, attendance)
+  if (collection === 'worshipSchedules') {
+    const valErr = validateWorshipScheduleData(data);
+    if (valErr) { res.status(400).json({ error: valErr }); return; }
+  }
+  if (collection === 'wartas') {
+    const valErr = validateWartaData(data);
+    if (valErr) { res.status(400).json({ error: valErr }); return; }
+  }
+  if (collection === 'liturgies') {
+    const valErr = validateLiturgyData(data);
+    if (valErr) { res.status(400).json({ error: valErr }); return; }
+  }
+  if (collection === 'events') {
+    const valErr = validateEventData(data);
+    if (valErr) { res.status(400).json({ error: valErr }); return; }
+  }
+  if (collection === 'ministrySchedules') {
+    const valErr = validateMinistryScheduleData(data);
+    if (valErr) { res.status(400).json({ error: valErr }); return; }
+  }
+  if (collection === 'attendance') {
+    const valErr = validateAttendanceData(data);
     if (valErr) { res.status(400).json({ error: valErr }); return; }
   }
 
