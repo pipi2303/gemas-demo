@@ -56,10 +56,30 @@ describe('GET /api/data/:collection — pagination opsional', () => {
   });
 
   it('?sort=desc membalik urutan dibanding urutan default', async () => {
-    const ascRes = await request(app).get('/api/data/activityLogs?page=1&pageSize=500').set('Authorization', admin);
-    const descRes = await request(app).get('/api/data/activityLogs?page=1&pageSize=500&sort=desc').set('Authorization', admin);
-    const ascIds = ascRes.body.data.map((x: any) => x.id);
-    const descIds = descRes.body.data.map((x: any) => x.id);
+    // Endpoint ini mengunci pageSize maksimum di 500 (lihat parsePagination di
+    // data.ts) -- dan karena database test ini persisten (dipakai bergantian oleh
+    // banyak file test lain selama berhari-hari, lihat README), koleksi
+    // activityLogs BISA SAJA sudah berisi lebih dari 500 baris total dari run-run
+    // sebelumnya. Kalau begitu, ascending page=1 (500 baris TERLAMA) dan descending
+    // page=1 (500 baris TERBARU) mewakili DUA HIMPUNAN BARIS YANG BERBEDA sama
+    // sekali kalau dibandingkan naif -- reverse(ascIds halaman 1) tidak akan pernah
+    // sama dengan descIds halaman 1 begitu total > pageSize, murni soal potongan
+    // halaman mana yang diambil, bukan endpoint-nya salah urutan. Baris milik test
+    // ini sendiri (idPrefix) dibuat PALING TERAKHIR (paling baru) dari 5 request PUT
+    // yang di-await berurutan, jadi pasti muncul di HALAMAN TERAKHIR ascending, bukan
+    // halaman pertama -- ambil nomor halaman itu dari `meta.total`, baru saring ke
+    // baris milik test ini saja supaya perbandingan tidak terpengaruh baris lain.
+    const pageSize = 500;
+    const metaRes = await request(app).get(`/api/data/activityLogs?page=1&pageSize=${pageSize}`).set('Authorization', admin);
+    const total = metaRes.body.meta.total as number;
+    const lastPage = Math.max(1, Math.ceil(total / pageSize));
+
+    const ascRes = await request(app).get(`/api/data/activityLogs?page=${lastPage}&pageSize=${pageSize}`).set('Authorization', admin);
+    const descRes = await request(app).get(`/api/data/activityLogs?page=1&pageSize=${pageSize}&sort=desc`).set('Authorization', admin);
+    const ascIds = ascRes.body.data.map((x: any) => x.id).filter((id: string) => id.startsWith(idPrefix));
+    const descIds = descRes.body.data.map((x: any) => x.id).filter((id: string) => id.startsWith(idPrefix));
+    expect(ascIds.length).toBe(5);
+    expect(descIds.length).toBe(5);
     expect(descIds).toEqual([...ascIds].reverse());
   });
 

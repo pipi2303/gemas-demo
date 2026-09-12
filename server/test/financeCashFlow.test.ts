@@ -29,7 +29,14 @@ describe('Finance Reports — Laporan Arus Kas', () => {
 
   beforeAll(async () => {
     app = await getTestApp();
-    seed = await seedBaseFinanceData(app, request, admin);
+    // uniqueFiscalYear: true -- laporan ini menjumlahkan SEMUA jurnal organisasi
+    // dalam rentang tanggal tanpa memandang fiscal_year_id (lihat komentar di
+    // server/routes/financeReports.ts), jadi butuh tahun fiskal yang dijamin belum
+    // pernah dipakai file test finance lain di database yang sama -- kalau tidak,
+    // transaksi file lain yang jatuh di periode Jan/Feb/Mar 2031 (default) ikut
+    // kehitung dan total operasi jadi kelipatan dari yang diharapkan (lihat
+    // komentar seedBaseFinanceData di helpers.ts).
+    seed = await seedBaseFinanceData(app, request, admin, { uniqueFiscalYear: true });
   });
 
   async function postTransaction(lines: { account_id: string; side: 'debit' | 'credit'; amount: number }[], date: string) {
