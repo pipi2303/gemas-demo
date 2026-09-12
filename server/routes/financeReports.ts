@@ -136,7 +136,7 @@ router.get('/activity-statement', async (req: AuthRequest, res: Response) => {
 
     const byFundParams: any[] = [FINANCE_ORG, from, to];
     const byFundRes = await pool.query(
-      `SELECT f.id AS fund_id, f.code, f.name,
+      `SELECT f.id AS fund_id, f.code, f.name, f.restriction_type,
          COALESCE(SUM(CASE WHEN a.account_type = 'REVENUE' THEN jl.credit - jl.debit ELSE 0 END),0) AS revenue,
          COALESCE(SUM(CASE WHEN a.account_type = 'EXPENSE' THEN jl.debit - jl.credit ELSE 0 END),0) AS expense
        FROM finance.journal_lines jl
@@ -144,21 +144,274 @@ router.get('/activity-statement', async (req: AuthRequest, res: Response) => {
        JOIN finance.accounts a ON a.id = jl.account_id
        JOIN finance.funds f ON f.id = jl.fund_id
        WHERE j.organization_id = $1 AND j.journal_date BETWEEN $2 AND $3 AND a.account_type IN ('REVENUE','EXPENSE')
-       GROUP BY f.id, f.code, f.name
+       GROUP BY f.id, f.code, f.name, f.restriction_type
        ORDER BY f.code ASC`,
       byFundParams
     );
+    const byFund = byFundRes.rows.map((r: any) => ({ ...r, revenue: Number(r.revenue), expense: Number(r.expense), net: Number(r.revenue) - Number(r.expense) }));
+
+    // Roll-up ISAK 35: standar saat ini menyederhanakan klasifikasi aset neto jadi 2
+    // kategori (dengan pembatasan / tanpa pembatasan dari penyumbang), bukan 4 tingkat
+    // restriction_type yang dipakai secara internal (finance.funds tidak diubah -- 4
+    // tingkat itu tetap berguna untuk pencatatan detail, rinciannya tetap tersedia di
+    // byFund di atas). Roll-up ini KHUSUS untuk tampilan resmi ke Sinode/auditor.
+    const isak35Rollup = { unrestricted: { revenue: 0, expense: 0, net: 0 }, restricted: { revenue: 0, expense: 0, net: 0 } };
+    for (const f of byFund) {
+      const bucket = f.restriction_type === 'UNRESTRICTED' ? isak35Rollup.unrestricted : isak35Rollup.restricted;
+      bucket.revenue += f.revenue;
+      bucket.expense += f.expense;
+      bucket.net += f.net;
+    }
 
     res.json({
       success: true,
       data: {
         from, to, revenue, expense, totalRevenue, totalExpense, netSurplus: totalRevenue - totalExpense,
-        byFund: byFundRes.rows.map((r: any) => ({ ...r, revenue: Number(r.revenue), expense: Number(r.expense), net: Number(r.revenue) - Number(r.expense) })),
+        byFund, isak35Rollup,
       },
     });
   } catch (err) {
     logger.error('GET reports/activity-statement', { message: String(err) });
     res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal menghitung Laporan Aktivitas' } });
+  }
+});
+
+// ── Laporan Arus Kas (Cash Flow Statement, metode LANGSUNG) ──────────────────────
+// Tidak ada tabel/kolom baru -- akun "Kas & Setara Kas" diidentifikasi lewat JOIN ke
+// finance.cash_accounts & finance.bank_accounts (account_id), BUKAN ditebak dari nama
+// akun. Untuk tiap jurnal ter-posting dalam rentang tanggal, hitung pergerakan bersih
+// pada sisi kas -- kalau nol (mis. jurnal Bukti Transfer memindahkan dana antar Kas
+// Tunai <-> Bank, dua-duanya "kas"), jurnal itu otomatis tidak muncul di laporan ini
+// (benar secara akuntansi: mutasi antar-kas bukan arus kas eksternal). Untuk jurnal
+// yang pergerakan kasnya tidak nol, klasifikasi Operasi/Investasi/Pendanaan diambil
+// dari account_type sisi LAWAN kas (non-kas) dalam jurnal yang sama:
+//   REVENUE/EXPENSE -> Operasi, ASSET (non-kas, mis. beli aset tetap) -> Investasi,
+//   LIABILITY/FUND_BALANCE -> Pendanaan.
+// Efek-kas per baris non-kas dihitung sebagai (credit - debit) baris itu sendiri --
+// bukan lewat normal_balance seperti Neraca/Aktivitas -- karena satu jurnal SELALU
+// seimbang (total debit = total credit), jadi efek-kas baris non-kas otomatis sama
+// dengan NEGASI dari (debit-credit) baris itu = (credit-debit), tanpa perlu tahu
+// normal_balance akunnya sama sekali. Total efek-kas ini WAJIB sama dengan
+// (Saldo Kas Akhir - Saldo Kas Awal) yang dihitung terpisah dari saldo akun Kas &
+// Setara Kas -- kalau tidak sama, `balanced: false` (pola sama seperti badge "Jurnal
+// Seimbang" di Dashboard Finance).
+//
+// Catatan (bukan fakta baku, perlu direview akuntan/bendahara Sinode kalau relevan):
+// - Baris LIABILITY/FUND_BALANCE diklasifikasikan Pendanaan -- kemungkinan besar jarang
+//   muncul di sistem ini karena persembahan terikat (mis. Pembangunan) sudah masuk
+//   lewat akun Pendapatan, bukan langsung ke Saldo Dana.
+// - Baris ASSET non-kas diklasifikasikan Investasi secara default. Ini cukup untuk
+//   pembelian aset tetap (kasus utama saat ini), tapi kalau nanti ada modul piutang
+//   usaha, piutang semestinya tetap Operasi -- belum relevan karena skema belum
+//   punya piutang.
+router.get('/cash-flow', async (req: AuthRequest, res: Response) => {
+  const from = String(req.query.from || '');
+  const to = String(req.query.to || '');
+  const method = req.query.method === 'indirect' ? 'indirect' : 'direct';
+  if (!from || !to) {
+    res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Rentang tanggal (dari & sampai) wajib diisi' } });
+    return;
+  }
+  try {
+    const pool = getPool();
+
+    // Saldo Kas & Setara Kas per tanggal cut-off -- pola identik dengan Neraca
+    // (opening_balance akun + akumulasi mutasi jurnal sampai tanggal itu), tapi
+    // dipersempit hanya ke akun yang terdaftar di cash_accounts/bank_accounts.
+    const cashBalanceAsOf = async (asOfDate: string): Promise<number> => {
+      const r = await pool.query(
+        `WITH cash_gl AS (
+           SELECT account_id FROM finance.cash_accounts WHERE organization_id = $1
+           UNION
+           SELECT account_id FROM finance.bank_accounts WHERE organization_id = $1
+         )
+         SELECT COALESCE(SUM(a.opening_balance), 0) AS opening,
+                COALESCE(SUM(m.net), 0) AS movement
+         FROM finance.accounts a
+         JOIN cash_gl cg ON cg.account_id = a.id
+         LEFT JOIN LATERAL (
+           SELECT SUM(jl.debit - jl.credit) AS net
+           FROM finance.journal_lines jl
+           JOIN finance.journals j ON j.id = jl.journal_id
+           WHERE jl.account_id = a.id AND j.organization_id = $1 AND j.journal_date <= $2
+         ) m ON TRUE`,
+        [FINANCE_ORG, asOfDate]
+      );
+      const row = r.rows[0] || { opening: 0, movement: 0 };
+      return Number(row.opening) + Number(row.movement);
+    };
+
+    // Saldo akun BUKAN kas dengan account_type tertentu per tanggal cut-off -- dipakai
+    // KHUSUS untuk penyesuaian metode TIDAK LANGSUNG di bawah (perubahan saldo Aset
+    // non-kas & Kewajiban antara awal dan akhir periode). Query terpisah dari
+    // cashBalanceAsOf (bukan digabung jadi satu fungsi generik) supaya SQL masing-masing
+    // tetap sederhana dan gampang diverifikasi, alih-alih satu query dinamis yang rawan
+    // salah rakit klausa WHERE/JOIN.
+    const nonCashTypeBalanceAsOf = async (asOfDate: string, accountTypes: string[]): Promise<number> => {
+      const r = await pool.query(
+        `WITH cash_gl AS (
+           SELECT account_id FROM finance.cash_accounts WHERE organization_id = $1
+           UNION
+           SELECT account_id FROM finance.bank_accounts WHERE organization_id = $1
+         )
+         SELECT COALESCE(SUM(a.opening_balance), 0) AS opening,
+                COALESCE(SUM(m.net), 0) AS movement
+         FROM finance.accounts a
+         LEFT JOIN cash_gl cg ON cg.account_id = a.id
+         LEFT JOIN LATERAL (
+           SELECT SUM(jl.debit - jl.credit) AS net
+           FROM finance.journal_lines jl
+           JOIN finance.journals j ON j.id = jl.journal_id
+           WHERE jl.account_id = a.id AND j.organization_id = $1 AND j.journal_date <= $2
+         ) m ON TRUE
+         WHERE cg.account_id IS NULL AND a.account_type = ANY($3::finance.account_type[])`,
+        [FINANCE_ORG, asOfDate, accountTypes]
+      );
+      const row = r.rows[0] || { opening: 0, movement: 0 };
+      return Number(row.opening) + Number(row.movement);
+    };
+
+    const dayBefore = new Date(from);
+    dayBefore.setDate(dayBefore.getDate() - 1);
+    const beginningDate = dayBefore.toISOString().slice(0, 10);
+
+    const [beginningCash, endingCash] = await Promise.all([
+      cashBalanceAsOf(beginningDate),
+      cashBalanceAsOf(to),
+    ]);
+
+    const dayBefore = new Date(from);
+    dayBefore.setDate(dayBefore.getDate() - 1);
+    const beginningDate = dayBefore.toISOString().slice(0, 10);
+
+    const [beginningCash, endingCash] = await Promise.all([
+      cashBalanceAsOf(beginningDate),
+      cashBalanceAsOf(to),
+    ]);
+
+    // Baris non-kas dari jurnal yang pergerakan kasnya TIDAK NOL dalam rentang tanggal.
+    const result = await pool.query(
+      `WITH cash_gl AS (
+         SELECT account_id FROM finance.cash_accounts WHERE organization_id = $1
+         UNION
+         SELECT account_id FROM finance.bank_accounts WHERE organization_id = $1
+       ),
+       journal_cash_net AS (
+         SELECT jl.journal_id, SUM(jl.debit - jl.credit) AS net_cash
+         FROM finance.journal_lines jl
+         JOIN finance.journals j ON j.id = jl.journal_id
+         WHERE j.organization_id = $1 AND j.journal_date BETWEEN $2 AND $3
+           AND jl.account_id IN (SELECT account_id FROM cash_gl)
+         GROUP BY jl.journal_id
+         HAVING SUM(jl.debit - jl.credit) <> 0
+       )
+       SELECT a.code, a.name, a.account_type, (jl.credit - jl.debit) AS cash_effect
+       FROM finance.journal_lines jl
+       JOIN finance.journals j ON j.id = jl.journal_id
+       JOIN finance.accounts a ON a.id = jl.account_id
+       JOIN journal_cash_net jcn ON jcn.journal_id = jl.journal_id
+       WHERE j.organization_id = $1 AND j.journal_date BETWEEN $2 AND $3
+         AND jl.account_id NOT IN (SELECT account_id FROM cash_gl)
+       ORDER BY a.code ASC`,
+      [FINANCE_ORG, from, to]
+    );
+
+    const classify = (accountType: string): 'operating' | 'investing' | 'financing' | null => {
+      if (accountType === 'REVENUE' || accountType === 'EXPENSE') return 'operating';
+      if (accountType === 'ASSET') return 'investing';
+      if (accountType === 'LIABILITY' || accountType === 'FUND_BALANCE') return 'financing';
+      return null;
+    };
+
+    const buckets: Record<'operating' | 'investing' | 'financing', Map<string, { code: string; name: string; amount: number }>> = {
+      operating: new Map(), investing: new Map(), financing: new Map(),
+    };
+    for (const r of result.rows) {
+      const bucket = classify(r.account_type);
+      if (!bucket) continue; // account_type tak dikenal -- diabaikan alih-alih ditebak salah
+      const key = r.code;
+      const existing = buckets[bucket].get(key);
+      const amount = Number(r.cash_effect);
+      if (existing) existing.amount += amount;
+      else buckets[bucket].set(key, { code: r.code, name: r.name, amount });
+    }
+    const toLines = (m: Map<string, { code: string; name: string; amount: number }>) =>
+      Array.from(m.values()).filter(l => Math.abs(l.amount) > 0.005).sort((a, b) => a.code.localeCompare(b.code));
+
+    // Investasi & Pendanaan dihitung SAMA di kedua metode (langsung/tidak langsung) --
+    // bedanya cuma di cara MENYAJIKAN Operasi, bukan di angka Investasi/Pendanaan itu
+    // sendiri (keduanya sudah murni "arus kas aktual" di kedua metode).
+    const investingLines = toLines(buckets.investing);
+    const financingLines = toLines(buckets.financing);
+    const totalInvesting = investingLines.reduce((s, l) => s + l.amount, 0);
+    const totalFinancing = financingLines.reduce((s, l) => s + l.amount, 0);
+
+    let operatingLines: { code?: string; name: string; amount: number }[];
+    let totalOperating: number;
+
+    if (method === 'indirect') {
+      // Metode TIDAK LANGSUNG: mulai dari Surplus/(Defisit) Bersih periode berjalan
+      // (basis akrual -- SEMUA baris Pendapatan/Beban, bukan cuma yang jurnalnya
+      // menyentuh kas), lalu disesuaikan dengan perubahan saldo Aset non-kas &
+      // Kewajiban selama periode. Identitas akuntansi: hasil akhirnya WAJIB sama
+      // dengan totalOperating metode langsung (dicek lewat `balanced` di bawah,
+      // sama seperti Neraca/Dashboard) -- kalau sistem ini nanti punya modul
+      // piutang/utang usaha sungguhan, uji ini yang akan menangkap kalau
+      // penyesuaiannya belum benar.
+      const netSurplusRes = await pool.query(
+        `SELECT
+           COALESCE(SUM(CASE WHEN a.account_type = 'REVENUE' THEN jl.credit - jl.debit ELSE 0 END), 0) AS revenue,
+           COALESCE(SUM(CASE WHEN a.account_type = 'EXPENSE' THEN jl.debit - jl.credit ELSE 0 END), 0) AS expense
+         FROM finance.journal_lines jl
+         JOIN finance.journals j ON j.id = jl.journal_id
+         JOIN finance.accounts a ON a.id = jl.account_id
+         WHERE j.organization_id = $1 AND j.journal_date BETWEEN $2 AND $3 AND a.account_type IN ('REVENUE','EXPENSE')`,
+        [FINANCE_ORG, from, to]
+      );
+      const netSurplus = Number(netSurplusRes.rows[0].revenue) - Number(netSurplusRes.rows[0].expense);
+
+      const [beginAsset, endAsset, beginLiab, endLiab] = await Promise.all([
+        nonCashTypeBalanceAsOf(beginningDate, ['ASSET']),
+        nonCashTypeBalanceAsOf(to, ['ASSET']),
+        nonCashTypeBalanceAsOf(beginningDate, ['LIABILITY']),
+        nonCashTypeBalanceAsOf(to, ['LIABILITY']),
+      ]);
+      const nonCashAssetChange = endAsset - beginAsset; // naik = kas "tertahan" di aset non-kas
+      const liabilityChange = endLiab - beginLiab; // naik = sumber kas tambahan
+
+      operatingLines = [
+        { name: 'Surplus/(Defisit) Bersih periode berjalan', amount: netSurplus },
+      ];
+      if (Math.abs(nonCashAssetChange) > 0.005) {
+        operatingLines.push({ name: 'Penyesuaian: (Kenaikan)/Penurunan Aset non-Kas', amount: -nonCashAssetChange });
+      }
+      if (Math.abs(liabilityChange) > 0.005) {
+        operatingLines.push({ name: 'Penyesuaian: Kenaikan/(Penurunan) Kewajiban', amount: liabilityChange });
+      }
+      totalOperating = netSurplus - nonCashAssetChange + liabilityChange;
+    } else {
+      operatingLines = toLines(buckets.operating);
+      totalOperating = operatingLines.reduce((s, l) => s + l.amount, 0);
+    }
+
+    const netChangeFromActivities = totalOperating + totalInvesting + totalFinancing;
+    const netChangeFromBalances = endingCash - beginningCash;
+
+    res.json({
+      success: true,
+      data: {
+        from, to, method,
+        operating: { lines: operatingLines, total: totalOperating },
+        investing: { lines: investingLines, total: totalInvesting },
+        financing: { lines: financingLines, total: totalFinancing },
+        beginningCash, endingCash,
+        netChange: netChangeFromActivities,
+        balanced: Math.abs(netChangeFromActivities - netChangeFromBalances) < 0.01,
+      },
+    });
+  } catch (err) {
+    logger.error('GET reports/cash-flow', { message: String(err) });
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Gagal menghitung Laporan Arus Kas' } });
   }
 });
 
