@@ -392,6 +392,70 @@ function validateAttendanceData(data: Record<string, any>): string | null {
   return null;
 }
 
+// Audit gap fix: validasi field inti Surat Menyurat (incomingLetters,
+// outgoingLetters, letterTemplates) -- sebelumnya TIDAK ADA validator sama
+// sekali untuk ketiganya, baik di PUT maupun POST. Untuk outgoingLetters,
+// dampaknya sebelumnya rendah karena endpoint /submit
+// (server/routes/outgoingLetters.ts) sudah mewajibkan jenisSuratId/subject/
+// recipientName/body sebelum surat naik dari status Draft -- tapi
+// incomingLetters TIDAK PUNYA gerbang wajib-isi di mana pun (endpoint
+// /disposisikan cuma validasi field disposisi, bukan field inti surat
+// masuk itu sendiri), jadi surat masuk kosong/sampah bisa dibuat & tetap
+// bisa didisposisikan. body TIDAK diwajibkan di sini (boleh kosong saat
+// draft awal, diisi bertahap oleh staf) -- selaras dengan client (lihat
+// handleSaveDraft di OutgoingLetters.tsx).
+function validateOutgoingLetterData(data: Record<string, any>): string | null {
+  if (!data.jenisSuratId || typeof data.jenisSuratId !== 'string') return 'Jenis surat wajib dipilih';
+  if (!data.subject || typeof data.subject !== 'string' || !data.subject.trim()) return 'Perihal surat wajib diisi';
+  if (!data.recipientName || typeof data.recipientName !== 'string' || !data.recipientName.trim()) return 'Nama penerima surat wajib diisi';
+  if (!data.letterDate || typeof data.letterDate !== 'string') return 'Tanggal surat wajib diisi';
+  return null;
+}
+
+function validateIncomingLetterData(data: Record<string, any>): string | null {
+  if (!data.senderName || typeof data.senderName !== 'string' || !data.senderName.trim()) return 'Nama pengirim surat wajib diisi';
+  if (!data.subject || typeof data.subject !== 'string' || !data.subject.trim()) return 'Perihal surat wajib diisi';
+  if (!data.receivedDate || typeof data.receivedDate !== 'string') return 'Tanggal diterima wajib diisi';
+  return null;
+}
+
+function validateLetterTemplateData(data: Record<string, any>): string | null {
+  if (!data.name || typeof data.name !== 'string' || !data.name.trim()) return 'Nama template surat wajib diisi';
+  if (!data.jenisSuratId || typeof data.jenisSuratId !== 'string') return 'Jenis surat wajib dipilih';
+  return null;
+}
+
+// Audit gap fix: dispatch validasi per collection sebelumnya cuma dipasang
+// di PUT handler -- POST handler (dipakai langsung oleh signingOfficials,
+// outgoingLetters, outgoingLetterAttachments, letterTemplates,
+// incomingLetters, incomingLetterAttachments lewat api.post(), bukan
+// apiSave() yang selalu PUT) cuma memvalidasi 'members', sisanya lolos
+// tanpa validasi apa pun -- termasuk validateDocumentData (cek PDF-only,
+// magic bytes, batas ukuran) untuk lampiran surat. Disatukan jadi satu
+// fungsi yang dipanggil dari PUT *dan* POST supaya tidak ada lagi celah
+// seperti ini untuk validator yang sudah ada maupun yang baru ditambahkan
+// nanti.
+function runCollectionValidation(collection: string, data: Record<string, any>): string | null {
+  if (collection === 'members') return validateMemberData(data);
+  if (DOCUMENT_COLLECTIONS[collection]) return validateDocumentData(data, DOCUMENT_COLLECTIONS[collection]);
+  if (collection === 'resources') return validateResourceData(data);
+  if (collection === 'resourceFiles') return validateResourceFileData(data);
+  if (collection === 'signingOfficials') return validateSigningOfficialData(data);
+  if (collection === 'prayerRequests') return validatePrayerRequestData(data);
+  if (collection === 'serviceRequests') return validateServiceRequestData(data);
+  if (collection === 'aidDistributions') return validateAidDistributionData(data);
+  if (collection === 'worshipSchedules') return validateWorshipScheduleData(data);
+  if (collection === 'wartas') return validateWartaData(data);
+  if (collection === 'liturgies') return validateLiturgyData(data);
+  if (collection === 'events') return validateEventData(data);
+  if (collection === 'ministrySchedules') return validateMinistryScheduleData(data);
+  if (collection === 'attendance') return validateAttendanceData(data);
+  if (collection === 'outgoingLetters') return validateOutgoingLetterData(data);
+  if (collection === 'incomingLetters') return validateIncomingLetterData(data);
+  if (collection === 'letterTemplates') return validateLetterTemplateData(data);
+  return null;
+}
+
 // Surat Keluar & Surat Masuk: field WAJIB tetap bisa diedit generik SELAMA
 // statusnya masih tahap awal (Draft untuk outgoingLetters, Diterima untuk
 // incomingLetters — lihat LETTER_EDITABLE_STATUS) — tapi begitu sudah masuk
@@ -555,70 +619,13 @@ router.put('/:collection/:id', requireAuth, requirePermission(), async (req: Aut
     delete data.archivedAt; delete data.archivedBy;
   }
 
-  // Validasi format field untuk collection members
-  if (collection === 'members') {
-    const valErr = validateMemberData(data);
-    if (valErr) { res.status(400).json({ error: valErr }); return; }
-  }
-
-  // Validasi dokumen PDF (tipe, ukuran, magic bytes, owner id) untuk semua collection dokumen
-  if (DOCUMENT_COLLECTIONS[collection]) {
-    const valErr = validateDocumentData(data, DOCUMENT_COLLECTIONS[collection]);
-    if (valErr) { res.status(400).json({ error: valErr }); return; }
-  }
-
-  // Validasi Perpustakaan Digital (resources & resourceFiles)
-  if (collection === 'resources') {
-    const valErr = validateResourceData(data);
-    if (valErr) { res.status(400).json({ error: valErr }); return; }
-  }
-  if (collection === 'resourceFiles') {
-    const valErr = validateResourceFileData(data);
-    if (valErr) { res.status(400).json({ error: valErr }); return; }
-  }
-
-  if (collection === 'signingOfficials') {
-    const valErr = validateSigningOfficialData(data);
-    if (valErr) { res.status(400).json({ error: valErr }); return; }
-  }
-
-  // Validasi Pelayanan Kasih & Doa (prayerRequests, serviceRequests, aidDistributions)
-  if (collection === 'prayerRequests') {
-    const valErr = validatePrayerRequestData(data);
-    if (valErr) { res.status(400).json({ error: valErr }); return; }
-  }
-  if (collection === 'serviceRequests') {
-    const valErr = validateServiceRequestData(data);
-    if (valErr) { res.status(400).json({ error: valErr }); return; }
-  }
-  if (collection === 'aidDistributions') {
-    const valErr = validateAidDistributionData(data);
-    if (valErr) { res.status(400).json({ error: valErr }); return; }
-  }
-
-  // Validasi Peribadahan & Kegiatan (worshipSchedules, wartas, liturgies, events, ministrySchedules, attendance)
-  if (collection === 'worshipSchedules') {
-    const valErr = validateWorshipScheduleData(data);
-    if (valErr) { res.status(400).json({ error: valErr }); return; }
-  }
-  if (collection === 'wartas') {
-    const valErr = validateWartaData(data);
-    if (valErr) { res.status(400).json({ error: valErr }); return; }
-  }
-  if (collection === 'liturgies') {
-    const valErr = validateLiturgyData(data);
-    if (valErr) { res.status(400).json({ error: valErr }); return; }
-  }
-  if (collection === 'events') {
-    const valErr = validateEventData(data);
-    if (valErr) { res.status(400).json({ error: valErr }); return; }
-  }
-  if (collection === 'ministrySchedules') {
-    const valErr = validateMinistryScheduleData(data);
-    if (valErr) { res.status(400).json({ error: valErr }); return; }
-  }
-  if (collection === 'attendance') {
-    const valErr = validateAttendanceData(data);
+  // Validasi field per collection -- disatukan lewat runCollectionValidation()
+  // supaya PUT dan POST (lihat pemanggilan sama di router.post di bawah)
+  // selalu konsisten, tidak ada lagi celah salah satu endpoint lolos tanpa
+  // validasi seperti yang ditemukan audit (lihat catatan di
+  // runCollectionValidation).
+  {
+    const valErr = runCollectionValidation(collection, data);
     if (valErr) { res.status(400).json({ error: valErr }); return; }
   }
 
@@ -699,8 +706,8 @@ router.post('/:collection', requireAuth, requirePermission(), async (req: AuthRe
     delete data.archivedAt; delete data.archivedBy;
   }
 
-  if (collection === 'members') {
-    const valErr = validateMemberData(data);
+  {
+    const valErr = runCollectionValidation(collection, data);
     if (valErr) { res.status(400).json({ error: valErr }); return; }
   }
 
