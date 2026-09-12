@@ -142,6 +142,7 @@ interface AppContextType {
   
   addPrayerRequest: (request: Omit<PrayerRequest, 'id' | 'createdAt'>) => void;
   updatePrayerRequest: (id: string, request: Partial<PrayerRequest>) => void;
+  deletePrayerRequest: (id: string) => void;
   
   addAttendance: (attendance: Omit<Attendance, 'id'>) => void;
   
@@ -1672,6 +1673,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Audit gap fix: fungsi ini sebelumnya tidak ada sama sekali -- padahal
+  // role Majelis per matrix default (CRD) sudah punya izin delete untuk
+  // modul Pelayanan Kasih & Komunikasi, cuma tidak ada cara memakainya
+  // sama sekali dari UI karena fungsinya memang belum pernah dibuat.
+  const deletePrayerRequest = (id: string) => {
+    const existing = prayerRequests.find(r => r.id === id);
+    setPrayerRequests(prev => prev.filter(r => r.id !== id));
+    apiRemove('prayerRequests', id);
+    if (currentUser && existing) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menghapus', entityType: 'PrayerRequest', entityId: id, entityName: existing.category, details: `Pokok doa dihapus` });
+  };
+
   const addAttendance = (attendanceData: Omit<Attendance, 'id'>) => {
     const newAttendance: Attendance = { ...attendanceData, id: `att${Date.now()}` };
     setAttendance([...attendance, newAttendance]);
@@ -3038,6 +3050,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       deleteEvent,
       addPrayerRequest,
       updatePrayerRequest,
+      deletePrayerRequest,
       addAttendance,
       addNotification,
       markNotificationRead,

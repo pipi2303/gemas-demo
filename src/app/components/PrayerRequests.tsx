@@ -20,11 +20,11 @@ import {
   DialogTitle,
   DialogDescription,
 } from './ui/dialog';
-import { Heart, Plus, Check, X } from 'lucide-react';
+import { Heart, Plus, Check, X, Trash2 } from 'lucide-react';
 import { PrayerRequest } from '../types';
 
 export function PrayerRequests() {
-  const { prayerRequests, members, addPrayerRequest, updatePrayerRequest, currentUser } = useApp();
+  const { prayerRequests, members, addPrayerRequest, updatePrayerRequest, deletePrayerRequest, currentUser, can } = useApp();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
@@ -36,9 +36,17 @@ export function PrayerRequests() {
     status: 'Aktif' as PrayerRequest['status']
   });
 
+  // Audit gap fix: sebelumnya toggle "Pokok Doa Pribadi" cuma badge kosmetik
+  // -- tidak pernah benar-benar membatasi siapa yang melihat isinya, jadi
+  // setiap orang yang buka halaman ini melihat SEMUA pokok doa termasuk yang
+  // ditandai pribadi. Keputusan produk (dikonfirmasi user): pokok doa
+  // pribadi hanya boleh dilihat Admin & Majelis.
+  const canSeePrivate = currentUser?.role === 'Admin' || currentUser?.role === 'Majelis';
+  const visibleRequests = prayerRequests.filter(r => !r.isPrivate || canSeePrivate);
+
   const filteredRequests = filterStatus === 'all'
-    ? prayerRequests
-    : prayerRequests.filter(r => r.status === filterStatus);
+    ? visibleRequests
+    : visibleRequests.filter(r => r.status === filterStatus);
 
   const activeRequests = filteredRequests.filter(r => r.status === 'Aktif');
   const answeredRequests = filteredRequests.filter(r => r.status === 'Terjawab');
@@ -95,10 +103,12 @@ export function PrayerRequests() {
             {activeRequests.length} pokok doa aktif
           </p>
         </div>
-        <Button onClick={openAddForm} className="gap-2 bg-[#144f6b] hover:bg-[#0f2d41]">
-          <Plus className="w-4 h-4" />
-          Tambah Pokok Doa
-        </Button>
+        {can('prayers', 'create') && (
+          <Button onClick={openAddForm} className="gap-2 bg-[#144f6b] hover:bg-[#0f2d41]">
+            <Plus className="w-4 h-4" />
+            Tambah Pokok Doa
+          </Button>
+        )}
       </div>
 
       {/* Filter */}
@@ -161,14 +171,32 @@ export function PrayerRequests() {
                     })}
                   </div>
 
-                  <Button
-                    size="sm"
-                    className="w-full bg-[#144f6b] hover:bg-[#0f2d41]"
-                    onClick={() => markAsAnswered(request.id)}
-                  >
-                    <Check className="w-4 h-4 mr-2" />
-                    Tandai Sebagai Terjawab
-                  </Button>
+                  <div className="flex gap-2">
+                    {can('prayers', 'edit') && (
+                      <Button
+                        size="sm"
+                        className="flex-1 bg-[#144f6b] hover:bg-[#0f2d41]"
+                        onClick={() => markAsAnswered(request.id)}
+                      >
+                        <Check className="w-4 h-4 mr-2" />
+                        Tandai Sebagai Terjawab
+                      </Button>
+                    )}
+                    {can('prayers', 'delete') && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-red-600 border-red-300 hover:bg-red-50"
+                        onClick={() => {
+                          if (window.confirm('Hapus pokok doa ini? Data tidak dapat dikembalikan.')) {
+                            deletePrayerRequest(request.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </Card>
             ))}

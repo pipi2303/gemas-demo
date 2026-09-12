@@ -182,18 +182,20 @@ export function ServiceRequestsComponent({ onNavigate }: { onNavigate?: (page: s
           <h1 className="text-2xl font-semibold text-gray-900 mb-2">Permohonan Layanan</h1>
           <p className="text-gray-600">Kelola permohonan kunjungan, doa khusus, dan pelayanan duka</p>
         </div>
-        <button 
-          onClick={() => {
-            resetForm();
-            setIsEditMode(false);
-            setSelectedRequest(null);
-            setIsCreateDialogOpen(true);
-          }}
-          className="px-4 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          Permohonan Baru
-        </button>
+        {can('service-requests', 'create') && (
+          <button 
+            onClick={() => {
+              resetForm();
+              setIsEditMode(false);
+              setSelectedRequest(null);
+              setIsCreateDialogOpen(true);
+            }}
+            className="px-4 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Permohonan Baru
+          </button>
+        )}
       </div>
 
       {/* Statistics Cards */}
@@ -272,7 +274,10 @@ export function ServiceRequestsComponent({ onNavigate }: { onNavigate?: (page: s
             )}
 
             <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-              {request.status === 'Pending' && (
+              {/* Audit gap fix: tombol ubah status sebelumnya tidak digate sama
+                  sekali -- siapa pun yang bisa lihat halaman ini (termasuk role
+                  hanya-lihat) bisa menjadwalkan/menolak/menyelesaikan permohonan. */}
+              {can('service-requests', 'edit') && request.status === 'Pending' && (
                 <>
                   <button 
                     onClick={() => handleStatusChange(request, 'Scheduled')}
@@ -288,7 +293,7 @@ export function ServiceRequestsComponent({ onNavigate }: { onNavigate?: (page: s
                   </button>
                 </>
               )}
-              {request.status === 'Scheduled' && (
+              {can('service-requests', 'edit') && request.status === 'Scheduled' && (
                 <button 
                   onClick={() => handleStatusChange(request, 'Completed')}
                   className="flex-1 px-3 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm"
@@ -309,7 +314,7 @@ export function ServiceRequestsComponent({ onNavigate }: { onNavigate?: (page: s
                     <span className="flex-1 px-3 py-2 bg-[#f0ede5] text-purple-800 rounded-lg text-sm text-center">
                       Sudah ada Distribusi Bantuan
                     </span>
-                  ) : (
+                  ) : can('aid-distribution', 'create') ? (
                     <button
                       onClick={() => {
                         addAidDistribution({
@@ -330,7 +335,7 @@ export function ServiceRequestsComponent({ onNavigate }: { onNavigate?: (page: s
                     >
                       Buat Distribusi Bantuan
                     </button>
-                  )}
+                  ) : null}
                   {can('letters-outgoing', 'create') && (
                     <button
                       onClick={() => handleBuatSurat(request)}
@@ -690,7 +695,7 @@ export function ServiceRequestsComponent({ onNavigate }: { onNavigate?: (page: s
               )}
 
               {/* Status Actions */}
-              {selectedRequest && selectedRequest.status !== 'Completed' && selectedRequest.status !== 'Cancelled' && (
+              {can('service-requests', 'edit') && selectedRequest && selectedRequest.status !== 'Completed' && selectedRequest.status !== 'Cancelled' && (
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                   <h3 className="font-semibold text-gray-900 mb-3">Ubah Status</h3>
                   <div className="flex gap-2">
@@ -735,14 +740,18 @@ export function ServiceRequestsComponent({ onNavigate }: { onNavigate?: (page: s
                 <X className="w-3.5 h-3.5 mr-1.5" />
                 Tutup
               </Button>
-              <Button type="button" onClick={() => handleEdit(selectedRequest!)} className="flex-1">
-                <Pencil className="w-3.5 h-3.5 mr-1.5" />
-                Edit
-              </Button>
-              <Button type="button" onClick={() => handleDelete(selectedRequest!)} variant="destructive" className="flex-1">
-                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                Hapus
-              </Button>
+              {can('service-requests', 'edit') && (
+                <Button type="button" onClick={() => handleEdit(selectedRequest!)} className="flex-1">
+                  <Pencil className="w-3.5 h-3.5 mr-1.5" />
+                  Edit
+                </Button>
+              )}
+              {can('service-requests', 'delete') && (
+                <Button type="button" onClick={() => handleDelete(selectedRequest!)} variant="destructive" className="flex-1">
+                  <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                  Hapus
+                </Button>
+              )}
             </div>
           </div>
         </DialogContent>

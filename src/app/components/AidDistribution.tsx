@@ -58,8 +58,16 @@ interface AidDocument {
 
 export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: string) => void } = {}) {
   const { aidDistributions, members, getMasterDataByCategory, addAidDistribution, updateAidDistribution, deleteAidDistribution, can: canFn, currentUser, setPendingLetterDraft } = useApp();
-  const canEditDocs = canFn('Pelayanan Kasih & Komunikasi', 'edit');
-  const canDeleteDocs = canFn('Pelayanan Kasih & Komunikasi', 'delete');
+  // Audit gap fix: sebelumnya dipanggil dengan NAMA MODUL kasar
+  // ('Pelayanan Kasih & Komunikasi'), bukan page id ('aid-distribution') --
+  // can() dirancang menerima id submenu (lihat catatan di AppContext.tsx),
+  // jadi pengecekan granular per Custom Role diam-diam salah/selalu fallback
+  // ke izin modul lama.
+  const canEditDocs = canFn('aid-distribution', 'edit');
+  const canDeleteDocs = canFn('aid-distribution', 'delete');
+  const canCreate = canFn('aid-distribution', 'create');
+  const canEdit = canFn('aid-distribution', 'edit');
+  const canDelete = canFn('aid-distribution', 'delete');
   const statusBantuanList = getMasterDataByCategory('status_distribusi_bantuan').map((m: any) => m.value);
   const STATUS_BANTUAN_OPTS = statusBantuanList.length ? statusBantuanList : ['Pengajuan', 'Verifikasi', 'Disetujui', 'Ditolak', 'Disalurkan'];
   const aidTypeList = getMasterDataByCategory('kategori_bantuan').map(m => m.value) as AidType[];
@@ -199,9 +207,21 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
     setIsDetailDialogOpen(true);
   };
 
-  const handleDelete = (aid: AidDistribution) => {
+  const handleDelete = async (aid: AidDistribution) => {
     if (!window.confirm(`Hapus pengajuan bantuan:\n\n${aid.type} - ${aid.recipientName}\n\nData tidak dapat dikembalikan.`)) return;
     deleteAidDistribution(aid.id);
+    // Audit gap fix: sebelumnya dokumen pendukung (aidDistributionDocuments,
+    // mis. bukti transfer) TIDAK PERNAH dibersihkan saat pengajuan induknya
+    // dihapus -- jadi jadi sampah base64 permanen, sama seperti bug yang
+    // sudah diperbaiki di AssetManagement/ResourceLibrary.
+    try {
+      const allDocs = await api.get<AidDocument[]>('/api/data/aidDistributionDocuments');
+      const orphaned = (allDocs || []).filter(d => d.aidId === aid.id);
+      await Promise.all(orphaned.map(d => api.delete(`/api/data/aidDistributionDocuments/${d.id}`).catch(() => {})));
+      if (selectedAid?.id === aid.id) setAidDocs([]);
+    } catch {
+      // non-blocking: pengajuan tetap terhapus walau cleanup dokumen gagal
+    }
     setIsDetailDialogOpen(false);
   };
 
@@ -219,9 +239,21 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
     onNavigate?.('letters-outgoing');
   };
 
+  // Audit gap fix: approvedBy/approvedDate/distributedDate sudah ada di tipe
+  // data (bahkan distributedDate dipakai handleBuatSurat di atas), tapi
+  // sebelumnya tidak PERNAH ditulis di mana pun -- jadi tidak ada jejak siapa
+  // yang menyetujui/menyalurkan bantuan dan kapan.
   const handleStatusChange = (aid: AidDistribution, newStatus: AidStatus) => {
-    updateAidDistribution(aid.id, { status: newStatus });
-    setSelectedAid(prev => prev ? { ...prev, status: newStatus } : prev);
+    const patch: Partial<AidDistribution> = { status: newStatus };
+    if (newStatus === 'Disetujui') {
+      patch.approvedBy = currentUser?.name || 'Administrator';
+      patch.approvedDate = new Date().toISOString();
+    }
+    if (newStatus === 'Disalurkan') {
+      patch.distributedDate = new Date().toISOString();
+    }
+    updateAidDistribution(aid.id, patch);
+    setSelectedAid(prev => prev ? { ...prev, ...patch } : prev);
   };
 
   const handleUploadDocClick = () => docFileInputRef.current?.click();
@@ -320,18 +352,20 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
           <h1 className="text-2xl font-semibold text-gray-900 mb-2">Penyaluran Bantuan</h1>
           <p className="text-gray-600">Kelola bantuan ekonomi, beasiswa, kesehatan, dan bencana</p>
         </div>
-        <button 
-          onClick={() => {
-            resetForm();
-            setIsEditMode(false);
-            setSelectedAid(null);
-            setIsCreateDialogOpen(true);
-          }}
-          className="px-4 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          Pengajuan Bantuan
-        </button>
+        {canCreate && (
+          <button 
+            onClick={() => {
+              resetForm();
+              setIsEditMode(false);
+              setSelectedAid(null);
+              setIsCreateDialogOpen(true);
+            }}
+            className="px-4 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Pengajuan Bantuan
+          </button>
+        )}
       </div>
 
       {/* Statistics Cards */}
@@ -463,20 +497,24 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => handleEdit(aid)}
-                        className="text-gray-600 hover:text-gray-800"
-                        title="Edit"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(aid)}
-                        className="text-red-600 hover:text-red-800"
-                        title="Hapus"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {canEdit && (
+                        <button
+                          onClick={() => handleEdit(aid)}
+                          className="text-gray-600 hover:text-gray-800"
+                          title="Edit"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={() => handleDelete(aid)}
+                          className="text-red-600 hover:text-red-800"
+                          title="Hapus"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -872,7 +910,7 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
               </div>
 
               {/* Status Actions */}
-              {selectedAid && normStatusBantuan(selectedAid.status) !== 'Disalurkan' && normStatusBantuan(selectedAid.status) !== 'Ditolak' && (
+              {canEdit && selectedAid && normStatusBantuan(selectedAid.status) !== 'Disalurkan' && normStatusBantuan(selectedAid.status) !== 'Ditolak' && (
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                   <h3 className="font-semibold text-gray-900 mb-3">Ubah Status</h3>
                   <div className="flex gap-2">
@@ -953,14 +991,18 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
                 <X className="w-3.5 h-3.5 mr-1.5" />
                 Tutup
               </Button>
-              <Button type="button" onClick={() => handleEdit(selectedAid!)} className="flex-1">
-                <Pencil className="w-3.5 h-3.5 mr-1.5" />
-                Edit
-              </Button>
-              <Button type="button" onClick={() => handleDelete(selectedAid!)} variant="destructive" className="flex-1">
-                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                Hapus
-              </Button>
+              {canEdit && (
+                <Button type="button" onClick={() => handleEdit(selectedAid!)} className="flex-1">
+                  <Pencil className="w-3.5 h-3.5 mr-1.5" />
+                  Edit
+                </Button>
+              )}
+              {canDelete && (
+                <Button type="button" onClick={() => handleDelete(selectedAid!)} variant="destructive" className="flex-1">
+                  <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                  Hapus
+                </Button>
+              )}
             </div>
           </div>
         </DialogContent>
