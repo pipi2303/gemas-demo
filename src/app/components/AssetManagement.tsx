@@ -1742,8 +1742,7 @@ export function AssetManagement() {
                     <p style={{ fontSize:13,fontWeight:700,color:'#1d4ed8',marginBottom:6 }}>Integrasi dengan Modul Lain</p>
                     <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2">
                       {[
-                        '📊 Laporan Keuangan: Nilai aset otomatis tercermin di Laporan Posisi Keuangan (ISAK 35)',
-                        '💰 Keuangan Gereja: Pembelian aset baru dicatat otomatis sebagai pengeluaran',
+                        '⚠️ Keuangan: Manajemen Aset TIDAK terhubung otomatis ke Finance Add-on -- nilai buku di sini berdiri sendiri, tidak masuk jurnal/Neraca Finance',
                         '🏛 Budget Planning: Biaya pemeliharaan aset dapat dimasukkan ke anggaran operasional',
                         '👤 Data Jemaat: Penanggungjawab aset terhubung ke database anggota',
                         '⛪ Unit Pelayanan: Aset dapat diklasifikasikan per unit pelayanan gereja',
@@ -2315,7 +2314,7 @@ export function AssetManagement() {
                 <div>
                   <label style={{ fontSize:11,fontWeight:700,color:'#4b5563',display:'block',marginBottom:4 }}>
                     Nilai Perolehan (Rp)
-                    {form.acquisitionMethod==='Pembelian' && !editAsset && <span style={{ color:'#144f6b',fontSize:9.5,marginLeft:4 }}>→ otomatis ke Keuangan</span>}
+
                   </label>
                   <input type="number" value={form.acquisitionValue||''} onChange={e=>setForm(f=>({...f,acquisitionValue:Number(e.target.value)}))} placeholder="0"
                     className="w-full px-3 py-2 rounded-xl border outline-none text-sm" style={{ borderColor:'#e2e8f0', fontSize:13 }} />
