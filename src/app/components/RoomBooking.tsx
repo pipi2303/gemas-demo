@@ -510,7 +510,13 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
             )}
 
             <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-              {booking.status === 'Pending' && (
+              {/* Audit gap fix: sebelumnya tombol Setujui/Tolak/Tandai Selesai
+                  tidak digate sama sekali -- siapa pun yang bisa lihat halaman
+                  ini (termasuk role yang cuma punya izin 'view') bisa
+                  menyetujui/menolak booking dari UI. Digate can('room-booking',
+                  'edit') supaya konsisten dengan hak edit booking yang sudah
+                  ada (bukan 'approve' -- lihat catatan di handleStatusChange). */}
+              {can('room-booking', 'edit') && booking.status === 'Pending' && (
                 <>
                   <button 
                     onClick={() => handleStatusChange(booking, 'Approved')}
@@ -528,7 +534,7 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
                   </button>
                 </>
               )}
-              {booking.status === 'Approved' && (
+              {can('room-booking', 'edit') && booking.status === 'Approved' && (
                 <button 
                   onClick={() => handleStatusChange(booking, 'Completed')}
                   className="px-4 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors text-sm"
@@ -1051,7 +1057,7 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
               )}
 
               {/* Status Actions */}
-              {selectedBooking && selectedBooking.status !== 'Completed' && selectedBooking.status !== 'Cancelled' && selectedBooking.status !== 'Rejected' && (
+              {can('room-booking', 'edit') && selectedBooking && selectedBooking.status !== 'Completed' && selectedBooking.status !== 'Cancelled' && selectedBooking.status !== 'Rejected' && (
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                   <h3 className="font-semibold text-gray-900 mb-3">Ubah Status</h3>
                   <div className="flex gap-2">
@@ -1108,14 +1114,18 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
                 <X className="w-3.5 h-3.5 mr-1.5" />
                 Tutup
               </Button>
-              <Button type="button" onClick={() => handleEdit(selectedBooking!)} className="flex-1">
-                <Pencil className="w-3.5 h-3.5 mr-1.5" />
-                Edit
-              </Button>
-              <Button type="button" onClick={() => handleDelete(selectedBooking!)} variant="destructive" className="flex-1">
-                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                Hapus
-              </Button>
+              {can('room-booking', 'edit') && (
+                <Button type="button" onClick={() => handleEdit(selectedBooking!)} className="flex-1">
+                  <Pencil className="w-3.5 h-3.5 mr-1.5" />
+                  Edit
+                </Button>
+              )}
+              {can('room-booking', 'delete') && (
+                <Button type="button" onClick={() => handleDelete(selectedBooking!)} variant="destructive" className="flex-1">
+                  <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                  Hapus
+                </Button>
+              )}
             </div>
           </div>
         </DialogContent>

@@ -40,6 +40,7 @@ const AUDITED_COLLECTIONS: Record<string, { domain: 'Member' | 'Financial' | 'As
   assetMaintenances:{ domain: 'Asset',     entityType: 'AssetMaintenance',nameField: 'description' },
   assetLoanHistories:{ domain: 'Asset',    entityType: 'AssetLoan',       nameField: 'borrowedByName' },
   roomBookings:     { domain: 'Asset',     entityType: 'RoomBooking',     nameField: 'roomName' },
+  rooms:            { domain: 'Asset',     entityType: 'Room',            nameField: 'name' },
   buildingProjects: { domain: 'Asset',     entityType: 'BuildingProject', nameField: 'name' },
   users:            { domain: 'System',    entityType: 'User',            nameField: 'name' },
   resources:        { domain: 'System',    entityType: 'Resource',        nameField: 'title' },

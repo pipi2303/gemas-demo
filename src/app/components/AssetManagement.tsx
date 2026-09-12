@@ -412,8 +412,20 @@ export function AssetManagement() {
     setShowAssetModal(false);
   };
 
-  const deleteAsset = (id: string) => {
+  const deleteAsset = async (id: string) => {
     deleteChurchAsset(id);
+    // Audit gap fix: sebelumnya menghapus aset TIDAK membersihkan dokumen
+    // (assetDocuments, base64) yang sudah diupload untuk aset itu -- jadi
+    // dokumen jadi sampah permanen di database, tidak pernah bisa dihapus
+    // lagi dari UI mana pun karena assetId pemiliknya sudah tidak ada.
+    try {
+      const allDocs = await api.get<AssetDocument[]>('/api/data/assetDocuments');
+      const orphaned = (allDocs || []).filter(d => d.assetId === id);
+      await Promise.all(orphaned.map(d => api.delete(`/api/data/assetDocuments/${d.id}`).catch(() => {})));
+      if (selectedAsset?.id === id) setAssetDocs([]);
+    } catch {
+      // non-blocking: aset tetap terhapus walau cleanup dokumen gagal
+    }
     setDeleteConfirmId(null);
   };
 

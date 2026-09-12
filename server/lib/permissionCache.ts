@@ -124,6 +124,14 @@ export const COLLECTION_PAGE: Record<string, string[]> = {
   financeDocuments:      ['offerings'],
   assets:                ['assets'],
   roomBookings:          ['room-booking'],
+  // Audit gap fix: collection 'rooms' (master data ruangan, CRUD Kelola
+  // Ruangan) tidak pernah ada di map ini sejak fitur CRUD-nya ditambahkan --
+  // akibatnya requirePermission() next() tanpa cek izin sama sekali, jadi
+  // siapa pun yang lolos auth (peran apa pun) bisa tambah/ubah/hapus ruangan
+  // lewat API langsung walau tombol Kelola Ruangan di UI sudah digate
+  // can('room-booking','edit'). Gating UI tanpa penegakan server tidak
+  // berarti apa-apa untuk keamanan.
+  rooms:                 ['room-booking'],
   assetDocuments:        ['assets'],
   // Audit gap fix: sama seperti livestreamLinks/dst di atas -- key sebelumnya
   // 'resourceLibrary' tidak pernah cocok dengan nama collection sungguhan
