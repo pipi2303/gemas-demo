@@ -575,7 +575,7 @@ function EntitySection({ config, canEdit, onMutated }: { config: EntityConfig; c
 
       {modalOpen && (
         <div
-          className="absolute inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(15,23,42,0.45)' }}
           onClick={() => !saving && setModalOpen(false)}
         >
@@ -663,7 +663,7 @@ function EntitySection({ config, canEdit, onMutated }: { config: EntityConfig; c
 
       {deleteTarget && (
         <div
-          className="absolute inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(15,23,42,0.45)' }}
           onClick={() => setDeleteTarget(null)}
         >
@@ -857,7 +857,7 @@ function FiscalYearSection({ canEdit }: { canEdit: boolean }) {
       )}
 
       {modalOpen && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => !saving && setModalOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => !saving && setModalOpen(false)}>
           <div className="bg-white rounded-xl w-full max-w-md p-5 space-y-4" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-800">Tambah Tahun Fiskal</h3>
@@ -1100,7 +1100,7 @@ function QrisCodesSection({ canEdit }: { canEdit: boolean }) {
       )}
 
       {modalOpen && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => !saving && setModalOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => !saving && setModalOpen(false)}>
           <div className="bg-white rounded-xl w-full max-w-md p-5 space-y-4 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-800">{editingRow ? 'Edit Kode QRIS' : 'Tambah Kode QRIS'}</h3>
@@ -1174,7 +1174,7 @@ function QrisCodesSection({ canEdit }: { canEdit: boolean }) {
       )}
 
       {deleteTarget && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => setDeleteTarget(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => setDeleteTarget(null)}>
           <div className="bg-white rounded-xl w-full max-w-sm p-5 space-y-3" onClick={e => e.stopPropagation()}>
             <h3 className="text-sm font-semibold text-slate-800">Nonaktifkan Kode QRIS?</h3>
             <p className="text-sm text-slate-500">
@@ -1328,7 +1328,7 @@ function OfferingCategorySection({ category, entityLabel, checkUsage }: { catego
       </div>
 
       {adding && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => setAdding(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => setAdding(false)}>
           <div className="bg-white rounded-xl w-full max-w-sm p-5 space-y-3" onClick={e => e.stopPropagation()}>
             <h3 className="text-sm font-semibold text-slate-800">Tambah {entityLabel}</h3>
             <input
@@ -1352,7 +1352,7 @@ function OfferingCategorySection({ category, entityLabel, checkUsage }: { catego
       )}
 
       {pendingWarning && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => setPendingWarning(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => setPendingWarning(null)}>
           <div className="bg-white rounded-xl w-full max-w-sm p-5 space-y-3" onClick={e => e.stopPropagation()}>
             <h3 className="text-sm font-semibold text-amber-700">Kategori ini masih dipakai</h3>
             <p className="text-sm text-slate-600">

@@ -818,7 +818,7 @@ export function LiturgyDigital() {
       {/* ══════════════════════════════════════════════════════════════════════ */}
       {/* TEMPLATE MODAL */}
       {showTemplateModal && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowTemplateModal(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowTemplateModal(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden" onClick={e=>e.stopPropagation()} style={{ transform: `translate(${offsetTemplate.x}px, ${offsetTemplate.y}px)` }}>
             <div className="px-6 py-4 flex items-center justify-between flex-shrink-0" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',cursor:'move'}} onMouseDown={onMouseDownTemplate}>
               <div>
@@ -854,7 +854,7 @@ export function LiturgyDigital() {
       {/* ══════════════════════════════════════════════════════════════════════ */}
       {/* FORM MODAL */}
       {showForm && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowForm(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowForm(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden" onClick={e=>e.stopPropagation()} style={{ transform: `translate(${offsetForm.x}px, ${offsetForm.y}px)` }}>
             <div className="px-6 py-5 flex items-center justify-between flex-shrink-0" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',cursor:'move'}} onMouseDown={onMouseDownForm}>
               <div>
@@ -1046,7 +1046,7 @@ export function LiturgyDigital() {
 
       {/* ── Delete Confirm ───────────────────────────────────────────────── */}
       {showDeleteConfirm && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowDeleteConfirm(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowDeleteConfirm(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e=>e.stopPropagation()} style={{ transform: `translate(${offsetDeleteLiturgy.x}px, ${offsetDeleteLiturgy.y}px)` }}>
             <div className="flex items-center gap-4 mb-4" onMouseDown={onMouseDownDeleteLiturgy} style={{ cursor: 'move' }}>
               <div className="w-12 h-12 bg-[#d1553f]/15 rounded-full flex items-center justify-center">

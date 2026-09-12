@@ -590,7 +590,7 @@ export function MinistryManagement() {
         const palette = PALETTES[ministryIdx % PALETTES.length];
         const ministryMembers = ministry.memberIds.map(id => members.find(m => m.id === id)).filter(Boolean) as any[];
         return (
-          <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>{setShowDetail(false);setSelectedMinistry(null);}}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>{setShowDetail(false);setSelectedMinistry(null);}}>
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] flex flex-col overflow-hidden" onClick={e=>e.stopPropagation()} style={{ transform: `translate(${offsetDetail.x}px, ${offsetDetail.y}px)` }}>
               {/* Header */}
               <div className={`${palette} px-6 py-5 flex-shrink-0`} onMouseDown={onMouseDownDetail} style={{ cursor: 'move' }}>
@@ -796,7 +796,7 @@ export function MinistryManagement() {
       {/* ══════════════════════════════════════════════════════════════════════ */}
       {/* FORM MODAL */}
       {showForm && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowForm(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowForm(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden" onClick={e=>e.stopPropagation()} style={{ transform: `translate(${offsetForm.x}px, ${offsetForm.y}px)` }}>
             <div className="px-6 py-5 flex items-center justify-between flex-shrink-0" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',cursor:'move'}} onMouseDown={onMouseDownForm}>
               <div>
@@ -920,7 +920,7 @@ export function MinistryManagement() {
 
       {/* Delete Confirm */}
       {showDeleteConfirm && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowDeleteConfirm(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={()=>setShowDeleteConfirm(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e=>e.stopPropagation()} style={{ transform: `translate(${offsetDeleteMinistry.x}px, ${offsetDeleteMinistry.y}px)` }}>
             <div className="flex items-center gap-4 mb-4" onMouseDown={onMouseDownDeleteMinistry} style={{ cursor: 'move' }}>
               <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -943,7 +943,7 @@ export function MinistryManagement() {
       {/* ══════════════════════════════════════════════════════════════════════ */}
       {/* SCHEDULE FORM MODAL */}
       {showScheduleForm && (
-        <div className="absolute inset-0 z-[60] flex items-center justify-center p-4 bg-black/50" onClick={() => setShowScheduleForm(false)}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50" onClick={() => setShowScheduleForm(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()} style={{ transform: `translate(${offsetScheduleForm.x}px, ${offsetScheduleForm.y}px)` }}>
             <div className="px-6 py-5 flex items-center justify-between flex-shrink-0" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',cursor:'move'}} onMouseDown={onMouseDownScheduleForm}>
               <div>
@@ -1092,7 +1092,7 @@ export function MinistryManagement() {
       {/* ══════════════════════════════════════════════════════════════════════ */}
       {/* SCHEDULE DELETE CONFIRM */}
       {scheduleDeleteTarget && (
-        <div className="absolute inset-0 z-[60] flex items-center justify-center p-4 bg-black/50" onClick={() => setScheduleDeleteTarget(null)}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50" onClick={() => setScheduleDeleteTarget(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()} style={{ transform: `translate(${offsetScheduleDelete.x}px, ${offsetScheduleDelete.y}px)` }}>
             <div className="flex items-center gap-4 mb-4" onMouseDown={onMouseDownScheduleDelete} style={{ cursor: 'move' }}>
               <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">

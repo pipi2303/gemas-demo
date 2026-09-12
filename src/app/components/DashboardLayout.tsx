@@ -617,8 +617,21 @@ export function DashboardLayout({ children, currentPage, onNavigate }: Dashboard
         >
           {/* Portal target untuk modal/dialog yang perlu dirender di luar alur DOM normal
               (Radix Dialog/AlertDialog, NotificationCenter) — tetap
-              terkurung di dalam .content-area, tidak pernah menutupi sidebar/header. */}
-          <div id="content-area-modal-root" />
+              terkurung secara visual di dalam .content-area (tidak pernah
+              menutupi sidebar/header), TAPI harus position:fixed (bukan
+              static di dalam .content-area yang overflow-y-auto) supaya modal
+              tidak ikut ter-scroll saat konten di baliknya di-scroll. Karena
+              wrapper ini sekarang punya position selain static, dia otomatis
+              jadi containing block baru untuk anak-anaknya yang position:
+              absolute (Dialog/AlertDialog/NotificationCenter) -- jadi kelas
+              positioning di komponen-komponen itu tidak perlu diubah, cukup
+              tambah pointer-events:auto di sana karena wrapper ini sengaja
+              pointer-events:none supaya area kosongnya tidak memblokir klik
+              ke konten di baliknya saat tidak ada modal terbuka. */}
+          <div
+            id="content-area-modal-root"
+            style={{ position: 'fixed', top: '4rem', left: mainMargin, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 50 }}
+          />
 
           {/* Breadcrumb Header */}
           <div className="px-4 md:px-6 lg:px-8 pt-4 pb-1">

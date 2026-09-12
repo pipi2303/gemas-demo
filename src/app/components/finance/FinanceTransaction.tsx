@@ -419,7 +419,7 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
       </div>
 
       {modalOpen && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => !saving && setModalOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => !saving && setModalOpen(false)}>
           <div className="bg-white rounded-xl w-full max-w-md p-5 space-y-3 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-800">Tambah Baris Jurnal</h3>
@@ -545,7 +545,7 @@ export function TransactionDetail({ tx, canEdit, canApprove, currentUserId, look
       )}
 
       {reasonModal && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => busy === null && setReasonModal(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => busy === null && setReasonModal(null)}>
           <div className="bg-white rounded-xl w-full max-w-md p-5 space-y-3" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-800">{reasonModal.action === 'reject' ? 'Tolak Transaksi' : 'Balik Jurnal'}</h3>
@@ -788,7 +788,7 @@ export function FinanceTransaction({ onNavigate }: { onNavigate?: (page: string)
       )}
 
       {createOpen && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => !creating && setCreateOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => !creating && setCreateOpen(false)}>
           <div className="bg-white rounded-xl w-full max-w-md p-5 space-y-3 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-800">Buat Transaksi Baru</h3>

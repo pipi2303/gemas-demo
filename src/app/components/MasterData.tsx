@@ -359,7 +359,7 @@ export function MasterData() {
 
       {/* Konfirmasi hapus */}
       {deleteTarget && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => setDeleteTarget(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => setDeleteTarget(null)}>
           <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 text-center" onClick={e => e.stopPropagation()} style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}>
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: '#fef2f2', cursor: 'move' }} onMouseDown={onMouseDown}>
               <Trash2 className="w-6 h-6 text-red-500" />

@@ -447,7 +447,7 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
   };
 
   return (
-    <div className="absolute inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0" style={{ background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)' }} onClick={onClose} />
       <div className="relative flex flex-col bg-white shadow-2xl overflow-hidden" style={{ width: '420px', height: '100vh' }}>
         {isDetail ? renderHeader() : (

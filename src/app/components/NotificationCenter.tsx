@@ -159,6 +159,7 @@ export function NotificationCenter({ isOpen, onClose }: { isOpen: boolean; onClo
         position: 'absolute', inset: 0, zIndex: 9999,
         background: 'rgba(0,0,0,0.35)',
         display: 'flex', justifyContent: 'flex-end',
+        pointerEvents: 'auto',
       }}
     >
       <div

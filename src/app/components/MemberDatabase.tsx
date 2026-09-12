@@ -313,7 +313,7 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
 
   return (
     <>
-    <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
       <div className="relative w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'92vh', transform:`translate(${offset.x}px,${offset.y}px)`}} onClick={e=>e.stopPropagation()}>
         {/* Header */}
         <div className="px-6 py-5 flex-shrink-0" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',cursor:'move'}} onMouseDown={onMouseDown}>
@@ -1184,7 +1184,7 @@ function MemberForm({ mode, initial, sectors, families, attestations, members, o
 
   return (
     <>
-    <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
       <div className="w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'92vh', transform:`translate(${offset.x}px,${offset.y}px)`}} onClick={e=>e.stopPropagation()}>
         <div className="px-6 py-4 flex-shrink-0 border-b" style={{background:'linear-gradient(135deg,#0a1e2c,#0f2d41)',borderColor:'#1e3a2a',cursor:'move'}} onMouseDown={onMouseDown}>
           <div className="flex items-center justify-between">
@@ -1642,7 +1642,7 @@ function ImportMembersModal({ sectors, existingMembers, onImport, onClose }: {
   const tabCounts = { new: newRows.length, dupe: dupeRows.length, error: errorRows.length };
 
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.55)' }} onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.55)' }} onClick={onClose}>
       <div className="w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{ maxHeight: '90vh', transform:`translate(${offset.x}px,${offset.y}px)` }} onClick={e => e.stopPropagation()}>
 
         {/* Header */}
@@ -2600,7 +2600,7 @@ export function MemberDatabase() {
 
       {/* KPI Detail Modal */}
       {kpiDetail && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.55)'}} onClick={()=>setKpiDetail(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.55)'}} onClick={()=>setKpiDetail(null)}>
           <div className="w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'85vh', transform:`translate(${offset1.x}px,${offset1.y}px)`}} onClick={e=>e.stopPropagation()}>
             {/* Header */}
             <div className="px-6 py-5 flex-shrink-0 flex items-center justify-between" style={{background:'#144f6b',cursor:'move'}} onMouseDown={onMouseDown1}>
@@ -2712,7 +2712,7 @@ export function MemberDatabase() {
         <FamilyCardModal family={cardFamily} members={members} sectors={sectors} onClose={()=>setCardFamily(null)} />
       )}
       {deleteTarget && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={()=>setDeleteTarget(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={()=>setDeleteTarget(null)}>
           <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 text-center" style={{transform:`translate(${offset2.x}px,${offset2.y}px)`}} onClick={e=>e.stopPropagation()}>
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{background:'#fef2f2',cursor:'move'}} onMouseDown={onMouseDown2}><Trash2 className="w-6 h-6 text-red-500"/></div>
             <h3 style={{fontSize:'16px',fontWeight:700,color:'#0f172a',marginBottom:8}}>Hapus Anggota?</h3>

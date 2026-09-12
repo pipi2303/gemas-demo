@@ -865,7 +865,7 @@ export function OfferingsQRIS() {
 
       {/* ── FORM DIALOG ── */}
       {showForm && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => { setShowForm(false); resetForm(); }} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}>
             {/* Header */}
@@ -982,7 +982,7 @@ export function OfferingsQRIS() {
 
       {/* ── SETOR KE BUKU BESAR ── */}
       {depositOpen && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => { if (!depositSubmitting) setDepositOpen(false); }} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
             {/* Header */}

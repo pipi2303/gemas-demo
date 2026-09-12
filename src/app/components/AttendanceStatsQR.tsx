@@ -787,7 +787,7 @@ export function AttendanceStatsQR() {
       {deleteAbsensiId && (() => {
         const rec = absensiRecords.find(r => r.id === deleteAbsensiId);
         return rec ? (
-          <div className="absolute inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }}
             onClick={e => e.target === e.currentTarget && setDeleteAbsensiId(null)}>
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" style={{ transform: `translate(${offsetDeleteAbsensi.x}px, ${offsetDeleteAbsensi.y}px)` }}>
               <div className="flex items-center gap-3 mb-4" onMouseDown={onMouseDownDeleteAbsensi} style={{ cursor: 'move' }}>
