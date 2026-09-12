@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Card } from './ui/card';
 import {
   Mail, Building2, Hash, PenTool, Upload, Save, Loader2,
-  ImageIcon, Stamp, Trash2, Eye, UserPlus,
+  ImageIcon, Stamp, Trash2, Eye, UserPlus, AlertTriangle,
 } from 'lucide-react';
 import type { OrgLetterhead, LetterNumberFormat, SignatureAsset, SigningOfficial } from '../types';
 
@@ -265,6 +265,24 @@ function FormatNomorTab({ canEdit, currentUser, masterDataItems }: { canEdit: bo
 
   const selectedJenis = jenisSuratList.find(j => j.id === selectedJenisId);
 
+  // Audit gap fix: nomor surat di-generate per jenisSuratId (lihat
+  // generateLetterNumber() di server/routes/letterNumbers.ts), BUKAN per pola
+  // string hasil akhir -- kalau dua jenis surat berbeda dikonfigurasi dengan
+  // pola yang sama TANPA token {jenis} (satu-satunya token yang benar-benar
+  // membedakan jenis surat di string hasil), keduanya bisa menghasilkan
+  // nomor tampilan yang identik (mis. sama-sama "001/2026"). Sebelumnya
+  // tidak ada peringatan apa pun untuk kasus ini. Ini cuma warning (bukan
+  // blokir) karena admin mungkin punya alasan sah untuk konfigurasi seperti
+  // ini.
+  const patternCollision = useMemo(() => {
+    if (!selectedJenisId || !pattern.trim() || pattern.includes('{jenis}')) return null;
+    const trimmed = pattern.trim();
+    const other = formats.find(f => f.jenisSuratId !== selectedJenisId && f.pattern === trimmed);
+    if (!other) return null;
+    const otherJenis = jenisSuratList.find(j => j.id === other.jenisSuratId);
+    return otherJenis?.label || other.jenisSuratId;
+  }, [selectedJenisId, pattern, formats, jenisSuratList]);
+
   const preview = useMemo(() => {
     if (!selectedJenis) return '';
     const now = new Date();
@@ -348,6 +366,14 @@ function FormatNomorTab({ canEdit, currentUser, masterDataItems }: { canEdit: bo
             <span className="text-xs font-semibold" style={{ color: '#0369a1' }}>Contoh hasil: </span>
             <span className="font-mono font-semibold" style={{ color: '#0c4a6e' }}>{preview || '—'}</span>
           </div>
+          {patternCollision && (
+            <div className="flex items-start gap-2 p-3 rounded-lg text-sm" style={{ background: '#fffbeb', border: '1px solid #fde68a' }}>
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#b45309' }} />
+              <p style={{ fontSize: '12px', color: '#92400e', lineHeight: 1.4 }}>
+                Pola ini sama persis dengan pola nomor surat jenis <strong>{patternCollision}</strong> dan tidak memakai token <span className="font-mono">{'{jenis}'}</span> untuk membedakannya. Nomor surat kedua jenis ini bisa tampil identik (mis. sama-sama "001/2026"). Pastikan ini memang disengaja, atau tambahkan token <span className="font-mono">{'{jenis}'}</span> ke pola.
+              </p>
+            </div>
+          )}
           {canEdit && (
             <div className="flex justify-end pt-2 border-t" style={{ borderColor: '#f1f5f9' }}>
               <button onClick={handleSave} disabled={saving}

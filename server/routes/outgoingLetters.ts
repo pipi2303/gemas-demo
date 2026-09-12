@@ -90,6 +90,21 @@ router.put('/:id/submit', requireAuth, async (req: AuthRequest, res: Response) =
       return;
     }
 
+    // Audit gap fix: placeholder template ({namaPenerima}, {tanggal}, {perihal},
+    // {nomorSurat} -- lihat LetterTemplates.tsx) sengaja diganti MANUAL oleh
+    // staf, bukan lewat mesin substitusi otomatis (supaya isi surat tetap
+    // bebas diedit). Konsekuensinya: sebelumnya tidak ada apa pun yang
+    // mencegah staf lupa mengganti placeholder dan mengajukan surat resmi
+    // dengan literal "{namaPenerima}" masih tertinggal di isi surat.
+    const PLACEHOLDER_PATTERN = /\{(namaPenerima|tanggal|perihal|nomorSurat)\}/g;
+    const leftoverPlaceholders = Array.from(new Set(
+      Array.from(String(letter.body || '').matchAll(PLACEHOLDER_PATTERN), m => m[1])
+    ));
+    if (leftoverPlaceholders.length > 0) {
+      res.status(400).json({ error: `Isi surat masih ada placeholder template yang belum diganti: ${leftoverPlaceholders.map(p => '{' + p + '}').join(', ')} — ganti dulu dengan data sebenarnya sebelum diajukan` });
+      return;
+    }
+
     const now = new Date().toISOString();
     await upsert('outgoingLetters', letter.id, {
       ...letter,

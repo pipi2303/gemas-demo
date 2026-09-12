@@ -40,7 +40,12 @@ function decryptData(data: string): string {
 
 const router = Router();
 
-router.get('/counts', requireAuth, async (_req: AuthRequest, res: Response) => {
+// Security fix: sebelumnya cuma requireAuth (role apa pun yang login bisa
+// lihat jumlah baris tiap koleksi, termasuk 'users'/'financialRecords') --
+// info ini bukan risiko tulis, tapi tidak ada alasan modul Admin Sistem
+// membocorkan ukuran data ke role selain Admin. Disamakan Admin-only
+// seperti tiga endpoint backup lain di file ini.
+router.get('/counts', requireAuth, requireRole('Admin'), async (_req: AuthRequest, res: Response) => {
   try {
     const counts = await getAllCollectionCounts();
     res.json(counts);

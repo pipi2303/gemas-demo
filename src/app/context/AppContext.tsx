@@ -963,15 +963,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [theme]);
 
   // ── Poll /api/auth/me setiap 30 detik untuk deteksi perubahan role/status ──
+  // Security fix: sebelumnya HANYA nonaktif (isActive:false) yang memaksa
+  // logout -- perubahan ROLE (mis. Admin diturunkan ke Operator) cuma
+  // memperbarui tampilan currentUser.role di UI, sementara token JWT yang
+  // sudah terlanjur terbit (berlaku 8 jam, lihat server/lib/jwt.ts) masih
+  // membawa role LAMA dan tidak pernah dicek ulang ke DB per request
+  // (requireAuth murni percaya payload token, lihat server/middleware/auth.ts).
+  // Jadi perubahan role sebelumnya tidak benar-benar berlaku di sisi API
+  // sampai token kedaluwarsa/logout manual -- cuma tampilan yang berubah.
+  // Sekarang: perubahan role JUGA memaksa logout (re-login), sama seperti
+  // nonaktifkan akun, supaya token lama yang lebih longgar tidak bisa terus
+  // dipakai lebih dari ~30 detik setelah role-nya diturunkan/diubah.
   useEffect(() => {
     if (!currentUser) return;
     const interval = setInterval(async () => {
       try {
         const { user } = await api.get<{ user: User }>('/api/auth/me');
-        if (user.role !== currentUser.role || user.isActive !== currentUser.isActive || user.name !== currentUser.name) {
+        const roleChanged = user.role !== currentUser.role;
+        if (roleChanged || user.isActive !== currentUser.isActive || user.name !== currentUser.name) {
           setCurrentUser(user);
           localStorage.setItem('currentUser', JSON.stringify(user));
-          if (!user.isActive) {
+          if (!user.isActive || roleChanged) {
             await logout();
           }
         }

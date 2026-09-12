@@ -4,7 +4,7 @@ import { useDraggable } from '../../lib/useDraggable';
 import { MasterDataCategory, MasterDataItem } from '../types';
 import {
   Layers, Plus, Pencil, Trash2, Check, X, ToggleLeft, ToggleRight,
-  Users, Church, Package, Calendar, BookOpen, Search, Mail,
+  Users, Church, Package, Calendar, BookOpen, Search, Mail, AlertTriangle,
 } from 'lucide-react';
 
 // ── Grup kategori per modul ───────────────────────────────────────────────────
@@ -130,14 +130,44 @@ function ItemChip({
 
 // ── Komponen Utama ────────────────────────────────────────────────────────────
 export function MasterData() {
-  const { masterDataItems, addMasterDataItem, updateMasterDataItem, deleteMasterDataItem } = useApp();
+  const appCtx = useApp();
+  const { masterDataItems, addMasterDataItem, updateMasterDataItem, deleteMasterDataItem } = appCtx;
   const { offset, onMouseDown } = useDraggable();
 
   const [activeCategory, setActiveCategory] = useState<MasterDataCategory>('jabatan_pelayanan');
   const [globalSearch, setGlobalSearch] = useState('');
   const [adding, setAdding] = useState(false);
   const [newLabel, setNewLabel] = useState('');
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; value: string; label: string } | null>(null);
+
+  // Audit gap fix: sebelumnya hapus item Master Data TIDAK ADA pengecekan
+  // pemakaian sama sekali -- padahal item ini dirujuk dari banyak modul lain
+  // (kadang lewat MasterDataItem.id, mis. OutgoingLetter.jenisSuratId; kadang
+  // lewat MasterDataItem.value, mis. ChurchAsset.category -- polanya TIDAK
+  // konsisten di seluruh aplikasi). Karena tidak praktis memetakan satu per
+  // satu field mana yang mereferensikan kategori mana, dipakai deteksi
+  // heuristik: scan semua koleksi yang sudah dimuat di AppContext untuk nilai
+  // yang persis sama dengan id ATAU value item ini. Ini BUKAN pemeriksaan
+  // pasti (bisa ada false-positive kalau kebetulan ada nilai lain yang sama
+  // persis, terutama untuk value generik seperti "Lainnya") -- makanya hasilnya
+  // ditampilkan sebagai peringatan, bukan blokir keras.
+  const usageCount = useMemo(() => {
+    if (!deleteTarget) return 0;
+    let count = 0;
+    for (const [key, val] of Object.entries(appCtx as Record<string, any>)) {
+      if (key === 'masterDataItems' || !Array.isArray(val)) continue;
+      for (const record of val) {
+        if (!record || typeof record !== 'object') continue;
+        const matched = Object.values(record).some((v: any) => {
+          if (v === deleteTarget.id || (deleteTarget.value && v === deleteTarget.value)) return true;
+          if (Array.isArray(v)) return v.some((x: any) => x === deleteTarget.id || (deleteTarget.value && x === deleteTarget.value));
+          return false;
+        });
+        if (matched) count++;
+      }
+    }
+    return count;
+  }, [deleteTarget, appCtx]);
 
   const activeMeta = CAT_META[activeCategory] ?? { label: activeCategory, description: '', color: '#144f6b' };
 
@@ -314,7 +344,7 @@ export function MasterData() {
                     item={item}
                     color={activeMeta.color}
                     onSave={handleSave}
-                    onDelete={id => setDeleteTarget({ id, label: item.label })}
+                    onDelete={id => setDeleteTarget({ id, value: item.value, label: item.label })}
                     onToggle={handleToggle}
                   />
                 ))}
@@ -365,9 +395,17 @@ export function MasterData() {
               <Trash2 className="w-6 h-6 text-red-500" />
             </div>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>Hapus Item?</h3>
-            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: 20 }}>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: usageCount > 0 ? 10 : 20 }}>
               "<strong>{deleteTarget.label}</strong>" akan dihapus permanen.
             </p>
+            {usageCount > 0 && (
+              <div className="flex items-start gap-2 text-left rounded-lg p-2.5 mb-4" style={{ background: '#fffbeb', border: '1px solid #fde68a' }}>
+                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#b45309' }} />
+                <p style={{ fontSize: '11.5px', color: '#92400e', lineHeight: 1.4 }}>
+                  Terdeteksi kemungkinan dipakai di <strong>{usageCount}</strong> data lain (deteksi otomatis berdasarkan kecocokan nilai — bisa termasuk kecocokan kebetulan, bukan jaminan pasti). Pastikan item ini sudah tidak dipakai sebelum menghapus.
+                </p>
+              </div>
+            )}
             <div className="flex gap-3">
               <button onClick={() => setDeleteTarget(null)} className="flex-1 py-2.5 rounded-xl border font-medium text-gray-600 hover:bg-gray-50 text-sm" style={{ borderColor: '#e2e8f0' }}>Batal</button>
               <button onClick={() => { deleteMasterDataItem(deleteTarget.id); setDeleteTarget(null); }} className="flex-1 py-2.5 rounded-xl text-white font-semibold text-sm hover:opacity-90" style={{ background: '#ef4444' }}>Hapus</button>
