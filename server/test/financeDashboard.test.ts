@@ -12,6 +12,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
 import { getTestApp, authHeader, seedBaseFinanceData, uniqueCode } from './helpers.js';
+import { getPool } from '../lib/db.js';
 
 describe('Finance Dashboard — ringkasan eksekutif', () => {
   let app: any;
@@ -65,5 +66,18 @@ describe('Finance Dashboard — ringkasan eksekutif', () => {
   it('menolak request tanpa fiscalYearId', async () => {
     const res = await request(app).get('/api/v1/finance/dashboard').set('Authorization', admin);
     expect(res.status).toBe(400);
+  });
+
+  it('menghitung kas dari saldo akun GL per tanggal acuan, bukan current_balance master yang dapat usang', async () => {
+    const cashRes = await request(app).post('/api/v1/finance/cash-accounts').set('Authorization', admin).send({
+      account_id: seed.assetAccountId, code: uniqueCode('CASH'), name: 'Kas Dashboard Test', opening_balance: 0,
+    });
+    expect(cashRes.status).toBe(201);
+
+    await getPool().query('UPDATE finance.cash_accounts SET current_balance = 999999 WHERE id = $1', [cashRes.body.data.id]);
+
+    const dashRes = await request(app).get('/api/v1/finance/dashboard').query({ fiscalYearId: seed.fiscalYearId }).set('Authorization', admin);
+    expect(dashRes.status).toBe(200);
+    expect(dashRes.body.data.cashAccounts.find((c: any) => c.id === cashRes.body.data.id).current_balance).toBe(0);
   });
 });

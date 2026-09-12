@@ -54,11 +54,13 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     );
     const sumsByAccount = new Map<string, { debit: number; credit: number }>();
     for (const r of sumsRes.rows) sumsByAccount.set(r.account_id, { debit: Number(r.total_debit), credit: Number(r.total_credit) });
+    const balanceByAccount = new Map<string, number>();
     let totalAssets = 0, totalLiabilities = 0, totalFundBalanceRaw = 0;
     for (const a of acctRes.rows) {
       const s = sumsByAccount.get(a.id) || { debit: 0, credit: 0 };
       const net = a.normal_balance === 'DEBIT' ? s.debit - s.credit : s.credit - s.debit;
       const balance = Number(a.opening_balance) + net;
+      balanceByAccount.set(a.id, balance);
       if (a.account_type === 'ASSET') totalAssets += balance;
       else if (a.account_type === 'LIABILITY') totalLiabilities += balance;
       else if (a.account_type === 'FUND_BALANCE') totalFundBalanceRaw += balance;
@@ -139,18 +141,20 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
     // ── Kas & Bank (Likuiditas) ───────────────────────────────────────────────────
     const cashAcctsRes = await pool.query(
-      `SELECT id, code, name, location, current_balance FROM finance.cash_accounts WHERE organization_id = $1`,
+      `SELECT id, account_id, code, name, location FROM finance.cash_accounts
+       WHERE organization_id = $1 AND is_active = TRUE`,
       [FINANCE_ORG]
     );
     const bankAcctsRes = await pool.query(
-      `SELECT id, bank_name, account_number, account_name, currency, current_balance FROM finance.bank_accounts WHERE organization_id = $1`,
+      `SELECT id, account_id, bank_name, account_number, account_name, currency FROM finance.bank_accounts
+       WHERE organization_id = $1 AND is_active = TRUE`,
       [FINANCE_ORG]
     );
     const cashAccounts = (cashAcctsRes.rows || []).map((c: any) => ({
-      ...c, current_balance: Number(c.current_balance || 0)
+      ...c, current_balance: balanceByAccount.get(c.account_id) || 0
     }));
     const bankAccounts = (bankAcctsRes.rows || []).map((b: any) => ({
-      ...b, current_balance: Number(b.current_balance || 0)
+      ...b, current_balance: balanceByAccount.get(b.account_id) || 0
     }));
 
     const totalCash = cashAccounts.reduce((s: number, c: any) => s + c.current_balance, 0);
@@ -158,10 +162,11 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     const totalLiquidAssets = totalCash + totalBank;
 
     // ── Ringkasan Anggaran (Budget) ──────────────────────────────────────────────
-    // Hanya anggaran yang sudah AKTIF yang dihitung sebagai target realisasi --
-    // anggaran DRAFT/SUBMITTED/APPROVED (belum aktif) tidak boleh ikut mengisi
-    // "Ringkasan Anggaran" di dashboard, supaya konsisten dengan Laporan
-    // Realisasi Anggaran (financeReports.ts) yang juga hanya memakai budget aktif.
+    // Audit gap fix: sebelumnya cuma budget berstatus ACTIVE yang dihitung, padahal
+    // Laporan Realisasi Anggaran (financeReports.ts, GET /reports/budget-realization)
+    // memakai APPROVED+ACTIVE+REVISED untuk fiscal year yang sama -- dua angka
+    // realisasi berbeda untuk data yang seharusnya sama. Disamakan ke daftar status
+    // yang sama supaya "Ringkasan Anggaran" di dashboard konsisten dengan Laporan.
     const budgetRes = await pool.query(
       `SELECT 
          COALESCE(SUM(CASE WHEN a.account_type = 'REVENUE' THEN bl.budget_amount ELSE 0 END), 0) AS total_budget_revenue,
@@ -169,7 +174,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
        FROM finance.budget_lines bl
        JOIN finance.budgets b ON b.id = bl.budget_id
        JOIN finance.accounts a ON a.id = bl.account_id
-       WHERE b.organization_id = $1 AND b.fiscal_year_id = $2 AND b.status = 'ACTIVE'`,
+       WHERE b.organization_id = $1 AND b.fiscal_year_id = $2 AND b.status IN ('APPROVED','ACTIVE','REVISED')`,
       [FINANCE_ORG, fiscalYearId]
     );
     const budgetRow = budgetRes.rows[0] || { total_budget_revenue: 0, total_budget_expense: 0 };
@@ -180,8 +185,18 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     const revenueRealizationRate = totalBudgetRevenue > 0 ? (ytdRevenue / totalBudgetRevenue) * 100 : 0;
     const expenseAbsorptionRate = totalBudgetExpense > 0 ? (ytdExpense / totalBudgetExpense) * 100 : 0;
 
-    // Rata-rata beban operasional bulanan & runway likuiditas
-    const monthsElapsed = Math.max(1, new Date().getMonth() + 1 - 3); // tahun fiskal mulai April
+    // Rata-rata beban operasional bulanan & runway likuiditas.
+    // Audit gap fix: sebelumnya asumsi tahun fiskal SELALU mulai April (hardcode
+    // `getMonth() + 1 - 3`) -- salah untuk Tahun Fiskal manapun yang start_date-nya
+    // beda (Tahun Fiskal dibuat bebas oleh admin, lihat financeMasterData.ts, tidak
+    // dibatasi April). Dihitung dari start_date Tahun Fiskal yang sebenarnya s/d
+    // asOfDate yang sedang dilihat (bukan bulan kalender sekarang).
+    const fyStartDate = new Date(fiscalYear.start_date);
+    const asOfForElapsed = new Date(asOfDate);
+    const monthsElapsed = Math.max(1,
+      (asOfForElapsed.getFullYear() - fyStartDate.getFullYear()) * 12
+      + (asOfForElapsed.getMonth() - fyStartDate.getMonth()) + 1
+    );
     const avgMonthlyExpense = ytdExpense > 0 ? ytdExpense / monthsElapsed : (totalBudgetExpense / 12);
     const runwayMonths = avgMonthlyExpense > 0 ? (totalLiquidAssets / avgMonthlyExpense) : 12;
 
@@ -192,6 +207,22 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     );
     const periodStatusCounts: Record<string, number> = {};
     for (const r of periodStatusRes.rows) periodStatusCounts[r.status] = Number(r.cnt);
+
+    // ── Kepatuhan Jurnal Seimbang (integritas double-entry) ─────────────────────
+    // Audit gap fix: sebelumnya badge "Jurnal: Seimbang (Balanced)" di dashboard
+    // cuma teks statis yang selalu tampil sama apa pun kondisi datanya. Di sini
+    // benar-benar dihitung: setiap jurnal yang sudah diposting WAJIB total_debit
+    // == total_credit (double-entry); kalau ada satu saja jurnal yang tidak
+    // seimbang (semestinya tidak mungkin lewat alur normal, tapi ini jaring
+    // pengaman audit), badge akan melaporkannya alih-alih diam-diam tampil OK.
+    const unbalancedRes = await pool.query(
+      `SELECT COUNT(*) AS cnt FROM finance.journals
+       WHERE organization_id = $1 AND fiscal_year_id = $2 AND journal_date <= $3
+         AND total_debit IS DISTINCT FROM total_credit`,
+      [FINANCE_ORG, fiscalYearId, asOfDate]
+    );
+    const unbalancedJournalCount = Number(unbalancedRes.rows[0]?.cnt || 0);
+    const journalBalanced = unbalancedJournalCount === 0;
 
     res.json({
       success: true,
@@ -216,6 +247,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
           expenseAbsorptionRate: Number(expenseAbsorptionRate.toFixed(1)),
         },
         periodStatusCounts,
+        journalBalanced, unbalancedJournalCount,
       },
     });
   } catch (err) {

@@ -7,12 +7,11 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../../../lib/apiClient';
+import { useApp } from '../../context/AppContext';
 import { toast } from 'sonner';
 import {
-  LayoutDashboard,
   Loader2,
   Wallet,
-  Scale3D,
   TrendingUp,
   TrendingDown,
   Inbox,
@@ -20,25 +19,18 @@ import {
   Landmark,
   ArrowUpRight,
   ArrowDownRight,
-  CheckCircle2,
-  Clock,
   AlertTriangle,
-  RefreshCw,
   Printer,
   FileText,
-  ChevronRight,
   ShieldCheck,
   Sparkles,
   PieChart as PieChartIcon,
   BarChart3,
-  Calendar,
+  CalendarCheck,
   Layers,
-  DollarSign,
   CreditCard,
   Banknote,
   ArrowRight,
-  SlidersHorizontal,
-  ChevronDown,
   Plus,
 } from 'lucide-react';
 import {
@@ -89,6 +81,18 @@ const REV_COLORS = ['#1A77A3', '#caa04a', '#2f8f5b', '#d1553f', '#8b6bb1'];
 type ActiveTab = 'ringkasan' | 'tren' | 'kas-bank' | 'anggaran' | 'tata-kelola';
 
 export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) => void }) {
+  const { can } = useApp();
+  // Audit gap fix: tombol navigasi cepat sebelumnya selalu tampil kalau
+  // `onNavigate` ada, tanpa cek apakah role user benar-benar punya akses ke
+  // submenu tujuan -- sekarang digating per submenu tujuan.
+  const canViewMasterData = can('finance-master-data', 'view');
+  const canViewTransaction = can('finance-transaction', 'view');
+  const canViewApproval = can('finance-approval', 'view');
+  const canViewReconciliation = can('finance-reconciliation', 'view');
+  const canViewBudget = can('finance-budget', 'view');
+  const canViewLedger = can('finance-ledger', 'view');
+  const canViewPeriodClosing = can('finance-period-closing', 'view');
+  const canViewReports = can('finance-reports', 'view');
   const [fiscalYears, setFiscalYears] = useState<any[]>([]);
   const [fiscalYearId, setFiscalYearId] = useState('');
   const [data, setData] = useState<any | null>(null);
@@ -165,7 +169,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
           <p className="text-xs text-amber-700 mb-4">
             Silakan buat dan aktifkan Tahun Fiskal terlebih dahulu melalui menu Master Data Finance.
           </p>
-          {onNavigate && (
+          {onNavigate && canViewMasterData && (
             <button
               onClick={() => onNavigate('finance-master-data')}
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#144f6b] text-white text-xs font-medium rounded-lg hover:opacity-90"
@@ -184,7 +188,10 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
     : '0';
 
   const chartData = (data?.monthlyTrend || []).map((m: any) => ({
-    name: m.periodName.replace(' 2026', '').replace(' 2027', ''),
+    // Audit gap fix: sebelumnya hardcode .replace(' 2026','').replace(' 2027','')
+    // cuma cocok untuk Tahun Fiskal 2026-2027; sekarang lepas tahun apa pun (4 digit)
+    // di akhir nama periode supaya berfungsi untuk Tahun Fiskal manapun.
+    name: m.periodName.replace(/ \d{4}$/, ''),
     fullName: m.periodName,
     Pendapatan: m.revenue,
     Beban: m.expense,
@@ -224,7 +231,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
         isRefreshing={loadingDashboard}
         onPrint={handlePrint}
         primaryAction={
-          onNavigate
+          onNavigate && canViewTransaction
             ? {
                 label: '+ Input Transaksi',
                 icon: Plus,
@@ -244,13 +251,21 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
             color: 'sky',
           },
           {
+            // Audit gap fix: sebelumnya teks statis "Seimbang (Balanced)" apa pun
+            // kondisi datanya -- sekarang benar-benar dihitung backend (lihat
+            // journalBalanced/unbalancedJournalCount di financeDashboard.ts).
             label: 'Jurnal',
-            value: 'Seimbang (Balanced)',
-            color: 'teal',
+            value: data?.journalBalanced === false
+              ? `${data.unbalancedJournalCount} Tidak Seimbang`
+              : 'Seimbang (Balanced)',
+            color: data?.journalBalanced === false ? 'rose' : 'teal',
           },
           {
+            // Ini kebijakan sistem yang selalu ditegakkan di setiap transaksi
+            // (lihat tab "Alur Audit & Otorisasi"), bukan metrik yang dihitung per
+            // periode -- label diperjelas supaya tidak disalahartikan sebagai status live.
             label: 'Otorisasi',
-            value: 'Prinsip 4-Mata (SoD)',
+            value: 'Kebijakan 4-Mata',
             color: 'indigo',
           },
         ]}
@@ -281,7 +296,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                   </p>
                 </div>
               </div>
-              {onNavigate && (
+              {onNavigate && canViewApproval && (
                 <button
                   onClick={() => onNavigate('finance-approval')}
                   className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 text-white text-xs font-bold hover:bg-amber-700 transition-all shadow-xs"
@@ -301,10 +316,12 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                   <div className="w-8 h-8 rounded-lg bg-sky-50 flex items-center justify-center text-[#144f6b]">
                     <Wallet className="w-4 h-4" />
                   </div>
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Aset Bersih</span>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Aset</span>
                 </div>
-                <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-sky-50 text-[#144f6b]">
-                  Solven
+                <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${
+                  data.totalAssets >= data.totalLiabilities ? 'bg-sky-50 text-[#144f6b]' : 'bg-rose-50 text-rose-700'
+                }`}>
+                  {data.totalAssets >= data.totalLiabilities ? 'Solven' : 'Perlu Perhatian'}
                 </span>
               </div>
               <p className="text-2xl font-bold text-slate-900 tracking-tight">{formatRp(data.totalAssets)}</p>
@@ -368,7 +385,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                   <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Belanja / Beban YTD</span>
                 </div>
                 <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-700">
-                  Cadangan: {data.liquidity?.runwayMonths || 12} Bln
+                  Cadangan: {data.liquidity?.runwayMonths ?? 12} Bln
                 </span>
               </div>
               <p className="text-2xl font-bold text-slate-900 tracking-tight">{formatRp(data.ytdExpense)}</p>
@@ -394,14 +411,26 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
               <p className="text-sm font-bold text-slate-800">
                 <span className="text-emerald-600">{data.periodStatusCounts?.OPEN || 0} Terbuka</span> &bull; {data.periodStatusCounts?.CLOSED || 0} Ditutup
               </p>
+              {onNavigate && canViewPeriodClosing && (
+                <button
+                  onClick={() => onNavigate('finance-period-closing')}
+                  className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-[#144f6b] hover:underline"
+                >
+                  <CalendarCheck className="w-3 h-3" /> Buka Penutupan Periode
+                </button>
+              )}
             </div>
-            <div>
+            <button
+              type="button"
+              onClick={() => setActiveTab('tata-kelola')}
+              className="text-left hover:opacity-80 transition-opacity"
+            >
               <p className="text-slate-400 font-medium mb-1">Kepatuhan Tata Kelola</p>
               <div className="flex items-center gap-1.5 text-emerald-700 font-bold text-sm">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
                 <span>Prinsip 4-Mata Aktif</span>
               </div>
-            </div>
+            </button>
           </div>
 
           {/* ── Perspective Switcher Tabs ──────────────────────────────── */}
@@ -654,7 +683,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                       </span>
                     </div>
                     <p className="text-xs text-slate-500 mb-4">
-                      Posisi saldo kas fisik di brankas bendahara dan seluruh rekening bank aktif gereja.
+                      Saldo buku dari akun GL kas dan bank aktif per {data.asOfDate}.
                     </p>
 
                     <div className="space-y-2.5">
@@ -694,7 +723,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
 
                   <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
                     <span className="text-xs text-slate-500">
-                      Runway Operasional: <strong className="text-slate-800">{data.liquidity?.runwayMonths || 12} Bulan</strong>
+                      Runway Operasional: <strong className="text-slate-800">{data.liquidity?.runwayMonths ?? 12} Bulan</strong>
                     </span>
                     <button
                       onClick={() => setActiveTab('kas-bank')}
@@ -741,7 +770,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                       <Tooltip formatter={(v: any) => formatRp(v)} />
                       <Bar dataKey="Pendapatan" fill="#2f8f5b" radius={[4, 4, 0, 0]} maxBarSize={36} animationDuration={450} animationEasing="ease-out" />
                       <Bar dataKey="Beban" fill="#d1553f" radius={[4, 4, 0, 0]} maxBarSize={36} animationDuration={450} animationEasing="ease-out" />
-                      <Line type="monotone" dataKey="Surplus" stroke="#1A77A3" strokeWidth={3} dot={{ r: 5, fill: '#1A77A3' }} animationDuration={450} animationEasing="ease-out" />
+                      <Line type="monotone" dataKey="Surplus" stroke="#144f6b" strokeWidth={3} dot={{ r: 5, fill: '#144f6b' }} animationDuration={450} animationEasing="ease-out" />
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
@@ -842,7 +871,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                     </div>
                   </div>
 
-                  {onNavigate && (
+                  {onNavigate && canViewReconciliation && (
                     <button
                       onClick={() => onNavigate('finance-reconciliation')}
                       className="mt-4 w-full py-2 bg-slate-100 hover:bg-[#144f6b] hover:text-white text-slate-700 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5"
@@ -878,7 +907,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                           </span>
                         </div>
                         <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                          <span className="text-xs text-slate-400">Saldo Berjalan:</span>
+                          <span className="text-xs text-slate-400">Saldo Buku:</span>
                           <span className="text-sm font-bold text-slate-900">{formatRp(c.current_balance)}</span>
                         </div>
                       </div>
@@ -919,12 +948,12 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
               <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                   <div>
-                    <h3 className="text-base font-bold text-slate-900">Evaluasi Realisasi RKA 2026–2027</h3>
+                    <h3 className="text-base font-bold text-slate-900">Evaluasi Realisasi RKA {currentFiscalYear?.name || ''}</h3>
                     <p className="text-xs text-slate-500 mt-0.5">
                       Perbandingan target anggaran belanja dan target penerimaan terhadap realisasi aktual per {data.asOfDate}
                     </p>
                   </div>
-                  {onNavigate && (
+                  {onNavigate && canViewBudget && (
                     <button
                       onClick={() => onNavigate('finance-budget')}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#144f6b] text-white text-xs font-medium hover:opacity-90 transition-all"
@@ -975,10 +1004,10 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                 <div className="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-600 space-y-1">
                   <p className="font-semibold text-slate-800">Catatan Pengendalian Anggaran Sinodal:</p>
                   <p>
-                    &bull; Setiap pengeluaran kas atau bank mengacu pada pagu pos anggaran RKA per Bidang (Teologia, Pelkes, Germasa, PPSDI, PEG, Inforkom).
+                    &bull; Setiap transaksi dapat dihubungkan ke baris RKA yang sesuai agar realisasinya dapat ditelusuri.
                   </p>
                   <p>
-                    &bull; Sistem secara otomatis mencegah pembukuan jika pagu anggaran tidak mencukupi (atau memerlukan persetujuan khusus KMJ / PHMJ).
+                    &bull; Pagu RKA pada layar ini dipakai sebagai indikator realisasi; blokir otomatis atas anggaran belum diterapkan.
                   </p>
                 </div>
               </div>
@@ -1026,18 +1055,30 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
                 {/* Quick Action Navigation Buttons */}
                 {onNavigate && (
                   <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-end gap-3 flex-wrap">
-                    <button
-                      onClick={() => onNavigate('finance-ledger')}
-                      className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-all"
-                    >
-                      Buka Buku Besar (GL)
-                    </button>
-                    <button
-                      onClick={() => onNavigate('finance-approval')}
-                      className="px-4 py-2 rounded-xl bg-[#144f6b] text-white text-xs font-semibold hover:opacity-90 transition-all shadow-xs"
-                    >
-                      Buka Antrian Persetujuan
-                    </button>
+                    {canViewReports && (
+                      <button
+                        onClick={() => onNavigate('finance-reports')}
+                        className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-all inline-flex items-center gap-1.5"
+                      >
+                        <FileText className="w-3.5 h-3.5" /> Buka Laporan Keuangan
+                      </button>
+                    )}
+                    {canViewLedger && (
+                      <button
+                        onClick={() => onNavigate('finance-ledger')}
+                        className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-all"
+                      >
+                        Buka Buku Besar (GL)
+                      </button>
+                    )}
+                    {canViewApproval && (
+                      <button
+                        onClick={() => onNavigate('finance-approval')}
+                        className="px-4 py-2 rounded-xl bg-[#144f6b] text-white text-xs font-semibold hover:opacity-90 transition-all shadow-xs"
+                      >
+                        Buka Antrian Persetujuan
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
