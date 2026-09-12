@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { api } from '../../lib/apiClient';
 import { useDraggable } from '../../lib/useDraggable';
 import { MasterDataCategory, MasterDataItem } from '../types';
 import {
@@ -138,7 +139,7 @@ export function MasterData() {
   const [globalSearch, setGlobalSearch] = useState('');
   const [adding, setAdding] = useState(false);
   const [newLabel, setNewLabel] = useState('');
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; value: string; label: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; value: string; label: string; category: string } | null>(null);
 
   // Audit gap fix: sebelumnya hapus item Master Data TIDAK ADA pengecekan
   // pemakaian sama sekali -- padahal item ini dirujuk dari banyak modul lain
@@ -168,6 +169,39 @@ export function MasterData() {
     }
     return count;
   }, [deleteTarget, appCtx]);
+
+  // Audit gap fix: outgoingLetters & incomingLetters TIDAK PERNAH dimuat ke
+  // AppContext (masing-masing dikelola lewat useState lokal di
+  // OutgoingLetters.tsx/IncomingLetters.tsx, bukan lewat useApp()) --
+  // heuristik usageCount di atas otomatis buta terhadap field
+  // jenisSuratId/category yang merujuk item master data kategori
+  // 'jenis_surat_keluar'/'jenis_surat_masuk', sehingga staf melihat "tidak
+  // ada pemakaian" padahal ratusan surat memakainya. Ditutup dengan fetch
+  // langsung kedua collection ini via API (bukan lewat AppContext), khusus
+  // untuk dua kategori itu -- server juga sudah menegakkan guard yang sama
+  // (blockMasterDataDeletionInUse di server/routes/data.ts) sebagai lapis
+  // terakhir kalau peringatan ini diabaikan.
+  const [extraUsageCount, setExtraUsageCount] = useState(0);
+  useEffect(() => {
+    if (!deleteTarget || (deleteTarget.category !== 'jenis_surat_keluar' && deleteTarget.category !== 'jenis_surat_masuk')) {
+      setExtraUsageCount(0);
+      return;
+    }
+    let cancelled = false;
+    Promise.all([
+      api.get<any[]>('/api/data/outgoingLetters').catch(() => []),
+      api.get<any[]>('/api/data/incomingLetters').catch(() => []),
+    ]).then(([outLetters, inLetters]) => {
+      if (cancelled) return;
+      const count =
+        (outLetters || []).filter(l => l.jenisSuratId === deleteTarget.id).length +
+        (inLetters || []).filter(l => l.category === deleteTarget.id).length;
+      setExtraUsageCount(count);
+    }).catch(() => { if (!cancelled) setExtraUsageCount(0); });
+    return () => { cancelled = true; };
+  }, [deleteTarget]);
+
+  const totalUsageCount = usageCount + extraUsageCount;
 
   const activeMeta = CAT_META[activeCategory] ?? { label: activeCategory, description: '', color: '#144f6b' };
 
@@ -344,7 +378,7 @@ export function MasterData() {
                     item={item}
                     color={activeMeta.color}
                     onSave={handleSave}
-                    onDelete={id => setDeleteTarget({ id, value: item.value, label: item.label })}
+                    onDelete={id => setDeleteTarget({ id, value: item.value, label: item.label, category: item.category })}
                     onToggle={handleToggle}
                   />
                 ))}
@@ -395,14 +429,14 @@ export function MasterData() {
               <Trash2 className="w-6 h-6 text-red-500" />
             </div>
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>Hapus Item?</h3>
-            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: usageCount > 0 ? 10 : 20 }}>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: totalUsageCount > 0 ? 10 : 20 }}>
               "<strong>{deleteTarget.label}</strong>" akan dihapus permanen.
             </p>
-            {usageCount > 0 && (
+            {totalUsageCount > 0 && (
               <div className="flex items-start gap-2 text-left rounded-lg p-2.5 mb-4" style={{ background: '#fffbeb', border: '1px solid #fde68a' }}>
                 <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#b45309' }} />
                 <p style={{ fontSize: '11.5px', color: '#92400e', lineHeight: 1.4 }}>
-                  Terdeteksi kemungkinan dipakai di <strong>{usageCount}</strong> data lain (deteksi otomatis berdasarkan kecocokan nilai — bisa termasuk kecocokan kebetulan, bukan jaminan pasti). Pastikan item ini sudah tidak dipakai sebelum menghapus.
+                  Terdeteksi kemungkinan dipakai di <strong>{totalUsageCount}</strong> data lain (deteksi otomatis berdasarkan kecocokan nilai — bisa termasuk kecocokan kebetulan, bukan jaminan pasti). Pastikan item ini sudah tidak dipakai sebelum menghapus.
                 </p>
               </div>
             )}

@@ -589,6 +589,38 @@ function validateSnapshotData(data: Record<string, any>): string | null {
   return null;
 }
 
+// Audit gap fix (Announcement/Livestream/Notifikasi): announcements,
+// livestreamLinks, reminderSettings, dan notifications sebelumnya tidak
+// punya validator server sama sekali -- client memang sudah validasi field
+// wajib (AnnouncementManagement.tsx baris 45, LivestreamReminder.tsx baris
+// 106 & 136), tapi itu gampang dilewati lewat PUT/POST langsung. Field wajib
+// di sini SENGAJA disamakan persis dengan yang sudah diwajibkan client,
+// tidak menambah aturan baru.
+function validateAnnouncementData(data: Record<string, any>): string | null {
+  if (!data.title || typeof data.title !== 'string' || !data.title.trim()) return 'Judul pengumuman wajib diisi';
+  if (!data.content || typeof data.content !== 'string' || !data.content.trim()) return 'Isi pengumuman wajib diisi';
+  if (data.priority !== undefined && !['normal', 'important', 'urgent'].includes(data.priority)) return 'Prioritas pengumuman tidak valid';
+  return null;
+}
+
+function validateLivestreamLinkData(data: Record<string, any>): string | null {
+  if (!data.title || typeof data.title !== 'string' || !data.title.trim()) return 'Judul livestream wajib diisi';
+  if (!data.url || typeof data.url !== 'string' || !data.url.trim()) return 'URL livestream wajib diisi';
+  return null;
+}
+
+function validateReminderSettingData(data: Record<string, any>): string | null {
+  if (!data.name || typeof data.name !== 'string' || !data.name.trim()) return 'Nama reminder wajib diisi';
+  if (!data.serviceType || typeof data.serviceType !== 'string' || !data.serviceType.trim()) return 'Jenis ibadah untuk reminder wajib dipilih';
+  return null;
+}
+
+function validateNotificationData(data: Record<string, any>): string | null {
+  if (!data.title || typeof data.title !== 'string' || !data.title.trim()) return 'Judul notifikasi wajib diisi';
+  if (!data.message || typeof data.message !== 'string' || !data.message.trim()) return 'Isi notifikasi wajib diisi';
+  return null;
+}
+
 // Audit gap fix: dispatch validasi per collection sebelumnya cuma dipasang
 // di PUT handler -- POST handler (dipakai langsung oleh signingOfficials,
 // outgoingLetters, outgoingLetterAttachments, letterTemplates,
@@ -619,7 +651,6 @@ function runCollectionValidation(collection: string, data: Record<string, any>):
   if (collection === 'letterTemplates') return validateLetterTemplateData(data);
   if (collection === 'roomBookings') return validateRoomBookingData(data);
   if (collection === 'rooms') return validateRoomData(data);
-  if (collection === 'assets') return validateAssetData(data);
   if (collection === 'baptisms') return validateBaptismData(data);
   if (collection === 'sidis') return validateSidiData(data);
   if (collection === 'marriages') return validateMarriageData(data);
@@ -628,6 +659,13 @@ function runCollectionValidation(collection: string, data: Record<string, any>):
   if (collection === 'sectorTransfers') return validateSectorTransferData(data);
   if (collection === 'attestations') return validateAttestationData(data);
   if (collection === 'sensusSnapshots' || collection === 'consolidatedReportSnapshots') return validateSnapshotData(data);
+  // 'assets' dipertahankan sebagai alias tak berbahaya -- lihat catatan bug
+  // nama collection churchAssets vs assets di permissionCache.ts.
+  if (collection === 'churchAssets' || collection === 'assets') return validateAssetData(data);
+  if (collection === 'announcements') return validateAnnouncementData(data);
+  if (collection === 'livestreamLinks') return validateLivestreamLinkData(data);
+  if (collection === 'reminderSettings') return validateReminderSettingData(data);
+  if (collection === 'notifications') return validateNotificationData(data);
   return null;
 }
 
@@ -688,6 +726,105 @@ function filterPrivatePrayers(items: any[], user: { role?: string } | undefined)
   return items.filter((i: any) => !i.isPrivate);
 }
 
+// Audit gap fix (Announcement/Livestream/Notifikasi): 'notifications' TIDAK
+// terdaftar sama sekali di COLLECTION_PAGE (server/lib/permissionCache.ts),
+// jadi requirePermission() next() tanpa cek izin apa pun untuk collection
+// ini -- field targetUserId (dipakai NotificationCenter.tsx untuk notifikasi
+// privat disposisi Surat Masuk, lihat notifyAssignee() di
+// server/routes/incomingLetters.ts) cuma disaring di client. Siapa pun yang
+// login bisa GET seluruh notifikasi user lain, atau PUT/DELETE notifikasi
+// milik orang lain (tandai terbaca/hapus paksa), lewat panggilan API
+// langsung.
+//
+// 'notifications' SENGAJA TIDAK dipetakan ke satu 'page' RBAC tertentu
+// seperti collection lain -- notifikasi memang dipakai LINTAS semua role
+// (reminder ulang tahun/jadwal ibadah dibuat otomatis oleh SETIAP user yang
+// login, tidak terikat izin modul tertentu). Yang perlu ditegakkan bukan
+// RBAC per halaman, melainkan KEPEMILIKAN per notifikasi -- tiga fungsi di
+// bawah ini menegakkan itu langsung di collection 'notifications', mengikuti
+// pola yang sama dengan ADMIN_WRITE/blockLastAdminRemoval (enforcement lewat
+// guard khusus, bukan lewat COLLECTION_PAGE).
+function filterTargetedNotifications(items: any[], user: { userId?: string; role?: string } | undefined): any[] {
+  if (user?.role === 'Admin') return items;
+  return items.filter((i: any) => !i.targetUserId || i.targetUserId === user?.userId);
+}
+
+function blockCrossUserNotificationWrite(collection: string, data: Record<string, any>, user: { userId?: string; role?: string } | undefined): string | null {
+  if (collection !== 'notifications') return null;
+  if (user?.role === 'Admin') return null;
+  if (data?.targetUserId && data.targetUserId !== user?.userId) {
+    return 'Tidak dapat menulis notifikasi yang ditargetkan untuk user lain';
+  }
+  return null;
+}
+
+async function blockNotificationOwnershipViolation(collection: string, id: string, user: { userId?: string; role?: string } | undefined): Promise<string | null> {
+  if (collection !== 'notifications') return null;
+  if (user?.role === 'Admin') return null;
+  const existing = await getOne<any>('notifications', id).catch(() => null);
+  if (existing?.targetUserId && existing.targetUserId !== user?.userId) {
+    return 'Notifikasi ini milik user lain';
+  }
+  return null;
+}
+
+// Audit gap fix (Announcement/Livestream/Notifikasi): filter targetSectors
+// untuk role Ketua Sektor di AnnouncementManagement.tsx (baris ~152-158)
+// cuma dijalankan di client (Array.filter) -- GET /api/data/announcements
+// tetap mengirim SEMUA pengumuman apa adanya, termasuk yang ditarget ke
+// sektor lain. Perilaku yang tampil di UI TIDAK berubah oleh fix ini (Ketua
+// Sektor memang sudah cuma melihat pengumuman sektornya sendiri di layar) --
+// fix ini cuma menutup jalur bypass lewat panggilan API langsung, sama
+// seperti scopeBySectorForKetuaSektor() di atas untuk members/families.
+async function scopeAnnouncementsForKetuaSektor(items: any[], user: { userId?: string; role?: string } | undefined): Promise<any[]> {
+  if (user?.role !== 'Ketua Sektor') return items;
+  const account = user.userId ? await getOne<any>('users', user.userId).catch(() => null) : null;
+  const assignedSectorId = account?.assignedSectorId;
+  return items.filter((a: any) => !a.targetSectors || a.targetSectors.length === 0 || (!!assignedSectorId && a.targetSectors.includes(assignedSectorId)));
+}
+
+// Audit gap fix (MasterData): hapus item master data (jenis surat, kategori
+// aset, dst) sebelumnya CUMA dicegah oleh heuristik client (usageCount di
+// MasterData.tsx, yang scan array-array di AppContext) -- panggilan DELETE
+// /api/data/masterData/:id langsung tetap berhasil menghapus item yang
+// masih dirujuk banyak record, tanpa hambatan apa pun dari server.
+// Heuristik client itu sendiri juga TERBUKTI buta terhadap outgoingLetters &
+// incomingLetters (keduanya tidak pernah dimuat ke AppContext, dikelola
+// lewat useState lokal per komponen) -- staf melihat "tidak ada pemakaian"
+// padahal ratusan surat memakainya lewat field jenisSuratId/category.
+//
+// Guard ini memeriksa collection yang DIPASTIKAN merujuk MasterDataItem
+// lewat id (dari komentar tipe eksplisit "= id dari MasterDataItem" /
+// "ref MasterDataItem" di src/app/types/index.ts): letterTemplates.jenisSuratId,
+// letterNumberFormats.jenisSuratId, outgoingLetters.jenisSuratId,
+// incomingLetters.category. CATATAN CAKUPAN (bukan celah yang terlewat,
+// tapi keterbatasan yang disengaja): guard ini TIDAK memeriksa kategori
+// master data lain yang dirujuk sebagai SALINAN STRING NILAI, bukan id --
+// mis. ChurchAsset.category (lihat AssetManagement.tsx: kategoriAsetOpts
+// diambil dari .value, bukan .id) -- karena field itu memang tidak pernah
+// menyimpan id master data sama sekali. Menutup itu perlu perubahan skema
+// data (string value -> id) di modul Aset, bukan sekadar guard delete di sini.
+async function blockMasterDataDeletionInUse(id: string): Promise<string | null> {
+  const item = await getOne<any>('masterData', id).catch(() => null);
+  if (!item) return null;
+  const [letterTemplates, letterNumberFormats, outgoingLetters, incomingLetters] = await Promise.all([
+    getAll<any>('letterTemplates').catch(() => []),
+    getAll<any>('letterNumberFormats').catch(() => []),
+    getAll<any>('outgoingLetters').catch(() => []),
+    getAll<any>('incomingLetters').catch(() => []),
+  ]);
+  const uses =
+    (letterTemplates || []).filter((t: any) => t.jenisSuratId === id).length +
+    (letterNumberFormats || []).filter((f: any) => f.jenisSuratId === id).length +
+    (outgoingLetters || []).filter((l: any) => l.jenisSuratId === id).length +
+    (incomingLetters || []).filter((l: any) => l.category === id).length;
+  if (uses > 0) {
+    const label = item.label || item.value || id;
+    return `Item master data "${label}" masih dirujuk oleh ${uses} data Surat Menyurat (template surat/format nomor/surat keluar/surat masuk) -- ganti rujukan tersebut dulu sebelum menghapus item ini.`;
+  }
+  return null;
+}
+
 // Audit gap fix (Dashboard Utama & Laporan): tipe User sudah punya field
 // assignedSectorId dengan komentar eksplisit "Khusus role Ketua Sektor -- ID
 // sektor yang boleh ia kelola", tapi sebelumnya field ini CUMA dipakai untuk
@@ -739,7 +876,9 @@ router.get('/:collection', requireAuth, requirePermission(), async (req: AuthReq
       let dataOut: any[] = items as any[];
       if (collection === 'users') dataOut = stripPassword(dataOut);
       if (collection === 'prayerRequests') dataOut = filterPrivatePrayers(dataOut, req.user);
+      if (collection === 'notifications') dataOut = filterTargetedNotifications(dataOut, req.user);
       dataOut = await scopeBySectorForKetuaSektor(collection, dataOut, req.user);
+      if (collection === 'announcements') dataOut = await scopeAnnouncementsForKetuaSektor(dataOut, req.user);
       res.json({
         data: dataOut,
         meta: paginationMeta(total, page, pageSize),
@@ -750,7 +889,9 @@ router.get('/:collection', requireAuth, requirePermission(), async (req: AuthReq
     let dataOut: any[] = items as any[];
     if (collection === 'users') dataOut = stripPassword(dataOut);
     if (collection === 'prayerRequests') dataOut = filterPrivatePrayers(dataOut, req.user);
+    if (collection === 'notifications') dataOut = filterTargetedNotifications(dataOut, req.user);
     dataOut = await scopeBySectorForKetuaSektor(collection, dataOut, req.user);
+    if (collection === 'announcements') dataOut = await scopeAnnouncementsForKetuaSektor(dataOut, req.user);
     res.json(dataOut);
   } catch (err) {
     logger.error(`GET ${collection}`, { message: String(err) });
@@ -787,6 +928,13 @@ router.put('/:collection/:id', requireAuth, requirePermission(), async (req: Aut
   if (collection === 'users') {
     const lastAdminErr = await blockLastAdminRemoval(id, data);
     if (lastAdminErr) { res.status(403).json({ error: lastAdminErr }); return; }
+  }
+
+  {
+    const crossUserErr = blockCrossUserNotificationWrite(collection, data, req.user);
+    if (crossUserErr) { res.status(403).json({ error: crossUserErr }); return; }
+    const ownershipErr = await blockNotificationOwnershipViolation(collection, id, req.user);
+    if (ownershipErr) { res.status(403).json({ error: ownershipErr }); return; }
   }
 
   if (await blockNonEditableLetterWrite(collection, id)) {
@@ -890,6 +1038,11 @@ router.post('/:collection', requireAuth, requirePermission(), async (req: AuthRe
     if (auditErr) { res.status(403).json({ error: auditErr }); return; }
   }
 
+  {
+    const crossUserErr = blockCrossUserNotificationWrite(collection, data, req.user);
+    if (crossUserErr) { res.status(403).json({ error: crossUserErr }); return; }
+  }
+
   // Surat Keluar baru SELALU dibuat sebagai Draft polos — field yang berhubungan
   // dengan tahap lanjut (nomor surat, checked/signed/sent/archived by&at, PDF final)
   // hanya boleh terisi lewat endpoint transisi khusus, tidak lewat create generik ini,
@@ -978,6 +1131,16 @@ router.delete('/:collection/:id', requireAuth, requirePermission(), async (req: 
   if (collection === 'rooms') {
     const roomErr = await blockRoomDeletionWithBookings(id);
     if (roomErr) { res.status(403).json({ error: roomErr }); return; }
+  }
+
+  if (collection === 'masterData') {
+    const masterDataErr = await blockMasterDataDeletionInUse(id);
+    if (masterDataErr) { res.status(403).json({ error: masterDataErr }); return; }
+  }
+
+  {
+    const ownershipErr = await blockNotificationOwnershipViolation(collection, id, req.user);
+    if (ownershipErr) { res.status(403).json({ error: ownershipErr }); return; }
   }
 
   // Fetch previous state for audit logging before removal
