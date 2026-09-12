@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { toast } from 'sonner';
 import { Resource, ResourceType, ResourceCategory } from '../types';
@@ -26,6 +26,24 @@ import { Textarea } from './ui/textarea';
 // link eksternal (YouTube/Google Drive/SoundCloud/dst).
 const MAX_DOCUMENT_BYTES = 2 * 1024 * 1024; // 2MB, sama seperti AssetDocument
 const usesExternalLink = (t: ResourceType) => t === 'Video' || t === 'Audio';
+// Sebagian browser (terutama untuk .doc lama) mengisi File.type dengan string
+// kosong atau generik, padahal server memvalidasi mimeType secara ketat
+// terhadap whitelist (lihat validateResourceFileData di server/routes/data.ts).
+// Tanpa fallback ini, upload .doc/.ppt yang sah bisa ditolak server padahal
+// filenya valid -- fallback berdasar ekstensi supaya konsisten dengan yang
+// diterima server.
+const EXT_MIME_FALLBACK: Record<string, string> = {
+  pdf: 'application/pdf',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  ppt: 'application/vnd.ms-powerpoint',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+};
+const resolveMimeType = (file: File): string => {
+  if (file.type) return file.type;
+  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+  return EXT_MIME_FALLBACK[ext] || 'application/octet-stream';
+};
 const formatBytes = (bytes: number) => {
   if (!bytes) return '0 KB';
   const kb = bytes / 1024;
@@ -54,14 +72,31 @@ export function ResourceLibrary() {
   const RESOURCES_PAGE_SIZE = 9;
   const [visibleCount, setVisibleCount] = useState(RESOURCES_PAGE_SIZE);
 
-  // Dokumen (PDF/DOC) yang benar-benar tersimpan -- lihat catatan di atas file
+  // Dokumen (PDF/DOC) yang benar-benar tersimpan -- lihat catatan di atas file.
+  // Sengaja TIDAK di-fetch saat komponen mount: koleksi ini menyimpan seluruh
+  // isi file sebagai base64 (bisa sampai 2MB per file), jadi memuatnya di
+  // awal untuk semua materi sekaligus -- padahal kebanyakan orang cuma buka
+  // 1-2 materi per kunjungan -- boros bandwidth & memori browser secara
+  // percuma. Di-load sekali (lazy, cached) saat pertama kali benar-benar
+  // dibutuhkan: buka detail, edit, atau download/lihat file.
   const [resourceFiles, setResourceFiles] = useState<ResourceFile[]>([]);
+  const resourceFilesLoadedRef = useRef(false);
+  const resourceFilesLoadingRef = useRef<Promise<void> | null>(null);
   const [uploadingFile, setUploadingFile] = useState(false);
-  useEffect(() => {
-    api.get<ResourceFile[]>('/api/data/resourceFiles').then(all => {
-      setResourceFiles(Array.isArray(all) ? all : []);
-    }).catch(() => {});
-  }, []);
+  const ensureResourceFilesLoaded = async () => {
+    if (resourceFilesLoadedRef.current) return;
+    if (!resourceFilesLoadingRef.current) {
+      resourceFilesLoadingRef.current = api.get<ResourceFile[]>('/api/data/resourceFiles')
+        .then(all => {
+          setResourceFiles(Array.isArray(all) ? all : []);
+          resourceFilesLoadedRef.current = true;
+        })
+        .catch(() => {
+          resourceFilesLoadingRef.current = null; // izinkan retry di percobaan berikutnya
+        });
+    }
+    await resourceFilesLoadingRef.current;
+  };
   
   // Form State
   const [formData, setFormData] = useState({
@@ -121,13 +156,22 @@ export function ResourceLibrary() {
         id,
         fileName: file.name,
         fileSize: file.size,
-        mimeType: file.type || 'application/octet-stream',
+        mimeType: resolveMimeType(file),
         fileData: base64,
         uploadedAt: new Date().toISOString(),
         uploadedBy: currentUser?.name || 'Administrator',
       };
       await api.put(`/api/data/resourceFiles/${id}`, doc);
       setResourceFiles(prev => [doc, ...prev]);
+      // Bersihkan file lama kalau ini upload PENGGANTI (edit materi yang sudah
+      // punya file sebelumnya) -- tanpa ini, setiap kali user ganti file saat
+      // edit, file lama jadi sampah permanen di database (tidak pernah
+      // direferensikan lagi tapi tidak pernah dihapus).
+      const previousFileId = formData.fileId;
+      if (previousFileId && previousFileId !== id) {
+        api.delete(`/api/data/resourceFiles/${previousFileId}`).catch(() => {});
+        setResourceFiles(prev => prev.filter(f => f.id !== previousFileId));
+      }
       setFormData(prev => ({
         ...prev,
         fileId: id,
@@ -223,6 +267,7 @@ export function ResourceLibrary() {
   };
 
   const handleEdit = (resource: Resource) => {
+    if (resource.fileId) ensureResourceFilesLoaded();
     setIsEditMode(true);
     setSelectedResource(resource);
     setIsDetailDialogOpen(false);
@@ -258,6 +303,15 @@ export function ResourceLibrary() {
       return;
     }
     if (selectedResource) {
+      // Kalau tipe diubah dari Dokumen/Khotbah/dst jadi Video/Audio, fileId
+      // lama tidak lagi dipakai (lihat usesExternalLink di payload update di
+      // bawah) -- bersihkan juga record fisiknya, jangan cuma diputus
+      // referensinya (sama seperti alasan cleanup di handleFileSelect).
+      if (usesExternalLink(formData.type) && formData.fileId) {
+        const orphanId = formData.fileId;
+        api.delete(`/api/data/resourceFiles/${orphanId}`).catch(() => {});
+        setResourceFiles(prev => prev.filter(f => f.id !== orphanId));
+      }
       updateResource(selectedResource.id, {
         title: formData.title,
         type: formData.type,
@@ -308,6 +362,7 @@ export function ResourceLibrary() {
   };
 
   const handleViewDetail = (resource: Resource) => {
+    if (resource.fileId) ensureResourceFilesLoaded();
     setSelectedResource(resource);
     setIsDetailDialogOpen(true);
     if (!getViewedIds().has(resource.id)) {
@@ -335,13 +390,18 @@ export function ResourceLibrary() {
   // eksternal (externalUrl, Video/Audio). Bug fix: counter downloads dulu
   // selalu bertambah walau tidak ada file/link sama sekali -- sekarang hanya
   // bertambah kalau benar-benar ada sesuatu yang dibuka.
-  const openResourceFile = (resource: Resource) => {
+  const openResourceFile = async (resource: Resource) => {
     if (resource.externalUrl) {
       window.open(resource.externalUrl, '_blank');
       return true;
     }
     if (resource.fileId) {
-      const doc = resourceFiles.find(f => f.id === resource.fileId);
+      await ensureResourceFilesLoaded();
+      // Pakai state resourceFiles terbaru langsung dari sini bisa basi (closure) --
+      // ambil ulang lewat functional form supaya tidak salah "tidak ditemukan"
+      // padahal baru saja selesai di-fetch oleh ensureResourceFilesLoaded().
+      let doc: ResourceFile | undefined;
+      setResourceFiles(prev => { doc = prev.find(f => f.id === resource.fileId); return prev; });
       if (!doc) {
         toast.error('File tidak ditemukan (mungkin sudah dihapus)');
         return false;
@@ -364,8 +424,8 @@ export function ResourceLibrary() {
     return false;
   };
 
-  const handleDownload = (resource: Resource) => {
-    const opened = openResourceFile(resource);
+  const handleDownload = async (resource: Resource) => {
+    const opened = await openResourceFile(resource);
     if (opened) {
       updateResource(resource.id, { downloads: (resource.downloads || 0) + 1 });
     }
