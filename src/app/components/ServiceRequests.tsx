@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { toast } from 'sonner';
+import { api } from '../../lib/apiClient';
 import { ServiceRequest, ServiceRequestType, ServiceStatus } from '../types';
 import { 
   Heart, HandHeart, Calendar, MapPin, Phone, CheckCircle, 
@@ -132,8 +133,29 @@ export function ServiceRequestsComponent({ onNavigate }: { onNavigate?: (page: s
     setIsDetailDialogOpen(true);
   };
 
-  const handleDelete = (request: ServiceRequest) => {
-    if (!window.confirm(`Hapus permohonan:\n\n${request.type} - ${request.requestedBy}\n\nData tidak dapat dikembalikan.`)) return;
+  // Audit gap fix (item #8, Pelayanan Kasih & Doa): sebelumnya hapus permohonan
+  // tidak pernah cek apakah sudah ada Distribusi Bantuan atau Surat Keluar yang
+  // ditindaklanjuti dari permohonan ini -- begitu dihapus, referensi
+  // (serviceRequestId / relatedId) di data lain jadi yatim dan tidak bisa
+  // dilacak balik, padahal jejak lacak (audit trail) adalah tujuan utama
+  // modul ini. Ini cuma peringatan (bukan blokir) karena mungkin memang ada
+  // alasan sah untuk tetap menghapus.
+  const handleDelete = async (request: ServiceRequest) => {
+    const linkedAid = aidDistributions.some(a => a.serviceRequestId === request.id);
+    let linkedLetterCount = 0;
+    try {
+      const letters = await api.get<any[]>('/api/data/outgoingLetters');
+      linkedLetterCount = (letters || []).filter(l => l.relatedModule === 'ServiceRequest' && l.relatedId === request.id).length;
+    } catch {
+      // non-blocking: kalau gagal cek, lanjutkan tanpa info surat terkait
+    }
+    const warnLines: string[] = [];
+    if (linkedAid) warnLines.push('- Sudah ada Distribusi Bantuan yang ditindaklanjuti dari permohonan ini');
+    if (linkedLetterCount > 0) warnLines.push(`- ${linkedLetterCount} Surat Keluar sudah dibuat terkait permohonan ini`);
+    const warning = warnLines.length
+      ? `\n\nPERINGATAN: permohonan ini masih tertaut ke data lain:\n${warnLines.join('\n')}\nData tertaut TIDAK ikut terhapus dan referensinya akan jadi yatim (tidak bisa dilacak balik ke permohonan ini).`
+      : '';
+    if (!window.confirm(`Hapus permohonan:\n\n${request.type} - ${request.requestedBy}${warning}\n\nData tidak dapat dikembalikan.`)) return;
     deleteServiceRequest(request.id);
     setIsDetailDialogOpen(false);
   };

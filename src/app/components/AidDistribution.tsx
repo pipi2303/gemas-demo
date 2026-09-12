@@ -207,8 +207,22 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
     setIsDetailDialogOpen(true);
   };
 
+  // Audit gap fix (item #8, Pelayanan Kasih & Doa): sebelumnya hapus
+  // pengajuan tidak pernah cek apakah sudah ada Surat Keluar (Tanda Terima
+  // Bantuan) yang ditindaklanjuti dari pengajuan ini -- begitu dihapus,
+  // relatedId di surat itu jadi yatim. Ini cuma peringatan (bukan blokir).
   const handleDelete = async (aid: AidDistribution) => {
-    if (!window.confirm(`Hapus pengajuan bantuan:\n\n${aid.type} - ${aid.recipientName}\n\nData tidak dapat dikembalikan.`)) return;
+    let linkedLetterCount = 0;
+    try {
+      const letters = await api.get<any[]>('/api/data/outgoingLetters');
+      linkedLetterCount = (letters || []).filter(l => l.relatedModule === 'AidDistribution' && l.relatedId === aid.id).length;
+    } catch {
+      // non-blocking: kalau gagal cek, lanjutkan tanpa info surat terkait
+    }
+    const warning = linkedLetterCount > 0
+      ? `\n\nPERINGATAN: ${linkedLetterCount} Surat Keluar sudah dibuat terkait pengajuan ini. Data tertaut TIDAK ikut terhapus dan referensinya akan jadi yatim (tidak bisa dilacak balik ke pengajuan ini).`
+      : '';
+    if (!window.confirm(`Hapus pengajuan bantuan:\n\n${aid.type} - ${aid.recipientName}${warning}\n\nData tidak dapat dikembalikan.`)) return;
     deleteAidDistribution(aid.id);
     // Audit gap fix: sebelumnya dokumen pendukung (aidDistributionDocuments,
     // mis. bukti transfer) TIDAK PERNAH dibersihkan saat pengajuan induknya

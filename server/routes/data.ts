@@ -375,6 +375,21 @@ function stripPassword(items: any[]): any[] {
   return items.map(({ password: _pw, ...u }) => u);
 }
 
+// Audit gap (Pelayanan Kasih & Doa, item #8): toggle "Pokok Doa Pribadi" di
+// PrayerRequests.tsx sebelumnya HANYA menyaring tampilan di browser
+// (Array.filter di komponen React) -- payload GET /api/data/prayerRequests
+// tetap mengirim SEMUA baris apa adanya ke siapa pun yang authenticated,
+// termasuk role Operator/Ketua Sektor atau Custom Role yang cuma dikasih
+// izin 'view' di halaman prayers. Siapa pun bisa lihat isi pokok doa pribadi
+// lewat network tab / panggilan API langsung, tanpa perlu bypass apa pun.
+// Keputusan produk yang sudah dikonfirmasi user sebelumnya: pokok doa
+// pribadi hanya boleh dilihat Admin & Majelis -- fungsi ini menegakkan
+// keputusan itu di response server, bukan cuma di UI.
+function filterPrivatePrayers(items: any[], user: { role?: string } | undefined): any[] {
+  if (user?.role === 'Admin' || user?.role === 'Majelis') return items;
+  return items.filter((i: any) => !i.isPrivate);
+}
+
 // GET /api/data/:collection
 router.get('/:collection', requireAuth, requirePermission(), async (req: AuthRequest, res: Response) => {
   const collection = req.params.collection as string;
@@ -395,14 +410,20 @@ router.get('/:collection', requireAuth, requirePermission(), async (req: AuthReq
       // butuh entri terbaru dulu tanpa harus mengunduh seluruh koleksi.
       const reverse = req.query.sort === 'desc';
       const { items, total } = await getAllPaged(collection, page, pageSize, reverse);
+      let dataOut: any[] = items as any[];
+      if (collection === 'users') dataOut = stripPassword(dataOut);
+      if (collection === 'prayerRequests') dataOut = filterPrivatePrayers(dataOut, req.user);
       res.json({
-        data: collection === 'users' ? stripPassword(items as any[]) : items,
+        data: dataOut,
         meta: paginationMeta(total, page, pageSize),
       });
       return;
     }
     const items = await getAll(collection);
-    res.json(collection === 'users' ? stripPassword(items as any[]) : items);
+    let dataOut: any[] = items as any[];
+    if (collection === 'users') dataOut = stripPassword(dataOut);
+    if (collection === 'prayerRequests') dataOut = filterPrivatePrayers(dataOut, req.user);
+    res.json(dataOut);
   } catch (err) {
     logger.error(`GET ${collection}`, { message: String(err) });
     res.status(500).json({ error: 'Gagal mengambil data' });
