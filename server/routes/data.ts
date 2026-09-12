@@ -42,6 +42,8 @@ const AUDITED_COLLECTIONS: Record<string, { domain: 'Member' | 'Financial' | 'As
   roomBookings:     { domain: 'Asset',     entityType: 'RoomBooking',     nameField: 'roomName' },
   buildingProjects: { domain: 'Asset',     entityType: 'BuildingProject', nameField: 'name' },
   users:            { domain: 'System',    entityType: 'User',            nameField: 'name' },
+  resources:        { domain: 'System',    entityType: 'Resource',        nameField: 'title' },
+  resourceFiles:    { domain: 'System',    entityType: 'ResourceFile',    nameField: 'fileName' },
   // Domain 'Correspondence' dipakai satu grup untuk SELURUH modul Surat Menyurat
   // (Fase 1 & 2) supaya semuanya konsisten difilter satu kategori di Log Aktivitas —
   // sebelumnya Fase 1 sempat pakai 'System', diselaraskan di sini saat Fase 2 dibangun.

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { toast } from 'sonner';
 import { Resource, ResourceType, ResourceCategory } from '../types';
 import { getOfficerNamesByKeyword } from '../lib/worshipOfficers';
+import { api } from '../../lib/apiClient';
 import { 
   Video, Download, Eye, FileText, Upload, X, Play, Music,
   File, Image, Plus, Pencil, Trash2, Calendar, User, ExternalLink,
@@ -14,14 +15,50 @@ import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 
+// Audit gap fix: sebelumnya "upload file" di modul ini cuma simulasi
+// (URL.createObjectURL, mati begitu tab ditutup/reload) -- lihat catatan di
+// handleRealFileSelect di bawah. Untuk type Khotbah/Materi PJJ/Artikel/Dokumen,
+// file PDF/DOC sekarang benar-benar disimpan (base64, pola sama seperti
+// AssetDocument di AssetManagement.tsx) di collection terpisah resourceFiles.
+// Untuk type Video/Audio, file TIDAK diupload ke database sama sekali --
+// database production cuma 1 CPU/512MB, tidak cocok untuk menyimpan file
+// video/audio yang bisa puluhan MB. Untuk kedua type itu, user cukup isi
+// link eksternal (YouTube/Google Drive/SoundCloud/dst).
+const MAX_DOCUMENT_BYTES = 2 * 1024 * 1024; // 2MB, sama seperti AssetDocument
+const usesExternalLink = (t: ResourceType) => t === 'Video' || t === 'Audio';
+const formatBytes = (bytes: number) => {
+  if (!bytes) return '0 KB';
+  const kb = bytes / 1024;
+  return kb < 1024 ? `${kb.toFixed(0)} KB` : `${(kb / 1024).toFixed(2)} MB`;
+};
+
+interface ResourceFile {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  fileData: string; // base64
+  uploadedAt: string;
+  uploadedBy: string;
+}
+
 export function ResourceLibrary() {
-  const { resources, addResource, updateResource, deleteResource, worshipSchedules } = useApp();
+  const { resources, addResource, updateResource, deleteResource, worshipSchedules, can, currentUser } = useApp();
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
   const [filterType, setFilterType] = useState('All');
   const [filterCategory, setFilterCategory] = useState('All');
+
+  // Dokumen (PDF/DOC) yang benar-benar tersimpan -- lihat catatan di atas file
+  const [resourceFiles, setResourceFiles] = useState<ResourceFile[]>([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  useEffect(() => {
+    api.get<ResourceFile[]>('/api/data/resourceFiles').then(all => {
+      setResourceFiles(Array.isArray(all) ? all : []);
+    }).catch(() => {});
+  }, []);
   
   // Form State
   const [formData, setFormData] = useState({
@@ -32,6 +69,8 @@ export function ResourceLibrary() {
     author: '',
     uploadedBy: '',
     fileUrl: '',
+    fileId: '',
+    externalUrl: '',
     thumbnailUrl: '',
     fileSize: '',
     duration: '',
@@ -42,8 +81,10 @@ export function ResourceLibrary() {
     tagsInput: ''
   });
 
-  // File state (for simulation)
+  // File state -- untuk type Dokumen/Materi PJJ/Artikel/Khotbah (upload asli, base64)
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  // Thumbnail: BELUM diubah -- masih simulasi blob URL sementara (lihat catatan
+  // di bawah file), di luar cakupan perbaikan Fase 1 modul ini.
   const [selectedThumbnail, setSelectedThumbnail] = useState<File | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -51,17 +92,50 @@ export function ResourceLibrary() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Audit gap fix: dulu hanya simulasi (URL.createObjectURL, hilang begitu tab
+  // ditutup/reload). Sekarang file benar-benar diupload sebagai base64 ke
+  // collection resourceFiles (pola sama seperti AssetDocument), hanya untuk
+  // type yang bukan Video/Audio (lihat usesExternalLink di atas file).
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      // Simulate file size
-      const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
-      setFormData(prev => ({ 
-        ...prev, 
-        fileSize: `${sizeInMB} MB`,
-        fileUrl: URL.createObjectURL(file) // Temporary URL for preview
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > MAX_DOCUMENT_BYTES) {
+      toast.error(`Ukuran file melebihi batas 2MB (file ini ${formatBytes(file.size)})`);
+      return;
+    }
+    setSelectedFile(file);
+    setUploadingFile(true);
+    try {
+      const base64: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+        reader.onerror = () => reject(new Error('Gagal membaca file'));
+        reader.readAsDataURL(file);
+      });
+      const id = 'resourcefile' + Date.now();
+      const doc: ResourceFile = {
+        id,
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type || 'application/octet-stream',
+        fileData: base64,
+        uploadedAt: new Date().toISOString(),
+        uploadedBy: currentUser?.name || 'Administrator',
+      };
+      await api.put(`/api/data/resourceFiles/${id}`, doc);
+      setResourceFiles(prev => [doc, ...prev]);
+      setFormData(prev => ({
+        ...prev,
+        fileId: id,
+        fileSize: formatBytes(file.size),
       }));
+      toast.success(`File "${file.name}" berhasil diunggah`);
+    } catch (err) {
+      toast.error('Gagal mengunggah file. Silakan coba lagi');
+      setSelectedFile(null);
+    } finally {
+      setUploadingFile(false);
     }
   };
 
@@ -85,6 +159,8 @@ export function ResourceLibrary() {
       author: '',
       uploadedBy: '',
       fileUrl: '',
+      fileId: '',
+      externalUrl: '',
       thumbnailUrl: '',
       fileSize: '',
       duration: '',
@@ -126,7 +202,8 @@ export function ResourceLibrary() {
       description: formData.description,
       author: formData.author,
       uploadedBy: formData.uploadedBy,
-      fileUrl: formData.fileUrl,
+      fileId: usesExternalLink(formData.type) ? undefined : (formData.fileId || undefined),
+      externalUrl: usesExternalLink(formData.type) ? (formData.externalUrl || undefined) : undefined,
       thumbnailUrl: formData.thumbnailUrl,
       fileSize: formData.fileSize,
       duration: formData.duration,
@@ -154,10 +231,15 @@ export function ResourceLibrary() {
       author: resource.author || '',
       uploadedBy: resource.uploadedBy || '',
       fileUrl: resource.fileUrl || '',
+      fileId: resource.fileId || '',
+      externalUrl: resource.externalUrl || '',
       thumbnailUrl: resource.thumbnailUrl || '',
       fileSize: resource.fileSize || '',
       duration: resource.duration || '',
-      uploadDate: resource.uploadDate || new Date().toISOString().split('T')[0],
+      // Bug fix: field ini sebelumnya baca resource.uploadDate yang TIDAK ADA
+      // di tipe Resource (hanya publishedDate) -- akibatnya tanggal upload
+      // selalu ter-reset ke hari ini setiap kali materi diedit.
+      uploadDate: resource.publishedDate || new Date().toISOString().split('T')[0],
       bibleVerse: resource.bibleVerse || '',
       fullTranscript: resource.fullTranscript || '',
       worshipScheduleId: resource.worshipScheduleId || '',
@@ -180,7 +262,8 @@ export function ResourceLibrary() {
         description: formData.description,
         author: formData.author,
         uploadedBy: formData.uploadedBy,
-        fileUrl: formData.fileUrl,
+        fileId: usesExternalLink(formData.type) ? undefined : (formData.fileId || undefined),
+        externalUrl: usesExternalLink(formData.type) ? (formData.externalUrl || undefined) : undefined,
         thumbnailUrl: formData.thumbnailUrl,
         fileSize: formData.fileSize,
         duration: formData.duration,
@@ -203,17 +286,59 @@ export function ResourceLibrary() {
     updateResource(resource.id, { views: (resource.views || 0) + 1 });
   };
 
-  const handleDelete = (resource: Resource) => {
+  const handleDelete = async (resource: Resource) => {
     if (!window.confirm(`Hapus materi:\n\n${resource.title}\n\nData tidak dapat dikembalikan.`)) return;
     deleteResource(resource.id);
+    // Bersihkan juga file fisik (base64) yang tersimpan di resourceFiles, kalau ada
+    if (resource.fileId) {
+      try {
+        await api.delete(`/api/data/resourceFiles/${resource.fileId}`);
+        setResourceFiles(prev => prev.filter(f => f.id !== resource.fileId));
+      } catch {
+        // non-blocking: materi tetap terhapus walau cleanup file gagal
+      }
+    }
     setIsDetailDialogOpen(false);
   };
 
-  const handleDownload = (resource: Resource) => {
-    if (resource.fileUrl) {
-      window.open(resource.fileUrl, '_blank');
+  // Unified opener: dokumen tersimpan (fileId, decode base64) atau link
+  // eksternal (externalUrl, Video/Audio). Bug fix: counter downloads dulu
+  // selalu bertambah walau tidak ada file/link sama sekali -- sekarang hanya
+  // bertambah kalau benar-benar ada sesuatu yang dibuka.
+  const openResourceFile = (resource: Resource) => {
+    if (resource.externalUrl) {
+      window.open(resource.externalUrl, '_blank');
+      return true;
     }
-    updateResource(resource.id, { downloads: (resource.downloads || 0) + 1 });
+    if (resource.fileId) {
+      const doc = resourceFiles.find(f => f.id === resource.fileId);
+      if (!doc) {
+        toast.error('File tidak ditemukan (mungkin sudah dihapus)');
+        return false;
+      }
+      try {
+        const byteChars = atob(doc.fileData);
+        const byteNumbers = new Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+        const blob = new Blob([new Uint8Array(byteNumbers)], { type: doc.mimeType });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        return true;
+      } catch {
+        toast.error('Gagal membuka file');
+        return false;
+      }
+    }
+    toast.error('Belum ada file atau link untuk materi ini');
+    return false;
+  };
+
+  const handleDownload = (resource: Resource) => {
+    const opened = openResourceFile(resource);
+    if (opened) {
+      updateResource(resource.id, { downloads: (resource.downloads || 0) + 1 });
+    }
   };
 
   const filteredResources = resources.filter(r => {
@@ -249,18 +374,20 @@ export function ResourceLibrary() {
           <h1 className="text-2xl font-semibold text-gray-900 mb-2">Materi Pembinaan</h1>
           <p className="text-gray-600">Repository khotbah, materi PJJ, dan artikel edukasi</p>
         </div>
-        <button 
-          onClick={() => {
-            resetForm();
-            setIsEditMode(false);
-            setSelectedResource(null);
-            setIsUploadDialogOpen(true);
-          }}
-          className="px-4 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors flex items-center gap-2"
-        >
-          <Upload className="w-5 h-5" />
-          Upload Materi
-        </button>
+        {can('resource-library', 'create') && (
+          <button 
+            onClick={() => {
+              resetForm();
+              setIsEditMode(false);
+              setSelectedResource(null);
+              setIsUploadDialogOpen(true);
+            }}
+            className="px-4 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors flex items-center gap-2"
+          >
+            <Upload className="w-5 h-5" />
+            Upload Materi
+          </button>
+        )}
       </div>
 
       {/* Statistics Cards */}
@@ -537,34 +664,57 @@ export function ResourceLibrary() {
                     <h3 className="font-semibold text-gray-900">File Upload</h3>
                   </div>
                   <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="file">File Materi * {!isEditMode && '(PDF, DOC, MP3, MP4, max 50MB)'}</Label>
-                      <div className="mt-2">
-                        <input
-                          id="file"
-                          name="file"
-                          type="file"
-                          onChange={handleFileSelect}
-                          accept=".pdf,.doc,.docx,.mp3,.mp4,.ppt,.pptx"
-                          className="block w-full text-sm text-gray-500
-                            file:mr-4 file:py-2 file:px-4
-                            file:rounded-lg file:border-0
-                            file:text-sm file:font-semibold
-                            file:bg-green-50 file:text-green-700
-                            hover:file:bg-green-100 cursor-pointer"
-                        />
-                      </div>
-                      {selectedFile && (
-                        <p className="text-xs text-green-600 mt-2">
-                          ✓ File terpilih: {selectedFile.name} ({formData.fileSize})
-                        </p>
-                      )}
-                      {isEditMode && formData.fileUrl && !selectedFile && (
+                    {usesExternalLink(formData.type) ? (
+                      <div>
+                        <Label htmlFor="externalUrl">Link {formData.type} * (YouTube, Google Drive, SoundCloud, dll.)</Label>
+                        <div className="mt-2">
+                          <Input
+                            id="externalUrl"
+                            name="externalUrl"
+                            type="url"
+                            value={formData.externalUrl}
+                            onChange={handleInputChange}
+                            placeholder="https://..."
+                          />
+                        </div>
                         <p className="text-xs text-gray-500 mt-2">
-                          File saat ini: {formData.fileUrl.split('/').pop()}
+                          File {formData.type.toLowerCase()} tidak diupload ke server -- cukup isi link eksternal.
                         </p>
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <Label htmlFor="file">File Materi {!isEditMode && '*'} (PDF, DOC, PPT, max 2MB)</Label>
+                        <div className="mt-2">
+                          <input
+                            id="file"
+                            name="file"
+                            type="file"
+                            onChange={handleFileSelect}
+                            accept=".pdf,.doc,.docx,.ppt,.pptx"
+                            disabled={uploadingFile}
+                            className="block w-full text-sm text-gray-500
+                              file:mr-4 file:py-2 file:px-4
+                              file:rounded-lg file:border-0
+                              file:text-sm file:font-semibold
+                              file:bg-green-50 file:text-green-700
+                              hover:file:bg-green-100 cursor-pointer"
+                          />
+                        </div>
+                        {uploadingFile && (
+                          <p className="text-xs text-gray-500 mt-2">Mengunggah file...</p>
+                        )}
+                        {selectedFile && !uploadingFile && (
+                          <p className="text-xs text-green-600 mt-2">
+                            ✓ File terpilih: {selectedFile.name} ({formData.fileSize})
+                          </p>
+                        )}
+                        {isEditMode && formData.fileId && !selectedFile && (
+                          <p className="text-xs text-gray-500 mt-2">
+                            File saat ini: {resourceFiles.find(f => f.id === formData.fileId)?.fileName || formData.fileId}
+                          </p>
+                        )}
+                      </div>
+                    )}
                     <div>
                       <Label htmlFor="thumbnail">Thumbnail/Cover (Opsional)</Label>
                       <div className="mt-2">
@@ -891,14 +1041,18 @@ export function ResourceLibrary() {
                 <X className="w-3.5 h-3.5 mr-1.5" />
                 Tutup
               </Button>
-              <Button type="button" onClick={() => handleEdit(selectedResource!)} className="flex-1">
-                <Pencil className="w-3.5 h-3.5 mr-1.5" />
-                Edit
-              </Button>
-              <Button type="button" onClick={() => handleDelete(selectedResource!)} variant="destructive" className="flex-1">
-                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                Hapus
-              </Button>
+              {can('resource-library', 'edit') && (
+                <Button type="button" onClick={() => handleEdit(selectedResource!)} className="flex-1">
+                  <Pencil className="w-3.5 h-3.5 mr-1.5" />
+                  Edit
+                </Button>
+              )}
+              {can('resource-library', 'delete') && (
+                <Button type="button" onClick={() => handleDelete(selectedResource!)} variant="destructive" className="flex-1">
+                  <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                  Hapus
+                </Button>
+              )}
             </div>
           </div>
         </DialogContent>

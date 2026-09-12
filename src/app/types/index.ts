@@ -532,7 +532,20 @@ export interface Resource {
   description?: string;
   author?: string;
   uploadedBy?: string;
+  /** LEGACY: dulu diisi blob: URL sementara dari simulasi upload di client --
+   *  tidak lagi dipakai untuk materi baru (lihat fileId/externalUrl). Field
+   *  ini dibiarkan ada supaya record lama yang mungkin masih menyimpannya
+   *  tidak error, tapi jangan ditulisi lagi dari kode baru. */
   fileUrl?: string;
+  /** Referensi ke koleksi resourceFiles (PDF/DOC yang benar-benar tersimpan
+   *  sebagai base64, mirip AssetDocument) -- dipakai untuk type Khotbah,
+   *  Materi PJJ, Artikel, Dokumen. */
+  fileId?: string;
+  /** Link eksternal (YouTube, Google Drive, SoundCloud, dst.) -- dipakai
+   *  untuk type Video & Audio. Filenya sengaja TIDAK disimpan di database
+   *  (server database hanya 1 CPU/512MB), jadi tidak ada upload untuk
+   *  kedua type ini, hanya link. */
+  externalUrl?: string;
   fileSize?: string;
   duration?: string;
   thumbnailUrl?: string;

@@ -125,7 +125,13 @@ export const COLLECTION_PAGE: Record<string, string[]> = {
   assets:                ['assets'],
   roomBookings:          ['room-booking'],
   assetDocuments:        ['assets'],
-  resourceLibrary:       ['resource-library'],
+  // Audit gap fix: sama seperti livestreamLinks/dst di atas -- key sebelumnya
+  // 'resourceLibrary' tidak pernah cocok dengan nama collection sungguhan
+  // ('resources'), jadi requirePermission() selalu next() tanpa cek izin
+  // sama sekali untuk collection ini. resourceFiles (dokumen PDF/DOC yang
+  // diupload ke materi) ditambahkan sekalian karena baru dibuat bersamaan.
+  resources:             ['resource-library'],
+  resourceFiles:         ['resource-library'],
   serviceRequests:       ['service-requests'],
   aidDistributions:      ['aid-distribution'],
   aidDistributionDocuments: ['aid-distribution'],
