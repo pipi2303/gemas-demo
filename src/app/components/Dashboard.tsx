@@ -299,14 +299,24 @@ function KPIDetailDrawer({ activeKPI, onClose, members, attestations, sectors, c
     const birthDate = new Date(m.birthDate);
     return !Number.isNaN(birthDate.getTime()) && birthDate.getMonth() === curM;
   })
+    // Bug fix: sort sebelumnya cuma menaruh "ulang tahun hari ini" di paling
+    // atas, sisanya diurutkan naik polos 1->31 -- jadi tanggal yang SUDAH
+    // LEWAT bulan ini (mis. tanggal 1-14 kalau hari ini tanggal 15) tetap
+    // muncul di ATAS tanggal yang belum lewat (16-31), padahal seharusnya
+    // tanggal yang sudah lewat ditaruh di paling bawah. Sekarang pakai
+    // "rotated rank": hari ini selalu rank -1 (paling atas), tanggal setelah
+    // hari ini di-rank apa adanya (naik), tanggal SEBELUM hari ini digeser
+    // +100 supaya selalu jatuh di bawah tanggal 31 manapun.
     .sort((a, b) => {
       const aDate = new Date(a.birthDate);
       const bDate = new Date(b.birthDate);
-      const aIsToday = aDate.getDate() === currentDate.getDate();
-      const bIsToday = bDate.getDate() === currentDate.getDate();
-
-      if (aIsToday !== bIsToday) return aIsToday ? -1 : 1;
-      return aDate.getDate() - bDate.getDate();
+      const today = currentDate.getDate();
+      const rank = (d: Date) => {
+        const day = d.getDate();
+        if (day === today) return -1;
+        return day > today ? day : day + 100;
+      };
+      return rank(aDate) - rank(bDate);
     });
   const pendingAtts = attestations.filter(a => a.status === 'Diajukan');
   const inactiveMembers = members.filter(m => m.membershipStatus === 'Tidak Aktif');
