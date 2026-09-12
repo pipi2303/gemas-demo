@@ -513,6 +513,34 @@ function filterPrivatePrayers(items: any[], user: { role?: string } | undefined)
   return items.filter((i: any) => !i.isPrivate);
 }
 
+// Audit gap fix (Dashboard Utama & Laporan): tipe User sudah punya field
+// assignedSectorId dengan komentar eksplisit "Khusus role Ketua Sektor -- ID
+// sektor yang boleh ia kelola", tapi sebelumnya field ini CUMA dipakai untuk
+// membatasi EDIT data sektor itu sendiri (SectorDatabase.tsx) dan menyaring
+// pengumuman (AnnouncementManagement.tsx) -- tidak pernah dipakai untuk
+// membatasi data jemaat/keluarga yang boleh DILIHAT. Padahal matriks default
+// (DEFAULT_MATRIX) memang memberi Ketua Sektor akses 'view' ke Database
+// Warga & Data Keluarga (read-only, tidak ada risiko tulis) -- akibatnya
+// Ketua Sektor bisa melihat & mengekspor data SELURUH jemaat lintas semua
+// sektor lewat Database Warga, Laporan Sensus, dan Pusat Laporan
+// Konsolidasi (ketiganya menghitung dari array members/families yang sama
+// di AppContext), bukan cuma sektor yang ia pimpin.
+//
+// Fix ini menyaring di sumbernya (collection members & families) supaya
+// otomatis berlaku juga untuk laporan/ekspor turunannya yang dihitung
+// client-side dari kedua array itu. Sengaja TIDAK menyaring
+// sensusSnapshots/consolidatedReportSnapshots -- itu artefak laporan yang
+// sudah dipublikasikan (mis. oleh Majelis/Admin), beda konteks dari data
+// mentah jemaat/keluarga.
+async function scopeBySectorForKetuaSektor(collection: string, items: any[], user: { userId?: string; role?: string } | undefined): Promise<any[]> {
+  if (user?.role !== 'Ketua Sektor') return items;
+  if (collection !== 'members' && collection !== 'families') return items;
+  const account = user.userId ? await getOne<any>('users', user.userId).catch(() => null) : null;
+  const assignedSectorId = account?.assignedSectorId;
+  if (!assignedSectorId) return [];
+  return items.filter((i: any) => i.sectorId === assignedSectorId);
+}
+
 // GET /api/data/:collection
 router.get('/:collection', requireAuth, requirePermission(), async (req: AuthRequest, res: Response) => {
   const collection = req.params.collection as string;
@@ -536,6 +564,7 @@ router.get('/:collection', requireAuth, requirePermission(), async (req: AuthReq
       let dataOut: any[] = items as any[];
       if (collection === 'users') dataOut = stripPassword(dataOut);
       if (collection === 'prayerRequests') dataOut = filterPrivatePrayers(dataOut, req.user);
+      dataOut = await scopeBySectorForKetuaSektor(collection, dataOut, req.user);
       res.json({
         data: dataOut,
         meta: paginationMeta(total, page, pageSize),
@@ -546,6 +575,7 @@ router.get('/:collection', requireAuth, requirePermission(), async (req: AuthReq
     let dataOut: any[] = items as any[];
     if (collection === 'users') dataOut = stripPassword(dataOut);
     if (collection === 'prayerRequests') dataOut = filterPrivatePrayers(dataOut, req.user);
+    dataOut = await scopeBySectorForKetuaSektor(collection, dataOut, req.user);
     res.json(dataOut);
   } catch (err) {
     logger.error(`GET ${collection}`, { message: String(err) });
