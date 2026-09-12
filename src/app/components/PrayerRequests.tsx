@@ -22,11 +22,19 @@ import {
 } from './ui/dialog';
 import { Heart, Plus, Check, X, Trash2 } from 'lucide-react';
 import { PrayerRequest } from '../types';
+import { toast } from 'sonner';
+import { SearchDropdown } from './ui/SearchDropdown';
 
 export function PrayerRequests() {
   const { prayerRequests, members, addPrayerRequest, updatePrayerRequest, deletePrayerRequest, currentUser, can } = useApp();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  // Audit gap fix: sebelumnya field memberId diam-diam diisi currentUser.id
+  // (ID akun STAF yang login), bukan ID jemaat sungguhan dari collection
+  // members -- dua namespace ID yang berbeda, jadi getMemberName() nyaris
+  // selalu menampilkan "Unknown". Sekarang wajib pilih jemaat lewat
+  // SearchDropdown, sama seperti pola di ServiceRequests.tsx.
+  const [memberSearch, setMemberSearch] = useState('');
 
   const [formData, setFormData] = useState({
     memberId: '',
@@ -54,17 +62,22 @@ export function PrayerRequests() {
 
   const openAddForm = () => {
     setFormData({
-      memberId: currentUser?.id || '',
+      memberId: '',
       request: '',
       category: 'Rohani',
       isPrivate: false,
       status: 'Aktif'
     });
+    setMemberSearch('');
     setIsFormOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.memberId) {
+      toast.error('Pilih jemaat yang mendoakan/didoakan terlebih dahulu');
+      return;
+    }
     addPrayerRequest(formData);
     setIsFormOpen(false);
   };
@@ -289,7 +302,34 @@ export function PrayerRequests() {
           <form onSubmit={handleSubmit}>
             <div className="bg-white rounded-lg p-6 mt-4 shadow-sm">
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                <div className="col-span-2">
+                  <Label>Jemaat *</Label>
+                  <SearchDropdown<any>
+                    value={memberSearch}
+                    onChange={v => {
+                      setMemberSearch(v);
+                      if (!v) setFormData(prev => ({ ...prev, memberId: '' }));
+                    }}
+                    placeholder="Cari nama jemaat..."
+                    items={members}
+                    filterFn={(m, q) => {
+                      const lq = q.toLowerCase();
+                      return m.fullName.toLowerCase().includes(lq) || m.memberNumber?.toLowerCase().includes(lq);
+                    }}
+                    renderResult={m => (
+                      <div>
+                        <p style={{fontSize:'13px',fontWeight:600,color:'#0f172a',margin:0}}>{m.fullName}</p>
+                        <p style={{fontSize:'11px',color:'#64748b',margin:0}}>{m.memberNumber||'-'}</p>
+                      </div>
+                    )}
+                    onSelect={m => {
+                      setFormData(prev => ({ ...prev, memberId: m.id }));
+                      setMemberSearch(m.fullName);
+                    }}
+                    onClear={() => { setFormData(prev => ({ ...prev, memberId: '' })); setMemberSearch(''); }}
+                  />
+                </div>
+                <div className="col-span-2">
                   <Label htmlFor="request">Pokok Doa *</Label>
                   <Textarea
                     id="request"
