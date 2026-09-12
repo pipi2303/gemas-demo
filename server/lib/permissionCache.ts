@@ -145,7 +145,31 @@ export const COLLECTION_PAGE: Record<string, string[]> = {
   pettyAccounts:         ['offerings'],
   pettyCashTopUps:       ['offerings'],
   financeDocuments:      ['offerings'],
+  // Audit gap fix (Finance/User-Mgmt/MasterData/Announcement audit round):
+  // key 'assets' di sini TIDAK PERNAH cocok dengan collection sungguhan --
+  // AppContext.tsx (addChurchAsset/updateChurchAsset/deleteChurchAsset) selalu
+  // memanggil apiSave('churchAssets', ...), bukan 'assets'. Bug ini SUDAH ADA
+  // sebelum sesi audit ini (bukan regresi dari perbaikan Fasilitas & Inventaris
+  // sebelumnya) dan luput karena ronde audit itu fokus ke booking/ruangan,
+  // tidak sempat mencocokkan nama collection aset ke pemakaian client. Dampak:
+  // requirePermission() next() tanpa cek izin sama sekali untuk CREATE/UPDATE/
+  // DELETE data aset gereja lewat /api/data/churchAssets -- persis pola bug
+  // yang sama berulang kali ditemukan di collection lain. Key lama 'assets'
+  // dipertahankan sebagai alias tak berbahaya (assetDocuments & runCollection-
+  // Validation juga dicocokkan ke 'churchAssets').
   assets:                ['assets'],
+  churchAssets:          ['assets'],
+  // Audit gap fix (User Management & Permission audit round): sama persis
+  // dengan bug churchAssets di atas -- assetLoanHistories & assetMaintenances
+  // dipakai aktif oleh AssetManagement.tsx (addAssetLoanHistory/
+  // addAssetMaintenance dst, lihat AppContext.tsx) tapi tidak pernah
+  // terdaftar di sini sama sekali. requirePermission() sekarang sudah
+  // fail-closed by default (lihat checkPermission.ts) untuk collection yang
+  // tidak terdaftar, jadi tanpa entri ini kedua collection ini akan
+  // (benar) ditolak untuk SEMUA role termasuk yang memang berhak -- makanya
+  // harus didaftarkan eksplisit, bukan dibiarkan.
+  assetLoanHistories:    ['assets'],
+  assetMaintenances:     ['assets'],
   roomBookings:          ['room-booking'],
   // Audit gap fix: collection 'rooms' (master data ruangan, CRUD Kelola
   // Ruangan) tidak pernah ada di map ini sejak fitur CRUD-nya ditambahkan --
