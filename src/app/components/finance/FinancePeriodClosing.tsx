@@ -281,7 +281,7 @@ export function FinancePeriodClosing({ onNavigate }: { onNavigate?: (page: strin
   const closedPeriodsCount = periods.filter(p => p.status === 'CLOSED').length;
 
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       <FinancePageHeader
         title="Penutupan Periode Fiskal (Closing)"
         currentSection="Penutupan Periode"

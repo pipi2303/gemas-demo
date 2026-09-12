@@ -645,7 +645,7 @@ export function FinanceReconciliation({ onNavigate }: { onNavigate?: (page: stri
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
       <FinancePageHeader
         title="Rekonsiliasi Kas & Rekening Bank"
         currentSection="Rekonsiliasi Bank"

@@ -213,7 +213,7 @@ export function FinanceDashboard({ onNavigate }: { onNavigate?: (page: string) =
   ].filter(item => item.amount > 0);
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       {/* ── Top Header Section (Minimalis, Informatif & Keren) ─────── */}
       <FinancePageHeader
         title="Dashboard Finance"
