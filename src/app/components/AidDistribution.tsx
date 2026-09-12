@@ -163,8 +163,11 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
-    if (!formData.recipientName || !formData.phone || !formData.reason) {
-      toast.error('Mohon lengkapi Nama Penerima, Telepon, dan Alasan Pengajuan');
+    // Disamakan dengan validateAidDistributionData() server (server/routes/data.ts) --
+    // sebelumnya address & description tidak dicek di sini, jadi form bisa "berhasil"
+    // di UI padahal server menolak 400 dan tidak ada yang benar-benar tersimpan.
+    if (!formData.recipientName || !formData.phone || !formData.address || !formData.description || !formData.reason) {
+      toast.error('Mohon lengkapi Nama Penerima, Telepon, Alamat, Deskripsi Kondisi, dan Alasan Pengajuan');
       return;
     }
     setIsSubmitting(true);
@@ -198,8 +201,9 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
   const handleUpdate = (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
-    if (!formData.recipientName || !formData.phone || !formData.reason) {
-      toast.error('Mohon lengkapi Nama Penerima, Telepon, dan Alasan Pengajuan');
+    // Lihat catatan di handleSubmit di atas -- validasi disamakan dengan server.
+    if (!formData.recipientName || !formData.phone || !formData.address || !formData.description || !formData.reason) {
+      toast.error('Mohon lengkapi Nama Penerima, Telepon, Alamat, Deskripsi Kondisi, dan Alasan Pengajuan');
       return;
     }
     setIsSubmitting(true);
@@ -701,7 +705,7 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
                             />
                           </div>
                           <div>
-                            <Label htmlFor="address">Alamat</Label>
+                            <Label htmlFor="address">Alamat *</Label>
                             <Input
                               id="address"
                               name="address"
@@ -738,7 +742,7 @@ export function AidDistributionComponent({ onNavigate }: { onNavigate?: (page: s
                       />
                     </div>
                     <div>
-                      <Label htmlFor="description">Deskripsi Kondisi</Label>
+                      <Label htmlFor="description">Deskripsi Kondisi *</Label>
                       <Textarea
                         id="description"
                         name="description"

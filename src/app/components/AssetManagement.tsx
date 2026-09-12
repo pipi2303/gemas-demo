@@ -358,7 +358,14 @@ export function AssetManagement() {
   };
 
   const saveAsset = () => {
-    if (!form.name.trim()) return;
+    // Disamakan dengan validateAssetData() server (server/routes/data.ts) --
+    // sebelumnya cuma form.name yang dicek, jadi menyimpan tanpa Lokasi terlihat
+    // "berhasil" di UI padahal server menolak 400 (Lokasi aset wajib diisi) dan
+    // tidak ada yang benar-benar tersimpan.
+    if (!form.name.trim() || !form.location.trim()) {
+      toast.error('Mohon lengkapi Nama Aset dan Lokasi');
+      return;
+    }
     const now = new Date().toISOString();
     const today = now.slice(0, 10);
     if (editAsset) {
@@ -2307,7 +2314,7 @@ export function AssetManagement() {
                   </select>
                 </div>
                 <div className="col-span-2">
-                  <label style={{ fontSize:11,fontWeight:700,color:'#4b5563',display:'block',marginBottom:4 }}>Lokasi</label>
+                  <label style={{ fontSize:11,fontWeight:700,color:'#4b5563',display:'block',marginBottom:4 }}>Lokasi *</label>
                   <input value={form.location} onChange={e=>setForm(f=>({...f,location:e.target.value}))} placeholder="Lokasi aset di gereja"
                     className="w-full px-3 py-2 rounded-xl border outline-none text-sm" style={{ borderColor:'#e2e8f0', fontSize:13 }} />
                 </div>
@@ -2505,7 +2512,7 @@ export function AssetManagement() {
             </div>
             <div className="flex gap-2 px-5 pb-5">
               <button onClick={()=>setShowAssetModal(false)} className="flex-1 py-2.5 rounded-xl border text-sm font-medium hover:bg-gray-50" style={{ borderColor:'#e2e8f0', color:'#64748b' }}>Batal</button>
-              <button onClick={saveAsset} disabled={!form.name.trim()}
+              <button onClick={saveAsset} disabled={!form.name.trim() || !form.location.trim()}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
                 style={{ background:'#144f6b' }}>
                 {editAsset ? 'Simpan Perubahan' : 'Tambah Aset'}

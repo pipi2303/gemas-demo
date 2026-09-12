@@ -116,7 +116,11 @@ function BaptismForm({ initial, onSave, onClose }: { initial?: Partial<Baptism>;
   const [err, setErr] = useState('');
   const h = (k:string,v:string)=>setF(p=>({...p,[k]:v}));
   const submit = ()=>{
-    if(!f.memberName||!f.baptismDate){setErr('Nama dan tanggal baptis wajib diisi');return;}
+    // Disamakan dengan validateBaptismData() server (server/routes/data.ts) --
+    // sebelumnya minister (Pendeta/Pelayan) tidak dicek di sini, jadi menyimpan
+    // tanpa mengisinya terlihat "berhasil" di UI padahal server menolak 400
+    // (Pelayan/pendeta wajib diisi) dan tidak ada yang benar-benar tersimpan.
+    if(!f.memberName||!f.baptismDate||!f.minister){setErr('Nama, tanggal baptis, dan Pendeta/Pelayan wajib diisi');return;}
     onSave({...f,parents:{fatherName:f.fatherName,motherName:f.motherName}});
   };
   return (
@@ -153,7 +157,7 @@ function BaptismForm({ initial, onSave, onClose }: { initial?: Partial<Baptism>;
             <SacramentField label="Tanggal Baptis*" value={f.baptismDate} onChange={v=>h('baptismDate',v)} type="date"/>
             <SacramentField label="Tempat Baptis" value={f.baptismPlace} onChange={v=>h('baptismPlace',v)} opts={tempatOpts.length ? tempatOpts : undefined}/>
             <div>
-              <label style={{display:'block',marginBottom:4,fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Pendeta / Pelayan</label>
+              <label style={{display:'block',marginBottom:4,fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Pendeta / Pelayan *</label>
               <SearchDropdown<any>
                 value={f.minister}
                 onChange={v=>h('minister',v)}
@@ -210,7 +214,11 @@ function SidiForm({ initial, onSave, onClose }: { initial?: Partial<Sidi>; onSav
   });
   const [err, setErr] = useState('');
   const h=(k:string,v:string)=>setF(p=>({...p,[k]:v}));
-  const submit=()=>{if(!f.memberName||!f.sidiDate){setErr('Nama dan tanggal sidi wajib diisi');return;}onSave(f);};
+  const submit=()=>{
+    // Lihat catatan validasi Baptisan di atas -- disamakan dengan validateSidiData() server.
+    if(!f.memberName||!f.sidiDate||!f.minister){setErr('Nama, tanggal sidi, dan Pendeta/Pelayan wajib diisi');return;}
+    onSave(f);
+  };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
       <div className="w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'90vh', transform:`translate(${offset.x}px,${offset.y}px)`}} onClick={e=>e.stopPropagation()}>
@@ -246,7 +254,7 @@ function SidiForm({ initial, onSave, onClose }: { initial?: Partial<Sidi>; onSav
             <SacramentField label="Tanggal Sidi*" value={f.sidiDate} onChange={v=>h('sidiDate',v)} type="date"/>
             <SacramentField label="Tempat Sidi" value={f.sidiPlace} onChange={v=>h('sidiPlace',v)} opts={tempatOpts.length ? tempatOpts : undefined}/>
             <div>
-              <label style={{display:'block',marginBottom:4,fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Pendeta / Pelayan</label>
+              <label style={{display:'block',marginBottom:4,fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Pendeta / Pelayan *</label>
               <SearchDropdown<any>
                 value={f.minister}
                 onChange={v=>h('minister',v)}
@@ -302,7 +310,11 @@ function MarriageForm({ initial, onSave, onClose }: { initial?: Partial<Marriage
   });
   const [err, setErr]=useState('');
   const h=(k:string,v:string)=>setF(p=>({...p,[k]:v}));
-  const submit=()=>{if(!f.groomName||!f.brideName||!f.marriageDate){setErr('Nama mempelai dan tanggal nikah wajib diisi');return;}onSave(f);};
+  const submit=()=>{
+    // Lihat catatan validasi Baptisan di atas -- disamakan dengan validateMarriageData() server.
+    if(!f.groomName||!f.brideName||!f.marriageDate||!f.minister){setErr('Nama mempelai, tanggal nikah, dan Pendeta/Pelayan wajib diisi');return;}
+    onSave(f);
+  };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
       <div className="w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col" style={{maxHeight:'92vh', transform:`translate(${offset.x}px,${offset.y}px)`}} onClick={e=>e.stopPropagation()}>
@@ -353,7 +365,7 @@ function MarriageForm({ initial, onSave, onClose }: { initial?: Partial<Marriage
             <SacramentField label="Tanggal Pemberkatan*" value={f.marriageDate} onChange={v=>h('marriageDate',v)} type="date" ring="ring-pink-400"/>
             <SacramentField label="Tempat Pemberkatan" value={f.marriagePlace} onChange={v=>h('marriagePlace',v)} opts={tempatOpts.length ? tempatOpts : undefined} ring="ring-pink-400"/>
             <div>
-              <label style={{display:'block',marginBottom:4,fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Pendeta / Pelayan</label>
+              <label style={{display:'block',marginBottom:4,fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Pendeta / Pelayan *</label>
               <SearchDropdown<any>
                 value={f.minister}
                 onChange={v=>h('minister',v)}
