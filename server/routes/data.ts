@@ -425,6 +425,81 @@ function validateLetterTemplateData(data: Record<string, any>): string | null {
   return null;
 }
 
+// Audit gap fix (Fasilitas & Inventaris): validasi field inti roomBookings,
+// rooms, assets -- sebelumnya TIDAK ADA validator sama sekali untuk
+// ketiganya, baik di PUT maupun POST.
+function validateRoomBookingData(data: Record<string, any>): string | null {
+  if (!data.roomName || typeof data.roomName !== 'string' || !data.roomName.trim()) return 'Nama ruangan wajib diisi';
+  if (!data.bookedBy || typeof data.bookedBy !== 'string' || !data.bookedBy.trim()) return 'Nama pemesan wajib diisi';
+  if (!data.phone || typeof data.phone !== 'string') return 'Nomor telepon wajib diisi';
+  if (!data.purpose || typeof data.purpose !== 'string' || !data.purpose.trim()) return 'Keperluan booking wajib diisi';
+  if (!data.date || typeof data.date !== 'string') return 'Tanggal booking wajib diisi';
+  if (!data.startTime || typeof data.startTime !== 'string') return 'Waktu mulai wajib diisi';
+  if (!data.endTime || typeof data.endTime !== 'string') return 'Waktu selesai wajib diisi';
+  if (data.startTime >= data.endTime) return 'Waktu mulai harus sebelum waktu selesai';
+  if (data.attendees !== undefined && (typeof data.attendees !== 'number' || data.attendees < 0)) return 'Jumlah peserta tidak valid';
+  return null;
+}
+
+function validateRoomData(data: Record<string, any>): string | null {
+  if (!data.name || typeof data.name !== 'string' || !data.name.trim()) return 'Nama ruangan wajib diisi';
+  if (data.capacity !== undefined && (typeof data.capacity !== 'number' || data.capacity < 0)) return 'Kapasitas ruangan tidak valid';
+  if (data.facilities !== undefined && !Array.isArray(data.facilities)) return 'Format fasilitas tidak valid';
+  return null;
+}
+
+function validateAssetData(data: Record<string, any>): string | null {
+  if (!data.assetCode || typeof data.assetCode !== 'string' || !data.assetCode.trim()) return 'Kode aset wajib diisi';
+  if (!data.name || typeof data.name !== 'string' || !data.name.trim()) return 'Nama aset wajib diisi';
+  if (!data.category || typeof data.category !== 'string') return 'Kategori aset wajib dipilih';
+  if (!data.location || typeof data.location !== 'string' || !data.location.trim()) return 'Lokasi aset wajib diisi';
+  if (!data.condition || typeof data.condition !== 'string') return 'Kondisi aset wajib dipilih';
+  if (!data.acquisitionDate || typeof data.acquisitionDate !== 'string') return 'Tanggal perolehan aset wajib diisi';
+  if (typeof data.acquisitionValue !== 'number' || data.acquisitionValue < 0) return 'Nilai perolehan aset tidak valid';
+  if (data.usefulLifeYears !== undefined && (typeof data.usefulLifeYears !== 'number' || data.usefulLifeYears < 0)) return 'Umur ekonomis aset tidak valid';
+  return null;
+}
+
+// Audit gap fix (Fasilitas & Inventaris): bentrok jadwal ruangan sebelumnya
+// CUMA dicek di client (findRoomConflict() di RoomBooking.tsx, Array.find
+// terhadap state React lokal) -- tidak ada penegakan server sama sekali.
+// Dampaknya: (a) race condition, dua staf yang submit nyaris bersamaan
+// bisa sama-sama lolos cek client dan dua-duanya tersimpan; (b) panggilan
+// API langsung ke PUT/POST /api/data/roomBookings bisa buat booking bentrok
+// kapan saja tanpa hambatan. Query & logika overlap disamakan persis dengan
+// findRoomConflict() di client supaya perilakunya konsisten.
+async function checkRoomBookingConflict(id: string, data: Record<string, any>): Promise<string | null> {
+  if (!data.roomName || !data.date || !data.startTime || !data.endTime) return null;
+  const all = await getAll<any>('roomBookings').catch(() => []);
+  const conflict = (all || []).find((b: any) =>
+    b.id !== id &&
+    b.roomName === data.roomName &&
+    b.date === data.date &&
+    b.status !== 'Rejected' && b.status !== 'Cancelled' &&
+    data.startTime < b.endTime && b.startTime < data.endTime
+  );
+  if (conflict) {
+    return `Ruangan ${data.roomName} sudah dipesan pada jam tersebut oleh ${conflict.bookedBy} (${conflict.startTime}-${conflict.endTime}). Pilih waktu atau ruangan lain.`;
+  }
+  return null;
+}
+
+// Audit gap fix (Fasilitas & Inventaris): hapus ruangan yang masih punya
+// riwayat booking sebelumnya cuma dicegah di client (handleDeleteRoom() di
+// RoomBooking.tsx) -- panggilan DELETE /api/data/rooms/:id langsung tetap
+// bisa menghapus ruangan yang masih dirujuk booking lama, membuat
+// roomName di booking tersebut jadi rujukan yatim.
+async function blockRoomDeletionWithBookings(id: string): Promise<string | null> {
+  const room = await getOne<any>('rooms', id).catch(() => null);
+  if (!room) return null;
+  const all = await getAll<any>('roomBookings').catch(() => []);
+  const used = (all || []).some((b: any) => b.roomName === room.name);
+  if (used) {
+    return `Ruangan "${room.name}" masih punya riwayat booking -- nonaktifkan saja (bukan hapus) supaya riwayat booking lama tidak kehilangan referensi nama ruangan.`;
+  }
+  return null;
+}
+
 // Audit gap fix: dispatch validasi per collection sebelumnya cuma dipasang
 // di PUT handler -- POST handler (dipakai langsung oleh signingOfficials,
 // outgoingLetters, outgoingLetterAttachments, letterTemplates,
@@ -453,6 +528,9 @@ function runCollectionValidation(collection: string, data: Record<string, any>):
   if (collection === 'outgoingLetters') return validateOutgoingLetterData(data);
   if (collection === 'incomingLetters') return validateIncomingLetterData(data);
   if (collection === 'letterTemplates') return validateLetterTemplateData(data);
+  if (collection === 'roomBookings') return validateRoomBookingData(data);
+  if (collection === 'rooms') return validateRoomData(data);
+  if (collection === 'assets') return validateAssetData(data);
   return null;
 }
 
@@ -659,6 +737,11 @@ router.put('/:collection/:id', requireAuth, requirePermission(), async (req: Aut
     if (valErr) { res.status(400).json({ error: valErr }); return; }
   }
 
+  if (collection === 'roomBookings') {
+    const conflictErr = await checkRoomBookingConflict(id, data);
+    if (conflictErr) { res.status(400).json({ error: conflictErr }); return; }
+  }
+
   // Fetch previous state for diff & audit trail
   let beforeData: any = null;
   if (AUDITED_COLLECTIONS[collection]) {
@@ -741,6 +824,11 @@ router.post('/:collection', requireAuth, requirePermission(), async (req: AuthRe
     if (valErr) { res.status(400).json({ error: valErr }); return; }
   }
 
+  if (collection === 'roomBookings') {
+    const conflictErr = await checkRoomBookingConflict(data.id, data);
+    if (conflictErr) { res.status(400).json({ error: conflictErr }); return; }
+  }
+
   if (collection === 'users' && data.password && !isHashed(String(data.password))) {
     data.password = await hashPassword(String(data.password));
   }
@@ -788,6 +876,11 @@ router.delete('/:collection/:id', requireAuth, requirePermission(), async (req: 
   if (await blockNonEditableOfferingWrite(collection, id)) {
     res.status(403).json({ error: 'Persembahan ini sudah disetor ke Buku Besar (Finance Add-on) dan tidak bisa dihapus langsung — gunakan alur reversal/adjustment di modul Finance untuk koreksi' });
     return;
+  }
+
+  if (collection === 'rooms') {
+    const roomErr = await blockRoomDeletionWithBookings(id);
+    if (roomErr) { res.status(403).json({ error: roomErr }); return; }
   }
 
   // Fetch previous state for audit logging before removal

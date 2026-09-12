@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { toast } from 'sonner';
+import { api } from '../../lib/apiClient';
 import { RoomBooking, RoomBookingStatus, Room, RoomType } from '../types';
 import { 
   Calendar, Clock, Users, CheckCircle, XCircle, Plus, X,
@@ -300,11 +301,26 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
     setIsDetailDialogOpen(true);
   };
 
-  const handleDelete = (booking: RoomBooking) => {
+  // Audit gap fix (Fasilitas & Inventaris): sebelumnya hapus booking tidak
+  // pernah cek apakah sudah ada Surat Keluar yang ditindaklanjuti dari
+  // booking ini -- begitu dihapus, relatedId di surat itu jadi yatim. Ini
+  // cuma peringatan (bukan blokir), pola sama seperti ServiceRequests.tsx /
+  // AidDistribution.tsx.
+  const handleDelete = async (booking: RoomBooking) => {
+    let linkedLetterCount = 0;
+    try {
+      const letters = await api.get<any[]>('/api/data/outgoingLetters');
+      linkedLetterCount = (letters || []).filter(l => l.relatedModule === 'RoomBooking' && l.relatedId === booking.id).length;
+    } catch {
+      // non-blocking: kalau gagal cek, lanjutkan tanpa info surat terkait
+    }
+    const warning = linkedLetterCount > 0
+      ? `\n\nPERINGATAN: ${linkedLetterCount} Surat Keluar sudah dibuat terkait booking ini. Data tertaut TIDAK ikut terhapus dan referensinya akan jadi yatim (tidak bisa dilacak balik ke booking ini).`
+      : '';
     const confirmDelete = window.confirm(
-      `Apakah Anda yakin ingin menghapus booking:\n\n${booking.roomName} - ${booking.bookedBy}\nTanggal: ${new Date(booking.date).toLocaleDateString('id-ID')}\n\nData yang dihapus tidak dapat dikembalikan.`
+      `Apakah Anda yakin ingin menghapus booking:\n\n${booking.roomName} - ${booking.bookedBy}\nTanggal: ${new Date(booking.date).toLocaleDateString('id-ID')}${warning}\n\nData yang dihapus tidak dapat dikembalikan.`
     );
-    
+
     if (confirmDelete) {
       deleteRoomBooking(booking.id);
       setIsDetailDialogOpen(false);
