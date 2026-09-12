@@ -4,12 +4,17 @@ import { getAllCollectionCounts, truncateAll, getPool } from '../lib/db.js';
 import { requireAuth, requireRole, AuthRequest } from '../middleware/auth.js';
 import { logger } from '../lib/logger.js';
 import { recordAuditEntry } from '../lib/auditLog.js';
+import { getJwtSecret } from '../lib/jwt.js';
 
 const ENCRYPTION_MARKER = 'GEMAS_ENC_V1:';
 
 function getEncryptionKey(): Buffer {
-  const secret = process.env.JWT_SECRET || 'fallback';
-  return crypto.scryptSync(secret, 'gemas-backup-salt', 32);
+  // Security fix: sebelumnya fallback ke literal string 'fallback' sendiri
+  // (terpisah dari & lebih lemah daripada fallback JWT di jwt.ts) kalau
+  // JWT_SECRET tidak di-set -- disatukan lewat getJwtSecret() supaya satu
+  // sumber kebenaran, dan supaya production tanpa JWT_SECRET sudah gagal
+  // start duluan di validateEnv() (server/index.ts), tidak pernah sampai ke sini.
+  return crypto.scryptSync(getJwtSecret(), 'gemas-backup-salt', 32);
 }
 
 function encryptData(plaintext: string): string {

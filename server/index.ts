@@ -3,6 +3,7 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { hashPassword, isHashed } from './lib/passwordUtils.js';
+import { getJwtSecret } from './lib/jwt.js';
 import cron from 'node-cron';
 import { initSchema, getPool, getAll, upsert } from './lib/db.js';
 import { logger } from './lib/logger.js';
@@ -11,12 +12,20 @@ import { createApp } from './app.js';
 
 // ── Validate environment variables ───────────────────────────────────────────
 function validateEnv() {
-  const { JWT_SECRET, DATABASE_URL } = process.env;
+  const { DATABASE_URL } = process.env;
   if (!DATABASE_URL) {
     logger.warn('DATABASE_URL is not set — running with in-memory storage fallback');
   }
-  if (!JWT_SECRET) {
-    logger.warn('JWT_SECRET is not set — running with default fallback key');
+  // Security fix: sebelumnya cuma warning lalu tetap jalan pakai kunci fallback
+  // hardcoded, termasuk di production -- lihat catatan lengkap di
+  // server/lib/jwt.ts getJwtSecret(). Di production, ini sekarang benar-benar
+  // menghentikan startup server (fail-fast) alih-alih diam-diam berjalan
+  // dengan kunci yang sudah publik.
+  try {
+    getJwtSecret();
+  } catch (err) {
+    logger.error(String(err instanceof Error ? err.message : err));
+    process.exit(1);
   }
 }
 
