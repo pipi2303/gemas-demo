@@ -59,24 +59,22 @@ ON CONFLICT (id) DO NOTHING;
 -- GPIB Trinitas, bukan NULL (yang akan langsung melanggar constraint/pk baru).
 ALTER TABLE gemas_store ADD COLUMN IF NOT EXISTS organization_id TEXT NOT NULL DEFAULT 'gpib-trinitas';
 
--- Primary key lama (collection, id) diganti (collection, organization_id, id)
--- -- dicek dulu kolom PK saat ini supaya tidak drop+recreate constraint di
--- setiap restart server kalau sudah benar.
-DO $do$
-DECLARE
-  current_pk_cols TEXT;
-BEGIN
-  SELECT string_agg(a.attname, ',' ORDER BY a.attnum)
-    INTO current_pk_cols
-    FROM pg_index i
-    JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
-    WHERE i.indrelid = 'gemas_store'::regclass AND i.indisprimary;
-
-  IF current_pk_cols IS DISTINCT FROM 'collection,organization_id,id' THEN
-    ALTER TABLE gemas_store DROP CONSTRAINT IF EXISTS gemas_store_pkey;
-    ALTER TABLE gemas_store ADD CONSTRAINT gemas_store_pkey PRIMARY KEY (collection, organization_id, id);
-  END IF;
-END $do$;
+-- Primary key TETAP (collection, id), SENGAJA TIDAK diubah di Fase 0 ini.
+-- Ditemukan lewat pengujian nyata (bukan cuma node --check): banyak tempat
+-- di kode (server/lib/db.ts, server/routes/letterNumbers.ts, backup.ts,
+-- financeTransaction.ts/financeAudit jejak audit) masih hardcode
+-- INSERT INTO gemas_store ... ON CONFLICT (collection, id) -- begitu PK
+-- diganti jadi 3 kolom (collection, organization_id, id), klausa ON CONFLICT
+-- 2-kolom itu tidak lagi cocok dengan constraint manapun dan Postgres
+-- langsung melempar 42P10 (no unique or exclusion constraint matching ON
+-- CONFLICT), yang bikin fitur nomor surat/backup/audit-trail finance semua
+-- gagal 500. id yang dipakai di gemas_store praktis UUID, jadi (collection,
+-- id) tetap unik secara global walau nanti sungguhan multi-tenant -- PK 3
+-- kolom baru benar-benar dibutuhkan di Fase 2, saat semua titik ON CONFLICT
+-- di atas memang sedang ditulis ulang bersamaan (CRUD generik jadi
+-- transaksi eksplisit + organization_id per request). Sampai saat itu,
+-- kolom organization_id + index + RLS di bawah sudah cukup untuk fondasi
+-- tanpa merusak apapun yang sedang berjalan.
 
 -- FK ke organizations -- RESTRICT (bukan CASCADE) supaya tenant tidak bisa
 -- terhapus kalau masih ada datanya, konsisten dengan prinsip Finance module
