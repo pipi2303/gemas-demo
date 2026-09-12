@@ -95,7 +95,19 @@ export const COLLECTION_PAGE: Record<string, string[]> = {
   sectorTransfers:       ['members'],
   families:              ['families'],
   sectors:               ['sectors'],
+  // Audit gap fix (Database Jemaat): kolom sungguhan untuk data Baptis & Sidi
+  // (lihat apiSave('baptisms', ...) / apiSave('sidis', ...) di AppContext.tsx)
+  // TERNYATA BUKAN 'sacraments' -- key 'sacraments' di sini tidak pernah
+  // cocok dengan collection nyata mana pun, jadi requirePermission() next()
+  // tanpa cek izin sama sekali untuk baptisms & sidis. Pola bug yang sama
+  // persis seperti wartas/liturgies/ministrySchedules sebelumnya. Dampaknya:
+  // role apa pun yang login (bukan cuma yang diberi izin di halaman Sakramen
+  // & Atestasi) bisa create/update/delete data Baptis & Sidi lewat API
+  // langsung. Key lama 'sacraments' dipertahankan sebagai alias tak
+  // berbahaya (kalau ada kode lain yang masih memakainya).
   sacraments:            ['sacraments'],
+  baptisms:              ['sacraments'],
+  sidis:                 ['sacraments'],
   sacramentDocuments:    ['sacraments'],
   attestations:          ['attestations'],
   attestationDocuments:  ['attestations'],
