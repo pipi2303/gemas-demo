@@ -776,8 +776,16 @@ function FamilyForm({ mode, initial, sectors, members, families, onSave, onClose
   const normalizeName = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
   const submit = () => {
+    // Disamakan dengan validateFamilyData() server (server/routes/data.ts) --
+    // sebelumnya headMemberId & address tidak dicek di sini, jadi menyimpan
+    // tanpa mengisinya terlihat "berhasil" di UI (modal tertutup, list keluarga
+    // bertambah) padahal server menolak 400 dan tidak ada yang benar-benar
+    // tersimpan (baru ketahuan setelah reload halaman).
     if(!form.headOfFamily){setErr('Nama kepala keluarga wajib diisi');setDupWarning(false);return;}
     if(!form.sectorId){setErr('Sektor wajib dipilih');setDupWarning(false);return;}
+    if(sectorMembers.length===0){setErr('Sektor ini belum punya anggota terdaftar -- tambahkan Kepala Keluarga sebagai anggota di Data Jemaat (dengan Sektor yang sama) dulu sebelum membuat keluarga ini.');setDupWarning(false);return;}
+    if(!form.headMemberId){setErr('Kepala Keluarga wajib dipilih dari daftar anggota sektor ini');setDupWarning(false);return;}
+    if(!form.address?.trim()){setErr('Alamat wajib diisi');setDupWarning(false);return;}
 
     if (!dupWarning) {
       const dup = families.find(f =>
@@ -825,7 +833,7 @@ function FamilyForm({ mode, initial, sectors, members, families, onSave, onClose
           </div>
           {sectorMembers.length>0 && (
             <div>
-              <label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Kepala Keluarga (Anggota)</label>
+              <label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Kepala Keluarga (Anggota) <span className="text-red-400">*</span></label>
               <select value={form.headMemberId||''} onChange={e=>h('headMemberId',e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}>
                 <option value="">— Pilih dari anggota —</option>
@@ -834,10 +842,13 @@ function FamilyForm({ mode, initial, sectors, members, families, onSave, onClose
             </div>
           )}
           <div>
-            <label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Alamat</label>
+            <label className="block mb-1" style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Alamat <span className="text-red-400">*</span></label>
             <textarea value={form.address||''} onChange={e=>h('address',e.target.value)} rows={3}
               className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none" style={{borderColor:'#e2e8f0'}}/>
           </div>
+          {sectorMembers.length===0 && form.sectorId && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm" style={{background:'#fffbeb',color:'#92400e'}}><AlertCircle className="w-4 h-4"/>Sektor ini belum punya anggota terdaftar -- tambahkan Kepala Keluarga di Data Jemaat dulu (dengan Sektor yang sama) sebelum bisa menyimpan keluarga ini.</div>
+          )}
           {err && <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm" style={{background:'#fef2f2',color:'#dc2626'}}><AlertCircle className="w-4 h-4"/>{err}</div>}
         </div>
         <div className="px-6 pb-6 flex justify-end gap-3">
