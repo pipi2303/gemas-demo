@@ -500,6 +500,95 @@ async function blockRoomDeletionWithBookings(id: string): Promise<string | null>
   return null;
 }
 
+// Audit gap fix (Database Jemaat): baptisms/sidis/marriages/sectorTransfers/
+// families/sectors/attestations sebelumnya TIDAK PUNYA validator server sama
+// sekali (beda dengan sacraments lama yang cuma alias tanpa collection nyata),
+// jadi PUT/POST langsung ke /api/data/:collection bisa menyimpan data kosong
+// atau status di luar daftar yang sah. memberId/groomMemberId/brideMemberId
+// TIDAK diwajibkan di sini karena form client (SacramentDatabase.tsx) sendiri
+// cuma mewajibkan nama + tanggal, bukan relasi ke Member -- validator ini
+// mengikuti kontrak form yang sudah ada, bukan menambah aturan baru.
+function validateBaptismData(data: Record<string, any>): string | null {
+  if (!data.memberName || typeof data.memberName !== 'string' || !data.memberName.trim()) return 'Nama yang dibaptis wajib diisi';
+  if (!data.type || !['Anak', 'Dewasa'].includes(data.type)) return 'Jenis baptis wajib dipilih (Anak/Dewasa)';
+  if (!data.baptismDate || typeof data.baptismDate !== 'string') return 'Tanggal baptis wajib diisi';
+  if (!data.baptismPlace || typeof data.baptismPlace !== 'string' || !data.baptismPlace.trim()) return 'Tempat baptis wajib diisi';
+  if (!data.minister || typeof data.minister !== 'string' || !data.minister.trim()) return 'Pelayan/pendeta wajib diisi';
+  if (data.status !== undefined && !['Terjadwal', 'Selesai', 'Dibatalkan'].includes(data.status)) return 'Status baptis tidak valid';
+  return null;
+}
+
+function validateSidiData(data: Record<string, any>): string | null {
+  if (!data.memberName || typeof data.memberName !== 'string' || !data.memberName.trim()) return 'Nama peserta sidi wajib diisi';
+  if (!data.sidiDate || typeof data.sidiDate !== 'string') return 'Tanggal sidi wajib diisi';
+  if (!data.sidiPlace || typeof data.sidiPlace !== 'string' || !data.sidiPlace.trim()) return 'Tempat sidi wajib diisi';
+  if (!data.minister || typeof data.minister !== 'string' || !data.minister.trim()) return 'Pelayan/pendeta wajib diisi';
+  if (data.status !== undefined && !['Terjadwal', 'Selesai', 'Dibatalkan'].includes(data.status)) return 'Status sidi tidak valid';
+  return null;
+}
+
+function validateMarriageData(data: Record<string, any>): string | null {
+  if (!data.groomName || typeof data.groomName !== 'string' || !data.groomName.trim()) return 'Nama mempelai pria wajib diisi';
+  if (!data.brideName || typeof data.brideName !== 'string' || !data.brideName.trim()) return 'Nama mempelai wanita wajib diisi';
+  if (!data.marriageDate || typeof data.marriageDate !== 'string') return 'Tanggal pernikahan wajib diisi';
+  if (!data.marriagePlace || typeof data.marriagePlace !== 'string' || !data.marriagePlace.trim()) return 'Tempat pernikahan wajib diisi';
+  if (!data.minister || typeof data.minister !== 'string' || !data.minister.trim()) return 'Pelayan/pendeta wajib diisi';
+  if (data.status !== undefined && !['Terjadwal', 'Selesai', 'Dibatalkan'].includes(data.status)) return 'Status pernikahan tidak valid';
+  return null;
+}
+
+function validateFamilyData(data: Record<string, any>): string | null {
+  if (!data.headOfFamily || typeof data.headOfFamily !== 'string' || !data.headOfFamily.trim()) return 'Nama kepala keluarga wajib diisi';
+  if (!data.headMemberId || typeof data.headMemberId !== 'string') return 'Kepala keluarga wajib dipilih dari data Jemaat';
+  if (!data.sectorId || typeof data.sectorId !== 'string') return 'Sektor keluarga wajib dipilih';
+  if (!data.address || typeof data.address !== 'string' || !data.address.trim()) return 'Alamat keluarga wajib diisi';
+  return null;
+}
+
+function validateSectorData(data: Record<string, any>): string | null {
+  if (!data.name || typeof data.name !== 'string' || !data.name.trim()) return 'Nama sektor wajib diisi';
+  if (!data.leader || typeof data.leader !== 'string' || !data.leader.trim()) return 'Nama Ketua Sektor wajib diisi';
+  if (!data.leaderContact || typeof data.leaderContact !== 'string' || !data.leaderContact.trim()) return 'Kontak Ketua Sektor wajib diisi';
+  return null;
+}
+
+function validateSectorTransferData(data: Record<string, any>): string | null {
+  if (!data.memberId || typeof data.memberId !== 'string') return 'Jemaat yang dipindah wajib dipilih';
+  if (!data.memberName || typeof data.memberName !== 'string' || !data.memberName.trim()) return 'Nama jemaat wajib diisi';
+  if (!data.fromSectorId || typeof data.fromSectorId !== 'string') return 'Sektor asal wajib diisi';
+  if (!data.toSectorId || typeof data.toSectorId !== 'string') return 'Sektor tujuan wajib dipilih';
+  if (data.fromSectorId === data.toSectorId) return 'Sektor asal dan tujuan tidak boleh sama';
+  if (!data.reason || typeof data.reason !== 'string' || !data.reason.trim()) return 'Alasan pindah sektor wajib diisi';
+  if (!data.requestDate || typeof data.requestDate !== 'string') return 'Tanggal permohonan wajib diisi';
+  if (data.status !== undefined && !['Pending', 'Diproses', 'Selesai'].includes(data.status)) return 'Status pindah sektor tidak valid';
+  return null;
+}
+
+function validateAttestationData(data: Record<string, any>): string | null {
+  if (!data.type || typeof data.type !== 'string') return 'Jenis atestasi wajib dipilih';
+  if (!data.memberId || typeof data.memberId !== 'string') return 'Jemaat wajib dipilih';
+  if (!data.memberName || typeof data.memberName !== 'string' || !data.memberName.trim()) return 'Nama jemaat wajib diisi';
+  if (!data.fromChurch || typeof data.fromChurch !== 'string' || !data.fromChurch.trim()) return 'Gereja asal wajib diisi';
+  if (!data.toChurch || typeof data.toChurch !== 'string' || !data.toChurch.trim()) return 'Gereja tujuan wajib diisi';
+  if (!data.reason || typeof data.reason !== 'string' || !data.reason.trim()) return 'Alasan atestasi wajib diisi';
+  if (!data.requestDate || typeof data.requestDate !== 'string') return 'Tanggal permohonan wajib diisi';
+  return null;
+}
+
+// sensusSnapshots & consolidatedReportSnapshots SENGAJA TIDAK diberi validator
+// isi-field: keduanya arsip hasil hitung otomatis aplikasi (snapshot sensus
+// jemaat per sektor, rekap laporan konsolidasi), bukan form yang diisi
+// manual oleh staf -- struktur fieldnya kompleks & computed (banyak field
+// angka agregat bersarang) dan gampang berubah seiring fitur laporan
+// berkembang. Validasi ketat di sini berisiko malah menolak snapshot sah
+// karena skema field yang berubah. Yang tetap diperlukan cuma pagar generik:
+// pastikan value adalah object, tidak kosong -- itu sudah cukup untuk cegah
+// PUT/POST dengan payload rusak/null, tanpa mengunci bentuk field internalnya.
+function validateSnapshotData(data: Record<string, any>): string | null {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return 'Data snapshot tidak valid';
+  return null;
+}
+
 // Audit gap fix: dispatch validasi per collection sebelumnya cuma dipasang
 // di PUT handler -- POST handler (dipakai langsung oleh signingOfficials,
 // outgoingLetters, outgoingLetterAttachments, letterTemplates,
@@ -531,6 +620,14 @@ function runCollectionValidation(collection: string, data: Record<string, any>):
   if (collection === 'roomBookings') return validateRoomBookingData(data);
   if (collection === 'rooms') return validateRoomData(data);
   if (collection === 'assets') return validateAssetData(data);
+  if (collection === 'baptisms') return validateBaptismData(data);
+  if (collection === 'sidis') return validateSidiData(data);
+  if (collection === 'marriages') return validateMarriageData(data);
+  if (collection === 'families') return validateFamilyData(data);
+  if (collection === 'sectors') return validateSectorData(data);
+  if (collection === 'sectorTransfers') return validateSectorTransferData(data);
+  if (collection === 'attestations') return validateAttestationData(data);
+  if (collection === 'sensusSnapshots' || collection === 'consolidatedReportSnapshots') return validateSnapshotData(data);
   return null;
 }
 
