@@ -39,7 +39,7 @@ type FilterType = 'all' | 'unread' | 'birthday' | 'event' | 'announcement' | 'pr
 // ── Main Panel ─────────────────────────────────────────────────────────────────
 export function NotificationCenter({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const {
-    notifications: allNotifications, markNotificationRead, markAllNotificationsRead,
+    notifications: allNotifications, notificationsLoaded, markNotificationRead, markAllNotificationsRead,
     deleteNotification, members, events, announcements, prayerRequests, addNotification, currentUser,
   } = useApp();
 
@@ -54,6 +54,12 @@ export function NotificationCenter({ isOpen, onClose }: { isOpen: boolean; onClo
 
   // ── Auto-generate: birthday & event reminders ─────────────────────────────
   useEffect(() => {
+    // notificationsLoaded: lihat catatan di interface AppContextType (AppContext.tsx) --
+    // tanpa ini, effect ini bisa jalan (dipicu members.length/events.length berubah)
+    // sebelum notifications selesai dimuat dari server, membuat exists-check di bawah
+    // salah mengira belum ada notifikasi padahal sudah ada -- akar penyebab ratusan
+    // duplikat "Ulang Tahun Hari Ini"/"Acara Besok" yang ditemukan saat QA produksi.
+    if (!notificationsLoaded) return;
     const today = format(new Date(), 'MM-dd');
     members.forEach(member => {
       if (!member.birthDate) return;
@@ -83,10 +89,13 @@ export function NotificationCenter({ isOpen, onClose }: { isOpen: boolean; onClo
         }
       }
     });
-  }, [members.length, events.length]);
+  }, [members.length, events.length, notificationsLoaded]);
 
   // ── Auto-generate: pengumuman aktif baru ─────────────────────────────────
   useEffect(() => {
+    // Lihat catatan notificationsLoaded pada effect ulang tahun/acara di atas --
+    // akar penyebab yang sama untuk duplikasi "Pengumuman Baru".
+    if (!notificationsLoaded) return;
     announcements.filter(a => a.isActive).forEach(ann => {
       const exists = notifications.find(n => n.link === `ann-${ann.id}`);
       if (!exists) {
@@ -97,10 +106,13 @@ export function NotificationCenter({ isOpen, onClose }: { isOpen: boolean; onClo
         });
       }
     });
-  }, [announcements.length]);
+  }, [announcements.length, notificationsLoaded]);
 
   // ── Auto-generate: permintaan doa baru ───────────────────────────────────
   useEffect(() => {
+    // Lihat catatan notificationsLoaded pada effect ulang tahun/acara di atas --
+    // akar penyebab yang sama untuk potensi duplikasi "Doa: ...".
+    if (!notificationsLoaded) return;
     prayerRequests.filter(pr => pr.status === 'Aktif').slice(-3).forEach(pr => {
       const exists = notifications.find(n => n.link === `prayer-${pr.id}`);
       if (!exists) {
@@ -114,7 +126,7 @@ export function NotificationCenter({ isOpen, onClose }: { isOpen: boolean; onClo
         });
       }
     });
-  }, [prayerRequests.length]);
+  }, [prayerRequests.length, notificationsLoaded]);
 
   // Sanitasi notifikasi untuk memastikan setiap item memiliki ID unik (mencegah duplicate key React)
   const seenIds = new Set<string>();

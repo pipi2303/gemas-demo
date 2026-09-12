@@ -58,6 +58,13 @@ interface AppContextType {
   activityLogsLoaded: boolean;
   ensureActivityLogsLoaded: () => Promise<void>;
   notifications: Notification[];
+  // Dipakai untuk menghindari race condition (lihat catatan di loadAllData()
+  // dan efek generator notifikasi di bawah): true HANYA setelah fetch awal
+  // /api/data/notifications benar-benar selesai, supaya efek yang membuat
+  // notifikasi otomatis (ulang tahun/acara/pengumuman) tidak jalan duluan
+  // dengan notifications yang masih kosong/belum lengkap lalu membuat
+  // duplikat dari yang sudah ada di database.
+  notificationsLoaded: boolean;
   announcements: Announcement[];
   financialRecords: FinancialRecord[];
   financialCategories: FinancialCategory[];
@@ -313,6 +320,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [activityLogsLoaded, setActivityLogsLoaded] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notificationsLoaded, setNotificationsLoaded] = useState(false);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [financialRecords, setFinancialRecords] = useState<FinancialRecord[]>([]);
   const [financialCategories, setFinancialCategories] = useState<FinancialCategory[]>([]);
@@ -432,6 +440,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return { ...item, id };
         });
         setNotifications(sanitized);
+        // Baru di sini notifications dianggap "sudah lengkap" -- lihat catatan
+        // notificationsLoaded di interface AppContextType di atas. `load()` yang lain
+        // (members/events/announcements) menyelesaikan promise-nya sendiri-sendiri
+        // begitu response network masing-masing tiba, TIDAK bersamaan; kalau
+        // notifications kebetulan datang belakangan, efek generator notifikasi yang
+        // cuma bergantung ke members.length/events.length bisa jalan duluan dengan
+        // notifications yang masih [] lalu membuat ulang notifikasi yang sebenarnya
+        // sudah ada di database -- ini akar penyebab ratusan notifikasi duplikat
+        // yang ditemukan saat QA produksi (lihat memori production-readiness).
+        setNotificationsLoaded(true);
       }),
     ]);
 
@@ -998,6 +1016,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!currentUser) return;
     if (!['Admin', 'Majelis', 'Ketua Sektor'].includes(currentUser.role)) return;
     if (events.length === 0) return;
+    // Lihat catatan notificationsLoaded di interface AppContextType -- tunggu
+    // notifications selesai dimuat dulu supaya existingLinks di bawah ini tidak
+    // dicek terhadap array yang masih kosong/belum lengkap (race condition, akar
+    // penyebab notifikasi "Acara: ..." terduplikasi ratusan kali di produksi).
+    if (!notificationsLoaded) return;
 
     const now = new Date();
     const fourteenDaysLater = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
@@ -1025,7 +1048,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.id, events.length]);
+  }, [currentUser?.id, events.length, notificationsLoaded]);
 
   // ── Livestream & Reminder Ibadah: cek tiap 60 detik, fire notifikasi in-app ──
   // Reminder dengan leadMinutes terisi (lihat ReminderSetting di types) akan otomatis memicu
@@ -1035,6 +1058,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!currentUser) return;
     const checkLivestreamReminders = () => {
+      // notificationsLoaded: sama seperti efek generator lain di atas -- cegah
+      // existingLinks kosong/tidak lengkap kalau notifications belum selesai dimuat.
+      if (!notificationsLoaded) return;
       const enabled = reminderSettings.filter(r => r.enabled && r.leadMinutes != null && r.leadMinutes > 0);
       if (enabled.length === 0) return;
       const now = Date.now();
@@ -1064,8 +1090,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     checkLivestreamReminders();
     const interval = setInterval(checkLivestreamReminders, 60_000);
     return () => clearInterval(interval);
+  // BUG LAMA (root cause notifikasi "Pengingat: ..." terduplikasi tiap ~60 detik):
+  // notifications sebelumnya TIDAK ada di dependency array ini, jadi closure
+  // checkLivestreamReminders() di dalam setInterval membeku dengan nilai
+  // `notifications` dari saat efek ini pertama kali dibuat -- existingLinks jadi
+  // TIDAK PERNAH ter-update walau addNotification() di tick sebelumnya sudah
+  // benar-benar menambah notifikasi baru. Akibatnya selama jendela waktu reminder
+  // masih terbuka (now di antara [jadwal-leadMinutes, jadwal)), setiap tick 60 detik
+  // membuat duplikat baru karena existingLinks yang dicek selalu snapshot lama yang
+  // tidak pernah punya link tersebut. Menambahkan notifications.length ke sini
+  // membuat React membuat ulang interval dengan closure baru (existingLinks ikut
+  // ter-update) setiap kali ada notifikasi baru masuk, menutup celahnya.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.id, reminderSettings.length, worshipSchedules.length]);
+  }, [currentUser?.id, reminderSettings.length, worshipSchedules.length, notifications.length, notificationsLoaded]);
 
   // ── Local demo user (hanya untuk preview lokal tanpa server) ────────────────
   const LOCAL_USERS: Record<string, User> = (() => {
@@ -3032,6 +3069,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       activityLogsLoaded,
       ensureActivityLogsLoaded,
       notifications,
+      notificationsLoaded,
       announcements,
       financialRecords,
       financialCategories,
