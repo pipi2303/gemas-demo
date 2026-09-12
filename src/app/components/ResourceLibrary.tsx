@@ -50,6 +50,9 @@ export function ResourceLibrary() {
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
   const [filterType, setFilterType] = useState('All');
   const [filterCategory, setFilterCategory] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  const RESOURCES_PAGE_SIZE = 9;
+  const [visibleCount, setVisibleCount] = useState(RESOURCES_PAGE_SIZE);
 
   // Dokumen (PDF/DOC) yang benar-benar tersimpan -- lihat catatan di atas file
   const [resourceFiles, setResourceFiles] = useState<ResourceFile[]>([]);
@@ -280,10 +283,37 @@ export function ResourceLibrary() {
     setSelectedResource(null);
   };
 
+  // Dedup counter views per sesi browser (sessionStorage) -- bukan per user
+  // login, jadi dua browser/tab beda tetap dihitung terpisah; ini cukup untuk
+  // mencegah angka views meledak akibat satu orang buka-tutup materi yang
+  // sama berkali-kali dalam satu sesi, tanpa perlu endpoint baru di server.
+  const VIEWED_KEY = 'gemas_resource_viewed_ids';
+  const getViewedIds = (): Set<string> => {
+    try {
+      const raw = sessionStorage.getItem(VIEWED_KEY);
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch {
+      return new Set();
+    }
+  };
+  const markViewed = (id: string) => {
+    try {
+      const ids = getViewedIds();
+      ids.add(id);
+      sessionStorage.setItem(VIEWED_KEY, JSON.stringify(Array.from(ids)));
+    } catch {
+      // sessionStorage tidak tersedia (mis. private mode) -- counter tetap
+      // bertambah tiap kali, tidak fatal, hanya kehilangan dedup
+    }
+  };
+
   const handleViewDetail = (resource: Resource) => {
     setSelectedResource(resource);
     setIsDetailDialogOpen(true);
-    updateResource(resource.id, { views: (resource.views || 0) + 1 });
+    if (!getViewedIds().has(resource.id)) {
+      updateResource(resource.id, { views: (resource.views || 0) + 1 });
+      markViewed(resource.id);
+    }
   };
 
   const handleDelete = async (resource: Resource) => {
@@ -344,8 +374,21 @@ export function ResourceLibrary() {
   const filteredResources = resources.filter(r => {
     const matchesType = filterType === 'All' || r.type === filterType;
     const matchesCategory = filterCategory === 'All' || r.category === filterCategory;
-    return matchesType && matchesCategory;
+    const q = searchQuery.trim().toLowerCase();
+    const matchesSearch = !q ||
+      r.title.toLowerCase().includes(q) ||
+      (r.author || '').toLowerCase().includes(q) ||
+      (r.tags || []).some(tag => tag.toLowerCase().includes(q));
+    return matchesType && matchesCategory && matchesSearch;
   });
+
+  // Reset paging setiap kali filter/pencarian berubah, supaya user tidak
+  // "kehilangan" hasil yang cocok karena visibleCount masih dari filter lama.
+  useEffect(() => {
+    setVisibleCount(RESOURCES_PAGE_SIZE);
+  }, [filterType, filterCategory, searchQuery]);
+
+  const pagedResources = filteredResources.slice(0, visibleCount);
 
   // Calculate statistics
   const stats = {
@@ -371,8 +414,8 @@ export function ResourceLibrary() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 mb-2">Materi Pembinaan</h1>
-          <p className="text-gray-600">Repository khotbah, materi PJJ, dan artikel edukasi</p>
+          <h1 className="text-2xl font-semibold text-gray-900 mb-2">Perpustakaan Digital</h1>
+          <p className="text-gray-600">Repository materi pembinaan: khotbah, materi PJJ, artikel, dan dokumen edukasi</p>
         </div>
         {can('resource-library', 'create') && (
           <button 
@@ -413,6 +456,15 @@ export function ResourceLibrary() {
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
         <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1 min-w-[200px]">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cari judul, pembuat, atau tag..."
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
+          </div>
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
@@ -440,15 +492,16 @@ export function ResourceLibrary() {
             <option value="Lainnya">Lainnya</option>
           </select>
 
-          <div className="flex-1 text-right text-sm text-gray-600 self-center">
-            Menampilkan {filteredResources.length} dari {resources.length} materi
+          <div className="text-sm text-gray-600 self-center whitespace-nowrap">
+            Menampilkan {pagedResources.length} dari {filteredResources.length} materi
+            {filteredResources.length !== resources.length && ` (total ${resources.length})`}
           </div>
         </div>
       </div>
 
       {/* Resources Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredResources.map((resource) => (
+        {pagedResources.map((resource) => (
           <div 
             key={resource.id} 
             onClick={() => handleViewDetail(resource)}
@@ -546,6 +599,23 @@ export function ResourceLibrary() {
           </div>
         ))}
       </div>
+
+      {filteredResources.length > visibleCount && (
+        <div className="flex justify-center">
+          <button
+            onClick={() => setVisibleCount(v => v + RESOURCES_PAGE_SIZE)}
+            className="px-5 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            Muat Lebih Banyak ({filteredResources.length - visibleCount} lagi)
+          </button>
+        </div>
+      )}
+
+      {filteredResources.length === 0 && (
+        <div className="text-center py-12 text-gray-500 text-sm">
+          Tidak ada materi yang cocok dengan pencarian/filter saat ini.
+        </div>
+      )}
 
       {/* Upload/Edit Dialog */}
       <Dialog open={isUploadDialogOpen} onOpenChange={(open) => {

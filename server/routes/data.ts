@@ -185,6 +185,43 @@ function validateDocumentData(data: Record<string, any>, ownerField: string): st
   return null;
 }
 
+// Validasi minimal untuk materi Perpustakaan Digital (collection 'resources').
+// Sebelumnya route generik ini tidak mengecek field wajib sama sekali --
+// title/type kosong atau type di luar enum bisa tersimpan tanpa error, dan
+// baru ketahuan rusak saat ditampilkan di UI.
+const RESOURCE_TYPES = new Set(['Khotbah', 'Materi PJJ', 'Artikel', 'Video', 'Audio', 'Dokumen']);
+function validateResourceData(data: Record<string, any>): string | null {
+  if (!data.title || typeof data.title !== 'string' || !data.title.trim()) return 'Judul wajib diisi';
+  if (!data.type || !RESOURCE_TYPES.has(data.type)) return 'Tipe materi tidak valid';
+  return null;
+}
+
+// Validasi file yang diupload ke Perpustakaan Digital (collection 'resourceFiles').
+// Mirip validateDocumentData di atas, tapi TANPA ownerField (resourceFiles
+// direferensikan dari Resource.fileId, bukan sebaliknya) dan mimeType lebih
+// longgar (PDF/DOC/PPT, bukan cuma PDF) karena UI-nya memang menerima ketiganya.
+const RESOURCE_FILE_MIME_ALLOW = new Set([
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+]);
+function validateResourceFileData(data: Record<string, any>): string | null {
+  if (!data.fileName || typeof data.fileName !== 'string') return 'Nama file wajib diisi';
+  if (!data.mimeType || !RESOURCE_FILE_MIME_ALLOW.has(data.mimeType)) return 'Tipe file tidak didukung (hanya PDF/DOC/PPT)';
+  if (!data.fileData || typeof data.fileData !== 'string') return 'Data file tidak valid';
+  let buf: Buffer;
+  try {
+    buf = Buffer.from(data.fileData, 'base64');
+  } catch {
+    return 'Data file tidak valid';
+  }
+  if (buf.length === 0) return 'Data file tidak valid';
+  if (buf.length > MAX_DOCUMENT_BYTES) return 'Ukuran file melebihi batas 2MB';
+  return null;
+}
+
 // Surat Keluar & Surat Masuk: field WAJIB tetap bisa diedit generik SELAMA
 // statusnya masih tahap awal (Draft untuk outgoingLetters, Diterima untuk
 // incomingLetters — lihat LETTER_EDITABLE_STATUS) — tapi begitu sudah masuk
@@ -326,6 +363,16 @@ router.put('/:collection/:id', requireAuth, requirePermission(), async (req: Aut
   // Validasi dokumen PDF (tipe, ukuran, magic bytes, owner id) untuk semua collection dokumen
   if (DOCUMENT_COLLECTIONS[collection]) {
     const valErr = validateDocumentData(data, DOCUMENT_COLLECTIONS[collection]);
+    if (valErr) { res.status(400).json({ error: valErr }); return; }
+  }
+
+  // Validasi Perpustakaan Digital (resources & resourceFiles)
+  if (collection === 'resources') {
+    const valErr = validateResourceData(data);
+    if (valErr) { res.status(400).json({ error: valErr }); return; }
+  }
+  if (collection === 'resourceFiles') {
+    const valErr = validateResourceFileData(data);
     if (valErr) { res.status(400).json({ error: valErr }); return; }
   }
 
