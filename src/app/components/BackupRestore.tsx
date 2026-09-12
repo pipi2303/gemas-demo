@@ -272,7 +272,7 @@ export function BackupRestore() {
       }
 
       const collections = isEncrypted ? '?' : String(Object.keys((payload as any).data || {}).length);
-      if (!confirm(`Restore akan menimpa data yang ada (kecuali pengguna). ${collections} koleksi akan di-restore. Lanjutkan?`)) return;
+      if (!confirm(`Restore akan menimpa data yang ada (kecuali pengguna, custom role, dan matrix hak akses). ${collections} koleksi akan di-restore. Lanjutkan?`)) return;
 
       setRestoring(true);
       const result = await api.post<{ restored: number; collections: number }>('/api/backup/restore', payload);
@@ -573,7 +573,7 @@ export function BackupRestore() {
           </div>
         </div>
         <p className="text-sm text-gray-600 mb-4">
-          Unggah file backup JSON untuk memulihkan data. Data yang ada (kecuali pengguna) akan ditimpa. Pastikan file backup berasal dari sistem ini.
+          Unggah file backup JSON untuk memulihkan data. Data yang ada (kecuali pengguna, custom role, dan matrix hak akses) akan ditimpa. Pastikan file backup berasal dari sistem ini.
         </p>
         <input
           ref={fileInputRef}

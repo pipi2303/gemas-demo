@@ -137,7 +137,15 @@ router.post('/restore', requireAuth, requireRole('Admin'), async (req: AuthReque
     return res.status(400).json({ error: 'Format backup tidak valid' });
   }
 
-  const PROTECTED = ['users']; // jangan overwrite users agar akses tidak hilang
+  // users: jangan overwrite supaya akses tidak hilang. customRoles &
+  // rbac_permissions: SECURITY FIX -- backup yang di-restore bisa berasal dari
+  // file yang sudah dimanipulasi (lihat catatan validasi di bawah, tidak ada
+  // cek skema/versi/tanda tangan sama sekali selain "berhasil didekripsi/
+  // JSON valid") -- kalau kedua collection ini ikut ditimpa, restore backup
+  // palsu bisa diam-diam mengubah matrix hak akses & custom role jadi
+  // memberi siapa pun akses Admin, tanpa preview/diff apa pun ke Admin yang
+  // me-restore.
+  const PROTECTED = ['users', 'customRoles', 'rbac_permissions'];
   const collections = Object.keys(data).filter(c => !PROTECTED.includes(c));
 
   try {

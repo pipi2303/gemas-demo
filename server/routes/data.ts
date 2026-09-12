@@ -17,7 +17,70 @@ function isValidCollection(name: string): boolean {
 // Collections where only Admin can write
 // letterNumberCounters: internal ke endpoint atomik generate nomor surat (server/routes/letterNumbers.ts),
 // TIDAK boleh diubah lewat CRUD generik biasa (bisa merusak jaminan anti-duplikat SELECT...FOR UPDATE-nya).
-const ADMIN_WRITE = new Set(['users', 'letterNumberCounters']);
+// customRoles & rbac_permissions: SECURITY FIX -- sebelumnya kedua collection ini
+// HANYA dilindungi requirePermission() biasa terhadap izin 'roles' page, bukan
+// hard-lock Admin-only. Akibatnya siapa pun yang (secara tidak sengaja) didelegasikan
+// izin edit di halaman "Manajemen Hak Akses" bisa: (a) mengedit Custom Role
+// miliknya sendiri lewat UI RolesManagement.tsx untuk memberi diri sendiri preset
+// "Semua" di modul Admin Sistem (tidak ada pengecekan batas atas di
+// handleSaveRole()/updateCustomRole()), atau (b) PUT langsung ke
+// /api/data/rbac_permissions/matrix (endpoint generik ini, BUKAN /api/permissions
+// yang sudah benar Admin-only) untuk mengubah matrix izin bawaan Majelis/Ketua
+// Sektor/Operator jadi "Semua" di modul apa pun. Keduanya = privilege escalation
+// jadi setara Admin tanpa pernah menyentuh collection 'users'. Dikunci Admin-only
+// di sini supaya sama levelnya dengan endpoint /api/permissions yang memang
+// dirancang Admin-only sejak awal.
+const ADMIN_WRITE = new Set(['users', 'letterNumberCounters', 'customRoles', 'rbac_permissions']);
+
+// Log aktivitas (activityLogs/audit_logs) sengaja dibuat APPEND-ONLY -- tidak ada
+// alasan sah untuk mengedit/menghapus entri yang sudah tercatat lewat API generik
+// ini (ActivityLog.tsx sendiri tidak punya tombol edit/hapus sama sekali).
+// Sebelumnya kedua collection ini tunduk penuh ke matrix RBAC biasa (ikut
+// COLLECTION_PAGE -> 'activity' page) -- kalau suatu saat ada Custom Role yang
+// (sengaja/tidak sengaja) diberi izin delete di halaman itu, jejak audit bisa
+// dihapus lewat API. Dikunci di sini, terpisah dari RBAC, supaya immutable
+// SELALU berlaku apa pun izin yang didelegasikan -- bahkan untuk Admin sendiri.
+const AUDIT_LOG_COLLECTIONS = new Set(['activityLogs', 'audit_logs']);
+
+// Cegah menghapus/menonaktifkan/menurunkan role Admin TERAKHIR yang masih aktif --
+// sebelumnya tidak ada pengecekan sama sekali di jalur PUT/DELETE generik ini,
+// sistem bisa kehabisan Admin total tanpa jalan pemulihan lewat aplikasi (harus
+// akses database langsung). Guard "tidak bisa hapus baris sendiri" di
+// RolesManagement.tsx TIDAK menutup ini -- itu cuma mencegah Admin menghapus DIRI
+// SENDIRI, bukan mencegah Admin A menghapus/menurunkan Admin B yang kebetulan
+// satu-satunya Admin lain yang tersisa.
+async function blockLastAdminRemoval(id: string, newData: Record<string, any> | null): Promise<string | null> {
+  const existing = await getOne<any>('users', id).catch(() => null);
+  if (!existing || existing.role !== 'Admin' || existing.isActive === false) return null; // bukan Admin aktif, tidak relevan
+
+  const willStillBeActiveAdmin = !!newData
+    && (newData.role === undefined ? existing.role : newData.role) === 'Admin'
+    && (newData.isActive === undefined ? existing.isActive : newData.isActive) !== false;
+  if (willStillBeActiveAdmin) return null;
+
+  const allUsers = await getAll<any>('users').catch(() => []);
+  const activeAdminCount = allUsers.filter((u: any) => u.role === 'Admin' && u.isActive !== false).length;
+  if (activeAdminCount <= 1) {
+    return 'Tidak bisa menghapus/menonaktifkan/menurunkan user ini — ini satu-satunya Admin aktif yang tersisa di sistem. Aktifkan atau tambahkan Admin lain terlebih dahulu.';
+  }
+  return null;
+}
+
+// mode 'write': hanya blokir kalau ID-nya SUDAH ADA (edit entri lama) --
+// entri BARU tetap boleh dibuat (ini cara normal logActivity()/recordAuditLog()
+// mencatat, keduanya lewat PUT/POST upsert dengan id baru). mode 'delete': selalu
+// blokir tanpa syarat, tidak ada alasan sah menghapus entri log yang sudah ada.
+async function blockAuditLogTamper(collection: string, id: string, mode: 'write' | 'delete'): Promise<string | null> {
+  if (!AUDIT_LOG_COLLECTIONS.has(collection)) return null;
+  if (mode === 'delete') {
+    return 'Log aktivitas tidak bisa dihapus lewat API — sengaja dibuat append-only untuk menjaga integritas jejak audit.';
+  }
+  const existing = await getOne<any>(collection, id).catch(() => null);
+  if (existing) {
+    return 'Log aktivitas yang sudah tercatat tidak bisa diedit lewat API — sengaja dibuat append-only untuk menjaga integritas jejak audit.';
+  }
+  return null;
+}
 
 // Collections monitored for automated audit trail
 const AUDITED_COLLECTIONS: Record<string, { domain: 'Member' | 'Financial' | 'Asset' | 'System' | 'Correspondence'; entityType: string; nameField: string }> = {
@@ -367,6 +430,16 @@ router.put('/:collection/:id', requireAuth, requirePermission(), async (req: Aut
     return;
   }
 
+  {
+    const auditErr = await blockAuditLogTamper(collection, id, 'write');
+    if (auditErr) { res.status(403).json({ error: auditErr }); return; }
+  }
+
+  if (collection === 'users') {
+    const lastAdminErr = await blockLastAdminRemoval(id, data);
+    if (lastAdminErr) { res.status(403).json({ error: lastAdminErr }); return; }
+  }
+
   if (await blockNonEditableLetterWrite(collection, id)) {
     res.status(403).json({ error: 'Surat ini sudah diproses lebih lanjut dan tidak bisa diedit langsung — gunakan aksi alur kerja di halaman Surat Keluar/Surat Masuk' });
     return;
@@ -489,6 +562,11 @@ router.post('/:collection', requireAuth, requirePermission(), async (req: AuthRe
     return;
   }
 
+  {
+    const auditErr = await blockAuditLogTamper(collection, id, 'write');
+    if (auditErr) { res.status(403).json({ error: auditErr }); return; }
+  }
+
   // Surat Keluar baru SELALU dibuat sebagai Draft polos — field yang berhubungan
   // dengan tahap lanjut (nomor surat, checked/signed/sent/archived by&at, PDF final)
   // hanya boleh terisi lewat endpoint transisi khusus, tidak lewat create generik ini,
@@ -547,6 +625,16 @@ router.delete('/:collection/:id', requireAuth, requirePermission(), async (req: 
   if (ADMIN_WRITE.has(collection) && req.user?.role !== 'Admin') {
     res.status(403).json({ error: 'Akses ditolak' });
     return;
+  }
+
+  {
+    const auditErr = await blockAuditLogTamper(collection, id, 'delete');
+    if (auditErr) { res.status(403).json({ error: auditErr }); return; }
+  }
+
+  if (collection === 'users') {
+    const lastAdminErr = await blockLastAdminRemoval(id, null);
+    if (lastAdminErr) { res.status(403).json({ error: lastAdminErr }); return; }
   }
 
   if (await blockNonEditableLetterWrite(collection, id)) {
