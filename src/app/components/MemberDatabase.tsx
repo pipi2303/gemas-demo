@@ -1948,7 +1948,7 @@ export function MemberDatabase() {
   const [showForm, setShowForm] = useState(false);
   const [formMode, setFormMode] = useState<'add'|'edit'>('add');
   const [deleteTarget, setDeleteTarget] = useState<Member|null>(null);
-  const [deleteLinked, setDeleteLinked] = useState<{ attestations: number; assetsManaged: number; assetsBorrowed: number; documents: number } | null>(null);
+  const [deleteLinked, setDeleteLinked] = useState<{ attestations: number; assetsManaged: number; assetsBorrowed: number; documents: number; sacraments: number; prayerRequests: number; serviceRequests: number; aidDistributions: number; letters: number } | null>(null);
   const [deleteLinkedLoading, setDeleteLinkedLoading] = useState(false);
   useEffect(() => {
     if (!deleteTarget) { setDeleteLinked(null); return; }
@@ -1969,11 +1969,40 @@ export function MemberDatabase() {
       if (isBorrowed) assetsBorrowed++;
       else if (isManaged) assetsManaged++;
     });
-    api.get<MemberDocument[]>('/api/data/memberDocuments').then(all => {
-      const documents = (all||[]).filter(d => d.memberId === deleteTarget.id).length;
-      setDeleteLinked({ attestations: memberAttCount, assetsManaged, assetsBorrowed, documents });
+    // Audit gap fix (Database Jemaat #6): sebelum ini hapus Jemaat cuma dicek
+    // terhadap atestasi & aset -- referensi memberId di baptisms/sidis/marriages
+    // (via groomMemberId/brideMemberId), prayerRequests, serviceRequests,
+    // aidDistributions, dan outgoingLetters/incomingLetters TIDAK pernah dicek,
+    // jadi record-record itu bisa jadi yatim (memberId menunjuk ke Jemaat yang
+    // sudah tidak ada) begitu Jemaat dihapus. Semua dicek paralel di sini,
+    // non-blocking kalau salah satu gagal (dianggap 0 supaya tidak memblokir
+    // hapus tanpa alasan jelas -- staf tetap lihat peringatan dari yang berhasil dicek).
+    const memberId = deleteTarget.id;
+    Promise.all([
+      api.get<MemberDocument[]>('/api/data/memberDocuments').catch(() => []),
+      api.get<any[]>('/api/data/baptisms').catch(() => []),
+      api.get<any[]>('/api/data/sidis').catch(() => []),
+      api.get<any[]>('/api/data/marriages').catch(() => []),
+      api.get<any[]>('/api/data/prayerRequests').catch(() => []),
+      api.get<any[]>('/api/data/serviceRequests').catch(() => []),
+      api.get<any[]>('/api/data/aidDistributions').catch(() => []),
+      api.get<any[]>('/api/data/outgoingLetters').catch(() => []),
+      api.get<any[]>('/api/data/incomingLetters').catch(() => []),
+    ]).then(([allDocs, baptisms, sidis, marriages, prayerReqs, serviceReqs, aidDist, outLetters, inLetters]) => {
+      const documents = (allDocs||[]).filter(d => d.memberId === memberId).length;
+      const sacraments =
+        (baptisms||[]).filter(b => b.memberId === memberId).length +
+        (sidis||[]).filter(s2 => s2.memberId === memberId).length +
+        (marriages||[]).filter(m => m.groomMemberId === memberId || m.brideMemberId === memberId).length;
+      const prayerRequestsCount = (prayerReqs||[]).filter(p => p.memberId === memberId).length;
+      const serviceRequestsCount = (serviceReqs||[]).filter(sr => sr.memberId === memberId).length;
+      const aidDistributionsCount = (aidDist||[]).filter(ad => ad.memberId === memberId).length;
+      const letters =
+        (outLetters||[]).filter(l => l.memberId === memberId).length +
+        (inLetters||[]).filter(l => l.memberId === memberId).length;
+      setDeleteLinked({ attestations: memberAttCount, assetsManaged, assetsBorrowed, documents, sacraments, prayerRequests: prayerRequestsCount, serviceRequests: serviceRequestsCount, aidDistributions: aidDistributionsCount, letters });
     }).catch(() => {
-      setDeleteLinked({ attestations: memberAttCount, assetsManaged, assetsBorrowed, documents: 0 });
+      setDeleteLinked({ attestations: memberAttCount, assetsManaged, assetsBorrowed, documents: 0, sacraments: 0, prayerRequests: 0, serviceRequests: 0, aidDistributions: 0, letters: 0 });
     }).finally(() => setDeleteLinkedLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deleteTarget?.id]);
@@ -2101,7 +2130,7 @@ export function MemberDatabase() {
     }
     setShowForm(false); setSelected(null);
   };
-  const deleteBlocked = !!(deleteLinked && (deleteLinked.attestations>0 || deleteLinked.assetsManaged>0 || deleteLinked.assetsBorrowed>0 || deleteLinked.documents>0));
+  const deleteBlocked = !!(deleteLinked && (deleteLinked.attestations>0 || deleteLinked.assetsManaged>0 || deleteLinked.assetsBorrowed>0 || deleteLinked.documents>0 || deleteLinked.sacraments>0 || deleteLinked.prayerRequests>0 || deleteLinked.serviceRequests>0 || deleteLinked.aidDistributions>0 || deleteLinked.letters>0));
   const handleDelete = () => {
     if (!deleteTarget) return;
     if (deleteBlocked) { toast.error('Tidak dapat menghapus, masih ada data terkait yang harus diselesaikan terlebih dahulu'); return; }
@@ -2727,6 +2756,11 @@ export function MemberDatabase() {
                   {deleteLinked!.assetsManaged>0 && <li>{deleteLinked!.assetsManaged} aset yang dikelola/ditanggungjawabi</li>}
                   {deleteLinked!.assetsBorrowed>0 && <li>{deleteLinked!.assetsBorrowed} aset yang sedang dipinjam</li>}
                   {deleteLinked!.documents>0 && <li>{deleteLinked!.documents} dokumen terlampir</li>}
+                  {deleteLinked!.sacraments>0 && <li>{deleteLinked!.sacraments} data Baptis/Sidi/Pernikahan</li>}
+                  {deleteLinked!.prayerRequests>0 && <li>{deleteLinked!.prayerRequests} data Pokok Doa</li>}
+                  {deleteLinked!.serviceRequests>0 && <li>{deleteLinked!.serviceRequests} Permohonan Pelayanan</li>}
+                  {deleteLinked!.aidDistributions>0 && <li>{deleteLinked!.aidDistributions} data Bantuan Diakonia</li>}
+                  {deleteLinked!.letters>0 && <li>{deleteLinked!.letters} Surat Keluar/Masuk yang menyebut jemaat ini</li>}
                 </ul>
                 <p style={{fontSize:'11px',color:'#7a5c17',marginTop:6,marginBottom:0}}>Selesaikan atau pindahkan data di atas terlebih dahulu sebelum menghapus anggota ini.</p>
               </div>
