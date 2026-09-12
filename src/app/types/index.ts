@@ -948,6 +948,7 @@ export interface SectorTransfer {
 export interface Room {
   id: string;
   name: string;
+  roomType?: RoomType; // opsional untuk kompatibilitas data lama; fallback 'Lainnya' kalau kosong
   capacity: number;
   facilities: string[];
   location?: string;

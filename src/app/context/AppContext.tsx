@@ -863,9 +863,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const loaded = roomsLoaded;
       if (loaded.length === 0) {
         const DEFAULTS: Room[] = [
-          { id: 'rm1', name: 'Aula Utama',            capacity: 500, facilities: ['Sound System','Proyektor','AC','Kursi','Meja','Mic Wireless','Layar Proyektor','Podium'], location: 'Lantai 1 Gedung Utama',   isActive: true },
-          { id: 'rm2', name: 'Ruang Pertemuan',        capacity: 50,  facilities: ['AC','Kursi','Meja','Proyektor','Mic Kabel'],                                               location: 'Lantai 2 Gedung Samping', isActive: true },
-          { id: 'rm3', name: 'Ruang Rapat Majelis',    capacity: 20,  facilities: ['AC','Kursi','Meja'],                                                                       location: 'Lantai 1 Gedung Samping', isActive: true },
+          { id: 'rm1', name: 'Aula Utama',            roomType: 'Aula',            capacity: 500, facilities: ['Sound System','Proyektor','AC','Kursi','Meja','Mic Wireless','Layar Proyektor','Podium'], location: 'Lantai 1 Gedung Utama',   isActive: true },
+          { id: 'rm2', name: 'Ruang Pertemuan',        roomType: 'Ruang Pertemuan', capacity: 50,  facilities: ['AC','Kursi','Meja','Proyektor','Mic Kabel'],                                               location: 'Lantai 2 Gedung Samping', isActive: true },
+          { id: 'rm3', name: 'Ruang Rapat Majelis',    roomType: 'Ruang Pertemuan', capacity: 20,  facilities: ['AC','Kursi','Meja'],                                                                       location: 'Lantai 1 Gedung Samping', isActive: true },
         ];
         setRooms(DEFAULTS);
         DEFAULTS.forEach(r => apiSave('rooms', r.id, r));
@@ -2454,20 +2454,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const newR: Room = { ...data, id: `rm${Date.now()}` };
     setRooms(prev => [...prev, newR]);
     apiSave('rooms', newR.id, newR);
+    if (currentUser) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menambahkan', entityType: 'Room', entityId: newR.id, entityName: newR.name, details: `Ruangan baru — kapasitas ${newR.capacity} orang` });
   };
 
   const updateRoom = (id: string, data: Partial<Room>) => {
+    const existing = rooms.find(r => r.id === id);
     setRooms(prev => prev.map(r => {
       if (r.id !== id) return r;
       const updated = { ...r, ...data };
       apiSave('rooms', id, updated);
       return updated;
     }));
+    if (currentUser && existing) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Mengubah', entityType: 'Room', entityId: id, entityName: existing.name, details: `Data ruangan diperbarui` });
   };
 
   const deleteRoom = (id: string) => {
+    const existing = rooms.find(r => r.id === id);
     setRooms(prev => prev.filter(r => r.id !== id));
     apiRemove('rooms', id);
+    if (currentUser && existing) logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menghapus', entityType: 'Room', entityId: id, entityName: existing.name, details: `Ruangan dihapus dari daftar` });
   };
 
   // ── CustomRole CRUD ───────────────────────────────────────────────────────────
@@ -2780,7 +2785,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       { id: 'activity', label: 'Log Aktivitas', keywords: ['log aktivitas', 'riwayat', 'history sistem'], icon: 'activity', page: 'activity' },
       { id: 'resource-library', label: 'Perpustakaan Digital', keywords: ['perpustakaan', 'resource', 'dokumen', 'unduhan', 'e-book'], icon: 'library', page: 'resource-library' },
       { id: 'sermon-archive', label: 'Arsip Khotbah & Renungan', keywords: ['khotbah', 'renungan', 'arsip khotbah', 'sermon'], icon: 'book-open', page: 'sermon-archive' },
-      { id: 'room-booking', label: 'Peminjaman Ruangan & Fasilitas', keywords: ['ruangan', 'peminjaman', 'booking ruangan', 'sewa aula'], icon: 'door-open', page: 'room-booking' },
+      { id: 'room-booking', label: 'Manajemen Ruangan & Fasilitas', keywords: ['ruangan', 'peminjaman', 'booking ruangan', 'sewa aula'], icon: 'door-open', page: 'room-booking' },
       { id: 'aid-distribution', label: 'Distribusi Bantuan Sosial', keywords: ['bantuan sosial', 'diakonia', 'distribusi bantuan'], icon: 'gift', page: 'aid-distribution' },
       { id: 'letters-outgoing', label: 'Surat Keluar', keywords: ['surat keluar', 'surat menyurat', 'ajukan surat', 'tandatangani surat'], icon: 'send', page: 'letters-outgoing' },
       { id: 'letters-incoming', label: 'Surat Masuk', keywords: ['surat masuk', 'disposisi', 'tindak lanjut surat'], icon: 'inbox', page: 'letters-incoming' },

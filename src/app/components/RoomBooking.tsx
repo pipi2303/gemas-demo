@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { toast } from 'sonner';
-import { RoomBooking, RoomBookingStatus } from '../types';
+import { RoomBooking, RoomBookingStatus, Room, RoomType } from '../types';
 import { 
   Calendar, Clock, Users, CheckCircle, XCircle, Plus, X,
   MapPin, Phone, User, FileText, Pencil, Trash2, Eye,
-  Building, DoorOpen, Info, Mail
+  Building, DoorOpen, Info, Mail, Settings, Power
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
@@ -15,7 +15,7 @@ import { Textarea } from './ui/textarea';
 import { SearchDropdown } from './ui/SearchDropdown';
 
 export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: string) => void } = {}) {
-  const { roomBookings, members, rooms, addRoomBooking, updateRoomBooking, deleteRoomBooking, getMasterDataByCategory, can, setPendingLetterDraft } = useApp();
+  const { roomBookings, members, rooms, addRoomBooking, updateRoomBooking, deleteRoomBooking, addRoom, updateRoom, deleteRoom, getMasterDataByCategory, can, setPendingLetterDraft, currentUser } = useApp();
   const statusRuanganList = getMasterDataByCategory('status_peminjaman_ruangan').map((m: any) => m.value);
   const STATUS_OPTS = statusRuanganList.length ? statusRuanganList : ['Pending', 'Approved', 'Rejected', 'Completed', 'Cancelled'];
   const activeRooms = (rooms || []).filter(r => r.isActive);
@@ -46,6 +46,69 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
     status: 'Pending' as RoomBookingStatus
   });
 
+  // Kelola Ruangan (Master Data Ruangan) -- audit gap fix: sebelumnya addRoom/
+  // updateRoom/deleteRoom sudah ada di AppContext tapi tidak ada UI manapun yang
+  // memanggilnya, jadi cuma 3 ruangan seed default yang bisa dipakai selamanya.
+  const [isManageRoomsOpen, setIsManageRoomsOpen] = useState(false);
+  const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
+  const ROOM_TYPE_OPTS: RoomType[] = ['Ruang Ibadah', 'Aula', 'Ruang Kelas', 'Ruang Pertemuan', 'Lainnya'];
+  const [roomForm, setRoomForm] = useState({
+    name: '', roomType: 'Lainnya' as RoomType, capacity: 0, facilitiesText: '', location: '', isActive: true,
+  });
+
+  const resetRoomForm = () => {
+    setRoomForm({ name: '', roomType: 'Lainnya', capacity: 0, facilitiesText: '', location: '', isActive: true });
+    setEditingRoomId(null);
+  };
+
+  const openEditRoom = (r: Room) => {
+    setEditingRoomId(r.id);
+    setRoomForm({
+      name: r.name,
+      roomType: r.roomType ?? 'Lainnya',
+      capacity: r.capacity,
+      facilitiesText: (r.facilities || []).join(', '),
+      location: r.location || '',
+      isActive: r.isActive,
+    });
+  };
+
+  const saveRoomForm = () => {
+    if (!roomForm.name.trim()) { toast.error('Nama ruangan wajib diisi'); return; }
+    if (!roomForm.capacity || roomForm.capacity <= 0) { toast.error('Kapasitas ruangan harus lebih dari 0 orang'); return; }
+    const facilities = roomForm.facilitiesText.split(',').map(s => s.trim()).filter(Boolean);
+    const payload = {
+      name: roomForm.name.trim(),
+      roomType: roomForm.roomType,
+      capacity: roomForm.capacity,
+      facilities,
+      location: roomForm.location.trim() || undefined,
+      isActive: roomForm.isActive,
+    };
+    if (editingRoomId) {
+      updateRoom(editingRoomId, payload);
+      toast.success('Data ruangan diperbarui');
+    } else {
+      addRoom(payload);
+      toast.success('Ruangan baru ditambahkan');
+    }
+    resetRoomForm();
+  };
+
+  const toggleRoomActive = (r: Room) => {
+    updateRoom(r.id, { isActive: !r.isActive });
+  };
+
+  const handleDeleteRoom = (r: Room) => {
+    const usedInBooking = roomBookings.some(b => b.roomName === r.name);
+    if (usedInBooking) {
+      toast.error(`Ruangan "${r.name}" masih punya riwayat booking -- nonaktifkan saja (bukan hapus) supaya riwayat booking lama tidak kehilangan referensi nama ruangan.`);
+      return;
+    }
+    const confirmDelete = window.confirm(`Hapus ruangan "${r.name}"? Tindakan ini tidak bisa dibatalkan.`);
+    if (confirmDelete) deleteRoom(r.id);
+  };
+
   // Fasilitas dari ruangan yang dipilih, fallback ke semua fasilitas unik dari semua ruangan
   const availableFacilities = useMemo(() => {
     const selectedRoom = activeRooms.find(r => r.name === formData.roomName);
@@ -63,6 +126,10 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
   // dan field lokasinya teks bebas yang tidak selalu identik dengan nama
   // ruangan -- mencocokkan itu berisiko false-positive yang malah memblokir
   // booking yang sah.
+  const roomTypeFor = (roomName: string): RoomBooking['roomType'] => {
+    return activeRooms.find(r => r.name === roomName)?.roomType ?? 'Lainnya';
+  };
+
   const findRoomConflict = (roomName: string, date: string, startTime: string, endTime: string, excludeId?: string) => {
     return roomBookings.find(b =>
       b.id !== excludeId &&
@@ -145,13 +212,24 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
       return;
     }
 
+    if (formData.endTime <= formData.startTime) {
+      toast.error('Waktu Selesai harus lebih besar dari Waktu Mulai');
+      return;
+    }
+
+    const roomCapacity = activeRooms.find(r => r.name === formData.roomName)?.capacity;
+    if (roomCapacity != null && formData.attendees > roomCapacity) {
+      toast.error(`Jumlah peserta (${formData.attendees}) melebihi kapasitas ruangan ${formData.roomName} (${roomCapacity} orang). Pilih ruangan lain atau kurangi jumlah peserta.`);
+      return;
+    }
+
     const conflict = findRoomConflict(formData.roomName, formData.date, formData.startTime, formData.endTime);
     if (conflict) {
       toast.error(`Ruangan ${formData.roomName} sudah dipesan pada jam tersebut oleh ${conflict.bookedBy} (${conflict.startTime}-${conflict.endTime}). Pilih waktu atau ruangan lain.`);
       return;
     }
 
-    addRoomBooking({ ...formData, roomType: 'Aula', email: '' });
+    addRoomBooking({ ...formData, roomType: roomTypeFor(formData.roomName), email: '' });
     resetForm();
     setIsCreateDialogOpen(false);
   };
@@ -193,13 +271,24 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
       return;
     }
 
+    if (formData.endTime <= formData.startTime) {
+      toast.error('Waktu Selesai harus lebih besar dari Waktu Mulai');
+      return;
+    }
+
+    const roomCapacityUpd = activeRooms.find(r => r.name === formData.roomName)?.capacity;
+    if (roomCapacityUpd != null && formData.attendees > roomCapacityUpd) {
+      toast.error(`Jumlah peserta (${formData.attendees}) melebihi kapasitas ruangan ${formData.roomName} (${roomCapacityUpd} orang). Pilih ruangan lain atau kurangi jumlah peserta.`);
+      return;
+    }
+
     const conflict = findRoomConflict(formData.roomName, formData.date, formData.startTime, formData.endTime, selectedBooking?.id);
     if (conflict) {
       toast.error(`Ruangan ${formData.roomName} sudah dipesan pada jam tersebut oleh ${conflict.bookedBy} (${conflict.startTime}-${conflict.endTime}). Pilih waktu atau ruangan lain.`);
       return;
     }
 
-    if (selectedBooking) updateRoomBooking(selectedBooking.id, formData);
+    if (selectedBooking) updateRoomBooking(selectedBooking.id, { ...formData, roomType: roomTypeFor(formData.roomName) });
     resetForm();
     setIsCreateDialogOpen(false);
     setIsEditMode(false);
@@ -223,8 +312,11 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
   };
 
   const handleStatusChange = (booking: RoomBooking, newStatus: RoomBookingStatus) => {
-    updateRoomBooking(booking.id, { status: newStatus });
-    setSelectedBooking(prev => prev ? { ...prev, status: newStatus } : prev);
+    const extra = newStatus === 'Approved'
+      ? { approvedBy: currentUser?.name || 'Administrator', approvedDate: new Date().toISOString() }
+      : {};
+    updateRoomBooking(booking.id, { status: newStatus, ...extra });
+    setSelectedBooking(prev => prev ? { ...prev, status: newStatus, ...extra } : prev);
   };
 
   // Integrasi Surat-Menyurat (audit gap fix): begitu peminjaman ruangan DISETUJUI,
@@ -269,18 +361,29 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
           <h1 className="text-2xl font-semibold text-gray-900 mb-2">Reservasi Ruangan</h1>
           <p className="text-gray-600">Sistem peminjaman gedung dan sarana gereja</p>
         </div>
-        <button 
-          onClick={() => {
-            resetForm();
-            setIsEditMode(false);
-            setSelectedBooking(null);
-            setIsCreateDialogOpen(true);
-          }}
-          className="px-4 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          Booking Ruangan
-        </button>
+        <div className="flex items-center gap-2">
+          {can('room-booking', 'edit') && (
+            <button
+              onClick={() => { resetRoomForm(); setIsManageRoomsOpen(true); }}
+              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              Kelola Ruangan
+            </button>
+          )}
+          <button 
+            onClick={() => {
+              resetForm();
+              setIsEditMode(false);
+              setSelectedBooking(null);
+              setIsCreateDialogOpen(true);
+            }}
+            className="px-4 py-2 bg-[#144f6b] text-white rounded-lg hover:bg-[#144f6b] transition-colors flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Booking Ruangan
+          </button>
+        </div>
       </div>
 
       {/* Statistics Cards */}
@@ -443,6 +546,96 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
           </div>
         ))}
       </div>
+
+      {/* Kelola Ruangan Dialog (Master Data Ruangan) */}
+      <Dialog open={isManageRoomsOpen} onOpenChange={(open) => { setIsManageRoomsOpen(open); if (!open) resetRoomForm(); }}>
+        <DialogContent className="sm:max-w-2xl p-0 gap-0 max-h-[85vh] flex flex-col">
+          <div className="bg-white border-b border-gray-200 px-6 pt-6 pb-4 flex-shrink-0">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-gray-900">Kelola Ruangan</DialogTitle>
+              <DialogDescription className="mt-0.5 text-xs">
+                Daftar ruangan yang bisa dipesan lewat Reservasi Ruangan. Nonaktifkan ruangan yang sudah tidak dipakai, jangan dihapus kalau sudah punya riwayat booking.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
+            {/* Form tambah/edit ruangan */}
+            <div className="bg-[#f0f7fb] rounded-lg p-4 border border-blue-100 space-y-3">
+              <h3 className="font-semibold text-gray-900 text-sm">{editingRoomId ? 'Edit Ruangan' : 'Tambah Ruangan Baru'}</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="roomFormName">Nama Ruangan *</Label>
+                  <Input id="roomFormName" value={roomForm.name} onChange={(e) => setRoomForm(prev => ({ ...prev, name: e.target.value }))} placeholder="Contoh: Ruang Sekolah Minggu" />
+                </div>
+                <div>
+                  <Label htmlFor="roomFormType">Jenis Ruangan</Label>
+                  <select
+                    id="roomFormType"
+                    value={roomForm.roomType}
+                    onChange={(e) => setRoomForm(prev => ({ ...prev, roomType: e.target.value as RoomType }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  >
+                    {ROOM_TYPE_OPTS.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="roomFormCapacity">Kapasitas (orang) *</Label>
+                  <Input id="roomFormCapacity" type="number" min="1" value={roomForm.capacity || ''} onChange={(e) => setRoomForm(prev => ({ ...prev, capacity: parseInt(e.target.value) || 0 }))} />
+                </div>
+                <div>
+                  <Label htmlFor="roomFormLocation">Lokasi</Label>
+                  <Input id="roomFormLocation" value={roomForm.location} onChange={(e) => setRoomForm(prev => ({ ...prev, location: e.target.value }))} placeholder="Contoh: Lantai 2 Gedung Utama" />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="roomFormFacilities">Fasilitas (pisahkan dengan koma)</Label>
+                <Input id="roomFormFacilities" value={roomForm.facilitiesText} onChange={(e) => setRoomForm(prev => ({ ...prev, facilitiesText: e.target.value }))} placeholder="Contoh: AC, Proyektor, Sound System" />
+              </div>
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input type="checkbox" checked={roomForm.isActive} onChange={(e) => setRoomForm(prev => ({ ...prev, isActive: e.target.checked }))} />
+                  Aktif (bisa dipesan)
+                </label>
+                <div className="flex gap-2">
+                  {editingRoomId && (
+                    <Button type="button" variant="outline" onClick={resetRoomForm}>Batal Edit</Button>
+                  )}
+                  <Button type="button" onClick={saveRoomForm}>{editingRoomId ? 'Simpan Perubahan' : 'Tambah Ruangan'}</Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Daftar ruangan */}
+            <div className="space-y-2">
+              {(rooms || []).length === 0 && (
+                <p className="text-sm text-gray-500 text-center py-4">Belum ada ruangan terdaftar.</p>
+              )}
+              {(rooms || []).map(r => (
+                <div key={r.id} className={`rounded-lg border p-3 flex items-center justify-between gap-3 ${r.isActive ? 'border-gray-200 bg-white' : 'border-gray-200 bg-gray-50 opacity-70'}`}>
+                  <div>
+                    <p className="font-medium text-gray-900 text-sm">{r.name} <span className="text-xs font-normal text-gray-500">({r.roomType ?? 'Lainnya'})</span></p>
+                    <p className="text-xs text-gray-500">Kapasitas {r.capacity} orang{r.location ? ` • ${r.location}` : ''}{!r.isActive ? ' • Nonaktif' : ''}</p>
+                    {(r.facilities || []).length > 0 && (
+                      <p className="text-xs text-gray-400 mt-0.5">{(r.facilities || []).join(', ')}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button type="button" onClick={() => toggleRoomActive(r)} title={r.isActive ? 'Nonaktifkan' : 'Aktifkan'} className="p-1.5 text-gray-500 hover:text-[#144f6b] hover:bg-blue-50 rounded">
+                      <Power className="w-4 h-4" />
+                    </button>
+                    <button type="button" onClick={() => openEditRoom(r)} title="Edit" className="p-1.5 text-gray-500 hover:text-[#144f6b] hover:bg-blue-50 rounded">
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button type="button" onClick={() => handleDeleteRoom(r)} title="Hapus" className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Create/Edit Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
