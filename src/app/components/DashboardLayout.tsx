@@ -1,5 +1,7 @@
 import React, { ReactNode, useState, useEffect, useMemo } from 'react';
+import { toast } from 'sonner';
 import { useApp } from '../context/AppContext';
+import { api } from '../../lib/apiClient';
 import { NotificationBell } from './NotificationCenter';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import { GlobalSearch } from './GlobalSearch';
@@ -11,7 +13,7 @@ import {
   Menu, X, Package, Clock, Layers,
   PanelLeftClose, PanelLeftOpen,
   BookOpen, FileText, HeartHandshake, Heart,
-  Send,
+  Send, KeyRound,
   MessageSquareHeart, BarChart3,
   QrCode, Book, Home, MapPin, Cross, Library, DoorOpen, Gift,
   Bell, ChevronRight as BreadcrumbArrow, Printer, FileSpreadsheet, Landmark, ClipboardList, Receipt, Inbox, ArrowLeftRight, CalendarCheck, FileBarChart, Mail
@@ -85,7 +87,67 @@ export const PAGE_LABELS: Record<string, { title: string; category: string }> = 
   'finance-dashboard':     { title: 'Dashboard Finance', category: 'Finance' },
 };
 
+// Audit gap fix: sebelumnya tidak ada UI sama sekali untuk user mengganti
+// password sendiri (lihat PUT /api/auth/change-password yang baru ditambahkan
+// di server/routes/auth.ts). Modal ini dipasang di ProfileDropdown supaya
+// semua user -- terutama 16 user awal dengan password default pola "Nama123"
+// (mustChangePassword: true) -- punya jalan yang jelas untuk menggantinya.
+function ChangePasswordModal({ onClose }: { onClose: () => void }) {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 8) { toast.error('Password baru minimal 8 karakter'); return; }
+    if (newPassword !== confirmPassword) { toast.error('Konfirmasi password baru tidak cocok'); return; }
+    setSaving(true);
+    try {
+      await api.put('/api/auth/change-password', { currentPassword, newPassword });
+      toast.success('Password berhasil diganti');
+      onClose();
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal mengganti password');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
+      <form onSubmit={handleSubmit} onClick={e => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6" style={{ border: '1px solid #e2d8c4' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', marginBottom: 16 }}>Ganti Password</h3>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="currentPassword">Password Saat Ini</label>
+            <input id="currentPassword" type="password" required value={currentPassword} onChange={e => setCurrentPassword(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border text-sm" style={{ borderColor: '#e2e8f0' }} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="newPassword">Password Baru</label>
+            <input id="newPassword" type="password" required minLength={8} value={newPassword} onChange={e => setNewPassword(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border text-sm" style={{ borderColor: '#e2e8f0' }} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="confirmPassword">Konfirmasi Password Baru</label>
+            <input id="confirmPassword" type="password" required minLength={8} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border text-sm" style={{ borderColor: '#e2e8f0' }} />
+          </div>
+        </div>
+        <div className="flex gap-3 mt-6">
+          <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border font-medium text-gray-600 hover:bg-gray-50 text-sm" style={{ borderColor: '#e2e8f0' }}>Batal</button>
+          <button type="submit" disabled={saving} className="flex-1 py-2.5 rounded-xl text-white font-semibold text-sm hover:opacity-90 disabled:opacity-60" style={{ background: '#0d1a2d' }}>
+            {saving ? 'Menyimpan...' : 'Simpan'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 function ProfileDropdown({ user, onLogout, onClose }: { user: any; onLogout: () => void; onClose: () => void }) {
+  const [showChangePassword, setShowChangePassword] = useState(false);
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
@@ -118,7 +180,19 @@ function ProfileDropdown({ user, onLogout, onClose }: { user: any; onLogout: () 
             </span>
           </div>
         </div>
-        <div className="px-4 pb-3">
+        {user?.mustChangePassword && (
+          <div className="mx-4 mb-2 px-3 py-2 rounded-lg text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
+            Password Anda masih default -- sebaiknya segera diganti.
+          </div>
+        )}
+        <div className="px-4 pb-3 space-y-2">
+          <button
+            onClick={() => setShowChangePassword(true)}
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl transition-all bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 text-xs font-semibold"
+          >
+            <KeyRound className="w-3.5 h-3.5" />
+            Ganti Password
+          </button>
           <button
             onClick={onLogout}
             className="w-full flex items-center justify-center gap-2 py-2 rounded-xl transition-all bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-semibold"
@@ -128,6 +202,7 @@ function ProfileDropdown({ user, onLogout, onClose }: { user: any; onLogout: () 
           </button>
         </div>
       </div>
+      {showChangePassword && <ChangePasswordModal onClose={() => setShowChangePassword(false)} />}
     </>
   );
 }

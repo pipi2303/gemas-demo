@@ -17,7 +17,7 @@ function getEncryptionKey(): Buffer {
   return crypto.scryptSync(getJwtSecret(), 'gemas-backup-salt', 32);
 }
 
-function encryptData(plaintext: string): string {
+export function encryptData(plaintext: string): string {
   const key = getEncryptionKey();
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
@@ -158,22 +158,31 @@ router.post('/restore', requireAuth, requireRole('Admin'), async (req: AuthReque
   const PROTECTED = ['users', 'customRoles', 'rbac_permissions'];
   const collections = Object.keys(data).filter(c => !PROTECTED.includes(c));
 
+  // ATOMICITY FIX -- sebelumnya tiap query pakai getPool().query() langsung
+  // (pool, bukan satu koneksi tetap), jadi BEGIN/DELETE/INSERT.../COMMIT bisa
+  // saja dieksekusi di koneksi pool yang berbeda-beda -- artinya BEGIN/COMMIT
+  // itu tidak benar-benar membungkus operasi delete+insert dalam satu
+  // transaksi nyata. Kalau restore gagal di tengah jalan (misal 1 record
+  // korup), data yang sudah sempat di-DELETE bisa hilang permanen tanpa yang
+  // baru berhasil masuk. Polanya sekarang disamakan dengan batchUpsert() di
+  // server/lib/db.ts: satu client yang di-checkout dari pool untuk seluruh
+  // transaksi, baru dilepas di akhir.
+  const client = await getPool().connect();
+  let restored = 0;
   try {
-    const pool = getPool();
-    await pool.query('BEGIN');
+    await client.query('BEGIN');
 
     if (clearFirst) {
       for (const col of collections) {
-        await pool.query('DELETE FROM gemas_store WHERE collection = $1', [col]);
+        await client.query('DELETE FROM gemas_store WHERE collection = $1', [col]);
       }
     }
 
-    let restored = 0;
     for (const col of collections) {
       const items = data[col] as any[];
       for (const item of items) {
         if (!item.id) continue;
-        await pool.query(
+        await client.query(
           `INSERT INTO gemas_store (collection, id, data, updated_at)
            VALUES ($1, $2, $3, NOW())
            ON CONFLICT (collection, id)
@@ -184,7 +193,7 @@ router.post('/restore', requireAuth, requireRole('Admin'), async (req: AuthReque
       }
     }
 
-    await pool.query('COMMIT');
+    await client.query('COMMIT');
     logger.info('Data restored from backup', { user: req.user!.username, restored, collections: collections.length });
     // Dicatat SETELAH transaksi COMMIT berhasil — restore adalah operasi
     // destruktif (bisa menimpa banyak data sekaligus), jadi jejak audit
@@ -200,9 +209,11 @@ router.post('/restore', requireAuth, requireRole('Admin'), async (req: AuthReque
     });
     res.json({ ok: true, restored, collections: collections.length });
   } catch (err) {
-    await getPool().query('ROLLBACK').catch(() => {});
+    await client.query('ROLLBACK').catch(() => {});
     logger.error('Restore error', { message: String(err) });
     res.status(500).json({ error: 'Gagal restore data' });
+  } finally {
+    client.release();
   }
 });
 

@@ -84,6 +84,55 @@ router.post('/logout', (req: Request, res: Response) => {
   res.json({ ok: true });
 });
 
+// Audit gap fix: sebelumnya TIDAK ADA cara bagi user untuk mengganti password
+// sendiri lewat aplikasi sama sekali -- satu-satunya jalan adalah Admin reset
+// manual lewat menu User Management. Ini jadi krusial karena 16 user awal semua
+// di-seed dengan password default pola "Nama123" (lihat scripts/seed-users-pg.mjs
+// & seedDefaultUsersInMemory di server/lib/db.ts, field mustChangePassword: true)
+// -- tanpa endpoint ini, password default itu tidak akan pernah benar-benar
+// diganti oleh staf yang bersangkutan.
+const ChangePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8, 'Password baru minimal 8 karakter'),
+});
+
+router.put('/change-password', async (req: Request, res: Response) => {
+  const token = req.cookies?.[COOKIE_NAME] || req.headers.authorization?.slice(7);
+  if (!token) { res.status(401).json({ error: 'Unauthorized' }); return; }
+
+  const parsed = ChangePasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message || 'Input tidak valid' });
+    return;
+  }
+  const { currentPassword, newPassword } = parsed.data;
+
+  try {
+    const payload = verifyToken(token);
+    const users = await getAll<any>('users');
+    const user = users.find((u: any) => u.id === payload.userId && u.isActive !== false);
+    if (!user) { res.status(401).json({ error: 'User tidak ditemukan' }); return; }
+
+    // PENTING: 400, BUKAN 401 -- apiClient.ts men-treat semua respons 401 sebagai
+    // sesi berakhir dan otomatis clearToken()/logout paksa (lihat request() di
+    // src/lib/apiClient.ts). Salah ketik password saat ini bukan kegagalan sesi,
+    // jadi harus tetap 400 supaya user tidak ter-logout diam-diam saat salah ketik.
+    const { valid } = await verifyPassword(currentPassword, user.password);
+    if (!valid) { res.status(400).json({ error: 'Password saat ini salah' }); return; }
+
+    await upsert('users', user.id, {
+      ...user,
+      password: await hashPassword(newPassword),
+      mustChangePassword: false,
+    });
+
+    logger.info('User changed own password', { username: user.username });
+    res.json({ ok: true });
+  } catch {
+    res.status(401).json({ error: 'Token invalid' });
+  }
+});
+
 router.get('/me', async (req: Request, res: Response) => {
   const token = req.cookies?.[COOKIE_NAME] || req.headers.authorization?.slice(7);
   if (!token) { res.status(401).json({ error: 'Unauthorized' }); return; }

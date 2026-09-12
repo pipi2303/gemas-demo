@@ -32,6 +32,22 @@ function isValidCollection(name: string): boolean {
 // dirancang Admin-only sejak awal.
 const ADMIN_WRITE = new Set(['users', 'letterNumberCounters', 'customRoles', 'rbac_permissions']);
 
+// Audit gap fix: modul Keuangan & Persembahan klasik (ChurchFinanceHub.tsx dkk)
+// sudah dihapus total (commit dde3c20) dan digantikan Finance Add-on (server/lib/
+// financeSchema.ts + server/routes/financeTransaction.ts, dst). Tapi 5 collection
+// lama ini masih berupa endpoint /api/data terbuka TANPA validator apa pun di
+// runCollectionValidation() -- kalau ada kode/klien lama yang masih menulis ke
+// sini, datanya akan diam-diam dorman (tidak pernah dibaca UI mana pun sekarang)
+// atau, lebih buruk, disalahartikan sebagai sumber kebenaran keuangan yang aktif.
+// Ditutup total (POST/PUT/DELETE) di sini -- GET tetap dibiarkan supaya data lama
+// (kalau ada) masih bisa diinspeksi/diekspor untuk migrasi manual bila perlu.
+const DORMANT_FINANCE_COLLECTIONS = new Set(['financialRecords', 'bankAccounts', 'budgets', 'pettyCash', 'liabilities']);
+
+function blockDormantFinanceWrite(collection: string): string | null {
+  if (!DORMANT_FINANCE_COLLECTIONS.has(collection)) return null;
+  return 'Modul Keuangan & Persembahan klasik sudah tidak aktif -- gunakan Finance Add-on (menu Finance) untuk transaksi keuangan.';
+}
+
 // Log aktivitas (activityLogs/audit_logs) sengaja dibuat APPEND-ONLY -- tidak ada
 // alasan sah untuk mengedit/menghapus entri yang sudah tercatat lewat API generik
 // ini (ActivityLog.tsx sendiri tidak punya tombol edit/hapus sama sekali).
@@ -500,6 +516,99 @@ async function blockRoomDeletionWithBookings(id: string): Promise<string | null>
   return null;
 }
 
+// Audit gap fix (Database Jemaat/Keluarga/Sektor): pengecekan referensi
+// sebelum hapus Jemaat/Keluarga/Sektor SEBELUMNYA hanya ada di client
+// (MemberDatabase.tsx, FamilyDatabase.tsx, SectorDatabase.tsx). Panggilan
+// DELETE langsung ke /api/data/members|families|sectors/:id (lewat API
+// client lain, curl, dsb) bisa melewati semua pengecekan itu dan membuat
+// banyak record jadi yatim (memberId/familyId/sectorId/leaderMemberId
+// menunjuk ke data yang sudah tidak ada). Logikanya disamakan persis
+// dengan versi client (termasuk fallback pencocokan nama untuk data lama
+// yang belum punya memberId) supaya perilakunya konsisten baik lewat UI
+// maupun panggilan API langsung. Ministries (leaderMemberId/memberIds)
+// ditambahkan di sini karena belum pernah dicek di client sama sekali.
+async function blockMemberDeletionInUse(id: string): Promise<string | null> {
+  const member = await getOne<any>('members', id).catch(() => null);
+  if (!member) return null;
+  const nm = (member.fullName || '').toLowerCase();
+
+  const [
+    attestationsAll, churchAssetsAll, memberDocumentsAll, baptismsAll, sidisAll, marriagesAll,
+    prayerRequestsAll, serviceRequestsAll, aidDistributionsAll, outgoingLettersAll, incomingLettersAll,
+    ministriesAll,
+  ] = await Promise.all([
+    getAll<any>('attestations').catch(() => []),
+    getAll<any>('churchAssets').catch(() => []),
+    getAll<any>('memberDocuments').catch(() => []),
+    getAll<any>('baptisms').catch(() => []),
+    getAll<any>('sidis').catch(() => []),
+    getAll<any>('marriages').catch(() => []),
+    getAll<any>('prayerRequests').catch(() => []),
+    getAll<any>('serviceRequests').catch(() => []),
+    getAll<any>('aidDistributions').catch(() => []),
+    getAll<any>('outgoingLetters').catch(() => []),
+    getAll<any>('incomingLetters').catch(() => []),
+    getAll<any>('ministries').catch(() => []),
+  ]);
+
+  const attestationsCount = (attestationsAll || []).filter((a: any) =>
+    (a.memberId && a.memberId === id) || (!a.memberId && a.memberName?.toLowerCase() === nm)
+  ).length;
+  const assetsManaged = (churchAssetsAll || []).filter((a: any) => a.memberId
+    ? a.memberId === id
+    : (() => { const rp = (a.responsiblePerson || '').toLowerCase(); return !!rp && (rp.includes(nm) || nm.includes(rp)); })()
+  ).length;
+  const assetsBorrowed = (churchAssetsAll || []).filter((a: any) =>
+    (a.loanStatus || 'Tersedia') === 'Dipinjam' && (
+      (a.borrowedById && a.borrowedById === id) ||
+      (!a.borrowedById && a.borrowedByName && a.borrowedByName.toLowerCase().includes(nm))
+    )
+  ).length;
+  const documents = (memberDocumentsAll || []).filter((d: any) => d.memberId === id).length;
+  const sacraments =
+    (baptismsAll || []).filter((b: any) => b.memberId === id).length +
+    (sidisAll || []).filter((s: any) => s.memberId === id).length +
+    (marriagesAll || []).filter((m: any) => m.groomMemberId === id || m.brideMemberId === id).length;
+  const prayerRequestsCount = (prayerRequestsAll || []).filter((p: any) => p.memberId === id).length;
+  const serviceRequestsCount = (serviceRequestsAll || []).filter((sr: any) => sr.memberId === id).length;
+  const aidDistributionsCount = (aidDistributionsAll || []).filter((ad: any) => ad.memberId === id).length;
+  const letters =
+    (outgoingLettersAll || []).filter((l: any) => l.memberId === id).length +
+    (incomingLettersAll || []).filter((l: any) => l.memberId === id).length;
+  const ministriesCount = (ministriesAll || []).filter((m: any) =>
+    m.leaderMemberId === id || (Array.isArray(m.memberIds) && m.memberIds.includes(id))
+  ).length;
+
+  const total = attestationsCount + assetsManaged + assetsBorrowed + documents + sacraments +
+    prayerRequestsCount + serviceRequestsCount + aidDistributionsCount + letters + ministriesCount;
+  if (total > 0) {
+    return `Jemaat "${member.fullName}" masih punya data terkait (atestasi/aset/dokumen/sakramen/doa/pelayanan/bantuan/surat/pelayanan komisi) dan tidak bisa dihapus langsung -- selesaikan atau pindahkan data terkait tersebut terlebih dahulu.`;
+  }
+  return null;
+}
+
+async function blockFamilyDeletionInUse(id: string): Promise<string | null> {
+  const family = await getOne<any>('families', id).catch(() => null);
+  if (!family) return null;
+  const allMembers = await getAll<any>('members').catch(() => []);
+  const count = (allMembers || []).filter((m: any) => m.familyId === id).length;
+  if (count > 0) {
+    return `Keluarga "${family.headOfFamily}" masih memiliki ${count} anggota -- pindahkan anggota terlebih dahulu sebelum menghapus keluarga.`;
+  }
+  return null;
+}
+
+async function blockSectorDeletionInUse(id: string): Promise<string | null> {
+  const sector = await getOne<any>('sectors', id).catch(() => null);
+  if (!sector) return null;
+  const allMembers = await getAll<any>('members').catch(() => []);
+  const count = (allMembers || []).filter((m: any) => m.sectorId === id).length;
+  if (count > 0) {
+    return `Sektor "${sector.name}" masih memiliki ${count} anggota -- pindahkan anggota terlebih dahulu sebelum menghapus sektor.`;
+  }
+  return null;
+}
+
 // Audit gap fix (Database Jemaat): baptisms/sidis/marriages/sectorTransfers/
 // families/sectors/attestations sebelumnya TIDAK PUNYA validator server sama
 // sekali (beda dengan sacraments lama yang cuma alias tanpa collection nyata),
@@ -561,6 +670,16 @@ function validateSectorTransferData(data: Record<string, any>): string | null {
   if (!data.reason || typeof data.reason !== 'string' || !data.reason.trim()) return 'Alasan pindah sektor wajib diisi';
   if (!data.requestDate || typeof data.requestDate !== 'string') return 'Tanggal permohonan wajib diisi';
   if (data.status !== undefined && !['Pending', 'Diproses', 'Selesai'].includes(data.status)) return 'Status pindah sektor tidak valid';
+  return null;
+}
+
+// Audit gap fix: 'ministries' sebelumnya TIDAK punya validator sama sekali di
+// runCollectionValidation() -- satu-satunya collection utama yang lolos tanpa
+// pengecekan field wajib apa pun lewat POST/PUT generik.
+function validateMinistryData(data: Record<string, any>): string | null {
+  if (!data.name || typeof data.name !== 'string' || !data.name.trim()) return 'Nama komisi/unit pelayanan wajib diisi';
+  if (!data.leader || typeof data.leader !== 'string' || !data.leader.trim()) return 'Nama ketua/koordinator wajib diisi';
+  if (data.memberIds !== undefined && !Array.isArray(data.memberIds)) return 'Daftar anggota (memberIds) harus berupa array';
   return null;
 }
 
@@ -658,6 +777,7 @@ function runCollectionValidation(collection: string, data: Record<string, any>):
   if (collection === 'sectors') return validateSectorData(data);
   if (collection === 'sectorTransfers') return validateSectorTransferData(data);
   if (collection === 'attestations') return validateAttestationData(data);
+  if (collection === 'ministries') return validateMinistryData(data);
   if (collection === 'sensusSnapshots' || collection === 'consolidatedReportSnapshots') return validateSnapshotData(data);
   // 'assets' dipertahankan sebagai alias tak berbahaya -- lihat catatan bug
   // nama collection churchAssets vs assets di permissionCache.ts.
@@ -915,6 +1035,11 @@ router.put('/:collection/:id', requireAuth, requirePermission(), async (req: Aut
 
   const data = { ...req.body };
 
+  {
+    const dormantErr = blockDormantFinanceWrite(collection);
+    if (dormantErr) { res.status(403).json({ error: dormantErr }); return; }
+  }
+
   if (ADMIN_WRITE.has(collection) && req.user?.role !== 'Admin') {
     res.status(403).json({ error: 'Akses ditolak' });
     return;
@@ -1028,6 +1153,11 @@ router.post('/:collection', requireAuth, requirePermission(), async (req: AuthRe
   const id = data.id || `${collection.slice(0, 3)}_${Date.now()}`;
   data.id = id;
 
+  {
+    const dormantErr = blockDormantFinanceWrite(collection);
+    if (dormantErr) { res.status(403).json({ error: dormantErr }); return; }
+  }
+
   if (ADMIN_WRITE.has(collection) && req.user?.role !== 'Admin') {
     res.status(403).json({ error: 'Akses ditolak' });
     return;
@@ -1103,6 +1233,11 @@ router.delete('/:collection/:id', requireAuth, requirePermission(), async (req: 
     return;
   }
 
+  {
+    const dormantErr = blockDormantFinanceWrite(collection);
+    if (dormantErr) { res.status(403).json({ error: dormantErr }); return; }
+  }
+
   if (ADMIN_WRITE.has(collection) && req.user?.role !== 'Admin') {
     res.status(403).json({ error: 'Akses ditolak' });
     return;
@@ -1131,6 +1266,21 @@ router.delete('/:collection/:id', requireAuth, requirePermission(), async (req: 
   if (collection === 'rooms') {
     const roomErr = await blockRoomDeletionWithBookings(id);
     if (roomErr) { res.status(403).json({ error: roomErr }); return; }
+  }
+
+  if (collection === 'members') {
+    const memberErr = await blockMemberDeletionInUse(id);
+    if (memberErr) { res.status(403).json({ error: memberErr }); return; }
+  }
+
+  if (collection === 'families') {
+    const familyErr = await blockFamilyDeletionInUse(id);
+    if (familyErr) { res.status(403).json({ error: familyErr }); return; }
+  }
+
+  if (collection === 'sectors') {
+    const sectorErr = await blockSectorDeletionInUse(id);
+    if (sectorErr) { res.status(403).json({ error: sectorErr }); return; }
   }
 
   if (collection === 'masterData') {

@@ -60,6 +60,9 @@ for (const u of USERS) {
     id, name: u.name, username: u.username,
     password: hashed, role: 'Admin',
     email: '', isActive: true,
+    // Audit gap fix: password default pola "Nama123" tertulis di file ini --
+    // wajib ganti password saat login pertama (lihat PUT /api/auth/change-password).
+    mustChangePassword: true,
     createdAt: now, updatedAt: now,
   };
 

@@ -28,8 +28,33 @@ export function createApp() {
 
   app.set('trust proxy', true);
 
+  // CSP FIX -- sebelumnya contentSecurityPolicy: false (dimatikan total, browser
+  // tidak dapat perlindungan XSS/injection sama sekali dari header ini). Diaktifkan
+  // dengan policy yang disesuaikan kebutuhan nyata aplikasi ini (bukan default
+  // helmet yang terlalu ketat untuk SPA React+Tailwind ini):
+  // - style-src perlu 'unsafe-inline' karena banyak komponen pakai inline
+  //   style={{...}} React (bukan <style> tag/CSS-in-JS terpisah) -- tanpa ini UI
+  //   akan rusak luas. script-src TETAP ketat ('self' saja, tanpa unsafe-inline/eval)
+  //   karena itu vektor XSS yang paling berbahaya.
+  // - fonts.googleapis.com/fonts.gstatic.com diizinkan karena src/styles/fonts.css
+  //   memang memuat Google Fonts (Cinzel/Inter/Playfair/Plus Jakarta Sans).
+  // - img-src izinkan data:/blob: karena banyak fitur generate QR/preview PDF/upload
+  //   gambar memakai data URI & blob URL di client.
+  // - connect-src 'self' saja -- semua panggilan API app ini memang same-origin.
   app.use(helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+        imgSrc: ["'self'", 'data:', 'blob:'],
+        connectSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        frameAncestors: ["'self'"],
+      },
+    },
     crossOriginEmbedderPolicy: false,
   }));
 
@@ -46,7 +71,7 @@ export function createApp() {
       if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
         return cb(null, true);
       }
-      cb(null, true);
+      cb(new Error('Not allowed by CORS'));
     },
     credentials: true,
   }));

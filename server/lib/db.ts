@@ -61,6 +61,11 @@ function seedDefaultUsersInMemory() {
         role: 'Admin',
         email: '',
         isActive: true,
+        // Audit gap fix: seluruh user awal ini pakai password default pola
+        // "Nama123" yang tertulis di source code -- wajib ganti password saat
+        // login pertama (ditegakkan lewat PUT /api/auth/change-password &
+        // field ini di respons login/me, lihat server/routes/auth.ts).
+        mustChangePassword: true,
         createdAt: now,
         updatedAt: now,
       };

@@ -59,6 +59,7 @@ export interface User {
   role: UserRole;
   isActive: boolean;
   assignedSectorId?: string; // Khusus role Ketua Sektor — ID sektor yang boleh ia kelola (edit/hapus)
+  mustChangePassword?: boolean; // true untuk user hasil seed default -- lihat PUT /api/auth/change-password
 }
 
 export type MembershipType = 'Warga Jemaat' | 'Warga Tamu' | 'Simpatisan';

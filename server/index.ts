@@ -9,6 +9,7 @@ import { initSchema, getPool, getAll, upsert } from './lib/db.js';
 import { logger } from './lib/logger.js';
 import { createServer as createViteServer } from 'vite';
 import { createApp } from './app.js';
+import { encryptData } from './routes/backup.js';
 
 // ── Validate environment variables ───────────────────────────────────────────
 function validateEnv() {
@@ -66,11 +67,21 @@ async function runBackup() {
       grouped.users = (grouped.users as any[]).map(({ password: _pw, ...u }) => u);
     }
 
-    const filename = `gemas-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    // Audit gap fix: backup manual (POST /api/backup/export, lihat backup.ts)
+    // sudah dienkripsi AES-256-GCM lewat encryptData(), tapi backup harian
+    // otomatis ini sebelumnya ditulis sebagai JSON POLOS ke disk -- berisi
+    // seluruh data gereja (minus password user) tanpa proteksi apa pun kalau
+    // disk/volume backup itu sendiri bocor atau diakses pihak tak berwenang.
+    // Disamakan sekarang: pakai encryptData() yang sama (kunci diturunkan dari
+    // JWT_SECRET yang sama), format & marker identik jadi tetap bisa direstore
+    // lewat alur restore yang sudah ada (field `encrypted` di POST /api/backup/restore).
+    const filename = `gemas-backup-${new Date().toISOString().slice(0, 10)}.enc.json`;
     const filePath = path.join(BACKUP_DIR, filename);
-    fs.writeFileSync(filePath, JSON.stringify({ exportedAt: new Date().toISOString(), data: grouped }));
+    const plaintext = JSON.stringify({ exportedAt: new Date().toISOString(), data: grouped });
+    fs.writeFileSync(filePath, encryptData(plaintext));
 
-    // Hapus backup lebih dari 7 hari
+    // Hapus backup lebih dari 7 hari (termasuk file lama format .json polos
+    // dari sebelum fix ini, supaya tidak menumpuk selamanya di disk)
     const files = fs.readdirSync(BACKUP_DIR)
       .filter(f => f.startsWith('gemas-backup-'))
       .sort();
