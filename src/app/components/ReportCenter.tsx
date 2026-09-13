@@ -1066,16 +1066,9 @@ export function ReportCenter() {
         <div className="absolute top-0 right-0 w-96 h-96 bg-amber-400/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/20 text-amber-300 text-xs font-semibold tracking-wider uppercase">
-              <Layers className="w-3.5 h-3.5" />
-              Pusat Laporan Konsolidasi Terpadu (Report Center)
-            </div>
             <h1 className="text-2xl lg:text-3xl font-bold text-white tracking-tight font-serif-church">
               Laporan Konsolidasi Lintas Modul
             </h1>
-            <p className="text-slate-300 text-sm max-w-2xl leading-relaxed">
-              Pilih dan gabungkan modul-modul sistem (Sensus Jemaat, Keuangan, Inventaris/Aset, Sakramen, Ibadah, dan Diakonia) menjadi satu berkas dokumen PDF resmi terintegrasi untuk kebutuhan sidang majelis dan evaluasi.
-            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">

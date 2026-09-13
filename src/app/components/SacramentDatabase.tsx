@@ -57,6 +57,17 @@ function normStatusSakramen(status: string): 'Terjadwal' | 'Selesai' | 'Ditunda'
   return 'Terjadwal';
 }
 
+// Poin 10 (QC 11 Sept 2026): Nama Pendeta/Pelayan di form Sakramen sebelumnya
+// diambil dari SEMUA anggota yang kolom Jabatan Pelayanan-nya terisi apa saja
+// (lihat ministerCandidates di 3 form di bawah). Sekarang dipersempit ke anggota
+// yang berstatus Pendeta saja. Master Data "jabatan_pelayanan" tetap bisa
+// di-rename admin (value = label, lihat catatan normStatusSakramen di atas),
+// jadi dicek lewat substring case-insensitive 'pendeta', bukan exact-match
+// 'PENDETA' -- tahan terhadap variasi kapitalisasi/spasi kalau label diedit.
+function isPendeta(position?: string): boolean {
+  return !!position && position.toLowerCase().includes('pendeta');
+}
+
 function StatusPill({ status }: { status: string }) {
   const cfg: Record<string, { bg: string; color: string; icon: React.ReactNode }> = {
     'Terjadwal': { bg:'#f0ede5', color:'#144f6b', icon:<Clock className="w-3 h-3"/> },
@@ -98,10 +109,18 @@ function SacramentField({ label, value, onChange, type='text', opts, autoFocus, 
 function BaptismForm({ initial, onSave, onClose }: { initial?: Partial<Baptism>; onSave:(d:any)=>void; onClose:()=>void }) {
   const { offset, onMouseDown } = useDraggable();
   const { members, getMasterDataByCategory } = useApp();
-  // Pendeta/Pelayan dicari dari anggota yang kolom Jabatan Pelayanan-nya terisi
-  // (lihat SearchDropdown di bawah) — tetap bisa diketik manual kalau yang
-  // melayani bukan anggota terdaftar / datanya belum lengkap di Database Warga.
-  const ministerCandidates = members.filter(m => !!m.position);
+  // Poin 12 (QC 11 Sept 2026): tautan otomatis ke Jadwal Ibadah hanya masuk akal
+  // saat pencatatan BARU (bukan saat edit -- kalau tidak, tiap kali admin
+  // memperbarui catatan lama yg sudah lama selesai, jadwal baru ikut tercipta
+  // berulang-ulang). isAdd dipakai jg utk sembunyikan checkbox-nya saat edit.
+  const isAdd = !initial?.memberName;
+  const [createJadwal, setCreateJadwal] = useState(true);
+  // Pendeta/Pelayan dicari dari anggota yang BERSTATUS PENDETA saja (poin 10, QC
+  // 11 Sept 2026; sebelumnya semua anggota dgn Jabatan Pelayanan apa saja ikut
+  // muncul) — lihat isPendeta() di atas. Tetap bisa diketik manual (SearchDropdown)
+  // kalau yang melayani bukan anggota terdaftar / datanya belum lengkap di Database
+  // Warga, atau kalau field Jabatan Pelayanan-nya belum diisi "Pendeta".
+  const ministerCandidates = members.filter(m => isPendeta(m.position));
   const tempatOpts = getMasterDataByCategory('tempat_sakramen').map(m => m.value);
   const statusSakramenOpts = getMasterDataByCategory('status_sakramen').map(m => m.value);
   const STATUS_OPTS = statusSakramenOpts.length ? statusSakramenOpts : ['Terjadwal','Selesai','Ditunda','Dibatalkan'];
@@ -121,7 +140,9 @@ function BaptismForm({ initial, onSave, onClose }: { initial?: Partial<Baptism>;
     // tanpa mengisinya terlihat "berhasil" di UI padahal server menolak 400
     // (Pelayan/pendeta wajib diisi) dan tidak ada yang benar-benar tersimpan.
     if(!f.memberName||!f.baptismDate||!f.minister){setErr('Nama, tanggal baptis, dan Pendeta/Pelayan wajib diisi');return;}
-    onSave({...f,parents:{fatherName:f.fatherName,motherName:f.motherName}});
+    const payload:any = {...f,parents:{fatherName:f.fatherName,motherName:f.motherName}};
+    if(isAdd) payload.createJadwal = createJadwal;
+    onSave(payload);
   };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
@@ -176,12 +197,59 @@ function BaptismForm({ initial, onSave, onClose }: { initial?: Partial<Baptism>;
             <SacramentField label="Saksi 1" value={f.witness1} onChange={v=>h('witness1',v)}/>
             <SacramentField label="Saksi 2" value={f.witness2} onChange={v=>h('witness2',v)}/>
             <SacramentField label="No. Surat Baptis" value={f.certificateNumber} onChange={v=>h('certificateNumber',v)}/>
-            {f.type==='Anak'&&<><SacramentField label="Nama Ayah" value={f.fatherName} onChange={v=>h('fatherName',v)}/><SacramentField label="Nama Ibu" value={f.motherName} onChange={v=>h('motherName',v)}/></>}
+            {/* Poin 9 (QC 11 Sept 2026): Nama Ayah & Ibu sebelumnya input teks bebas --
+                sekarang dropdown pencarian dari data jemaat (pola SearchDropdown sama
+                seperti Nama Jemaat/Pendeta di atas), tapi tetap bisa diketik manual
+                kalau orang tuanya bukan anggota terdaftar. */}
+            {f.type==='Anak'&&<>
+              <div>
+                <label style={{display:'block',marginBottom:4,fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Nama Ayah</label>
+                <SearchDropdown<any>
+                  value={f.fatherName}
+                  onChange={v=>h('fatherName',v)}
+                  placeholder="Cari nama jemaat, atau ketik manual..."
+                  items={members}
+                  filterFn={(m,q)=>m.fullName.toLowerCase().includes(q.toLowerCase())||m.memberNumber?.toLowerCase().includes(q.toLowerCase())}
+                  renderResult={m=>(
+                    <div>
+                      <p style={{fontSize:'13px',fontWeight:600,color:'#0f172a',margin:0}}>{m.fullName}</p>
+                      <p style={{fontSize:'11px',color:'#64748b',margin:0}}>{m.memberNumber||'-'}</p>
+                    </div>
+                  )}
+                  onSelect={m=>h('fatherName',m.fullName)}
+                />
+              </div>
+              <div>
+                <label style={{display:'block',marginBottom:4,fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Nama Ibu</label>
+                <SearchDropdown<any>
+                  value={f.motherName}
+                  onChange={v=>h('motherName',v)}
+                  placeholder="Cari nama jemaat, atau ketik manual..."
+                  items={members}
+                  filterFn={(m,q)=>m.fullName.toLowerCase().includes(q.toLowerCase())||m.memberNumber?.toLowerCase().includes(q.toLowerCase())}
+                  renderResult={m=>(
+                    <div>
+                      <p style={{fontSize:'13px',fontWeight:600,color:'#0f172a',margin:0}}>{m.fullName}</p>
+                      <p style={{fontSize:'11px',color:'#64748b',margin:0}}>{m.memberNumber||'-'}</p>
+                    </div>
+                  )}
+                  onSelect={m=>h('motherName',m.fullName)}
+                />
+              </div>
+            </>}
             <SacramentField label="Status" value={f.status} onChange={v=>h('status',v)} opts={STATUS_OPTS}/>
             <div className="col-span-2">
               <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Catatan</label>
               <textarea value={f.notes} onChange={e=>h('notes',e.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none" style={{borderColor:'#e2e8f0'}}/>
             </div>
+            {/* Poin 12 (QC 11 Sept 2026): opsi auto-link ke Jadwal & Petugas Ibadah --
+                default tercentang, hanya muncul saat mencatat baru (bukan edit). */}
+            {isAdd && (
+              <label className="col-span-2 flex items-center gap-2 px-3 py-2 rounded-lg text-sm cursor-pointer" style={{background:'#f0f7fb',color:'#144f6b'}}>
+                <input type="checkbox" checked={createJadwal} onChange={e=>setCreateJadwal(e.target.checked)} className="w-4 h-4"/>
+                Buat juga Jadwal Ibadah untuk pelaksanaan sakramen ini
+              </label>
+            )}
           </div>
           {err&&<div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg text-sm" style={{background:'#fef2f2',color:'#dc2626'}}><AlertCircle className="w-4 h-4"/>{err}</div>}
         </div>
@@ -198,10 +266,15 @@ function BaptismForm({ initial, onSave, onClose }: { initial?: Partial<Baptism>;
 function SidiForm({ initial, onSave, onClose }: { initial?: Partial<Sidi>; onSave:(d:any)=>void; onClose:()=>void }) {
   const { offset, onMouseDown } = useDraggable();
   const { members, getMasterDataByCategory } = useApp();
-  // Pendeta/Pelayan dicari dari anggota yang kolom Jabatan Pelayanan-nya terisi
-  // (lihat SearchDropdown di bawah) — tetap bisa diketik manual kalau yang
-  // melayani bukan anggota terdaftar / datanya belum lengkap di Database Warga.
-  const ministerCandidates = members.filter(m => !!m.position);
+  // Poin 12 (QC 11 Sept 2026): lihat catatan yang sama di BaptismForm di atas.
+  const isAdd = !initial?.memberName;
+  const [createJadwal, setCreateJadwal] = useState(true);
+  // Pendeta/Pelayan dicari dari anggota yang BERSTATUS PENDETA saja (poin 10, QC
+  // 11 Sept 2026; sebelumnya semua anggota dgn Jabatan Pelayanan apa saja ikut
+  // muncul) — lihat isPendeta() di atas. Tetap bisa diketik manual (SearchDropdown)
+  // kalau yang melayani bukan anggota terdaftar / datanya belum lengkap di Database
+  // Warga, atau kalau field Jabatan Pelayanan-nya belum diisi "Pendeta".
+  const ministerCandidates = members.filter(m => isPendeta(m.position));
   const tempatOpts = getMasterDataByCategory('tempat_sakramen').map(m => m.value);
   const statusSakramenOpts = getMasterDataByCategory('status_sakramen').map(m => m.value);
   const STATUS_OPTS = statusSakramenOpts.length ? statusSakramenOpts : ['Terjadwal','Selesai','Ditunda','Dibatalkan'];
@@ -217,7 +290,9 @@ function SidiForm({ initial, onSave, onClose }: { initial?: Partial<Sidi>; onSav
   const submit=()=>{
     // Lihat catatan validasi Baptisan di atas -- disamakan dengan validateSidiData() server.
     if(!f.memberName||!f.sidiDate||!f.minister){setErr('Nama, tanggal sidi, dan Pendeta/Pelayan wajib diisi');return;}
-    onSave(f);
+    const payload:any = {...f};
+    if(isAdd) payload.createJadwal = createJadwal;
+    onSave(payload);
   };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
@@ -276,6 +351,12 @@ function SidiForm({ initial, onSave, onClose }: { initial?: Partial<Sidi>; onSav
             <SacramentField label="Status" value={f.status} onChange={v=>h('status',v)} opts={STATUS_OPTS}/>
             <div className="col-span-2"><label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Catatan</label>
               <textarea value={f.notes} onChange={e=>h('notes',e.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none" style={{borderColor:'#e2e8f0'}}/></div>
+            {isAdd && (
+              <label className="col-span-2 flex items-center gap-2 px-3 py-2 rounded-lg text-sm cursor-pointer" style={{background:'#f0f7fb',color:'#144f6b'}}>
+                <input type="checkbox" checked={createJadwal} onChange={e=>setCreateJadwal(e.target.checked)} className="w-4 h-4"/>
+                Buat juga Jadwal Ibadah untuk pelaksanaan sakramen ini
+              </label>
+            )}
           </div>
           {err&&<div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg text-sm" style={{background:'#fef2f2',color:'#dc2626'}}><AlertCircle className="w-4 h-4"/>{err}</div>}
         </div>
@@ -292,10 +373,15 @@ function SidiForm({ initial, onSave, onClose }: { initial?: Partial<Sidi>; onSav
 function MarriageForm({ initial, onSave, onClose }: { initial?: Partial<Marriage>; onSave:(d:any)=>void; onClose:()=>void }) {
   const { offset, onMouseDown } = useDraggable();
   const { members, getMasterDataByCategory } = useApp();
-  // Pendeta/Pelayan dicari dari anggota yang kolom Jabatan Pelayanan-nya terisi
-  // (lihat SearchDropdown di bawah) — tetap bisa diketik manual kalau yang
-  // melayani bukan anggota terdaftar / datanya belum lengkap di Database Warga.
-  const ministerCandidates = members.filter(m => !!m.position);
+  // Poin 12 (QC 11 Sept 2026): lihat catatan yang sama di BaptismForm di atas.
+  const isAdd = !initial?.groomName;
+  const [createJadwal, setCreateJadwal] = useState(true);
+  // Pendeta/Pelayan dicari dari anggota yang BERSTATUS PENDETA saja (poin 10, QC
+  // 11 Sept 2026; sebelumnya semua anggota dgn Jabatan Pelayanan apa saja ikut
+  // muncul) — lihat isPendeta() di atas. Tetap bisa diketik manual (SearchDropdown)
+  // kalau yang melayani bukan anggota terdaftar / datanya belum lengkap di Database
+  // Warga, atau kalau field Jabatan Pelayanan-nya belum diisi "Pendeta".
+  const ministerCandidates = members.filter(m => isPendeta(m.position));
   const tempatOpts = getMasterDataByCategory('tempat_sakramen').map(m => m.value);
   const statusSakramenOpts = getMasterDataByCategory('status_sakramen').map(m => m.value);
   const STATUS_OPTS = statusSakramenOpts.length ? statusSakramenOpts : ['Terjadwal','Selesai','Ditunda','Dibatalkan'];
@@ -313,7 +399,9 @@ function MarriageForm({ initial, onSave, onClose }: { initial?: Partial<Marriage
   const submit=()=>{
     // Lihat catatan validasi Baptisan di atas -- disamakan dengan validateMarriageData() server.
     if(!f.groomName||!f.brideName||!f.marriageDate||!f.minister){setErr('Nama mempelai, tanggal nikah, dan Pendeta/Pelayan wajib diisi');return;}
-    onSave(f);
+    const payload:any = {...f};
+    if(isAdd) payload.createJadwal = createJadwal;
+    onSave(payload);
   };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}} onClick={onClose}>
@@ -389,6 +477,12 @@ function MarriageForm({ initial, onSave, onClose }: { initial?: Partial<Marriage
             <div className="col-span-2"><SacramentField label="No. Surat Nikah Gereja" value={f.certificateNumber} onChange={v=>h('certificateNumber',v)} ring="ring-pink-400"/></div>
             <div className="col-span-2"><label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Catatan</label>
               <textarea value={f.notes} onChange={e=>h('notes',e.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-pink-400 resize-none" style={{borderColor:'#e2e8f0'}}/></div>
+            {isAdd && (
+              <label className="col-span-2 flex items-center gap-2 px-3 py-2 rounded-lg text-sm cursor-pointer" style={{background:'#fdf2f8',color:'#144f6b'}}>
+                <input type="checkbox" checked={createJadwal} onChange={e=>setCreateJadwal(e.target.checked)} className="w-4 h-4"/>
+                Buat juga Jadwal Ibadah untuk pelaksanaan sakramen ini
+              </label>
+            )}
           </div>
           {err&&<div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg text-sm" style={{background:'#fef2f2',color:'#dc2626'}}><AlertCircle className="w-4 h-4"/>{err}</div>}
         </div>

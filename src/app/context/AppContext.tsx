@@ -21,6 +21,7 @@ import {
 } from '../types';
 import { getDomainForEntityType, getAuditSeverity } from '../lib/auditUtils';
 import { DEFAULT_SEED_AUDIT_LOGS } from '../data/seedAuditLogs';
+import { DEFAULT_OFFICER_CATEGORIES, officerRecordToArray } from '../lib/worshipOfficers';
 
 interface AppContextType {
   // DB
@@ -632,6 +633,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     // Master data: load dari DB, seed jika kosong atau kurang dari 12 kategori
+    let finalMasterData: MasterDataItem[];
     try {
       const mdItems = masterDataItemsLoaded;
       const mdCats = new Set(mdItems.map((m: MasterDataItem) => m.category));
@@ -646,9 +648,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         existingJenis.forEach((m: MasterDataItem) => apiRemove('masterData', m.id));
         const newItems: MasterDataItem[] = NEW_JENIS.map((v, i) => ({ id: `md_ji_${i}`, category: 'jenis_ibadah' as MasterDataCategory, value: v, label: v, isActive: true, order: i + 1, createdAt: new Date().toISOString() }));
         newItems.forEach(item => apiSave('masterData', item.id, item));
-        setMasterDataItems([...mdItems.filter((m: MasterDataItem) => m.category !== 'jenis_ibadah'), ...newItems]);
+        finalMasterData = [...mdItems.filter((m: MasterDataItem) => m.category !== 'jenis_ibadah'), ...newItems];
       } else {
-        setMasterDataItems(mdItems);
+        finalMasterData = mdItems;
       }
     } catch {
       const seeded = DEFAULT_MASTER_DATA.map((item: Omit<MasterDataItem,'id'|'createdAt'>, i: number) => ({
@@ -656,9 +658,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
         id: `md${Date.now()}${i}`,
         createdAt: new Date().toISOString(),
       }));
-      setMasterDataItems(seeded);
       seeded.forEach((item: MasterDataItem) => apiSave('masterData', item.id, item));
+      finalMasterData = seeded;
     }
+
+    // Migrasi tambahan (aditif, tidak menghapus/mengubah item lama): pastikan opsi
+    // baru yang dibutuhkan fitur QC 11 Sept 2026 sudah ada, tanpa memicu reseed penuh
+    // (kategori yg sudah ada di DB produksi biasanya sudah >= 32, jadi blok try di atas
+    // tidak lewat jalur seed/reset). 'PENDETA' -> poin 10 (filter Nama Pendeta/Pelayan
+    // di form Sakramen dari anggota berstatus Pendeta). 'Sakramen' -> poin 12 (jenis
+    // Jadwal Ibadah yang dipakai saat auto-link dari Baptis/Sidi/Nikah).
+    const ensureMasterDataValue = (category: MasterDataCategory, value: string) => {
+      if (finalMasterData.some(m => m.category === category && m.value === value)) return;
+      const order = finalMasterData.filter(m => m.category === category).length + 1;
+      const newItem: MasterDataItem = { id: `md_${category}_${Date.now()}`, category, value, label: value, isActive: true, order, createdAt: new Date().toISOString() };
+      finalMasterData = [...finalMasterData, newItem];
+      apiSave('masterData', newItem.id, newItem);
+    };
+    ensureMasterDataValue('jabatan_pelayanan', 'PENDETA');
+    ensureMasterDataValue('jenis_ibadah', 'Sakramen');
+
+    setMasterDataItems(finalMasterData);
 
     // PettyCash: load dari DB, seed jika kosong
     {
@@ -1215,7 +1235,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // ── Master Data ──────────────────────────────────────────────────────────────
   const DEFAULT_MASTER_DATA: Omit<MasterDataItem, 'id' | 'createdAt'>[] = [
     // Jabatan Pelayanan (UPPERCASE sesuai data jemaat)
-    ...['PENATUA','DIAKEN','KETUA SEKTOR','WAKIL KETUA SEKTOR','SEKRETARIS','BENDAHARA','ANGGOTA MAJELIS'].map((v,i)=>({ category:'jabatan_pelayanan' as MasterDataCategory, value:v, label:v, isActive:true, order:i+1 })),
+    // 'PENDETA' ditambahkan (QC 11 Sept 2026 poin 10) supaya Nama Pendeta/Pelayan di
+    // form Sakramen bisa difilter dari anggota berstatus Pendeta, bukan dari anggota
+    // manapun yang sekadar punya Jabatan Pelayanan terisi (lihat isPendeta() di
+    // SacramentDatabase.tsx). Untuk database yang sudah ada (tidak lewat reseed penuh
+    // di bawah), lihat migrasi tambahan ensureMasterDataValue setelah blok try/catch ini.
+    ...['PENDETA','PENATUA','DIAKEN','KETUA SEKTOR','WAKIL KETUA SEKTOR','SEKRETARIS','BENDAHARA','ANGGOTA MAJELIS'].map((v,i)=>({ category:'jabatan_pelayanan' as MasterDataCategory, value:v, label:v, isActive:true, order:i+1 })),
     // Unit Kategorial (Pelkat)
     ...['PELKAT-PA','PELKAT-PT','PELKAT-GP','PELKAT-PKB','PELKAT-PKP','PELKAT-PKLU'].map((v,i)=>({ category:'pelkat' as MasterDataCategory, value:v, label:v, isActive:true, order:i+1 })),
     // Jenis Persembahan
@@ -1859,10 +1884,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Item 12 (QC 11 Sept 2026): saat sebuah Sakramen (Baptis/Sidi/Nikah) BARU dicatat
+  // (bukan diedit) dan checkbox "Buat juga Jadwal Ibadah" di form dicentang, otomatis
+  // buat satu entri di submodul Jadwal & Petugas Ibadah (modul Peribadahan) supaya
+  // tidak perlu dicatat dua kali secara manual. Jenis 'Sakramen' ditambahkan lewat
+  // migrasi tambahan ensureMasterDataValue di atas (aditif, tidak menghapus jenis lain).
+  // Kategori dikosongkan (Sakramen tidak masuk kategori GP/PA/PKB/dst yang ada).
+  // Pendeta/Pelayan yang mengisi form ikut dicatat sbg petugas kategori "Pengkhotbah /
+  // Pendeta" (atau kategori pertama yg cocok kata kunci itu kalau admin sudah
+  // mengustomisasi Master Data "kategori_petugas_ibadah") -- pola sama seperti
+  // buildOfficerRecord() di lib/worshipOfficers.ts.
+  const createSacramentWorshipSchedule = (opts: { title: string; date?: string; place?: string; minister?: string; note: string }) => {
+    const officerCategoriesRaw = getMasterDataByCategory('kategori_petugas_ibadah').map(m => m.value);
+    const officerCategories = officerCategoriesRaw.length ? officerCategoriesRaw : DEFAULT_OFFICER_CATEGORIES;
+    const preacherCategory = officerCategories.find(c => c.toLowerCase().includes('pengkhotbah')) || officerCategories[0];
+    addWorshipSchedule({
+      type: 'Sakramen',
+      category: '',
+      title: opts.title,
+      date: opts.date || new Date().toISOString().split('T')[0],
+      time: '00:00',
+      location: opts.place || '',
+      officers: opts.minister ? officerRecordToArray({ [preacherCategory]: [opts.minister] }) : [],
+      status: 'Terjadwal',
+      description: opts.note,
+    } as any);
+  };
+
   // NEW: Baptism, Sidi, Marriage CRUD
-  const addBaptism = (baptismData: Omit<Baptism, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const addBaptism = (baptismData: Omit<Baptism, 'id' | 'createdAt' | 'updatedAt'> & { createJadwal?: boolean }) => {
+    const { createJadwal, ...cleanBaptismData } = baptismData as any;
     const newBaptism: Baptism = {
-      ...baptismData,
+      ...cleanBaptismData,
       id: `bap${Date.now()}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -1874,6 +1927,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // mencatat baptisan di sini tidak pernah mengubah angka sensus sama sekali.
     if (newBaptism.status === 'Selesai' && (newBaptism as any).memberId) {
       updateMember((newBaptism as any).memberId, { baptismStatus: 'Sudah', baptismDate: newBaptism.baptismDate } as any);
+    }
+    if (createJadwal) {
+      createSacramentWorshipSchedule({
+        title: `Baptisan — ${newBaptism.memberName}`,
+        date: newBaptism.baptismDate,
+        place: newBaptism.baptismPlace,
+        minister: newBaptism.minister,
+        note: `Dibuat otomatis dari pencatatan Sakramen Baptis (${newBaptism.memberName}).`,
+      });
     }
     if (currentUser) {
       logActivity({
@@ -1926,9 +1988,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addSidi = (sidiData: Omit<Sidi, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const addSidi = (sidiData: Omit<Sidi, 'id' | 'createdAt' | 'updatedAt'> & { createJadwal?: boolean }) => {
+    const { createJadwal, ...cleanSidiData } = sidiData as any;
     const newSidi: Sidi = {
-      ...sidiData,
+      ...cleanSidiData,
       id: `sid${Date.now()}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -1938,6 +2001,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // gap-fix: lihat catatan yang sama di addBaptism di atas.
     if (newSidi.status === 'Selesai' && (newSidi as any).memberId) {
       updateMember((newSidi as any).memberId, { sidiStatus: 'Sudah', sidiDate: newSidi.sidiDate } as any);
+    }
+    if (createJadwal) {
+      createSacramentWorshipSchedule({
+        title: `Sidi — ${newSidi.memberName}`,
+        date: newSidi.sidiDate,
+        place: newSidi.sidiPlace,
+        minister: newSidi.minister,
+        note: `Dibuat otomatis dari pencatatan Sakramen Sidi (${newSidi.memberName}).`,
+      });
     }
     if (currentUser) {
       logActivity({
@@ -1990,15 +2062,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addMarriage = (marriageData: Omit<Marriage, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const addMarriage = (marriageData: Omit<Marriage, 'id' | 'createdAt' | 'updatedAt'> & { createJadwal?: boolean }) => {
+    const { createJadwal, ...cleanMarriageData } = marriageData as any;
     const newMarriage: Marriage = {
-      ...marriageData,
+      ...cleanMarriageData,
       id: `mar${Date.now()}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
     setMarriages([...marriages, newMarriage]);
     apiSave('marriages', newMarriage.id, newMarriage);
+    if (createJadwal) {
+      createSacramentWorshipSchedule({
+        title: `Pemberkatan Nikah — ${newMarriage.groomName} & ${newMarriage.brideName}`,
+        date: newMarriage.marriageDate,
+        place: newMarriage.marriagePlace,
+        minister: newMarriage.minister,
+        note: `Dibuat otomatis dari pencatatan Sakramen Nikah (${newMarriage.groomName} & ${newMarriage.brideName}).`,
+      });
+    }
     if (currentUser) {
       logActivity({
         userId: currentUser.id,

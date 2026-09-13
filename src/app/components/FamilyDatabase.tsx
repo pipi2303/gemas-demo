@@ -16,7 +16,15 @@ import autoTable from 'jspdf-autotable';
 import { toast } from 'sonner';
 import { MemberDetail } from './MemberDatabase';
 import { roleStyle, sortByRole, isKK } from '../../lib/familyRole';
-import { liveAge } from '../../lib/age';
+import { liveAge, calcAge } from '../../lib/age';
+
+// Hubungan Keluarga utk anggota tambahan (di luar Kepala Keluarga) -- disamakan
+// dengan opsi non-KK pada form Data Jemaat (MemberDatabase.tsx: MemberField
+// "Hubungan Keluarga" -> ['KK','Istri','Anak','Orang Tua','Lainnya']) supaya nilai
+// yang dihasilkan dari sini tetap konsisten dengan yang dipilih manual di sana.
+const EXTRA_MEMBER_ROLE_OPTS = ['Istri','Anak','Orang Tua','Lainnya'];
+type ExtraMemberRow = { fullName: string; gender: 'Laki-laki'|'Perempuan'; familyRole: string; birthDate: string };
+const EMPTY_EXTRA_MEMBER = (): ExtraMemberRow => ({ fullName:'', gender:'Laki-laki', familyRole:'Anak', birthDate:'' });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const initials = (name: string) => name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
@@ -748,7 +756,7 @@ function FamilyDetail({ family, members, sectors, onClose, onEdit, onDelete, onV
 function FamilyForm({ mode, initial, sectors, members, families, onSave, onClose }: {
   mode:'add'|'edit'; initial?: Partial<Family>;
   sectors:any[]; members:Member[]; families:Family[];
-  onSave:(data:Partial<Family>)=>void; onClose:()=>void;
+  onSave:(data:Partial<Family>, extraMembers?: ExtraMemberRow[])=>void; onClose:()=>void;
 }) {
   const { offset, onMouseDown } = useDraggable();
   const genCode = (name: string) =>
@@ -765,6 +773,17 @@ function FamilyForm({ mode, initial, sectors, members, families, onSave, onClose
   });
   const [err, setErr] = useState('');
   const [dupWarning, setDupWarning] = useState(false);
+  // Item 4 (QC 11 Sept 2026): sebelumnya form ini cuma bisa menetapkan Kepala
+  // Keluarga (dari anggota yang sudah ada) -- tidak ada jalan untuk langsung
+  // menambahkan anggota keluarga baru (istri, anak, dll) di alur yang sama,
+  // jadi admin harus bolak-balik ke Data Jemaat utk tiap anggota. Baris di sini
+  // opsional dan HANYA dipakai saat mode 'add' -- utk keluarga yg sudah ada,
+  // anggota tetap dikelola lewat Data Jemaat (familyId), konsisten dgn pola lama.
+  const [extraMembers, setExtraMembers] = useState<ExtraMemberRow[]>([]);
+  const addExtraMemberRow = () => setExtraMembers(p => [...p, EMPTY_EXTRA_MEMBER()]);
+  const updateExtraMemberRow = (i:number, k:keyof ExtraMemberRow, v:string) =>
+    setExtraMembers(p => p.map((r,idx) => idx===i ? {...r,[k]:v} : r));
+  const removeExtraMemberRow = (i:number) => setExtraMembers(p => p.filter((_,idx)=>idx!==i));
   const h=(k:string,v:any)=>setForm(p=>({...p,[k]:v}));
   const handleHeadOfFamily = (v: string) => {
     setForm(p => ({ ...p, headOfFamily: v, ...(mode==='add' ? { id: genCode(v) } : {}) }));
@@ -786,6 +805,14 @@ function FamilyForm({ mode, initial, sectors, members, families, onSave, onClose
     if(sectorMembers.length===0){setErr('Sektor ini belum punya anggota terdaftar -- tambahkan Kepala Keluarga sebagai anggota di Data Jemaat (dengan Sektor yang sama) dulu sebelum membuat keluarga ini.');setDupWarning(false);return;}
     if(!form.headMemberId){setErr('Kepala Keluarga wajib dipilih dari daftar anggota sektor ini');setDupWarning(false);return;}
     if(!form.address?.trim()){setErr('Alamat wajib diisi');setDupWarning(false);return;}
+    // Baris anggota tambahan yang disentuh (field selain nama sudah diubah dari default)
+    // tapi namanya masih kosong dianggap belum selesai diisi -- baris yang sama sekali
+    // belum disentuh (masih persis EMPTY_EXTRA_MEMBER) diabaikan begitu saja saat submit.
+    if (extraMembers.some(m => !m.fullName.trim() && (m.birthDate || m.familyRole !== 'Anak' || m.gender !== 'Laki-laki'))) {
+      setErr('Nama anggota keluarga tambahan wajib diisi (atau hapus baris yang belum dipakai)');
+      setDupWarning(false);
+      return;
+    }
 
     if (!dupWarning) {
       const dup = families.find(f =>
@@ -800,7 +827,7 @@ function FamilyForm({ mode, initial, sectors, members, families, onSave, onClose
       }
     }
     setErr('');
-    onSave(form);
+    onSave(form, mode==='add' ? extraMembers.filter(m => m.fullName.trim()) : undefined);
   };
 
   return (
@@ -846,6 +873,46 @@ function FamilyForm({ mode, initial, sectors, members, families, onSave, onClose
             <textarea value={form.address||''} onChange={e=>h('address',e.target.value)} rows={3}
               className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-[#144f6b] resize-none" style={{borderColor:'#e2e8f0'}}/>
           </div>
+          {mode==='add' && (
+            <div className="pt-2 border-t" style={{borderColor:'#e2e8f0'}}>
+              <div className="flex items-center justify-between mb-2">
+                <label style={{fontSize:'12px',color:'#64748b',fontWeight:600}}>Anggota Keluarga Lainnya (Istri, Anak, dll — opsional)</label>
+                <button type="button" onClick={addExtraMemberRow}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold hover:opacity-80" style={{background:'#f0f7fb',color:'#144f6b'}}>
+                  <Plus className="w-3 h-3"/> Tambah Anggota
+                </button>
+              </div>
+              {extraMembers.length===0 && (
+                <p style={{fontSize:'11.5px',color:'#94a3b8'}}>Belum ada anggota tambahan. Kepala Keluarga tetap wajib dipilih di atas — bagian ini untuk anggota lain (istri, anak, dll) yang belum terdaftar di Data Jemaat.</p>
+              )}
+              <div className="space-y-2">
+                {extraMembers.map((em, i) => (
+                  <div key={i} className="p-2.5 rounded-xl space-y-2" style={{background:'#f8fafc',border:'1px solid #e2e8f0'}}>
+                    <div className="flex items-center gap-2">
+                      <input value={em.fullName} onChange={e=>updateExtraMemberRow(i,'fullName',e.target.value)} placeholder="Nama lengkap"
+                        className="flex-1 min-w-0 px-2 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/>
+                      <button type="button" onClick={()=>removeExtraMemberRow(i)} data-tooltip="Hapus baris" className="flex-shrink-0 text-gray-400 hover:text-red-500 p-1">
+                        <Trash2 className="w-3.5 h-3.5"/>
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <select value={em.gender} onChange={e=>updateExtraMemberRow(i,'gender',e.target.value)}
+                        className="w-full px-2 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}>
+                        <option value="Laki-laki">Laki-laki</option>
+                        <option value="Perempuan">Perempuan</option>
+                      </select>
+                      <select value={em.familyRole} onChange={e=>updateExtraMemberRow(i,'familyRole',e.target.value)}
+                        className="w-full px-2 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}>
+                        {EXTRA_MEMBER_ROLE_OPTS.map(o=><option key={o} value={o}>{o}</option>)}
+                      </select>
+                      <input type="date" value={em.birthDate} onChange={e=>updateExtraMemberRow(i,'birthDate',e.target.value)}
+                        className="w-full px-2 py-1.5 rounded-lg border text-xs focus:outline-none focus:ring-2 focus:ring-[#144f6b]" style={{borderColor:'#e2e8f0'}}/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {sectorMembers.length===0 && form.sectorId && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm" style={{background:'#fffbeb',color:'#92400e'}}><AlertCircle className="w-4 h-4"/>Sektor ini belum punya anggota terdaftar -- tambahkan Kepala Keluarga di Data Jemaat dulu (dengan Sektor yang sama) sebelum bisa menyimpan keluarga ini.</div>
           )}
@@ -866,7 +933,7 @@ function FamilyForm({ mode, initial, sectors, members, families, onSave, onClose
 export function FamilyDatabase() {
   const { offset: offset1, onMouseDown: onMouseDown1 } = useDraggable();
   const { offset: offset2, onMouseDown: onMouseDown2 } = useDraggable();
-  const { families, members, sectors, addFamily, updateFamily, deleteFamily, updateMember, can, reloadData, currentUser } = useApp();
+  const { families, members, sectors, addFamily, updateFamily, deleteFamily, addMember, updateMember, can, reloadData, currentUser } = useApp();
 
   const canCreate = can('families', 'create');
   const canEdit   = can('families', 'edit');
@@ -942,13 +1009,41 @@ export function FamilyDatabase() {
   const totalPages = Math.max(1,Math.ceil(filtered.length/ITEMS));
   const pageItems = filtered.slice((page-1)*ITEMS,page*ITEMS);
 
-  const handleSave = (data: Partial<Family>) => {
+  const handleSave = (data: Partial<Family>, extraMembers: ExtraMemberRow[] = []) => {
     if(formMode==='add'){
       // Keluarga baru dimulai tanpa anggota — jangan lagi menganggap seluruh anggota
       // sektor yang dipilih sebagai anggota keluarga ini (bug lama). Anggota ditautkan
       // satu per satu lewat familyId di Data Anggota, yang otomatis menjaga
       // memberCount/members[] tetap akurat (lihat updateMember di AppContext).
-      addFamily({...data,memberCount:0,members:[],id:(data as any).id||undefined} as any);
+      const newFamilyId = (data as any).id || `f${Date.now()}`;
+      addFamily({...data,memberCount:0,members:[],id:newFamilyId} as any);
+      // Gap-fix: headMemberId sebelumnya hanya disimpan di record Family -- Member
+      // yang dipilih sbg Kepala Keluarga tidak ikut ditautkan (familyId) ke keluarga
+      // barunya sendiri, jadi tidak terhitung di memberCount/family.members[]. Tautkan
+      // di sini (hanya kalau familyId-nya belum pas ke keluarga baru ini).
+      if (data.headMemberId) {
+        const head = members.find(m => m.id === data.headMemberId);
+        if (head && head.familyId !== newFamilyId) {
+          updateMember(head.id, { familyId: newFamilyId, sectorId: data.sectorId, address: data.address });
+        }
+      }
+      // Item 4 (QC 11 Sept 2026): anggota keluarga lain (istri, anak, dll) yang diisi
+      // langsung di form Tambah Keluarga -- dibuat sbg Member baru, ditautkan ke
+      // keluarga & sektor yang sama, supaya tidak perlu bolak-balik ke Data Jemaat.
+      extraMembers.forEach(em => {
+        const trimmed = em.fullName.trim();
+        if (!trimmed) return;
+        const nameParts = trimmed.split(/\s+/);
+        const firstName = nameParts[0];
+        const lastName = nameParts.slice(1).join(' ');
+        addMember({
+          firstName, lastName, fullName: trimmed,
+          gender: em.gender, familyRole: em.familyRole,
+          birthDate: em.birthDate, age: calcAge(em.birthDate),
+          familyId: newFamilyId, sectorId: data.sectorId || '', address: data.address || '',
+          membershipStatus: 'Aktif', membershipType: 'Warga Jemaat',
+        } as any);
+      });
     } else if(selected){
       updateFamily(selected.id,data);
     }
