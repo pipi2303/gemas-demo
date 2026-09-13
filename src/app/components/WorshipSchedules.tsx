@@ -261,6 +261,7 @@ export function WorshipSchedules() {
     if (!formData.title.trim()) errors.title = 'Judul wajib diisi';
     if (!formData.date) errors.date = 'Tanggal wajib diisi';
     if (!formData.time) errors.time = 'Waktu wajib diisi';
+    if (!formData.location.trim()) errors.location = 'Lokasi wajib diisi';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -1024,6 +1025,20 @@ export function WorshipSchedules() {
                       />
                       {formErrors.time && <p className="text-xs text-red-500 mt-1">{formErrors.time}</p>}
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Lokasi <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.location}
+                      onChange={e => setFormData(p => ({ ...p, location: e.target.value }))}
+                      placeholder="mis. Gedung Gereja Utama"
+                      className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 ${formErrors.location ? 'border-red-400' : 'border-gray-300'}`}
+                    />
+                    {formErrors.location && <p className="text-xs text-red-500 mt-1">{formErrors.location}</p>}
                   </div>
 
                 </div>

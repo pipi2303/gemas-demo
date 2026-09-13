@@ -481,13 +481,13 @@ export function AttestationForm({ initial, members, families, onSave, onSaveBatc
     if(mode==='keluarga'){
       if(!selectedFamily){setErr('Pilih keluarga terlebih dahulu');return;}
       if(familyMembers.length===0){setErr('Keluarga ini belum punya anggota terdaftar (cek familyId anggota)');return;}
-      if(!f.requestDate||!f.toChurch){setErr('Tanggal permohonan dan gereja tujuan wajib diisi');return;}
+      if(!f.requestDate||!f.toChurch||!f.fromChurch||!f.reason){setErr('Tanggal permohonan, gereja asal, gereja tujuan, dan alasan wajib diisi');return;}
       const familyId = 'fam-att-'+Date.now();
       const rows = familyMembers.map((m:any)=>({ ...f, memberId:m.id, memberName:m.fullName, familyId }));
       if(onSaveBatch) onSaveBatch(rows); else onSave(rows[0]);
       return;
     }
-    if(!f.memberName||!f.requestDate||!f.toChurch){setErr('Nama, tanggal permohonan, dan gereja tujuan wajib diisi');return;}
+    if(!f.memberName||!f.requestDate||!f.toChurch||!f.fromChurch||!f.reason){setErr('Nama, tanggal permohonan, gereja asal, gereja tujuan, dan alasan wajib diisi');return;}
     onSave(f);
   };
 
@@ -610,7 +610,7 @@ export function AttestationForm({ initial, members, families, onSave, onSaveBatc
 
             <div>
               <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>
-                {isIn ? 'Gereja Asal' : 'Gereja Asal'}
+                Gereja Asal <span className="text-red-400">*</span>
               </label>
               <input value={f.fromChurch} onChange={e=>h('fromChurch',e.target.value)}
                 placeholder={isIn ? 'Nama gereja asal anggota' : 'GPIB Trinitas'}
@@ -697,7 +697,7 @@ export function AttestationForm({ initial, members, families, onSave, onSaveBatc
               </div>
             )}
             <div className="col-span-2">
-              <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Alasan</label>
+              <label className="block mb-1" style={{fontSize:'11.5px',color:'#64748b',fontWeight:600}}>Alasan <span className="text-red-400">*</span></label>
               <textarea value={f.reason} onChange={e=>h('reason',e.target.value)} rows={2}
                 className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none resize-none" style={{borderColor:'#e2e8f0'}}/>
             </div>

@@ -16,6 +16,7 @@ import { Search, ArrowRightLeft, MapPin, Users, TrendingUp, TrendingDown,
 } from 'lucide-react';
 import { MemberDetail } from './MemberDatabase';
 import { Member, SectorTransfer } from '../types';
+import { toast } from 'sonner';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   'Selesai': { label: 'Selesai', color: 'bg-[#f0ede5] text-[#144f6b]', icon: CheckCircle2 },
@@ -437,8 +438,17 @@ export function SectorTransferHistory() {
                 if (!toSec || !form.reason) return;
                 if (transferMode === 'keluarga') {
                   if (!selectedFamily || familyMembers.length === 0) return;
+                  // Server menolak transfer dengan fromSectorId === toSectorId ("Sektor
+                  // asal dan tujuan tidak boleh sama") -- saring dulu di sini supaya
+                  // anggota yang kebetulan sudah berada di sektor tujuan tidak memicu
+                  // 400 yang lalu ditelan diam-diam oleh apiSave.
+                  const eligibleMembers = familyMembers.filter(m => m.sectorId !== toSec.id);
+                  if (eligibleMembers.length === 0) {
+                    toast.error('Semua anggota keluarga ini sudah berada di sektor tujuan');
+                    return;
+                  }
                   const familyId = 'fam-st-' + Date.now();
-                  const rows = familyMembers.map(m => {
+                  const rows = eligibleMembers.map(m => {
                     const fromSec = sectors.find(s => s.id === m.sectorId);
                     return {
                       memberId: m.id,
@@ -462,6 +472,10 @@ export function SectorTransferHistory() {
                   const member = members.find(m => m.id === form.memberId);
                   const fromSec = sectors.find(s => s.id === form.fromSectorId);
                   if (!member || !fromSec) return;
+                  if (fromSec.id === toSec.id) {
+                    toast.error('Sektor asal dan tujuan tidak boleh sama');
+                    return;
+                  }
                   addSectorTransfer({
                     memberId: member.id,
                     memberName: member.fullName,
