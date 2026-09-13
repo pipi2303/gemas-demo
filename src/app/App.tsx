@@ -1,61 +1,81 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { LoginPage } from './components/LoginPage';
 import { DashboardLayout } from './components/DashboardLayout';
 import { Dashboard } from './components/Dashboard';
-import { MinistryManagement } from './components/MinistryManagement';
-import { EventCalendar } from './components/EventCalendar';
-import { PrayerRequests } from './components/PrayerRequests';
-import { UserManagement } from './components/UserManagement';
-import { ActivityLog } from './components/ActivityLog';
-import { AttendanceStatsQR } from './components/AttendanceStatsQR';
-import { AnnouncementManagement } from './components/AnnouncementManagement';
-import { DataManager } from './components/DataManager';
-import { RolesManagement } from './components/RolesManagement';
-import { BackupRestore } from './components/BackupRestore';
-// NEW IMPORTS: Modul Baru
-import { WorshipSchedules } from './components/WorshipSchedules';
-import { EWarta } from './components/EWarta';
-import { LiturgyDigital } from './components/LiturgyDigital';
-import { OfferingsQRIS } from './components/OfferingsQRIS';
-import { ServiceRequestsComponent } from './components/ServiceRequests';
-// NEW IMPORTS: Fitur Pengembangan
-import { LivestreamReminder } from './components/LivestreamReminder';
-// NEW: Enhanced database components
-import { MemberDatabase } from './components/MemberDatabase';
-import { FamilyDatabase } from './components/FamilyDatabase';
-import { SectorDatabase } from './components/SectorDatabase';
-import { SacramentDatabase } from './components/SacramentDatabase';
-import { AttestationDatabase } from './components/AttestationDatabase';
-import { AssetManagement } from './components/AssetManagement';
-// Modul database, laporan, aset & fasilitas (dulu sempat ditandai draft/orphaned —
-// sudah terhubung penuh ke AppContext, catatan lama dihapus supaya tidak menyesatkan)
-import { LaporanSensus } from './components/LaporanSensus';
-import { ReportCenter } from './components/ReportCenter';
-import { AidDistributionComponent } from './components/AidDistribution';
-import { RoomBookingComponent } from './components/RoomBooking';
-import { ResourceLibrary } from './components/ResourceLibrary';
-import { SermonArchive } from './components/SermonArchive';
-import { MasterData } from './components/MasterData';
-import { LetterSettings } from './components/LetterSettings';
-import { OutgoingLetters } from './components/OutgoingLetters';
-import { LetterTemplates } from './components/LetterTemplates';
-import { IncomingLetters } from './components/IncomingLetters';
-import { FinanceMasterData } from './components/finance/FinanceMasterData';
-import { FinanceBudget } from './components/finance/FinanceBudget';
-import { FinanceTransaction } from './components/finance/FinanceTransaction';
-import { FinanceLedger } from './components/finance/FinanceLedger';
-import { FinanceApproval } from './components/finance/FinanceApproval';
-import { FinanceReconciliation } from './components/finance/FinanceReconciliation';
-import { FinancePeriodClosing } from './components/finance/FinancePeriodClosing';
-import { FinanceReports } from './components/finance/FinanceReports';
-import { FinanceDashboard } from './components/finance/FinanceDashboard';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { TooltipRoot } from './components/ui/tooltip';
 import { PAGE_MODULE } from '../lib/permissions';
 // PWA IMPORTS
 import { PWAInstallPrompt, PWAStatusIndicator } from './components/PWAInstallPrompt';
 import { Toaster } from 'sonner';
+
+// Halaman-halaman selain Dashboard/Login di-lazy-load per rute (React.lazy + Suspense).
+// Ini AMAN karena: (1) navigasi di app ini murni switch(currentPage) di bawah, bukan
+// react-router, jadi cuma satu komponen halaman yang pernah dirender di satu waktu;
+// (2) tidak ada satupun komponen halaman ini yang diimpor file lain selain file ini
+// (diverifikasi lewat grep sebelum perubahan ini); (3) tidak ada side-effect di level
+// modul (window./setInterval/dll di luar fungsi komponen) di semua file ini.
+// Efeknya: initial bundle tidak lagi menyeret kode SEMUA modul (Finance, Aset, dll)
+// sekaligus — staf yang cuma buka satu-dua modul per sesi hanya men-download chunk
+// modul itu saja.
+const MinistryManagement = React.lazy(() => import('./components/MinistryManagement').then(m => ({ default: m.MinistryManagement })));
+const EventCalendar = React.lazy(() => import('./components/EventCalendar').then(m => ({ default: m.EventCalendar })));
+const PrayerRequests = React.lazy(() => import('./components/PrayerRequests').then(m => ({ default: m.PrayerRequests })));
+const UserManagement = React.lazy(() => import('./components/UserManagement').then(m => ({ default: m.UserManagement })));
+const ActivityLog = React.lazy(() => import('./components/ActivityLog').then(m => ({ default: m.ActivityLog })));
+const AttendanceStatsQR = React.lazy(() => import('./components/AttendanceStatsQR').then(m => ({ default: m.AttendanceStatsQR })));
+const AnnouncementManagement = React.lazy(() => import('./components/AnnouncementManagement').then(m => ({ default: m.AnnouncementManagement })));
+const DataManager = React.lazy(() => import('./components/DataManager').then(m => ({ default: m.DataManager })));
+const RolesManagement = React.lazy(() => import('./components/RolesManagement').then(m => ({ default: m.RolesManagement })));
+const BackupRestore = React.lazy(() => import('./components/BackupRestore').then(m => ({ default: m.BackupRestore })));
+// NEW IMPORTS: Modul Baru
+const WorshipSchedules = React.lazy(() => import('./components/WorshipSchedules').then(m => ({ default: m.WorshipSchedules })));
+const EWarta = React.lazy(() => import('./components/EWarta').then(m => ({ default: m.EWarta })));
+const LiturgyDigital = React.lazy(() => import('./components/LiturgyDigital').then(m => ({ default: m.LiturgyDigital })));
+const OfferingsQRIS = React.lazy(() => import('./components/OfferingsQRIS').then(m => ({ default: m.OfferingsQRIS })));
+const ServiceRequestsComponent = React.lazy(() => import('./components/ServiceRequests').then(m => ({ default: m.ServiceRequestsComponent })));
+// NEW IMPORTS: Fitur Pengembangan
+const LivestreamReminder = React.lazy(() => import('./components/LivestreamReminder').then(m => ({ default: m.LivestreamReminder })));
+// NEW: Enhanced database components
+const MemberDatabase = React.lazy(() => import('./components/MemberDatabase').then(m => ({ default: m.MemberDatabase })));
+const FamilyDatabase = React.lazy(() => import('./components/FamilyDatabase').then(m => ({ default: m.FamilyDatabase })));
+const SectorDatabase = React.lazy(() => import('./components/SectorDatabase').then(m => ({ default: m.SectorDatabase })));
+const SacramentDatabase = React.lazy(() => import('./components/SacramentDatabase').then(m => ({ default: m.SacramentDatabase })));
+const AttestationDatabase = React.lazy(() => import('./components/AttestationDatabase').then(m => ({ default: m.AttestationDatabase })));
+const AssetManagement = React.lazy(() => import('./components/AssetManagement').then(m => ({ default: m.AssetManagement })));
+// Modul database, laporan, aset & fasilitas (dulu sempat ditandai draft/orphaned —
+// sudah terhubung penuh ke AppContext, catatan lama dihapus supaya tidak menyesatkan)
+const LaporanSensus = React.lazy(() => import('./components/LaporanSensus').then(m => ({ default: m.LaporanSensus })));
+const ReportCenter = React.lazy(() => import('./components/ReportCenter').then(m => ({ default: m.ReportCenter })));
+const AidDistributionComponent = React.lazy(() => import('./components/AidDistribution').then(m => ({ default: m.AidDistributionComponent })));
+const RoomBookingComponent = React.lazy(() => import('./components/RoomBooking').then(m => ({ default: m.RoomBookingComponent })));
+const ResourceLibrary = React.lazy(() => import('./components/ResourceLibrary').then(m => ({ default: m.ResourceLibrary })));
+const SermonArchive = React.lazy(() => import('./components/SermonArchive').then(m => ({ default: m.SermonArchive })));
+const MasterData = React.lazy(() => import('./components/MasterData').then(m => ({ default: m.MasterData })));
+const LetterSettings = React.lazy(() => import('./components/LetterSettings').then(m => ({ default: m.LetterSettings })));
+const OutgoingLetters = React.lazy(() => import('./components/OutgoingLetters').then(m => ({ default: m.OutgoingLetters })));
+const LetterTemplates = React.lazy(() => import('./components/LetterTemplates').then(m => ({ default: m.LetterTemplates })));
+const IncomingLetters = React.lazy(() => import('./components/IncomingLetters').then(m => ({ default: m.IncomingLetters })));
+const FinanceMasterData = React.lazy(() => import('./components/finance/FinanceMasterData').then(m => ({ default: m.FinanceMasterData })));
+const FinanceBudget = React.lazy(() => import('./components/finance/FinanceBudget').then(m => ({ default: m.FinanceBudget })));
+const FinanceTransaction = React.lazy(() => import('./components/finance/FinanceTransaction').then(m => ({ default: m.FinanceTransaction })));
+const FinanceLedger = React.lazy(() => import('./components/finance/FinanceLedger').then(m => ({ default: m.FinanceLedger })));
+const FinanceApproval = React.lazy(() => import('./components/finance/FinanceApproval').then(m => ({ default: m.FinanceApproval })));
+const FinanceReconciliation = React.lazy(() => import('./components/finance/FinanceReconciliation').then(m => ({ default: m.FinanceReconciliation })));
+const FinancePeriodClosing = React.lazy(() => import('./components/finance/FinancePeriodClosing').then(m => ({ default: m.FinancePeriodClosing })));
+const FinanceReports = React.lazy(() => import('./components/finance/FinanceReports').then(m => ({ default: m.FinanceReports })));
+const FinanceDashboard = React.lazy(() => import('./components/finance/FinanceDashboard').then(m => ({ default: m.FinanceDashboard })));
+
+// Fallback ringan saat chunk halaman sedang di-download — konsisten dengan gaya
+// spinner yang sudah dipakai di layar "Menghubungkan ke server" (App ini).
+function PageLoadingFallback() {
+  return (
+    <div className="flex items-center justify-center py-24">
+      <div className="w-8 h-8 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
 
 // Global dirty flag — set by forms to warn before navigation
 let _globalDirty = false;
@@ -112,7 +132,7 @@ function AppContent() {
     switch (currentPage) {
       case 'dashboard':
         return <Dashboard onNavigate={navigate} />;
-        
+
       // Modul 1: Administrasi & Keanggotaan
       case 'members':
         return <MemberDatabase />;
@@ -146,7 +166,7 @@ function AppContent() {
         return <LivestreamReminder />;
       case 'attendance':
         return <AttendanceStatsQR />;
-        
+
       // Modul 3: Finance
       case 'offerings':
         return <OfferingsQRIS />;
@@ -168,7 +188,7 @@ function AppContent() {
         return <FinanceReports onNavigate={navigate} />;
       case 'finance-dashboard':
         return <FinanceDashboard onNavigate={navigate} />;
-        
+
       // Modul 4: Fasilitas & Inventaris
       case 'assets':
         return <AssetManagement />;
@@ -185,7 +205,7 @@ function AppContent() {
         return <PrayerRequests />;
       case 'announcements':
         return <AnnouncementManagement />;
-        
+
       // Admin Sistem
       case 'users':
         return <UserManagement />;
@@ -217,7 +237,9 @@ function AppContent() {
     <DashboardLayout currentPage={currentPage} onNavigate={navigate}>
       <PWAStatusIndicator />
       <ErrorBoundary key={currentPage}>
-        {renderPage()}
+        <Suspense fallback={<PageLoadingFallback />}>
+          {renderPage()}
+        </Suspense>
       </ErrorBoundary>
       <PWAInstallPrompt />
       <Toaster position="top-right" richColors closeButton />
