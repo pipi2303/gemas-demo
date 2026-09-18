@@ -4,10 +4,11 @@ import { api } from '../../../lib/apiClient';
 import { toast } from 'sonner';
 import {
   Plus, Pencil, Trash2, X, Loader2, Layers, BookOpen, MapPin,
-  FolderTree, ListTree, Wallet, Building2, CalendarRange, Star, ChevronDown, ChevronRight, ArrowLeft, Ticket,
-  Truck, Gift, Target, QrCode, Check, ToggleRight, ToggleLeft,
+  FolderTree, ListTree, Wallet, Building2, CalendarRange, Star, ChevronDown, ChevronRight, Ticket,
+  Truck, Gift, Target, QrCode, Check, ToggleRight, ToggleLeft, FileDown, RotateCcw,
 } from 'lucide-react';
 import { FinancePageHeader } from './FinancePageHeader';
+import { exportFinanceReportPdf } from '../../utils/financeReportExport';
 import type { MasterDataCategory } from '../../types';
 
 const FINANCE_MODULE = 'Finance Add-on (Standar Akuntansi)';
@@ -107,6 +108,10 @@ interface EntityConfig {
   fields: FormFieldDef[];
   emptyHint: string;
   getLabel: (row: any) => string;
+  /** Strategi nonaktif backend (lihat financeCrud.ts) -- dipakai frontend untuk
+   *  menampilkan status "Nonaktif" yang benar & menyalakan tombol Aktifkan
+   *  Kembali. 'none' = tidak punya status aktif/nonaktif (tombol disembunyikan). */
+  deleteMode: 'deleted_at' | 'is_active' | 'none';
 }
 
 interface Lookups {
@@ -134,6 +139,7 @@ function buildConfigs(lk: Lookups): EntityConfig[] {
       id: 'account-groups',
       label: 'Kelompok Akun',
       endpoint: '/api/v1/finance/account-groups',
+      deleteMode: 'deleted_at',
       emptyHint: 'Belum ada Kelompok Akun.',
       getLabel: row => row.name,
       columns: [
@@ -155,6 +161,7 @@ function buildConfigs(lk: Lookups): EntityConfig[] {
       id: 'accounts',
       label: 'Chart of Accounts',
       endpoint: '/api/v1/finance/accounts',
+      deleteMode: 'deleted_at',
       emptyHint: 'Belum ada Akun. Buat Kelompok Akun dulu sebelum menambah akun.',
       getLabel: row => row.name,
       columns: [
@@ -179,6 +186,7 @@ function buildConfigs(lk: Lookups): EntityConfig[] {
       id: 'fields',
       label: 'Bidang',
       endpoint: '/api/v1/finance/fields',
+      deleteMode: 'deleted_at',
       emptyHint: 'Belum ada Bidang.',
       getLabel: row => row.name,
       columns: [
@@ -192,12 +200,14 @@ function buildConfigs(lk: Lookups): EntityConfig[] {
         { key: 'code', label: 'Kode', type: 'text', required: true, placeholder: 'BID-01' },
         { key: 'name', label: 'Nama Bidang', type: 'text', required: true, placeholder: 'Bidang Pelayanan' },
         { key: 'description', label: 'Deskripsi', type: 'textarea' },
+        { key: 'manager_user_id', label: 'Penanggung Jawab', type: 'text' },
       ],
     },
     {
       id: 'programs',
       label: 'Program',
       endpoint: '/api/v1/finance/programs',
+      deleteMode: 'deleted_at',
       emptyHint: 'Belum ada Program. Buat Bidang dulu sebelum menambah program.',
       getLabel: row => row.name,
       columns: [
@@ -217,6 +227,7 @@ function buildConfigs(lk: Lookups): EntityConfig[] {
       id: 'activities',
       label: 'Kegiatan',
       endpoint: '/api/v1/finance/activities',
+      deleteMode: 'deleted_at',
       emptyHint: 'Belum ada Kegiatan. Buat Program dulu sebelum menambah kegiatan.',
       getLabel: row => row.name,
       columns: [
@@ -236,6 +247,7 @@ function buildConfigs(lk: Lookups): EntityConfig[] {
       id: 'funds',
       label: 'Dana',
       endpoint: '/api/v1/finance/funds',
+      deleteMode: 'deleted_at',
       emptyHint: 'Belum ada Dana.',
       getLabel: row => row.name,
       columns: [
@@ -258,6 +270,7 @@ function buildConfigs(lk: Lookups): EntityConfig[] {
       id: 'cash-accounts',
       label: 'Kas',
       endpoint: '/api/v1/finance/cash-accounts',
+      deleteMode: 'is_active',
       emptyHint: 'Belum ada Kas. Buat Akun (Chart of Accounts) yang postable dulu.',
       getLabel: row => row.name,
       columns: [
@@ -279,6 +292,7 @@ function buildConfigs(lk: Lookups): EntityConfig[] {
       id: 'bank-accounts',
       label: 'Rekening Bank',
       endpoint: '/api/v1/finance/bank-accounts',
+      deleteMode: 'is_active',
       emptyHint: 'Belum ada Rekening Bank. Buat Akun (Chart of Accounts) yang postable dulu.',
       getLabel: row => `${row.bank_name} — ${row.account_number}`,
       columns: [
@@ -303,6 +317,7 @@ function buildConfigs(lk: Lookups): EntityConfig[] {
       id: 'offering-deposit-map',
       label: 'Peta Setoran Persembahan',
       endpoint: '/api/v1/finance/offering-deposit-map',
+      deleteMode: 'none',
       emptyHint: 'Belum ada Peta Setoran. Tambahkan pemetaan untuk tiap kategori di tab Jenis Persembahan (dan CASH_DEBIT/BANK_DEBIT untuk sisi debit kas/bank) supaya fitur "Setor ke Buku Besar" di Persembahan Digital bisa dipakai.',
       getLabel: row => row.map_key,
       columns: [
@@ -326,6 +341,7 @@ function buildConfigs(lk: Lookups): EntityConfig[] {
       id: 'voucher-types',
       label: 'Jenis Voucher',
       endpoint: '/api/v1/finance/voucher-types',
+      deleteMode: 'is_active',
       emptyHint: 'Belum ada Jenis Voucher.',
       getLabel: row => row.name,
       columns: [
@@ -342,6 +358,14 @@ function buildConfigs(lk: Lookups): EntityConfig[] {
         { key: 'transaction_type', label: 'Tipe Transaksi', type: 'select', required: true, options: TRANSACTION_TYPE_OPTIONS },
         { key: 'prefix', label: 'Prefix Nomor Voucher', type: 'text', required: true, placeholder: 'BKM' },
         {
+          key: 'sequence_scope', label: 'Reset Penomoran', type: 'select', defaultValue: 'FISCAL_YEAR',
+          options: [
+            { value: 'FISCAL_YEAR', label: 'Per Tahun Fiskal' },
+            { value: 'CALENDAR_YEAR', label: 'Per Tahun Kalender' },
+            { value: 'NEVER', label: 'Tidak Pernah Reset' },
+          ],
+        },
+        {
           key: 'requires_approval',
           label: 'Wajib alur approval (Submit → Verifikasi → Setuju → Posting)',
           type: 'checkbox',
@@ -354,6 +378,7 @@ function buildConfigs(lk: Lookups): EntityConfig[] {
       id: 'vendors',
       label: 'Pemasok',
       endpoint: '/api/v1/finance/vendors',
+      deleteMode: 'deleted_at',
       emptyHint: 'Belum ada data Pemasok.',
       getLabel: row => row.name,
       columns: [
@@ -380,6 +405,7 @@ function buildConfigs(lk: Lookups): EntityConfig[] {
       id: 'donors',
       label: 'Donatur',
       endpoint: '/api/v1/finance/donors',
+      deleteMode: 'deleted_at',
       emptyHint: 'Belum ada data Donatur.',
       getLabel: row => row.name,
       columns: [
@@ -404,6 +430,7 @@ function buildConfigs(lk: Lookups): EntityConfig[] {
       id: 'cost-centers',
       label: 'Pusat Biaya',
       endpoint: '/api/v1/finance/cost-centers',
+      deleteMode: 'deleted_at',
       emptyHint: 'Belum ada data Pusat Biaya.',
       getLabel: row => row.name,
       columns: [
@@ -434,19 +461,24 @@ function EntitySection({ config, canEdit, onMutated }: { config: EntityConfig; c
   const [form, setForm] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
+  const [showInactive, setShowInactive] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
     try {
-      const data = await fetchList<any>(config.endpoint);
+      // Audit gap fix: sebelumnya listing SELALU cuma baris aktif -- parameter
+      // ?all=1 sudah didukung backend dari awal (financeCrud.ts) tapi tidak
+      // pernah dipakai frontend, jadi data yang dinonaktifkan seolah hilang
+      // permanen tanpa cara melihatnya lagi, apalagi mengaktifkannya kembali.
+      const data = await fetchList<any>(showInactive ? `${config.endpoint}?all=1` : config.endpoint);
       setRows(data);
     } catch (err: any) {
       setLoadError(err?.message || `Gagal memuat ${config.label}`);
     } finally {
       setLoading(false);
     }
-  }, [config.endpoint, config.label]);
+  }, [config.endpoint, config.label, showInactive]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -508,19 +540,68 @@ function EntitySection({ config, canEdit, onMutated }: { config: EntityConfig; c
     }
   };
 
+  const isInactive = (row: any): boolean =>
+    config.deleteMode === 'deleted_at' ? !!row.deleted_at : row.is_active === false;
+
+  // Audit gap fix: sebelumnya tidak ada cara apa pun di UI untuk membalik
+  // status nonaktif -- lihat komentar isInactive() di atas & endpoint
+  // POST /:id/reactivate baru di financeCrud.ts.
+  const handleReactivate = async (row: any) => {
+    try {
+      const res = await api.post<{ success: boolean; error?: { message: string } }>(`${config.endpoint}/${row.id}/reactivate`, {});
+      if (!res.success) throw new Error(res.error?.message || 'Gagal mengaktifkan kembali');
+      toast.success(`${config.label} diaktifkan kembali`);
+      await load();
+      onMutated();
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal mengaktifkan kembali data');
+    }
+  };
+
+  const handleExportPdf = () => {
+    exportFinanceReportPdf({
+      filename: `master-data-${config.id}.pdf`,
+      reportTitle: `Master Data Finance — ${config.label}`,
+      periodLabel: `Diekspor ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`,
+      sections: [{
+        heading: config.label,
+        columns: config.columns.map(c => c.label),
+        rows: rows.map(row => config.columns.map(c => String(c.render ? c.render(row) : (row[c.key] ?? '—')))),
+      }],
+    });
+  };
+
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-slate-500">{loading ? 'Memuat…' : `${rows.length} data`}</p>
-        {canEdit && (
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-1.5 text-sm font-medium text-white px-3 py-1.5 rounded-lg hover:opacity-90"
-            style={{ background: '#144f6b' }}
-          >
-            <Plus className="w-3.5 h-3.5" /> Tambah {config.label}
-          </button>
-        )}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-3">
+          <p className="text-xs text-slate-500">{loading ? 'Memuat…' : `${rows.length} data`}</p>
+          {config.deleteMode !== 'none' && (
+            <label className="flex items-center gap-1.5 text-xs text-slate-500">
+              <input type="checkbox" checked={showInactive} onChange={e => setShowInactive(e.target.checked)} />
+              Tampilkan yang nonaktif
+            </label>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {rows.length > 0 && (
+            <button
+              onClick={handleExportPdf}
+              className="flex items-center gap-1.5 text-sm font-medium text-slate-600 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50"
+            >
+              <FileDown className="w-3.5 h-3.5" /> Ekspor PDF
+            </button>
+          )}
+          {canEdit && (
+            <button
+              onClick={openCreate}
+              className="flex items-center gap-1.5 text-sm font-medium text-white px-3 py-1.5 rounded-lg hover:opacity-90"
+              style={{ background: '#144f6b' }}
+            >
+              <Plus className="w-3.5 h-3.5" /> Tambah {config.label}
+            </button>
+          )}
+        </div>
       </div>
 
       {loadError && (
@@ -549,25 +630,43 @@ function EntitySection({ config, canEdit, onMutated }: { config: EntityConfig; c
                   <td colSpan={config.columns.length + 1} className="px-4 py-6 text-center text-slate-400">{config.emptyHint}</td>
                 </tr>
               )}
-              {!loading && rows.map(row => (
-                <tr key={row.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60">
-                  {config.columns.map(c => (
+              {!loading && rows.map(row => {
+                const inactive = isInactive(row);
+                return (
+                <tr key={row.id} className={`border-b border-slate-50 last:border-0 hover:bg-slate-50/60 ${inactive ? 'opacity-60' : ''}`}>
+                  {config.columns.map((c, idx) => (
                     <td key={c.key} className="px-4 py-2.5 text-slate-700 whitespace-nowrap">
+                      {idx === 0 && inactive && (
+                        <span className="mr-1.5 inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-500 align-middle">Nonaktif</span>
+                      )}
                       {c.render ? c.render(row) : (row[c.key] ?? '—')}
                     </td>
                   ))}
                   {canEdit && (
                     <td className="px-4 py-2.5 text-right whitespace-nowrap">
-                      <button onClick={() => openEdit(row)} className="text-slate-400 hover:text-[#144f6b] p-1" title="Edit">
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                      <button onClick={() => setDeleteTarget(row)} className="text-slate-400 hover:text-red-500 p-1" title="Nonaktifkan">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      {inactive ? (
+                        config.deleteMode !== 'none' && (
+                          <button onClick={() => handleReactivate(row)} className="text-slate-400 hover:text-emerald-600 p-1" title="Aktifkan Kembali">
+                            <RotateCcw className="w-3.5 h-3.5" />
+                          </button>
+                        )
+                      ) : (
+                        <>
+                          <button onClick={() => openEdit(row)} className="text-slate-400 hover:text-[#144f6b] p-1" title="Edit">
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          {config.deleteMode !== 'none' && (
+                            <button onClick={() => setDeleteTarget(row)} className="text-slate-400 hover:text-red-500 p-1" title="Nonaktifkan">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </>
+                      )}
                     </td>
                   )}
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -670,7 +769,7 @@ function EntitySection({ config, canEdit, onMutated }: { config: EntityConfig; c
           <div className="bg-white rounded-xl w-full max-w-sm p-5 space-y-3" onClick={e => e.stopPropagation()}>
             <h3 className="text-sm font-semibold text-slate-800">Nonaktifkan {config.label}?</h3>
             <p className="text-sm text-slate-500">
-              "{config.getLabel(deleteTarget)}" akan disembunyikan dari daftar aktif. Data historis yang sudah memakainya tidak akan terpengaruh.
+              "{config.getLabel(deleteTarget)}" akan disembunyikan dari daftar aktif dan tidak bisa dipilih lagi untuk transaksi/RKA baru. Data historis yang sudah memakainya tidak akan terpengaruh, dan ini bisa diaktifkan kembali kapan saja lewat centang "Tampilkan yang nonaktif" di atas.
             </p>
             <div className="flex justify-end gap-2 pt-1">
               <button onClick={() => setDeleteTarget(null)} className="px-3 py-1.5 rounded-lg text-sm text-slate-600 border border-slate-200">Batal</button>
@@ -695,6 +794,7 @@ function FiscalYearSection({ canEdit }: { canEdit: boolean }) {
   const [periodsByYear, setPeriodsByYear] = useState<Record<string, any[]>>({});
   const [periodsLoading, setPeriodsLoading] = useState<string | null>(null);
   const [settingCurrent, setSettingCurrent] = useState<string | null>(null);
+  const [confirmActivate, setConfirmActivate] = useState<{ fy: any; closedCount: number } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -761,6 +861,31 @@ function FiscalYearSection({ canEdit }: { canEdit: boolean }) {
     }
   };
 
+  // Audit gap fix: sebelumnya "Jadikan Aktif" langsung eksekusi tanpa peringatan
+  // apa pun -- admin bisa tanpa sadar menjadikan Tahun Fiskal LAMA yang sebagian
+  // besar/semua periodenya sudah Ditutup/Dikunci sebagai Tahun Fiskal AKTIF
+  // (dipakai sebagai default Tahun Fiskal di seluruh submenu Finance Add-on,
+  // lihat is_current di financeTransaction.ts/FinanceDashboard.tsx dkk). Cek
+  // dulu status 12 periodenya; kalau ada yang tidak Open, minta konfirmasi
+  // eksplisit dulu sebelum benar-benar mengeksekusi.
+  const requestSetCurrent = async (fy: any) => {
+    setSettingCurrent(fy.id);
+    try {
+      const periods = periodsByYear[fy.id] ?? await fetchList<any>(`/api/v1/finance/fiscal-years/${fy.id}/periods`);
+      if (!periodsByYear[fy.id]) setPeriodsByYear(prev => ({ ...prev, [fy.id]: periods }));
+      const closedCount = periods.filter((p: any) => p.status !== 'OPEN').length;
+      setSettingCurrent(null);
+      if (closedCount > 0) {
+        setConfirmActivate({ fy, closedCount });
+      } else {
+        await handleSetCurrent(fy);
+      }
+    } catch (err: any) {
+      setSettingCurrent(null);
+      toast.error(err?.message || 'Gagal memeriksa status periode');
+    }
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -822,7 +947,7 @@ function FiscalYearSection({ canEdit }: { canEdit: boolean }) {
                     <td className="px-4 py-2.5 text-right">
                       {canEdit && !fy.is_current && (
                         <button
-                          onClick={() => handleSetCurrent(fy)}
+                          onClick={() => requestSetCurrent(fy)}
                           disabled={settingCurrent === fy.id}
                           className="text-xs font-medium text-[#144f6b] hover:underline disabled:opacity-50"
                         >
@@ -853,6 +978,30 @@ function FiscalYearSection({ canEdit }: { canEdit: boolean }) {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {confirmActivate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,23,42,0.45)' }} onClick={() => setConfirmActivate(null)}>
+          <div className="bg-white rounded-xl w-full max-w-sm p-5 space-y-3" onClick={e => e.stopPropagation()}>
+            <h3 className="text-sm font-semibold text-slate-800">Jadikan "{confirmActivate.fy.name}" Tahun Fiskal Aktif?</h3>
+            <p className="text-sm text-slate-500">
+              {confirmActivate.closedCount} dari 12 periode di Tahun Fiskal ini sudah tidak berstatus Terbuka (sudah Ditutup/Dikunci).
+              Menjadikannya Tahun Fiskal aktif membuatnya jadi default untuk transaksi baru di seluruh submenu Finance Add-on —
+              transaksi baru pada periode yang sudah tertutup akan tetap ditolak sistem, tapi periksa dulu apakah ini memang
+              Tahun Fiskal yang dimaksud sebelum melanjutkan.
+            </p>
+            <div className="flex justify-end gap-2 pt-1">
+              <button onClick={() => setConfirmActivate(null)} className="px-3 py-1.5 rounded-lg text-sm text-slate-600 border border-slate-200">Batal</button>
+              <button
+                onClick={() => { const fy = confirmActivate.fy; setConfirmActivate(null); handleSetCurrent(fy); }}
+                className="px-3 py-1.5 rounded-lg text-sm text-white"
+                style={{ background: '#144f6b' }}
+              >
+                Lanjutkan
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

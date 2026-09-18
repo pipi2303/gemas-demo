@@ -1272,6 +1272,13 @@ router.post('/:id/lines', requireFinancePermission('edit'), async (req: AuthRequ
     await assertMasterDataActive(client, 'finance.cost_centers', nullable(body.cost_center_id), 'Pusat Biaya', true);
     await assertMasterDataActive(client, 'finance.cash_accounts', nullable(body.cash_account_id), 'Kas', false);
     await assertMasterDataActive(client, 'finance.bank_accounts', nullable(body.bank_account_id), 'Rekening Bank', false);
+    // Audit gap fix: Bidang/Program/Kegiatan sebelumnya TIDAK dicek aktif sama
+    // sekali di sini -- baris transaksi baru masih bisa memakai salah satu yang
+    // sudah dinonaktifkan lewat Master Data UI, tidak konsisten dengan dimensi
+    // lain (dana/pusat biaya/kas/bank) yang sudah dicek di atas.
+    await assertMasterDataActive(client, 'finance.fields', nullable(body.field_id), 'Bidang', true);
+    await assertMasterDataActive(client, 'finance.programs', nullable(body.program_id), 'Program', true);
+    await assertMasterDataActive(client, 'finance.activities', nullable(body.activity_id), 'Kegiatan', true);
 
     // budget_line_id OPSIONAL -- kalau diisi, validasi dulu supaya baris transaksi
     // ini benar-benar bisa dihitung sebagai realisasi baris RKA tsb oleh Laporan

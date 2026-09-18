@@ -116,6 +116,12 @@ router.use('/cash-accounts', createMasterDataRouter({
   deleteMode: 'is_active',
   entityLabel: 'Kas',
   deriveDefaults: async (body) => (body.opening_balance !== undefined ? { current_balance: body.opening_balance } : {}),
+  deriveUpdateDefaults: async (before, body) => {
+    if (body.opening_balance === undefined) return {};
+    const delta = Number(body.opening_balance) - Number(before.opening_balance ?? 0);
+    if (delta === 0) return {};
+    return { current_balance: Number(before.current_balance ?? 0) + delta };
+  },
 }));
 
 // ── Peta Setoran Persembahan ─────────────────────────────────────────────────
@@ -155,6 +161,12 @@ router.use('/bank-accounts', createMasterDataRouter({
   deleteMode: 'is_active',
   entityLabel: 'Rekening Bank',
   deriveDefaults: async (body) => (body.opening_balance !== undefined ? { current_balance: body.opening_balance } : {}),
+  deriveUpdateDefaults: async (before, body) => {
+    if (body.opening_balance === undefined) return {};
+    const delta = Number(body.opening_balance) - Number(before.opening_balance ?? 0);
+    if (delta === 0) return {};
+    return { current_balance: Number(before.current_balance ?? 0) + delta };
+  },
 }));
 
 // ── Jenis Voucher ─────────────────────────────────────────────────────────────

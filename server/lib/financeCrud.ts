@@ -74,6 +74,13 @@ export interface MasterDataConfig {
   activeFilter?: 'deleted_at' | 'is_active' | 'none';
   /** Turunkan/lengkapi field tertentu di server sebelum INSERT (mis. account_type dari group_id) */
   deriveDefaults?: (body: Record<string, any>, pool: Pool) => Promise<Record<string, any>>;
+  /** Audit gap fix: turunkan/lengkapi field tertentu SEBELUM UPDATE (PUT), diberi
+   *  baris SEBELUM update supaya bisa hitung delta -- dipakai Kas/Bank supaya
+   *  mengubah "Saldo Awal" (opening_balance) ikut menyesuaikan saldo berjalan
+   *  (current_balance) dengan SELISIHNYA saja (bukan overwrite current_balance
+   *  begitu saja, yang akan menghapus riwayat pergerakan transaksi yang sudah
+   *  terjadi sejak saldo awal itu dicatat). */
+  deriveUpdateDefaults?: (before: Record<string, any>, body: Record<string, any>) => Promise<Record<string, any>>;
   /** Label Indonesia untuk pesan error generik */
   entityLabel: string;
   /** Hook opsional dipanggil SETELAH PUT berhasil, dengan baris SEBELUM & SESUDAH
@@ -168,14 +175,21 @@ export function createMasterDataRouter(cfg: MasterDataConfig): Router {
         return;
       }
       const pool = getPool();
-      // Hanya query baris SEBELUM update kalau memang ada onUpdate hook yang butuh
-      // membandingkannya -- tidak menambah query untuk 7 tabel master data lain
-      // yang tidak memakai hook ini.
-      const beforeRow = cfg.onUpdate
+      // Hanya query baris SEBELUM update kalau memang ada onUpdate/deriveUpdateDefaults
+      // hook yang butuh membandingkannya -- tidak menambah query untuk tabel master
+      // data lain yang tidak memakai hook-hook ini.
+      const beforeRow = (cfg.onUpdate || cfg.deriveUpdateDefaults)
         ? (await pool.query(`SELECT * FROM ${cfg.table} WHERE id = $1 AND organization_id = $2`, [req.params.id, FINANCE_ORG])).rows[0] ?? null
         : null;
-      const setClauses = cols.map((f, i) => `${f} = $${i + 4}`);
-      const values = cols.map(f => body[f]);
+      if (cfg.deriveUpdateDefaults && beforeRow) {
+        const extra = await cfg.deriveUpdateDefaults(beforeRow, body);
+        for (const [k, v] of Object.entries(extra)) {
+          if (cfg.fields.includes(k) && !(k in body)) body[k] = v;
+        }
+      }
+      const finalCols = Object.keys(body);
+      const setClauses = finalCols.map((f, i) => `${f} = $${i + 4}`);
+      const values = finalCols.map(f => body[f]);
       const sql = `UPDATE ${cfg.table} SET ${setClauses.join(', ')}, updated_at = NOW(), updated_by = $3
                    WHERE id = $1 AND organization_id = $2 RETURNING *`;
       const result = await pool.query(sql, [req.params.id, FINANCE_ORG, req.user!.userId, ...values]);
@@ -218,6 +232,34 @@ export function createMasterDataRouter(cfg: MasterDataConfig): Router {
       const raw = String(err?.message ?? '');
       const message = /foreign key|violates/i.test(raw) ? `Data ${cfg.entityLabel} masih dipakai di tempat lain` : `Gagal menghapus data ${cfg.entityLabel}`;
       res.status(400).json({ success: false, error: { code: 'CONFLICT', message } });
+    }
+  });
+
+  // Audit gap fix: sebelumnya SATU-SATUNYA cara menonaktifkan master data (DELETE
+  // di atas) tidak punya jalan balik apa pun di UI -- deleted_at/is_active yang
+  // sudah ditoggle nonaktif tidak bisa dikembalikan tanpa developer masuk ke
+  // database langsung. Endpoint ini membalik status "nonaktif" itu (bukan hard
+  // delete apa pun -- deleteMode di modul ini selalu berarti soft-disable).
+  router.post('/:id/reactivate', async (req: AuthRequest, res: Response) => {
+    if (cfg.deleteMode === 'none') {
+      res.status(405).json({ success: false, error: { code: 'NOT_ALLOWED', message: `Data ${cfg.entityLabel} tidak memiliki status aktif/nonaktif` } });
+      return;
+    }
+    try {
+      const pool = getPool();
+      const sql = cfg.deleteMode === 'deleted_at'
+        ? `UPDATE ${cfg.table} SET deleted_at = NULL, updated_at = NOW(), updated_by = $3 WHERE id = $1 AND organization_id = $2 AND deleted_at IS NOT NULL RETURNING *`
+        : `UPDATE ${cfg.table} SET is_active = TRUE, updated_at = NOW(), updated_by = $3 WHERE id = $1 AND organization_id = $2 AND is_active = FALSE RETURNING *`;
+      const result = await pool.query(sql, [req.params.id, FINANCE_ORG, req.user!.userId]);
+      if (result.rows.length === 0) {
+        res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: `Data ${cfg.entityLabel} tidak ditemukan atau sudah aktif` } });
+        return;
+      }
+      logger.info(`Finance master data reactivated`, { table: cfg.table, user: req.user?.username, id: req.params.id });
+      res.json({ success: true, data: result.rows[0] });
+    } catch (err) {
+      logger.error(`POST ${cfg.table}/:id/reactivate`, { message: String(err) });
+      res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: `Gagal mengaktifkan kembali ${cfg.entityLabel}` } });
     }
   });
 

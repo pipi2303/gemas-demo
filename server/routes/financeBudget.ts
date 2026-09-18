@@ -424,6 +424,11 @@ router.post('/:id/lines', requireFinancePermission('edit'), async (req: AuthRequ
     // baris RKA baru mengacu ke akun/dana yang sudah dinonaktifkan.
     await assertMasterDataActive(pool, 'finance.accounts', account_id, 'Akun', true);
     await assertMasterDataActive(pool, 'finance.funds', nullable(body.fund_id), 'Dana', true);
+    // Audit gap fix: Bidang/Program/Kegiatan sebelumnya TIDAK dicek aktif -- baris
+    // RKA baru masih bisa mengacu ke salah satu yang sudah dinonaktifkan.
+    await assertMasterDataActive(pool, 'finance.fields', nullable(body.field_id), 'Bidang', true);
+    await assertMasterDataActive(pool, 'finance.programs', nullable(body.program_id), 'Program', true);
+    await assertMasterDataActive(pool, 'finance.activities', nullable(body.activity_id), 'Kegiatan', true);
     const result = await pool.query(
       `INSERT INTO finance.budget_lines
         (budget_id, account_id, field_id, program_id, activity_id, fund_id, period_id, description, budget_amount, created_by)
