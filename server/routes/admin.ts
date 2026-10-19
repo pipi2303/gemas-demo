@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { getAll, batchUpsert, upsert, getPool } from '../lib/db.js';
 import { requireAuth, requireRole, AuthRequest } from '../middleware/auth.js';
 import { logger } from '../lib/logger.js';
+import { checkPagePermission } from '../lib/permissionCache.js';
 
 const router = Router();
 
@@ -183,6 +184,15 @@ router.post('/members/import', requireAuth, requireRole('Admin'), async (req: Au
 
 // DELETE /api/admin/members/:id — hapus member beserta data sakramen terkait (atomic)
 router.delete('/members/:id', requireAuth, async (req: AuthRequest, res: Response) => {
+  // Security fix: sebelumnya endpoint ini HANYA requireAuth — role apa pun
+  // (termasuk Pengunjung Demo tanpa login) bisa menghapus anggota beserta
+  // sakramen/atestasinya. Wajib izin hapus di halaman Database Warga.
+  const role = req.user?.role || '';
+  const customRoles = await getAll<any>('customRoles').catch(() => []);
+  if (!(await checkPagePermission(role, 'members', 'delete', customRoles))) {
+    res.status(403).json({ error: 'Akses ditolak untuk operasi ini' });
+    return;
+  }
   const { id } = req.params;
   const pool = getPool();
   try {

@@ -103,7 +103,9 @@ export function createMasterDataRouter(cfg: MasterDataConfig): Router {
   const router = Router();
   const activeFilter = cfg.activeFilter ?? (cfg.deleteMode === 'none' ? 'none' : cfg.deleteMode);
 
-  router.use(requireAuth, requireFinancePermission(), requireRealDb);
+  // Gate ke submenu 'finance-master-data' (bukan nama modul kasar) supaya Custom
+  // Role yang izinnya disimpan per submenu juga terbaca dengan benar.
+  router.use(requireAuth, requireFinancePermission(undefined, 'finance-master-data'), requireRealDb);
 
   router.get('/', async (req: AuthRequest, res: Response) => {
     try {

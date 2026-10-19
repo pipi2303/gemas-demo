@@ -21,7 +21,16 @@ export function requireAuth(req: AuthRequest, res: Response, next: NextFunction)
   if (!token) {
     // Mode tamu demo (lihat server/lib/demoGuest.ts)
     const guest = getDemoGuestUser();
-    if (guest) { req.user = guest; next(); return; }
+    if (guest) {
+      // Pengunjung Demo SELALU hanya-baca, apa pun isi izin role-nya: semua
+      // request selain GET/HEAD/OPTIONS ditolak di sini (termasuk collection
+      // yang tidak digate per halaman, mis. notifications).
+      if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+        res.status(403).json({ error: 'Mode demo hanya bisa melihat data. Silakan login untuk mengubah data.' });
+        return;
+      }
+      req.user = guest; next(); return;
+    }
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
