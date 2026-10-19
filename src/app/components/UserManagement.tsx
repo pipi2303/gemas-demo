@@ -43,6 +43,45 @@ import { User, UserRole } from '../types';
 import { useSortable } from '../../hooks/useSortable';
 import { toast } from 'sonner';
 
+// ── Masa berlaku akun (expiresAt) ─────────────────────────────────────────────
+// 'YYYY-MM-DD', berlaku sampai akhir hari itu (WIB). Kosong = tanpa batas.
+function todayWIB(): string {
+  return new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
+}
+function addDaysWIB(days: number): string {
+  return new Date(Date.now() + 7 * 3600_000 + days * 86400_000).toISOString().slice(0, 10);
+}
+function daysLeft(expiresAt?: string): number | null {
+  if (!expiresAt) return null;
+  const end = new Date(`${expiresAt}T23:59:59+07:00`).getTime();
+  if (isNaN(end)) return null;
+  return Math.ceil((end - Date.now()) / 86400_000);
+}
+function formatTanggal(d: string): string {
+  return new Date(`${d}T00:00:00+07:00`).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+function ExpiryBadge({ expiresAt }: { expiresAt?: string }) {
+  const left = daysLeft(expiresAt);
+  if (left === null) return <span className="text-xs text-gray-400">Tanpa batas</span>;
+  if (left <= 0) {
+    return (
+      <div className="flex flex-col">
+        <span className="inline-flex w-fit items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">Kedaluwarsa</span>
+        <span className="mt-0.5 text-[11px] text-gray-400">sejak {formatTanggal(expiresAt!)}</span>
+      </div>
+    );
+  }
+  const soon = left <= 7;
+  return (
+    <div className="flex flex-col">
+      <span className="text-sm text-gray-700">{formatTanggal(expiresAt!)}</span>
+      <span className={`text-[11px] ${soon ? 'font-medium text-amber-600' : 'text-gray-400'}`}>
+        {left === 1 ? 'berakhir hari ini' : `sisa ${left} hari`}
+      </span>
+    </div>
+  );
+}
+
 export function UserManagement() {
   const { users, addUser, updateUser, currentUser, customRoles, sectors } = useApp();
   const { sorted: sortedUsers, sortKey, sortDir, requestSort } = useSortable(users);
@@ -61,7 +100,8 @@ export function UserManagement() {
     password: '',
     role: 'Operator' as UserRole,
     isActive: true,
-    assignedSectorId: ''
+    assignedSectorId: '',
+    expiresAt: ''
   });
 
   const openAddForm = () => {
@@ -73,7 +113,8 @@ export function UserManagement() {
       password: '',
       role: 'Operator',
       isActive: true,
-      assignedSectorId: ''
+      assignedSectorId: '',
+      expiresAt: ''
     });
     setIsFormOpen(true);
   };
@@ -87,7 +128,8 @@ export function UserManagement() {
       password: '',
       role: user.role,
       isActive: user.isActive,
-      assignedSectorId: (user as any).assignedSectorId || ''
+      assignedSectorId: (user as any).assignedSectorId || '',
+      expiresAt: user.expiresAt || ''
     });
     setSelectedUser(user);
     setIsFormOpen(true);
@@ -99,7 +141,8 @@ export function UserManagement() {
     const assignedSectorId = formData.role === 'Ketua Sektor' ? (formData.assignedSectorId || undefined) : undefined;
 
     if (formMode === 'add') {
-      if (!(await addUser({ ...formData, assignedSectorId } as any))) return;
+      const { expiresAt: newExpiry, ...addData } = formData;
+      if (!(await addUser({ ...addData, assignedSectorId, ...(newExpiry ? { expiresAt: newExpiry } : {}) } as any))) return;
       toast.success(`Pengguna ${formData.name} berhasil ditambahkan`);
     } else if (selectedUser) {
       const updateData: Partial<User> & { assignedSectorId?: string } = {
@@ -108,7 +151,8 @@ export function UserManagement() {
         username: formData.username,
         role: formData.role,
         isActive: formData.isActive,
-        assignedSectorId
+        assignedSectorId,
+        expiresAt: formData.expiresAt || ''
       };
       
       if (formData.password) {
@@ -217,6 +261,14 @@ export function UserManagement() {
                     : <ArrowUpDown className="h-4 w-4 text-gray-400" />}
                 </div>
               </TableHead>
+              <TableHead className="cursor-pointer select-none hover:bg-gray-50" onClick={() => requestSort('expiresAt' as any)}>
+                <div className="flex items-center gap-1">
+                  Berlaku Sampai
+                  {sortKey === ('expiresAt' as any)
+                    ? (sortDir === 'asc' ? <ArrowUp className="h-4 w-4 text-[#144f6b]" /> : <ArrowDown className="h-4 w-4 text-[#144f6b]" />)
+                    : <ArrowUpDown className="h-4 w-4 text-gray-400" />}
+                </div>
+              </TableHead>
               <TableHead className="text-right">Aksi</TableHead>
             </TableRow>
           </TableHeader>
@@ -244,6 +296,9 @@ export function UserManagement() {
                   <Badge variant={user.isActive ? 'default' : 'secondary'}>
                     {user.isActive ? 'Aktif' : 'Nonaktif'}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  <ExpiryBadge expiresAt={user.expiresAt} />
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
@@ -386,6 +441,43 @@ export function UserManagement() {
                     checked={formData.isActive}
                     onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
                   />
+                </div>
+
+                <div>
+                  <Label htmlFor="expiresAt">Berlaku Sampai</Label>
+                  {formMode === 'edit' && selectedUser?.id === currentUser?.id ? (
+                    <p className="mt-1.5 text-xs text-gray-500">Masa berlaku tidak bisa diatur untuk akun Anda sendiri.</p>
+                  ) : (
+                    <>
+                      <Input
+                        id="expiresAt"
+                        type="date"
+                        min={todayWIB()}
+                        value={formData.expiresAt}
+                        onChange={(e) => setFormData({ ...formData, expiresAt: e.target.value })}
+                        className="mt-1.5"
+                      />
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {[{ l: '7 hari', d: 7 }, { l: '30 hari', d: 30 }, { l: '90 hari', d: 90 }].map(o => (
+                          <button key={o.d} type="button"
+                            onClick={() => setFormData({ ...formData, expiresAt: addDaysWIB(o.d) })}
+                            className="rounded-md border border-gray-200 px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-50">
+                            +{o.l}
+                          </button>
+                        ))}
+                        <button type="button"
+                          onClick={() => setFormData({ ...formData, expiresAt: '' })}
+                          className="rounded-md border border-gray-200 px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-50">
+                          Tanpa batas
+                        </button>
+                      </div>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {formData.expiresAt
+                          ? `Akun tidak bisa login setelah ${formatTanggal(formData.expiresAt)} pukul 23.59 WIB.`
+                          : 'Kosongkan jika akun berlaku tanpa batas waktu.'}
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

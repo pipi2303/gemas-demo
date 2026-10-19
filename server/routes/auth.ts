@@ -7,6 +7,7 @@ import { logger } from '../lib/logger.js';
 import { hashPassword, verifyPassword } from '../lib/passwordUtils.js';
 import { blacklistToken } from '../lib/tokenBlacklist.js';
 import { getDemoGuestUser } from '../lib/demoGuest.js';
+import { isAccountExpired } from '../lib/accountExpiry.js';
 
 const COOKIE_NAME = 'gemas_token';
 const COOKIE_MAX_AGE = 8 * 60 * 60 * 1000;
@@ -52,6 +53,13 @@ router.post('/login', loginLimiter, async (req: Request, res: Response) => {
     const { valid, needsUpgrade } = await verifyPassword(password, user.password);
 
     if (!valid) { res.status(401).json({ error: 'Username atau password salah' }); return; }
+
+    // Cek masa berlaku SETELAH password valid supaya pesan ini tidak membocorkan
+    // username mana yang ada ke orang yang menebak-nebak.
+    if (isAccountExpired(user)) {
+      res.status(403).json({ error: 'Masa berlaku akun sudah habis. Hubungi admin untuk memperpanjang.', code: 'ACCOUNT_EXPIRED', expiresAt: user.expiresAt });
+      return;
+    }
 
     // Auto-upgrade plaintext ke bcrypt
     if (needsUpgrade) {
@@ -151,6 +159,7 @@ router.get('/me', async (req: Request, res: Response) => {
     const users = await getAll<any>('users');
     const user = users.find((u: any) => u.id === payload.userId && u.isActive !== false);
     if (!user) { res.status(401).json({ error: 'User tidak ditemukan' }); return; }
+    if (isAccountExpired(user)) { res.clearCookie(COOKIE_NAME); res.status(401).json({ error: 'Masa berlaku akun sudah habis. Hubungi admin.', code: 'ACCOUNT_EXPIRED', expiresAt: user.expiresAt }); return; }
     const { password: _pw, ...safeUser } = user;
     res.json({ user: safeUser });
   } catch {

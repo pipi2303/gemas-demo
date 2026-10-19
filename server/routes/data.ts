@@ -4,6 +4,7 @@ import { parsePagination, paginationMeta } from '../lib/pagination.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { requirePermission } from '../middleware/checkPermission.js';
 import { hashPassword, isHashed } from '../lib/passwordUtils.js';
+import { invalidateExpiryCache } from '../lib/accountExpiry.js';
 import { logger } from '../lib/logger.js';
 
 const router = Router();
@@ -69,13 +70,17 @@ async function blockLastAdminRemoval(id: string, newData: Record<string, any> | 
   const existing = await getOne<any>('users', id).catch(() => null);
   if (!existing || existing.role !== 'Admin' || existing.isActive === false) return null; // bukan Admin aktif, tidak relevan
 
+  // Admin yang diberi masa berlaku (expiresAt) dihitung "tidak permanen" — kalau
+  // semua Admin punya masa berlaku, suatu hari sistem bisa terkunci tanpa Admin.
   const willStillBeActiveAdmin = !!newData
     && (newData.role === undefined ? existing.role : newData.role) === 'Admin'
-    && (newData.isActive === undefined ? existing.isActive : newData.isActive) !== false;
+    && (newData.isActive === undefined ? existing.isActive : newData.isActive) !== false
+    && !(newData.expiresAt === undefined ? existing.expiresAt : newData.expiresAt);
   if (willStillBeActiveAdmin) return null;
+  if (existing.expiresAt) return null; // sudah tidak dihitung sebagai Admin permanen
 
   const allUsers = await getAll<any>('users').catch(() => []);
-  const activeAdminCount = allUsers.filter((u: any) => u.role === 'Admin' && u.isActive !== false).length;
+  const activeAdminCount = allUsers.filter((u: any) => u.role === 'Admin' && u.isActive !== false && !u.expiresAt).length;
   if (activeAdminCount <= 1) {
     return 'Tidak bisa menghapus/menonaktifkan/menurunkan user ini — ini satu-satunya Admin aktif yang tersisa di sistem. Aktifkan atau tambahkan Admin lain terlebih dahulu.';
   }
@@ -1053,6 +1058,19 @@ router.put('/:collection/:id', requireAuth, requirePermission(), async (req: Aut
   }
 
   if (collection === 'users') {
+    // Masa berlaku akun: format 'YYYY-MM-DD' atau kosong; tidak boleh diatur
+    // untuk akun sendiri (mencegah admin tak sengaja mengunci dirinya).
+    if (data.expiresAt !== undefined && data.expiresAt !== null && data.expiresAt !== '') {
+      if (typeof data.expiresAt !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(data.expiresAt)) {
+        res.status(400).json({ error: 'Format tanggal kedaluwarsa tidak valid (YYYY-MM-DD)' }); return;
+      }
+      const before = await getOne<any>('users', id).catch(() => null);
+      if (req.user?.userId === id && before?.expiresAt !== data.expiresAt) {
+        res.status(400).json({ error: 'Tidak bisa mengatur masa berlaku untuk akun Anda sendiri' }); return;
+      }
+    } else if (data.expiresAt === '' || data.expiresAt === null) {
+      delete data.expiresAt; // kosong = tanpa batas
+    }
     const lastAdminErr = await blockLastAdminRemoval(id, data);
     if (lastAdminErr) { res.status(403).json({ error: lastAdminErr }); return; }
   }
@@ -1143,6 +1161,7 @@ router.put('/:collection/:id', requireAuth, requirePermission(), async (req: Aut
 
   try {
     await upsert(collection, id, data);
+    if (collection === 'users') invalidateExpiryCache();
     const action = beforeData ? 'Mengubah' : 'Menambahkan';
     await recordAuditLog(req, action, collection, id, beforeData, data);
     res.json({ ok: true });

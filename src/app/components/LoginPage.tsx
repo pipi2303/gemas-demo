@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { takeLoginNotice } from '../../lib/apiClient';
 import { useApp } from '../context/AppContext';
-import { Eye, EyeOff, Lock, User, ShieldCheck, Sparkles } from 'lucide-react';
+import { Eye, EyeOff, Lock, User, ShieldCheck, Sparkles, Clock } from 'lucide-react';
 
 const GOLD = '#dfb774';
 
@@ -20,10 +21,21 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // Pemberitahuan masa demo/akun habis (dari login yang ditolak, atau sesi yang
+  // diputus saat sedang dipakai — lihat takeLoginNotice di apiClient.ts).
+  const [expiredNotice, setExpiredNotice] = useState<{ expiresAt: string | null } | null>(null);
+  useEffect(() => {
+    const n = takeLoginNotice();
+    if (n?.type === 'expired') setExpiredNotice({ expiresAt: n.expiresAt });
+  }, []);
+  const formatExpiry = (d: string | null) => d
+    ? new Date(`${d}T00:00:00+07:00`).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setExpiredNotice(null);
     if (!username.trim() || !password) {
       setError('Username dan password wajib diisi.');
       return;
@@ -31,7 +43,11 @@ export function LoginPage() {
     setLoading(true);
     const success = await login(username.trim(), password);
     setLoading(false);
-    if (!success) setError('Username atau password tidak valid.');
+    if (!success) {
+      const n = takeLoginNotice();
+      if (n?.type === 'expired') setExpiredNotice({ expiresAt: n.expiresAt });
+      else setError('Username atau password tidak valid.');
+    }
   };
 
   return (
@@ -281,6 +297,25 @@ export function LoginPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Masa demo / akun habis */}
+              {expiredNotice && (
+                <div className="flex items-start gap-3 px-4 py-3 rounded-xl"
+                  style={{ background: '#fffbeb', border: '1px solid #fde68a' }}>
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: '#f59e0b' }}>
+                    <Clock className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#92400e' }}>Masa demo Anda telah berakhir</p>
+                    <p style={{ fontSize: '12px', color: '#b45309', marginTop: 2 }}>
+                      {formatExpiry(expiredNotice.expiresAt)
+                        ? `Akses akun ini berakhir pada ${formatExpiry(expiredNotice.expiresAt)}. `
+                        : 'Akses akun ini sudah tidak berlaku. '}
+                      Hubungi admin untuk memperpanjang akses.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Error */}
               {error && (

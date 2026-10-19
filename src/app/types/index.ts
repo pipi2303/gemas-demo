@@ -60,6 +60,7 @@ export interface User {
   isActive: boolean;
   assignedSectorId?: string; // Khusus role Ketua Sektor — ID sektor yang boleh ia kelola (edit/hapus)
   mustChangePassword?: boolean; // true untuk user hasil seed default -- lihat PUT /api/auth/change-password
+  expiresAt?: string; // Masa berlaku akun 'YYYY-MM-DD' (berlaku s.d. akhir hari WIB); kosong = tanpa batas. Lihat server/lib/accountExpiry.ts
 }
 
 export type MembershipType = 'Warga Jemaat' | 'Warga Tamu' | 'Simpatisan';

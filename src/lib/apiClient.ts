@@ -1,5 +1,19 @@
 import { toast } from 'sonner';
 
+export const LOGIN_NOTICE_KEY = 'gemas_login_notice';
+
+/** Ambil & hapus pemberitahuan untuk halaman login (mis. masa berlaku akun habis). */
+export function takeLoginNotice(): { type: 'expired'; expiresAt: string | null } | null {
+  try {
+    const raw = sessionStorage.getItem(LOGIN_NOTICE_KEY);
+    if (!raw) return null;
+    sessionStorage.removeItem(LOGIN_NOTICE_KEY);
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 export function getToken(): string | null {
   return localStorage.getItem('token') || localStorage.getItem('gemas_token') || null;
 }
@@ -52,6 +66,15 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
       }
       payload = { error: text.slice(0, 150) };
     }
+  }
+
+  // Masa berlaku akun habis (server/lib/accountExpiry.ts): simpan pemberitahuan
+  // untuk ditampilkan di halaman login — baik saat login ditolak (403) maupun
+  // saat sesi yang sedang berjalan diputus (401).
+  if (payload?.code === 'ACCOUNT_EXPIRED') {
+    try {
+      sessionStorage.setItem(LOGIN_NOTICE_KEY, JSON.stringify({ type: 'expired', expiresAt: payload.expiresAt || null }));
+    } catch { /* abaikan */ }
   }
 
   if (res.status === 401) {

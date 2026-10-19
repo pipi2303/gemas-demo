@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyToken, JWTPayload } from '../lib/jwt.js';
 import { isBlacklisted } from '../lib/tokenBlacklist.js';
 import { getDemoGuestUser } from '../lib/demoGuest.js';
+import { isUserIdExpired } from '../lib/accountExpiry.js';
 
 export interface AuthRequest extends Request {
   user?: JWTPayload;
@@ -16,7 +17,7 @@ function extractToken(req: AuthRequest): string | null {
   return null;
 }
 
-export function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
+export async function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
   const token = extractToken(req);
   if (!token) {
     // Mode tamu demo (lihat server/lib/demoGuest.ts)
@@ -40,10 +41,17 @@ export function requireAuth(req: AuthRequest, res: Response, next: NextFunction)
       res.status(401).json({ error: 'Token telah dicabut' });
       return;
     }
-    next();
   } catch {
     res.status(401).json({ error: 'Token invalid atau kedaluwarsa' });
+    return;
   }
+  // Masa berlaku akun (users.expiresAt) — lihat server/lib/accountExpiry.ts
+  if (await isUserIdExpired(req.user?.userId)) {
+    res.clearCookie('gemas_token');
+    res.status(401).json({ error: 'Masa berlaku akun sudah habis. Hubungi admin.', code: 'ACCOUNT_EXPIRED' });
+    return;
+  }
+  next();
 }
 
 export function requireRole(...roles: string[]) {
