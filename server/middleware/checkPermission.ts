@@ -33,7 +33,14 @@ const NO_PAGE_GATING_COLLECTIONS = new Set(['notifications']);
 // 'master-data' (Admin Sistem), sehingga role non-admin (Majelis, Custom Role
 // lihat-saja seperti "Demo") melihat dropdown/label kosong. Hanya BACA yang
 // dibuka; tulis tetap wajib izin 'master-data'.
-const READ_ONLY_REFERENCE_COLLECTIONS = new Set(['masterData']);
+const READ_ONLY_REFERENCE_COLLECTIONS = new Set(['masterData', 'customRoles']);
+// 'customRoles': client WAJIB membaca definisi Custom Role-nya sendiri untuk
+// menghitung can() (menu mana yang tampil & aksi mana yang boleh). Sebelumnya
+// GET ini digate izin halaman 'roles' (Admin Sistem), sehingga user ber-Custom
+// Role (mis. "Demo") menerima 403, daftar role kosong, dan can() selalu false —
+// sidebar kosong. Non-Admin hanya menerima definisi role MILIKNYA sendiri
+// (difilter di GET /api/data/:collection, server/routes/data.ts); tulis tetap
+// Admin-only lewat ADMIN_WRITE.
 
 export function requirePermission() {
   return async (req: AuthRequest, res: Response, next: NextFunction) => {

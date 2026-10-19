@@ -997,6 +997,7 @@ router.get('/:collection', requireAuth, requirePermission(), async (req: AuthReq
       if (collection === 'users') dataOut = stripPassword(dataOut);
       if (collection === 'prayerRequests') dataOut = filterPrivatePrayers(dataOut, req.user);
       if (collection === 'notifications') dataOut = filterTargetedNotifications(dataOut, req.user);
+      if (collection === 'customRoles' && req.user?.role !== 'Admin') dataOut = dataOut.filter((r: any) => r?.name === req.user?.role);
       dataOut = await scopeBySectorForKetuaSektor(collection, dataOut, req.user);
       if (collection === 'announcements') dataOut = await scopeAnnouncementsForKetuaSektor(dataOut, req.user);
       res.json({
@@ -1010,6 +1011,7 @@ router.get('/:collection', requireAuth, requirePermission(), async (req: AuthReq
     if (collection === 'users') dataOut = stripPassword(dataOut);
     if (collection === 'prayerRequests') dataOut = filterPrivatePrayers(dataOut, req.user);
     if (collection === 'notifications') dataOut = filterTargetedNotifications(dataOut, req.user);
+    if (collection === 'customRoles' && req.user?.role !== 'Admin') dataOut = dataOut.filter((r: any) => r?.name === req.user?.role);
     dataOut = await scopeBySectorForKetuaSektor(collection, dataOut, req.user);
     if (collection === 'announcements') dataOut = await scopeAnnouncementsForKetuaSektor(dataOut, req.user);
     res.json(dataOut);
