@@ -27,6 +27,13 @@ import { logger } from '../lib/logger.js';
 // server/routes/data.ts (filterTargetedNotifications/
 // blockCrossUserNotificationWrite/blockNotificationOwnershipViolation).
 const NO_PAGE_GATING_COLLECTIONS = new Set(['notifications']);
+// READ_ONLY_REFERENCE_COLLECTIONS: data referensi (isi dropdown — jenis persembahan,
+// metode pembayaran, jabatan pelayanan, dst) yang dibutuhkan hampir semua halaman
+// untuk sekadar MENAMPILKAN data. Sebelumnya GET-nya ikut digate izin halaman
+// 'master-data' (Admin Sistem), sehingga role non-admin (Majelis, Custom Role
+// lihat-saja seperti "Demo") melihat dropdown/label kosong. Hanya BACA yang
+// dibuka; tulis tetap wajib izin 'master-data'.
+const READ_ONLY_REFERENCE_COLLECTIONS = new Set(['masterData']);
 
 export function requirePermission() {
   return async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -36,6 +43,7 @@ export function requirePermission() {
 
     const collection = req.params.collection as string;
     if (collection && NO_PAGE_GATING_COLLECTIONS.has(collection)) { next(); return; }
+    if (collection && req.method === 'GET' && READ_ONLY_REFERENCE_COLLECTIONS.has(collection)) { next(); return; }
     if (!collection || !(collection in COLLECTION_PAGE)) {
       logger.warn('Permission denied (collection tidak terdaftar / fail-closed)', {
         user: req.user?.username, role, collection, method: req.method,

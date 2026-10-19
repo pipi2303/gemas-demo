@@ -81,7 +81,10 @@ export function ReportCenter() {
     attendance,
     consolidatedReportSnapshots,
     archiveConsolidatedReportSnapshot,
+    can,
   } = useApp();
+  // Arsip snapshot = aksi tulis; digate 'export' (Majelis/Ketua Sektor punya view+export di Laporan).
+  const canArchive = can('report-center', 'export');
 
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
@@ -1090,6 +1093,7 @@ export function ReportCenter() {
               )}
             </Button>
 
+            {canArchive && (
             <Button
               onClick={handleArchiveSnapshot}
               disabled={isArchiving || selectedModuleCount === 0}
@@ -1108,6 +1112,7 @@ export function ReportCenter() {
                 </>
               )}
             </Button>
+            )}
 
             <Button
               onClick={handleExportExcel}

@@ -88,10 +88,12 @@ export function SectorTransferHistory() {
       <div className="flex items-center justify-between">
         <div>
         </div>
+        {can('attestations', 'create') && (
         <Button className="gap-2 bg-[#144f6b] hover:bg-[#0f2d41]" onMouseDown={(e: React.MouseEvent) => e.preventDefault()} onClick={openAddForm}>
           <Plus className="w-4 h-4" />
           Ajukan Perpindahan
         </Button>
+        )}
       </div>
 
       {/* Stats */}

@@ -38,7 +38,7 @@ function SectorDetail({ sector, members, families, theme, onClose, onEdit }: {
 }) {
   const { offset, onMouseDown } = useDraggable();
   const { attestations, sectors, can: canFn, currentUser } = useApp();
-  const detailCanEdit = canFn('Sektor Pelayanan', 'edit') && (currentUser?.role !== 'Ketua Sektor' || sector.id === (currentUser as any)?.assignedSectorId);
+  const detailCanEdit = canFn('sectors', 'edit') && (currentUser?.role !== 'Ketua Sektor' || sector.id === (currentUser as any)?.assignedSectorId);
   const [tab, setTab] = useState<'overview'|'members'|'families'>('overview');
   const [search, setSearch] = useState('');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);

@@ -305,8 +305,8 @@ function ManualMatchModal({ line, candidates, onClose, onMatched }: {
 }
 
 // ── Detail Sesi Rekonsiliasi ──────────────────────────────────────────────────────
-function SessionDetail({ sessionId, canApprove, currentUserId, onBack, onChanged }: {
-  sessionId: string; canApprove: boolean; currentUserId: string | undefined; onBack: () => void; onChanged: () => void;
+function SessionDetail({ sessionId, canApprove, canEdit, currentUserId, onBack, onChanged }: {
+  sessionId: string; canApprove: boolean; canEdit: boolean; currentUserId: string | undefined; onBack: () => void; onChanged: () => void;
 }) {
   const [detail, setDetail] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -407,7 +407,7 @@ function SessionDetail({ sessionId, canApprove, currentUserId, onBack, onChanged
         </div>
       </div>
 
-      {isDraftOrProgress && (
+      {isDraftOrProgress && canEdit && (
         <div className="flex items-center gap-2">
           <button onClick={runAutoMatch} disabled={busy !== null} className={btnSecondary}>
             {busy === 'auto-match' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />} Cocokkan Otomatis
@@ -429,7 +429,7 @@ function SessionDetail({ sessionId, canApprove, currentUserId, onBack, onChanged
                     <p className={isCredit ? 'text-emerald-600 font-medium' : 'text-red-500 font-medium'}>{isCredit ? '+ ' : '– '}{formatRp(amount)}</p>
                     {l.voucher_number && <p className="text-slate-400">↔ {l.voucher_number}</p>}
                   </div>
-                  {isDraftOrProgress && (
+                  {isDraftOrProgress && canEdit && (
                     l.match_id ? (
                       <button onClick={() => unmatch(l.match_id)} disabled={busy !== null} className="flex items-center gap-1 text-red-500 whitespace-nowrap" title="Lepas pencocokan">
                         <Unlink className="w-3.5 h-3.5" /> Lepas
@@ -467,7 +467,7 @@ function SessionDetail({ sessionId, canApprove, currentUserId, onBack, onChanged
       </div>
 
       <div className="flex items-center justify-end gap-2 pt-1">
-        {isDraftOrProgress && (
+        {isDraftOrProgress && canEdit && (
           <button onClick={() => runStatusAction('cancel')} disabled={busy !== null} className={btnSecondary}>
             <Ban className="w-3.5 h-3.5" /> Batalkan Sesi
           </button>
@@ -636,7 +636,7 @@ export function FinanceReconciliation({ onNavigate }: { onNavigate?: (page: stri
     return (
       <div className="max-w-6xl mx-auto p-4 md:p-6">
         <SessionDetail
-          sessionId={selectedSessionId} canApprove={canApprove} currentUserId={currentUser?.id}
+          sessionId={selectedSessionId} canApprove={canApprove} canEdit={canEdit} currentUserId={currentUser?.id}
           onBack={() => setSelectedSessionId(null)}
           onChanged={loadLists}
         />

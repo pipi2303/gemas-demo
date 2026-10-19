@@ -302,9 +302,11 @@ export function IncomingLetters() {
   };
 
   const status = current?.status || 'Diterima';
-  const isEditable = status === 'Diterima';
+  const isEditable = status === 'Diterima' && (current?.id ? canEditPerm : canCreate);
   const isAssignee = !!current?.disposisi?.assignedToUserId && current.disposisi.assignedToUserId === currentUser?.id;
   const canActOnDisposition = isAssignee || canEditPerm;
+  // Lampiran: hanya role dengan izin tulis atau staf yang ditugaskan (bukan sekadar izin lihat)
+  const canManageAttachments = canCreate || canEditPerm || isAssignee;
 
   const filteredLetters = statusFilter === 'all' ? letters : letters.filter(l => l.status === statusFilter);
 
@@ -462,7 +464,7 @@ export function IncomingLetters() {
             <button onClick={handleSaveDraft} disabled={saving} className="px-3.5 py-2 rounded-lg text-sm text-white flex items-center gap-1.5 disabled:opacity-60" style={{ background: '#0369a1' }}>
               {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />} <Save className="w-3.5 h-3.5" /> Simpan
             </button>
-            {current?.id && (
+            {current?.id && can('letters-incoming', 'delete') && (
               <button onClick={handleDeleteDraft} className="px-3.5 py-2 rounded-lg text-sm text-red-600 border border-red-200 flex items-center gap-1.5">
                 <Trash2 className="w-3.5 h-3.5" /> Hapus
               </button>
@@ -483,11 +485,11 @@ export function IncomingLetters() {
               <span className="text-sm text-slate-700 truncate flex items-center gap-2"><FileText className="w-3.5 h-3.5 text-slate-400" /> {att.fileName}</span>
               <div className="flex items-center gap-1">
                 <button onClick={() => downloadBase64Pdf(att.fileData, att.fileName)} className="p-1.5 rounded hover:bg-slate-100"><Download className="w-3.5 h-3.5 text-slate-500" /></button>
-                {isEditable && hasModuleView && <button onClick={() => handleDeleteAttachment(att)} className="p-1.5 rounded hover:bg-red-50"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>}
+                {isEditable && canManageAttachments && <button onClick={() => handleDeleteAttachment(att)} className="p-1.5 rounded hover:bg-red-50"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>}
               </div>
             </div>
           ))}
-          {hasModuleView && (
+          {canManageAttachments && (
             <label className="inline-flex items-center gap-1.5 text-xs font-medium cursor-pointer px-2.5 py-1.5 rounded-lg" style={{ background: '#e0f2fe', color: '#0369a1' }}>
               {uploadingAttachment ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />} Tambah Lampiran (PDF, maks 2MB)
               <input type="file" accept="application/pdf" className="hidden" disabled={uploadingAttachment}

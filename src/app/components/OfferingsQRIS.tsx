@@ -136,7 +136,10 @@ function Sparkline({ data, color = '#144f6b' }: { data: { name: string; v: numbe
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 export function OfferingsQRIS() {
-  const { offerings, members, sectors, addOffering, updateOffering, deleteOffering, currentUser, getMasterDataByCategory, markOfferingsDeposited } = useApp();
+  const { offerings, members, sectors, addOffering, updateOffering, deleteOffering, currentUser, getMasterDataByCategory, markOfferingsDeposited, can } = useApp();
+  const canCreate = can('offerings', 'create');
+  const canEdit = can('offerings', 'edit');
+  const canDelete = can('offerings', 'delete');
   const { offset, onMouseDown } = useDraggable();
   const offeringTypes = getMasterDataByCategory('jenis_persembahan').map(m => m.value) as OfferingType[];
   const OFFERING_TYPE_LIST = offeringTypes.length ? offeringTypes : ['Mingguan','Syukur','Persepuluhan','Pembangunan','Diakonia','Lainnya'] as OfferingType[];
@@ -501,12 +504,12 @@ export function OfferingsQRIS() {
           <button onClick={openKiosk} data-tooltip="Tampilkan Kode QRIS layar penuh untuk ditunjukkan ke jemaat saat ibadah" className="flex items-center gap-2 px-3 py-2 rounded-xl border transition-colors hover:bg-gray-50" style={{ fontSize: '13px', borderColor: '#e2e8f0' }}>
             <Maximize2 className="w-4 h-4 text-gray-500" />Tampilan Kios
           </button>
-          <button onMouseDown={e=>e.preventDefault()} onClick={openDepositModal} data-tooltip="Agregasi persembahan yang belum disetor menjadi transaksi Finance Add-on" className="flex items-center gap-2 px-3 py-2 rounded-xl border font-semibold transition-colors hover:bg-[#f0f7fb]" style={{ fontSize: '13px', borderColor: '#144f6b', color: '#144f6b' }}>
+          {canCreate && <button onMouseDown={e=>e.preventDefault()} onClick={openDepositModal} data-tooltip="Agregasi persembahan yang belum disetor menjadi transaksi Finance Add-on" className="flex items-center gap-2 px-3 py-2 rounded-xl border font-semibold transition-colors hover:bg-[#f0f7fb]" style={{ fontSize: '13px', borderColor: '#144f6b', color: '#144f6b' }}>
             <Landmark className="w-4 h-4" />Setor ke Buku Besar
-          </button>
-          <button onMouseDown={e=>e.preventDefault()} onClick={openCreate} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white font-semibold transition-colors" style={{ background: '#144f6b', fontSize: '13px', boxShadow: '0 2px 8px rgba(20,79,107,0.3)' }}>
+          </button>}
+          {canCreate && <button onMouseDown={e=>e.preventDefault()} onClick={openCreate} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white font-semibold transition-colors" style={{ background: '#144f6b', fontSize: '13px', boxShadow: '0 2px 8px rgba(20,79,107,0.3)' }}>
             <Plus className="w-4 h-4" />Catat Persembahan
-          </button>
+          </button>}
         </div>
       </div>
 
@@ -632,12 +635,12 @@ export function OfferingsQRIS() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1.5">
-                          <button onMouseDown={e=>e.preventDefault()} onClick={() => openEdit(o)} data-tooltip="Edit" className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-[#f0f7fb] transition-colors">
+                          {canEdit && <button onMouseDown={e=>e.preventDefault()} onClick={() => openEdit(o)} data-tooltip="Edit" className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-[#f0f7fb] transition-colors">
                             <Pencil className="w-3.5 h-3.5 text-blue-500" />
-                          </button>
-                          <button onClick={() => handleDelete(o)} data-tooltip="Hapus" className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-50 transition-colors">
+                          </button>}
+                          {canDelete && <button onClick={() => handleDelete(o)} data-tooltip="Hapus" className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-50 transition-colors">
                             <Trash2 className="w-3.5 h-3.5 text-red-500" />
-                          </button>
+                          </button>}
                         </div>
                       </td>
                     </tr>

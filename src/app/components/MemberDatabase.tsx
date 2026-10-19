@@ -147,8 +147,8 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
   onClose: ()=>void; onEdit: ()=>void; onDelete: ()=>void; onViewFamily?: ()=>void;
 }) {
   const { can: canFn, families, currentUser } = useApp();
-  const detailCanEdit   = canFn('Database Warga', 'edit');
-  const detailCanDelete = canFn('Database Warga', 'delete');
+  const detailCanEdit   = canFn('members', 'edit');
+  const detailCanDelete = canFn('members', 'delete');
   const [tab, setTab] = useState<'personal'|'gereja'|'kontak'|'kerja'|'atestasi'|'aset'|'dokumen'>('personal');
   // Modal draggable-by-header, sama seperti modal Tambah/Edit Anggota (MemberForm)
   // agar seluruh modal di modul Database Jemaat konsisten satu gaya.
@@ -547,6 +547,8 @@ export function MemberDetail({ member, sectors, attestations, members, onClose, 
 function AttestationsTabContent({ member, memberAttestations, onShowAttForm }: {
   member: Member; memberAttestations: Attestation[]; onShowAttForm: () => void;
 }) {
+  const { can } = useApp();
+  const canAjukanAtestasi = can('attestations', 'create');
   return (
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -560,12 +562,12 @@ function AttestationsTabContent({ member, memberAttestations, onShowAttForm }: {
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{background:'#f0fdf4',color:'#144f6b'}}>
                     {memberAttestations.length} catatan
                   </span>
-                  <button
+                  {canAjukanAtestasi && <button
                     onClick={() => onShowAttForm()}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-90 active:scale-95"
                     style={{background:'#9c9486',color:'#fff',boxShadow:'0 1px 4px rgba(217,119,6,0.3)'}}>
                     <Plus className="w-3 h-3"/> Ajukan Atestasi
-                  </button>
+                  </button>}
                 </div>
               </div>
 
@@ -576,12 +578,12 @@ function AttestationsTabContent({ member, memberAttestations, onShowAttForm }: {
                   </div>
                   <p style={{fontSize:'13px',fontWeight:600,color:'#94a3b8'}}>Belum ada data atestasi</p>
                   <p style={{fontSize:'12px',color:'#cbd5e1',marginTop:4,marginBottom:12}}>Riwayat atestasi anggota ini akan muncul di sini</p>
-                  <button
+                  {canAjukanAtestasi && <button
                     onClick={() => onShowAttForm()}
                     className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-90 active:scale-95"
                     style={{background:'#9c9486',color:'#fff'}}>
                     <Plus className="w-3.5 h-3.5"/> Ajukan Atestasi Baru
-                  </button>
+                  </button>}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -941,8 +943,8 @@ function MemberForm({ mode, initial, sectors, families, attestations, members, o
 }) {
   const { offset, onMouseDown } = useDraggable();
   const { getMasterDataByCategory, can: canFn, currentUser } = useApp();
-  const editCanEdit   = canFn('Database Warga', 'edit');
-  const editCanDelete = canFn('Database Warga', 'delete');
+  const editCanEdit   = canFn('members', 'edit');
+  const editCanDelete = canFn('members', 'delete');
   const editMember = mode === 'edit' ? (initial as any as Member) : undefined;
   const jabatanOpts    = getMasterDataByCategory('jabatan_pelayanan').map(m => m.value);
   const pelkatOpts     = getMasterDataByCategory('pelkat').map(m => m.value);

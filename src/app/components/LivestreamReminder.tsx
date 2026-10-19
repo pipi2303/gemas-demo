@@ -438,12 +438,14 @@ export function LivestreamReminder() {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
+                    {canEdit && (
                     <Button variant="outline" size="sm" className="gap-1 text-xs"
                       onClick={() => sendTestNotification(reminder)}>
                       {sentNotifications.includes(reminder.id)
                         ? <><CheckCircle className="w-3 h-3 text-[#144f6b]" />Terkirim!</>
                         : <><Send className="w-3 h-3" />Test</>}
                     </Button>
+                    )}
                     {canEdit && (
                       <Button variant="ghost" size="sm" onClick={() => openEditReminder(reminder)}>
                         <Edit3 className="w-3.5 h-3.5 text-gray-400" />

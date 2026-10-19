@@ -106,7 +106,7 @@ function SacramentField({ label, value, onChange, type='text', opts, autoFocus, 
 }
 
 // ── BAPTISM ───────────────────────────────────────────────────────────────────
-function BaptismForm({ initial, onSave, onClose }: { initial?: Partial<Baptism>; onSave:(d:any)=>void; onClose:()=>void }) {
+function BaptismForm({ initial, onSave, onClose, readOnly }: { initial?: Partial<Baptism>; onSave:(d:any)=>void; onClose:()=>void; readOnly?: boolean }) {
   const { offset, onMouseDown } = useDraggable();
   const { members, getMasterDataByCategory } = useApp();
   // Poin 12 (QC 11 Sept 2026): tautan otomatis ke Jadwal Ibadah hanya masuk akal
@@ -255,7 +255,7 @@ function BaptismForm({ initial, onSave, onClose }: { initial?: Partial<Baptism>;
         </div>
         <div className="px-6 pb-5 flex justify-end gap-3 flex-shrink-0">
           <button onClick={onClose} className="px-4 py-2 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50" style={{borderColor:'#e2e8f0'}}>Batal</button>
-          <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#144f6b'}}>Simpan</button>
+          {!readOnly && <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#144f6b'}}>Simpan</button>}
         </div>
       </div>
     </div>
@@ -263,7 +263,7 @@ function BaptismForm({ initial, onSave, onClose }: { initial?: Partial<Baptism>;
 }
 
 // ── SIDI ──────────────────────────────────────────────────────────────────────
-function SidiForm({ initial, onSave, onClose }: { initial?: Partial<Sidi>; onSave:(d:any)=>void; onClose:()=>void }) {
+function SidiForm({ initial, onSave, onClose, readOnly }: { initial?: Partial<Sidi>; onSave:(d:any)=>void; onClose:()=>void; readOnly?: boolean }) {
   const { offset, onMouseDown } = useDraggable();
   const { members, getMasterDataByCategory } = useApp();
   // Poin 12 (QC 11 Sept 2026): lihat catatan yang sama di BaptismForm di atas.
@@ -362,7 +362,7 @@ function SidiForm({ initial, onSave, onClose }: { initial?: Partial<Sidi>; onSav
         </div>
         <div className="px-6 pb-5 flex justify-end gap-3 flex-shrink-0">
           <button onClick={onClose} className="px-4 py-2 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50" style={{borderColor:'#e2e8f0'}}>Batal</button>
-          <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#144f6b'}}>Simpan</button>
+          {!readOnly && <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#144f6b'}}>Simpan</button>}
         </div>
       </div>
     </div>
@@ -370,7 +370,7 @@ function SidiForm({ initial, onSave, onClose }: { initial?: Partial<Sidi>; onSav
 }
 
 // ── MARRIAGE ──────────────────────────────────────────────────────────────────
-function MarriageForm({ initial, onSave, onClose }: { initial?: Partial<Marriage>; onSave:(d:any)=>void; onClose:()=>void }) {
+function MarriageForm({ initial, onSave, onClose, readOnly }: { initial?: Partial<Marriage>; onSave:(d:any)=>void; onClose:()=>void; readOnly?: boolean }) {
   const { offset, onMouseDown } = useDraggable();
   const { members, getMasterDataByCategory } = useApp();
   // Poin 12 (QC 11 Sept 2026): lihat catatan yang sama di BaptismForm di atas.
@@ -488,7 +488,7 @@ function MarriageForm({ initial, onSave, onClose }: { initial?: Partial<Marriage
         </div>
         <div className="px-6 pb-5 flex justify-end gap-3 flex-shrink-0">
           <button onClick={onClose} className="px-4 py-2 rounded-xl border text-sm font-medium text-gray-600 hover:bg-gray-50" style={{borderColor:'#e2e8f0'}}>Batal</button>
-          <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#144f6b'}}>Simpan</button>
+          {!readOnly && <button onClick={submit} className="px-5 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#144f6b'}}>Simpan</button>}
         </div>
       </div>
     </div>
@@ -499,8 +499,8 @@ function MarriageForm({ initial, onSave, onClose }: { initial?: Partial<Marriage
 function SacramentDocumentsModal({ item, label, onClose }: { item: any; label: string; onClose: () => void }) {
   const { offset, onMouseDown } = useDraggable();
   const { can: canFn, currentUser } = useApp();
-  const canEditDocs   = canFn('Sakramen & Atestasi', 'edit');
-  const canDeleteDocs = canFn('Sakramen & Atestasi', 'delete');
+  const canEditDocs   = canFn('sacraments', 'edit');
+  const canDeleteDocs = canFn('sacraments', 'delete');
 
   const [docs, setDocs] = useState<SacramentDocument[]>([]);
   const [uploadingDoc, setUploadingDoc] = useState(false);
@@ -1055,9 +1055,9 @@ export function SacramentDatabase({ onNavigate }: { onNavigate?: (page: string) 
       </div>
 
       {/* Modals */}
-      {showForm && tab==='baptism' && <BaptismForm initial={editItem} onSave={handleSave} onClose={()=>{setShowForm(false);setEditItem(null);}}/>}
-      {showForm && tab==='sidi' && <SidiForm initial={editItem} onSave={handleSave} onClose={()=>{setShowForm(false);setEditItem(null);}}/>}
-      {showForm && tab==='marriage' && <MarriageForm initial={editItem} onSave={handleSave} onClose={()=>{setShowForm(false);setEditItem(null);}}/>}
+      {showForm && tab==='baptism' && <BaptismForm initial={editItem} readOnly={editItem ? !canEdit : !canCreate} onSave={handleSave} onClose={()=>{setShowForm(false);setEditItem(null);}}/>}
+      {showForm && tab==='sidi' && <SidiForm initial={editItem} readOnly={editItem ? !canEdit : !canCreate} onSave={handleSave} onClose={()=>{setShowForm(false);setEditItem(null);}}/>}
+      {showForm && tab==='marriage' && <MarriageForm initial={editItem} readOnly={editItem ? !canEdit : !canCreate} onSave={handleSave} onClose={()=>{setShowForm(false);setEditItem(null);}}/>}
       {showDocsFor && (
         <SacramentDocumentsModal
           item={showDocsFor}

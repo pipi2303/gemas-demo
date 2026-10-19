@@ -530,7 +530,7 @@ export function FamilyCardModal({ family, members, sectors, onClose }: {
   family: Family; members: Member[]; sectors: any[]; onClose: () => void;
 }) {
   const { offset, onMouseDown } = useDraggable();
-  const { families, updateFamily } = useApp();
+  const { families, updateFamily, can } = useApp();
   // Pakai data keluarga TERBARU dari context (bukan cuma snapshot props), supaya
   // begitu createdAt di-backfill di bawah, kartu ini langsung ikut update.
   const liveFamily = families.find((f: any) => f.id === family.id) || family;
@@ -540,7 +540,7 @@ export function FamilyCardModal({ family, members, sectors, onClose }: {
   // dibuat sebelum field ini ada), kunci sekali di sini — sesudahnya tidak
   // akan berubah lagi.
   React.useEffect(() => {
-    if (!liveFamily.createdAt) {
+    if (!liveFamily.createdAt && can('families', 'edit')) {
       updateFamily(liveFamily.id, { createdAt: new Date().toISOString() });
     }
   }, [liveFamily.id, liveFamily.createdAt]);
@@ -585,9 +585,9 @@ function FamilyDetail({ family, members, sectors, onClose, onEdit, onDelete, onV
 }) {
   const { offset, onMouseDown } = useDraggable();
   const { attestations, updateMember, deleteMember, can: canFn } = useApp();
-  const detailCanEdit   = canFn('Data Keluarga', 'edit');
-  const detailCanDelete = canFn('Data Keluarga', 'delete');
-  const detailCanExport = canFn('Data Keluarga', 'export');
+  const detailCanEdit   = canFn('families', 'edit');
+  const detailCanDelete = canFn('families', 'delete');
+  const detailCanExport = canFn('families', 'export');
   const canEditMembers  = canFn('Database Warga', 'edit');
   const fam = members.filter(m=>m.familyId===family.id);
   const sector = sectors.find(s=>s.id===family.sectorId);

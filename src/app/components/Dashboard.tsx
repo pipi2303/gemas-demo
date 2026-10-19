@@ -931,6 +931,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
             </div>
           </div>
           {/* Quick Actions */}
+          {['members', 'offerings', 'announcements', 'worship-schedules'].some(p => can(p, 'create')) && (
           <div className="flex gap-2 flex-wrap">
             <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', alignSelf: 'center', marginRight: '4px' }}>Aksi cepat:</p>
             {[
@@ -938,7 +939,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
               { label: '💰 Catat Persembahan', page: 'offerings' },
               { label: '📢 Buat Pengumuman',   page: 'announcements' },
               { label: '📅 Jadwal Ibadah',     page: 'worship-schedules' },
-            ].map(item => (
+            ].filter(item => can(item.page, 'create')).map(item => (
               <button key={item.page} onClick={() => nav(item.page)}
                 className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:scale-105 active:scale-95"
                 style={{ background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.85)', border: '1px solid rgba(255,255,255,0.18)' }}>
@@ -946,6 +947,7 @@ export function Dashboard({ onNavigate }: { onNavigate?: (page: string) => void 
               </button>
             ))}
           </div>
+          )}
         </div>
       </div>
 

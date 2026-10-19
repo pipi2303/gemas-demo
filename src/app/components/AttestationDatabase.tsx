@@ -124,8 +124,8 @@ function AttestationDetail({ att, onClose, onEdit, onUpdateStatus, onBuatSurat, 
   const { offset, onMouseDown } = useDraggable();
   const { can: canFn, currentUser } = useApp();
   const canBuatSurat = onBuatSurat && canFn('letters-outgoing', 'create');
-  const canEditDocs   = canFn('Sakramen & Atestasi', 'edit');
-  const canDeleteDocs = canFn('Sakramen & Atestasi', 'delete');
+  const canEditDocs   = canFn('attestations', 'edit');
+  const canDeleteDocs = canFn('attestations', 'delete');
   const isIn = att.type === 'Pindah Masuk';
 
   // Dokumen pendukung: PDF dilampirkan ke atestasi ini (maks 2MB per file)
@@ -228,7 +228,7 @@ function AttestationDetail({ att, onClose, onEdit, onUpdateStatus, onBuatSurat, 
               </p>
             </div>
             <div className="flex gap-2">
-              <button onClick={onEdit} data-tooltip="Edit" className="p-2 rounded-xl hover:bg-white/10 text-white/60 hover:text-white"><Pencil className="w-4 h-4"/></button>
+              {canEditDocs && <button onClick={onEdit} data-tooltip="Edit" className="p-2 rounded-xl hover:bg-white/10 text-white/60 hover:text-white"><Pencil className="w-4 h-4"/></button>}
               <button onClick={onClose} data-tooltip="Tutup" className="p-2 rounded-xl hover:bg-white/10 text-white/60 hover:text-white"><X className="w-4 h-4"/></button>
             </div>
           </div>
@@ -342,7 +342,7 @@ function AttestationDetail({ att, onClose, onEdit, onUpdateStatus, onBuatSurat, 
           </div>
 
           {/* Quick status update */}
-          {normStatusSurat(att.status)!=='Selesai' && normStatusSurat(att.status)!=='Ditolak' && (
+          {canEditDocs && normStatusSurat(att.status)!=='Selesai' && normStatusSurat(att.status)!=='Ditolak' && (
             <div className="p-4 rounded-xl border" style={{borderColor:'#f1f5f9',background:'#fafbfc'}}>
               <p style={{fontSize:'12px',color:'#64748b',fontWeight:600,marginBottom:8}}>Perbarui Status Cepat</p>
               <div className="flex gap-2 flex-wrap">
@@ -371,9 +371,9 @@ function AttestationDetail({ att, onClose, onEdit, onUpdateStatus, onBuatSurat, 
               <Mail className="w-3.5 h-3.5 mr-1.5 inline"/> Buat Surat
             </button>
           )}
-          <button onClick={onEdit} className="px-4 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#144f6b'}}>
+          {canEditDocs && <button onClick={onEdit} className="px-4 py-2 rounded-xl text-white text-sm font-semibold hover:opacity-90" style={{background:'#144f6b'}}>
             <Pencil className="w-3.5 h-3.5 mr-1.5 inline"/> Edit
-          </button>
+          </button>}
         </div>
       </div>
     </div>
@@ -939,9 +939,9 @@ Tetap tandai Selesai?`);
         </div>
         {outerTab === 'atestasi' && (
           <div className="flex gap-2">
-            <button onMouseDown={e=>e.preventDefault()} onClick={()=>{setEditItem(null);setShowForm(true);}} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold shadow hover:opacity-90" style={{background:'#144f6b'}}>
+            {can('attestations','create') && <button onMouseDown={e=>e.preventDefault()} onClick={()=>{setEditItem(null);setShowForm(true);}} className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold shadow hover:opacity-90" style={{background:'#144f6b'}}>
               <Plus className="w-4 h-4"/> Tambah Atestasi
-            </button>
+            </button>}
             <button onClick={exportPDF} className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border hover:bg-gray-50" style={{borderColor:'#e2e8f0',color:'#4b5563'}}>
               <Printer className="w-4 h-4"/> PDF
             </button>
@@ -1112,8 +1112,8 @@ Tetap tandai Selesai?`);
                     <div className="flex gap-1" onClick={e=>e.stopPropagation()}>
                       <button onClick={()=>setShowDetail(a)} data-tooltip="Lihat Detail" className="p-1.5 rounded-lg hover:bg-[#f6f4f0] transition-colors"><Eye className="w-3.5 h-3.5 text-[#144f6b]"/></button>
                       {can('letters-outgoing','create') && <button onClick={()=>handleBuatSurat(a)} data-tooltip="Buat Surat" className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><Mail className="w-3.5 h-3.5 text-gray-400"/></button>}
-                      <button onMouseDown={e=>e.preventDefault()} onClick={()=>{setEditItem(a);setShowForm(true);}} data-tooltip="Edit" className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><Pencil className="w-3.5 h-3.5 text-gray-400"/></button>
-                      <button onClick={()=>setDeleteTarget(a)} data-tooltip="Hapus" className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5 text-red-400"/></button>
+                      {can('attestations','edit') && <button onMouseDown={e=>e.preventDefault()} onClick={()=>{setEditItem(a);setShowForm(true);}} data-tooltip="Edit" className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><Pencil className="w-3.5 h-3.5 text-gray-400"/></button>}
+                      {can('attestations','delete') && <button onClick={()=>setDeleteTarget(a)} data-tooltip="Hapus" className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5 text-red-400"/></button>}
                     </div>
                   </td>
                 </tr>

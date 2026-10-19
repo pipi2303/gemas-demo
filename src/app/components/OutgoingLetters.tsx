@@ -456,7 +456,9 @@ export function OutgoingLetters() {
   };
 
   const status = current?.status || 'Draft';
-  const isDraft = status === 'Draft';
+  // Draft hanya bisa diubah oleh role yang punya izin create (draft baru) / edit (draft tersimpan)
+  const isDraft = status === 'Draft' && (current?.id ? canEditPerm : canCreate);
+  const canDeleteDraft = can('letters-outgoing', 'delete');
 
   const filteredLetters = statusFilter === 'all' ? letters : letters.filter(l => l.status === statusFilter);
 
@@ -658,7 +660,7 @@ export function OutgoingLetters() {
             <button onClick={handleSaveDraft} disabled={saving} className="px-3.5 py-2 rounded-lg text-sm text-white flex items-center gap-1.5 disabled:opacity-60" style={{ background: '#0369a1' }}>
               {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />} <Save className="w-3.5 h-3.5" /> Simpan Draft
             </button>
-            {current?.id && (
+            {current?.id && canDeleteDraft && (
               <button onClick={handleDeleteDraft} className="px-3.5 py-2 rounded-lg text-sm text-red-600 border border-red-200 flex items-center gap-1.5">
                 <Trash2 className="w-3.5 h-3.5" /> Hapus Draft
               </button>

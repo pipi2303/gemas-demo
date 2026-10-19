@@ -31,7 +31,9 @@ const SENSUS_TABLE_DEFAULT_WIDTHS: Record<string, number> = {
 };
 
 export function LaporanSensus() {
-  const { members, sectors, families, baptisms, sidis, marriages, sensusSnapshots, archiveSensusSnapshot } = useApp();
+  const { members, sectors, families, baptisms, sidis, marriages, sensusSnapshots, archiveSensusSnapshot, can } = useApp();
+  // Arsip sensus = aksi tulis; digate 'export' supaya Majelis/Ketua Sektor (view+export) tetap bisa, role lihat-saja tidak.
+  const canArchive = can('sensus-report', 'export');
   const [activeTab, setActiveTab] = useState('sensus');
   // Laporan ini selalu menampilkan data per hari ini (bukan snapshot historis per tahun -
   // dropdown pilih tahun yang sebelumnya ada di sini cuma mengubah teks judul/nama file,
@@ -1000,10 +1002,12 @@ export function LaporanSensus() {
                   </p>
                 </div>
               </div>
+              {canArchive && (
               <Button onClick={handleArchiveSensus} disabled={isArchiving} className="gap-2 text-white font-semibold" style={{ background: '#144f6b' }}>
                 {isArchiving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
                 {currentSnapshot ? 'Kunci Ulang Sensus Tahun Ini' : 'Kunci & Arsipkan Sensus Tahun Ini'}
               </Button>
+              )}
             </div>
             <p className="text-xs text-gray-400">
               Mengunci sensus akan menyimpan snapshot angka hari ini sebagai catatan resmi tahun {currentYear}, sehingga tahun depan bisa dibandingkan pertumbuhan/penurunannya secara nyata.

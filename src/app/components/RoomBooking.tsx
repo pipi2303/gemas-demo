@@ -396,6 +396,7 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
               Kelola Ruangan
             </button>
           )}
+          {can('room-booking', 'create') && (
           <button 
             onClick={() => {
               resetForm();
@@ -408,6 +409,7 @@ export function RoomBookingComponent({ onNavigate }: { onNavigate?: (page: strin
             <Plus className="w-5 h-5" />
             Booking Ruangan
           </button>
+          )}
         </div>
       </div>
 

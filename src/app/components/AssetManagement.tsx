@@ -825,10 +825,12 @@ export function AssetManagement() {
                         </div>
                         <div className="flex-shrink-0 text-right">
                           <CondBadge cond={a.condition} />
+                          {canEdit && (
                           <button onClick={() => openMaint(a)} className="mt-1.5 flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all hover:opacity-80"
                             style={{ background:'#144f6b',color:'white' }}>
                             <Wrench style={{ width:10,height:10 }} /> Catat
                           </button>
+                          )}
                         </div>
                       </div>
                     );
