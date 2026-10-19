@@ -5,7 +5,16 @@ import { Eye, EyeOff, Lock, User, ShieldCheck, Sparkles } from 'lucide-react';
 const GOLD = '#dfb774';
 
 export function LoginPage() {
-  const { login } = useApp();
+  const { login, enterAsGuest } = useApp();
+  const [guestLoading, setGuestLoading] = useState(false);
+
+  const handleGuest = async () => {
+    setError('');
+    setGuestLoading(true);
+    const ok = await enterAsGuest();
+    setGuestLoading(false);
+    if (!ok) setError('Mode demo tanpa login tidak aktif di server ini.');
+  };
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -310,6 +319,15 @@ export function LoginPage() {
                 </button>
               </div>
             </form>
+            <button
+              type="button"
+              onClick={handleGuest}
+              disabled={guestLoading || loading}
+              className="w-full mt-3 rounded-xl border text-sm font-medium transition-colors hover:bg-slate-50 disabled:opacity-60"
+              style={{ height: '44px', borderColor: '#cbd5e1', color: '#144f6b' }}
+            >
+              {guestLoading ? 'Memuat…' : 'Lihat Demo tanpa Login'}
+            </button>
             </div>
 
             <div className="fade-up-5 flex items-center justify-center gap-2 mt-6">

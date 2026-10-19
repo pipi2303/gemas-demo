@@ -34,6 +34,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required (min 32 chars)}
       CLIENT_ORIGIN: ${CLIENT_ORIGIN:-http://123.176.120.78:8093}
       NODE_ENV: production
+      # Mode tamu demo: pengunjung tanpa login otomatis masuk sebagai role ini
+      # (lihat server/lib/demoGuest.ts). Kosongkan untuk mewajibkan login.
+      DEMO_GUEST_ROLE: ${DEMO_GUEST_ROLE-Demo}
     volumes:
       - gemas_demo_backups:/app/backups
     networks:

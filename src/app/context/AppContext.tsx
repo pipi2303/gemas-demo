@@ -30,6 +30,8 @@ interface AppContextType {
   currentUser: User | null;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  /** Masuk sebagai Pengunjung Demo (mode tamu server). false kalau mode tamu dimatikan. */
+  enterAsGuest: () => Promise<boolean>;
   
   // Existing Data
   members: Member[];
@@ -962,8 +964,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const token = localStorage.getItem('token') || localStorage.getItem('gemas_token');
       const storedUser = localStorage.getItem('currentUser');
       
-      // Hanya panggil /api/auth/me jika ada indikasi sesi / token tersimpan
-      if (!token && !storedUser) {
+      // Mode tamu demo: server mengembalikan user "Pengunjung Demo" untuk request
+      // tanpa token (lihat server/lib/demoGuest.ts), jadi /api/auth/me SELALU
+      // dipanggil — kecuali pengunjung baru saja menekan Keluar untuk login
+      // sebagai user lain (flag sessionStorage di logout()).
+      let skipGuest = false;
+      try { skipGuest = sessionStorage.getItem('gemas_skip_guest') === '1'; } catch { /* abaikan */ }
+      if (!token && !storedUser && skipGuest) {
         setDbReady(true);
         return;
       }
@@ -1160,6 +1167,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (token) {
         setToken(token);
       }
+      try { sessionStorage.removeItem('gemas_skip_guest'); } catch { /* abaikan */ }
       setCurrentUser(user);
       localStorage.setItem('currentUser', JSON.stringify(user));
       try {
@@ -1186,7 +1194,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     try { await api.post('/api/auth/logout', {}); } catch { /* ignore */ }
     clearToken();
+    // Tampilkan halaman login (jangan langsung masuk lagi sebagai Pengunjung Demo)
+    try { sessionStorage.setItem('gemas_skip_guest', '1'); } catch { /* abaikan */ }
     setCurrentUser(null);
+  };
+
+  /** Masuk sebagai Pengunjung Demo (mode tamu, tanpa login) dari halaman login. */
+  const enterAsGuest = async (): Promise<boolean> => {
+    try { sessionStorage.removeItem('gemas_skip_guest'); } catch { /* abaikan */ }
+    try {
+      const { user } = await api.get<{ user: User }>('/api/auth/me');
+      if (!user) return false;
+      setCurrentUser(user);
+      localStorage.setItem('currentUser', JSON.stringify(user));
+      await loadAllData();
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const logActivity = (log: Omit<ActivityLog, 'id' | 'timestamp'>) => {
@@ -3175,6 +3200,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       currentUser,
       login,
       logout,
+      enterAsGuest,
       members,
       families,
       sectors,

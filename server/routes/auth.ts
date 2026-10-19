@@ -6,6 +6,7 @@ import { signToken, verifyToken } from '../lib/jwt.js';
 import { logger } from '../lib/logger.js';
 import { hashPassword, verifyPassword } from '../lib/passwordUtils.js';
 import { blacklistToken } from '../lib/tokenBlacklist.js';
+import { getDemoGuestUser } from '../lib/demoGuest.js';
 
 const COOKIE_NAME = 'gemas_token';
 const COOKIE_MAX_AGE = 8 * 60 * 60 * 1000;
@@ -135,7 +136,16 @@ router.put('/change-password', async (req: Request, res: Response) => {
 
 router.get('/me', async (req: Request, res: Response) => {
   const token = req.cookies?.[COOKIE_NAME] || req.headers.authorization?.slice(7);
-  if (!token) { res.status(401).json({ error: 'Unauthorized' }); return; }
+  if (!token) {
+    // Mode tamu demo: tanpa token → kembalikan user "Pengunjung Demo" (lihat server/lib/demoGuest.ts)
+    const guest = getDemoGuestUser();
+    if (guest) {
+      res.json({ user: { id: guest.userId, name: guest.name, username: guest.username, role: guest.role, email: '', isActive: true, isDemoGuest: true } });
+      return;
+    }
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
   try {
     const payload = verifyToken(token);
     const users = await getAll<any>('users');

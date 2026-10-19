@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken, JWTPayload } from '../lib/jwt.js';
 import { isBlacklisted } from '../lib/tokenBlacklist.js';
+import { getDemoGuestUser } from '../lib/demoGuest.js';
 
 export interface AuthRequest extends Request {
   user?: JWTPayload;
@@ -17,7 +18,13 @@ function extractToken(req: AuthRequest): string | null {
 
 export function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
   const token = extractToken(req);
-  if (!token) { res.status(401).json({ error: 'Unauthorized' }); return; }
+  if (!token) {
+    // Mode tamu demo (lihat server/lib/demoGuest.ts)
+    const guest = getDemoGuestUser();
+    if (guest) { req.user = guest; next(); return; }
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
   try {
     req.user = verifyToken(token);
     if (req.user.jti && isBlacklisted(req.user.jti)) {
