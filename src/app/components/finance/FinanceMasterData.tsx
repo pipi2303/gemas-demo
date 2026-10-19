@@ -1523,43 +1523,48 @@ function OfferingCategorySection({ category, entityLabel, checkUsage }: { catego
 }
 
 // ── Main page ──────────────────────────────────────────────────────────────────
-const TAB_GROUPS: { label: string; tabs: { id: string; label: string; icon: React.ElementType }[] }[] = [
-  { label: 'Struktur Akuntansi', tabs: [
-    { id: 'account-groups', label: 'Kelompok Akun', icon: Layers },
-    { id: 'accounts', label: 'Chart of Accounts', icon: BookOpen },
-    { id: 'funds', label: 'Dana', icon: Wallet },
+// Navigasi Master Data Finance: menu samping vertikal (desktop) / dropdown
+// berkelompok (mobile). Tiap item menampilkan jumlah data & penanda "wajib diisi"
+// (titik oranye) kalau master data inti masih kosong, supaya admin langsung tahu
+// apa yang belum lengkap tanpa membuka tab satu per satu.
+type NavItem = { id: string; label: string; required?: boolean; endpoint?: string };
+const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
+  { label: 'Akuntansi', items: [
+    { id: 'account-groups', label: 'Kelompok Akun', required: true, endpoint: '/api/v1/finance/account-groups' },
+    { id: 'accounts', label: 'Bagan Akun (COA)', required: true, endpoint: '/api/v1/finance/accounts' },
+    { id: 'funds', label: 'Dana', required: true, endpoint: '/api/v1/finance/funds' },
+    { id: 'fiscal-years', label: 'Tahun Fiskal', required: true, endpoint: '/api/v1/finance/fiscal-years' },
   ] },
-  { label: 'Struktur Pelayanan', tabs: [
-    { id: 'fields', label: 'Bidang', icon: MapPin },
-    { id: 'programs', label: 'Program', icon: FolderTree },
-    { id: 'activities', label: 'Kegiatan', icon: ListTree },
-    { id: 'cost-centers', label: 'Pusat Biaya', icon: Target },
+  { label: 'Pelayanan', items: [
+    { id: 'fields', label: 'Bidang', endpoint: '/api/v1/finance/fields' },
+    { id: 'programs', label: 'Program', endpoint: '/api/v1/finance/programs' },
+    { id: 'activities', label: 'Kegiatan', endpoint: '/api/v1/finance/activities' },
+    { id: 'cost-centers', label: 'Pusat Biaya', endpoint: '/api/v1/finance/cost-centers' },
   ] },
-  { label: 'Operasional', tabs: [
-    { id: 'cash-accounts', label: 'Kas', icon: Wallet },
-    { id: 'bank-accounts', label: 'Bank', icon: Building2 },
-    { id: 'voucher-types', label: 'Jenis Voucher', icon: Ticket },
+  { label: 'Kas & Bank', items: [
+    { id: 'cash-accounts', label: 'Kas', required: true, endpoint: '/api/v1/finance/cash-accounts' },
+    { id: 'bank-accounts', label: 'Bank', endpoint: '/api/v1/finance/bank-accounts' },
+    { id: 'voucher-types', label: 'Jenis Voucher', required: true, endpoint: '/api/v1/finance/voucher-types' },
   ] },
-  { label: 'Pihak Terkait', tabs: [
-    { id: 'vendors', label: 'Pemasok', icon: Truck },
-    { id: 'donors', label: 'Donatur', icon: Gift },
+  { label: 'Persembahan', items: [
+    { id: 'jenis-persembahan', label: 'Jenis Persembahan', required: true },
+    { id: 'metode-pembayaran', label: 'Metode Pembayaran', required: true },
+    { id: 'offering-deposit-map', label: 'Peta Setoran', required: true, endpoint: '/api/v1/finance/offering-deposit-map' },
+    { id: 'qris-codes', label: 'Data QRIS', endpoint: '/api/v1/finance/qris-codes' },
   ] },
-  { label: 'Kalender', tabs: [
-    { id: 'fiscal-years', label: 'Tahun Fiskal', icon: CalendarRange },
-  ] },
-  { label: 'Integrasi Persembahan', tabs: [
-    { id: 'jenis-persembahan', label: 'Jenis Persembahan', icon: Gift },
-    { id: 'metode-pembayaran', label: 'Metode Pembayaran', icon: Ticket },
-    { id: 'offering-deposit-map', label: 'Peta Setoran Persembahan', icon: Layers },
-    { id: 'qris-codes', label: 'Data QRIS', icon: QrCode },
+  { label: 'Mitra', items: [
+    { id: 'vendors', label: 'Pemasok', endpoint: '/api/v1/finance/vendors' },
+    { id: 'donors', label: 'Donatur', endpoint: '/api/v1/finance/donors' },
   ] },
 ];
+const NAV_ITEMS = NAV_GROUPS.flatMap(g => g.items);
 
 export function FinanceMasterData({ onNavigate }: { onNavigate?: (page: string) => void }) {
-  const { can: canFn } = useApp();
+  const { can: canFn, masterDataItems } = useApp();
   const canEdit = canFn(FINANCE_MODULE, 'edit');
   const [activeTab, setActiveTab] = useState<string>('account-groups');
   const [lookups, setLookups] = useState<Lookups>({ accountGroups: [], fields: [], programs: [], funds: [], accounts: [], costCenters: [], cashAccounts: [] });
+  const [apiCounts, setApiCounts] = useState<Record<string, number | null>>({});
 
   const loadLookups = useCallback(async () => {
     try {
@@ -1576,12 +1581,31 @@ export function FinanceMasterData({ onNavigate }: { onNavigate?: (page: string) 
     } catch {
       // Skema belum aktif — masing-masing tab akan menampilkan pesan errornya sendiri.
     }
+    // Jumlah data per menu (null = gagal dimuat, badge disembunyikan).
+    const entries = await Promise.all(
+      NAV_ITEMS.filter(i => i.endpoint).map(async i => {
+        try { return [i.id, (await fetchList<any>(i.endpoint!)).length] as const; }
+        catch { return [i.id, null] as const; }
+      })
+    );
+    setApiCounts(Object.fromEntries(entries));
   }, []);
 
   useEffect(() => { loadLookups(); }, [loadLookups]);
 
   const configs = useMemo(() => buildConfigs(lookups), [lookups]);
   const activeConfig = configs.find(c => c.id === activeTab);
+
+  const counts = useMemo<Record<string, number | null | undefined>>(() => {
+    const byCat = (cat: string) => masterDataItems.filter((m: any) => m.category === cat && m.isActive !== false).length;
+    return { ...apiCounts, 'jenis-persembahan': byCat('jenis_persembahan'), 'metode-pembayaran': byCat('metode_pembayaran') };
+  }, [apiCounts, masterDataItems]);
+
+  const isMissing = (item: NavItem) => !!item.required && counts[item.id] === 0;
+  const requiredItems = NAV_ITEMS.filter(i => i.required);
+  const requiredDone = requiredItems.filter(i => (counts[i.id] ?? 0) > 0).length;
+  const activeItem = NAV_ITEMS.find(i => i.id === activeTab);
+  const activeGroup = NAV_GROUPS.find(g => g.items.some(i => i.id === activeTab));
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -1594,61 +1618,108 @@ export function FinanceMasterData({ onNavigate }: { onNavigate?: (page: string) 
         onRefresh={loadLookups}
         infoStrip={[
           {
-            label: 'Kelompok Master',
-            value: '13 Entitas + Fiskal',
-            color: 'emerald',
+            label: 'Kelengkapan Setup',
+            value: `${requiredDone}/${requiredItems.length} Master Wajib Terisi`,
+            color: requiredDone === requiredItems.length ? 'emerald' : 'amber',
           },
           {
-            label: 'Chart of Accounts',
+            label: 'Bagan Akun (COA)',
             value: `${lookups.accounts.length} Akun Terdaftar`,
             color: 'sky',
           },
           {
-            label: 'Bidang Sinodal',
-            value: `${lookups.fields.length} Bidang Pelayanan`,
+            label: 'Bidang Pelayanan',
+            value: `${lookups.fields.length} Bidang`,
             color: 'indigo',
           },
           {
-            label: 'Sistem Kas & Bank',
-            value: 'Multi-Rekening Terpisah',
+            label: 'Kas & Bank',
+            value: `${counts['cash-accounts'] ?? 0} Kas · ${counts['bank-accounts'] ?? 0} Rekening`,
             color: 'teal',
           },
         ]}
       />
 
-      <div className="space-y-3 border-b border-slate-200 pb-3">
-        {TAB_GROUPS.map(group => (
-          <div key={group.label} className="flex flex-wrap items-center gap-1.5">
-            <span className="w-full text-[11px] font-semibold uppercase tracking-wide text-slate-400 sm:w-auto sm:mr-1">{group.label}</span>
-            {group.tabs.map(tab => {
-              const Icon = tab.icon;
-              const active = tab.id === activeTab;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg transition-colors"
-                  style={active ? { background: '#144f6b', color: '#fff' } : { color: '#475569' }}
-                >
-                  <Icon className="w-3.5 h-3.5" /> {tab.label}
-                </button>
-              );
-            })}
-          </div>
-        ))}
+      {/* Mobile: dropdown berkelompok */}
+      <div className="lg:hidden">
+        <label className="block text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1">Pilih Master Data</label>
+        <select
+          value={activeTab}
+          onChange={e => setActiveTab(e.target.value)}
+          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+        >
+          {NAV_GROUPS.map(g => (
+            <optgroup key={g.label} label={g.label}>
+              {g.items.map(i => (
+                <option key={i.id} value={i.id}>
+                  {i.label}{typeof counts[i.id] === 'number' ? ` (${counts[i.id]})` : ''}{isMissing(i) ? ' · belum diisi' : ''}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
       </div>
 
-      {activeTab === 'fiscal-years' ? (
-        <FiscalYearSection canEdit={canEdit} />
-      ) : activeTab === 'qris-codes' ? (
-        <QrisCodesSection canEdit={canEdit} />
-      ) : activeTab === 'jenis-persembahan' ? (
-        <OfferingCategorySection category="jenis_persembahan" entityLabel="Jenis Persembahan" checkUsage />
-      ) : activeTab === 'metode-pembayaran' ? (
-        <OfferingCategorySection category="metode_pembayaran" entityLabel="Metode Pembayaran" checkUsage={false} />
-      ) : activeConfig ? (
-        <EntitySection key={activeTab} config={activeConfig} canEdit={canEdit} onMutated={loadLookups} />
-      ) : null}
+      <div className="lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-6">
+        {/* Desktop: menu samping */}
+        <nav className="hidden lg:block" aria-label="Menu Master Data Finance">
+          <div className="sticky top-4 space-y-4 rounded-xl border border-slate-200 bg-white p-3">
+            {NAV_GROUPS.map(g => (
+              <div key={g.label}>
+                <div className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{g.label}</div>
+                <ul className="space-y-0.5">
+                  {g.items.map(i => {
+                    const active = i.id === activeTab;
+                    const c = counts[i.id];
+                    return (
+                      <li key={i.id}>
+                        <button
+                          onClick={() => setActiveTab(i.id)}
+                          aria-current={active ? 'page' : undefined}
+                          className={`flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors ${active ? '' : 'text-slate-600 hover:bg-slate-50'}`}
+                          style={active ? { background: '#144f6b', color: '#fff' } : undefined}
+                        >
+                          <span className="truncate">{i.label}</span>
+                          <span className="flex shrink-0 items-center gap-1.5">
+                            {isMissing(i) && (
+                              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" title="Wajib diisi — masih kosong" />
+                            )}
+                            {typeof c === 'number' && (
+                              <span className={`text-xs tabular-nums ${active ? 'text-white/80' : 'text-slate-400'}`}>{c}</span>
+                            )}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+            <div className="flex items-center gap-1.5 border-t border-slate-100 px-2 pt-3 text-[11px] text-slate-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> Wajib diisi, masih kosong
+            </div>
+          </div>
+        </nav>
+
+        <div className="min-w-0 space-y-4 mt-4 lg:mt-0">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{activeGroup?.label}</div>
+            <h2 className="text-lg font-semibold text-slate-800">{activeItem?.label}</h2>
+          </div>
+
+          {activeTab === 'fiscal-years' ? (
+            <FiscalYearSection canEdit={canEdit} />
+          ) : activeTab === 'qris-codes' ? (
+            <QrisCodesSection canEdit={canEdit} />
+          ) : activeTab === 'jenis-persembahan' ? (
+            <OfferingCategorySection category="jenis_persembahan" entityLabel="Jenis Persembahan" checkUsage />
+          ) : activeTab === 'metode-pembayaran' ? (
+            <OfferingCategorySection category="metode_pembayaran" entityLabel="Metode Pembayaran" checkUsage={false} />
+          ) : activeConfig ? (
+            <EntitySection key={activeTab} config={activeConfig} canEdit={canEdit} onMutated={loadLookups} />
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }
