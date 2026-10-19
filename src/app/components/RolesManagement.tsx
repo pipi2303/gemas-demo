@@ -235,7 +235,7 @@ export function RolesManagement() {
   };
 
   // ── User handlers ──
-  const handleAddUser = () => {
+  const handleAddUser = async () => {
     setAddUserError('');
     if (!addUserForm.name.trim() || !addUserForm.username.trim() || !addUserForm.password.trim()) {
       setAddUserError('Nama, username, dan password wajib diisi.'); return;
@@ -249,7 +249,7 @@ export function RolesManagement() {
     if (addUserForm.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addUserForm.email.trim())) {
       setAddUserError('Format email tidak valid.'); return;
     }
-    addUser({ name: addUserForm.name.trim(), username: addUserForm.username.trim(), password: addUserForm.password, role: addUserForm.role, email: addUserForm.email.trim(), isActive: true });
+    if (!(await addUser({ name: addUserForm.name.trim(), username: addUserForm.username.trim(), password: addUserForm.password, role: addUserForm.role, email: addUserForm.email.trim(), isActive: true }))) return;
     setAddUserForm(EMPTY_USER_FORM);
     setShowAddUserModal(false);
     toast.success(`Pengguna ${addUserForm.name} berhasil ditambahkan`);
@@ -259,7 +259,7 @@ export function RolesManagement() {
     setEditUserForm({ name: u.name, username: u.username, email: u.email ?? '', role: u.role });
     setEditUserError('');
   };
-  const handleSaveEditUser = () => {
+  const handleSaveEditUser = async () => {
     if (!editUserTarget) return;
     setEditUserError('');
     if (!editUserForm.name.trim() || !editUserForm.username.trim()) {
@@ -268,21 +268,21 @@ export function RolesManagement() {
     if (users.find(u => u.username === editUserForm.username.trim() && u.id !== editUserTarget.id)) {
       setEditUserError('Username sudah digunakan.'); return;
     }
-    updateUser(editUserTarget.id, {
+    if (!(await updateUser(editUserTarget.id, {
       name: editUserForm.name.trim(),
       username: editUserForm.username.trim(),
       email: editUserForm.email.trim(),
       role: editUserForm.role,
-    });
+    }))) return;
     setEditUserTarget(null);
     toast.success('Data pengguna diperbarui');
   };
-  const handleRoleChange = (userId: string, role: UserRole) => {
-    updateUser(userId, { role });
+  const handleRoleChange = async (userId: string, role: UserRole) => {
+    if (!(await updateUser(userId, { role }))) return;
     toast.success('Role pengguna diperbarui');
   };
-  const handleToggleActive = (userId: string, isActive: boolean) => {
-    updateUser(userId, { isActive: !isActive });
+  const handleToggleActive = async (userId: string, isActive: boolean) => {
+    if (!(await updateUser(userId, { isActive: !isActive }))) return;
     toast.success(isActive ? 'Pengguna dinonaktifkan' : 'Pengguna diaktifkan');
   };
   const handleDelete = (userId: string) => {
@@ -290,9 +290,9 @@ export function RolesManagement() {
     setDeleteConfirm(null);
     toast.success('Pengguna dihapus');
   };
-  const handleResetPassword = (userId: string) => {
+  const handleResetPassword = async (userId: string) => {
     if (!newPassword || newPassword.length < 6) { toast.error('Password minimal 6 karakter'); return; }
-    updateUser(userId, { password: newPassword });
+    if (!(await updateUser(userId, { password: newPassword }))) return;
     setResetPwConfirm(null);
     setNewPassword('');
     toast.success('Password berhasil diubah');

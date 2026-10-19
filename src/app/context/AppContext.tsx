@@ -136,8 +136,9 @@ interface AppContextType {
   updateSector: (id: string, sector: Partial<Sector>) => void;
   deleteSector: (id: string) => void;
   
-  addUser: (user: Omit<User, 'id'>) => void;
-  updateUser: (id: string, user: Partial<User>) => void;
+  /** Resolve true kalau server sudah menyimpan; false (dan toast error) kalau ditolak/gagal. */
+  addUser: (user: Omit<User, 'id'>) => Promise<boolean>;
+  updateUser: (id: string, user: Partial<User>) => Promise<boolean>;
   deleteUser: (id: string) => void;
   
   addMinistry: (ministry: Omit<Ministry, 'id'>) => void;
@@ -1124,21 +1125,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser?.id, reminderSettings.length, worshipSchedules.length, notifications.length, notificationsLoaded]);
 
-  // ── Local demo user (hanya untuk preview lokal tanpa server) ────────────────
-  const LOCAL_USERS: Record<string, User> = (() => {
+  // ── Local demo user (HANYA untuk dev lokal tanpa server) ────────────────────
+  // Dimatikan di build produksi: sebelumnya kalau login ke server gagal (password
+  // salah, rate limit, server sibuk) aplikasi diam-diam masuk sebagai akun lokal
+  // ini ("Admin Lokal") tanpa token — semua perubahan setelahnya (termasuk ganti
+  // password) hanya tersimpan di browser tapi UI tetap bilang "berhasil", dan
+  // kredensial admin/admin123 & pipi/pipi123 ikut ter-bundle ke JS publik.
+  // import.meta.env.DEV = false saat `vite build`, jadi blok ini (dan string
+  // kredensialnya) dibuang dari bundle produksi.
+  const LOCAL_USERS: Record<string, User> = {};
+  if (import.meta.env.DEV) {
     try {
-      return JSON.parse(localStorage.getItem('gemas_local_users') || '{}');
-    } catch {
-      return {};
+      Object.assign(LOCAL_USERS, JSON.parse(localStorage.getItem('gemas_local_users') || '{}'));
+    } catch { /* abaikan */ }
+    if (!LOCAL_USERS['pipi']) {
+      LOCAL_USERS['pipi'] = { id:'local-pipi', name:'Pipi Administrator', email:'pipi@local', username:'pipi', password:'pipi123', role:'Admin', isActive:true };
+      localStorage.setItem('gemas_local_users', JSON.stringify(LOCAL_USERS));
     }
-  })();
-  if (!LOCAL_USERS['pipi']) {
-    LOCAL_USERS['pipi'] = { id:'local-pipi', name:'Pipi Administrator', email:'pipi@local', username:'pipi', password:'pipi123', role:'Admin', isActive:true };
-    localStorage.setItem('gemas_local_users', JSON.stringify(LOCAL_USERS));
-  }
-  if (!LOCAL_USERS['admin']) {
-    LOCAL_USERS['admin'] = { id:'local-admin', name:'Admin Lokal', email:'admin@local', username:'admin', password:'admin123', role:'Admin', isActive:true };
-    localStorage.setItem('gemas_local_users', JSON.stringify(LOCAL_USERS));
+    if (!LOCAL_USERS['admin']) {
+      LOCAL_USERS['admin'] = { id:'local-admin', name:'Admin Lokal', email:'admin@local', username:'admin', password:'admin123', role:'Admin', isActive:true };
+      localStorage.setItem('gemas_local_users', JSON.stringify(LOCAL_USERS));
+    }
+  } else {
+    // Bersihkan sisa akun lokal yang pernah tersimpan di browser produksi.
+    try { localStorage.removeItem('gemas_local_users'); } catch { /* abaikan */ }
   }
 
   const login = async (username: string, password: string): Promise<boolean> => {
@@ -1159,7 +1169,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await loadAllData();
       return true;
     } catch {
-      // Fallback: cek local user jika server tidak tersedia
+      // Fallback akun lokal hanya di dev (lihat LOCAL_USERS di atas).
+      if (!import.meta.env.DEV) return false;
       const localUser = Object.values(LOCAL_USERS).find(
         u => u.username === username && u.password === password
       );
@@ -1536,20 +1547,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
   };
 
-  const addUser = (userData: Omit<User, 'id'>) => {
-    const newUser: User = { ...userData, id: `u${Date.now()}` };
-    setUsers([...users, newUser]);
-    apiSave('users', newUser.id, newUser);
-    if (currentUser) {
-      logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menambahkan', entityType: 'User', entityId: newUser.id, entityName: newUser.name, details: `Pengguna baru ditambahkan (role: ${newUser.role})` });
+  // Simpan user ke server & TUNGGU hasilnya (bukan fire-and-forget apiSave):
+  // sebelumnya penolakan server (403/400) atau sesi tanpa token hanya tercatat di
+  // console, sementara UI tetap menampilkan "berhasil".
+  const saveUserToServer = async (id: string, data: unknown): Promise<boolean> => {
+    if (!getToken()) {
+      toast.error('Tidak tersambung ke server. Silakan login ulang, lalu simpan lagi.');
+      return false;
+    }
+    try {
+      await api.put(`/api/data/users/${id}`, data);
+      return true;
+    } catch (err: any) {
+      toast.error(`Gagal menyimpan pengguna: ${err?.message || 'server menolak permintaan'}`);
+      return false;
     }
   };
 
-  const updateUser = (id: string, userData: Partial<User>) => {
+  const addUser = async (userData: Omit<User, 'id'>): Promise<boolean> => {
+    const newUser: User = { ...userData, id: `u${Date.now()}` };
+    if (!(await saveUserToServer(newUser.id, newUser))) return false;
+    const { password: _pw, ...safeNewUser } = newUser as any;
+    setUsers(prev => [...prev, safeNewUser]);
+    if (currentUser) {
+      logActivity({ userId: currentUser.id, userName: currentUser.name, action: 'Menambahkan', entityType: 'User', entityId: newUser.id, entityName: newUser.name, details: `Pengguna baru ditambahkan (role: ${newUser.role})` });
+    }
+    return true;
+  };
+
+  const updateUser = async (id: string, userData: Partial<User>): Promise<boolean> => {
     const usr = users.find(u => u.id === id);
-    setUsers(users.map(u => u.id === id ? { ...u, ...userData } : u));
-    if (usr) apiSave('users', id, { ...usr, ...userData });
-    if (currentUser && usr) {
+    if (!usr) { toast.error('Pengguna tidak ditemukan'); return false; }
+    // Password tidak pernah dikirim balik oleh server (lihat stripPassword di
+    // server/routes/data.ts); kalau userData tidak membawa password baru, server
+    // mempertahankan password lama.
+    if (!(await saveUserToServer(id, { ...usr, ...userData }))) return false;
+    const { password: _pw, ...safeData } = userData as any;
+    setUsers(prev => prev.map(u => u.id === id ? { ...u, ...safeData } : u));
+    if (currentUser) {
       const isRoleChange = userData.role && userData.role !== usr.role;
       const isStatusChange = userData.isActive !== undefined && userData.isActive !== usr.isActive;
       const isPwReset = Boolean(userData.password);
@@ -1607,6 +1642,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         afterState: { id: usr.id, name: userData.name ?? usr.name, username: userData.username ?? usr.username, role: userData.role ?? usr.role, isActive: userData.isActive ?? usr.isActive, email: userData.email ?? usr.email },
       });
     }
+    return true;
   };
 
   const deleteUser = (id: string) => {

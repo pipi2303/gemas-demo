@@ -1120,6 +1120,20 @@ router.put('/:collection/:id', requireAuth, requirePermission(), async (req: Aut
     } catch { /* ignore */ }
   }
 
+  // Password TIDAK pernah dikirim ke client (stripPassword di GET), jadi setiap
+  // edit user dari UI (ubah nama/role/status) datang TANPA field password.
+  // Karena upsert() mengganti seluruh dokumen, sebelumnya edit seperti itu
+  // menghapus password user -> user tidak bisa login sama sekali. Pertahankan
+  // password (& mustChangePassword) yang tersimpan kalau body tidak membawa
+  // password baru.
+  if (collection === 'users' && !data.password) {
+    const existing = await getOne<any>('users', id).catch(() => null);
+    if (existing?.password) data.password = existing.password;
+    if (existing && data.mustChangePassword === undefined && existing.mustChangePassword !== undefined) {
+      data.mustChangePassword = existing.mustChangePassword;
+    }
+  }
+
   // Hash password jika ada dan belum di-hash
   if (collection === 'users' && data.password && !isHashed(String(data.password))) {
     data.password = await hashPassword(String(data.password));

@@ -93,13 +93,13 @@ export function UserManagement() {
     setIsFormOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const assignedSectorId = formData.role === 'Ketua Sektor' ? (formData.assignedSectorId || undefined) : undefined;
 
     if (formMode === 'add') {
-      addUser({ ...formData, assignedSectorId } as any);
+      if (!(await addUser({ ...formData, assignedSectorId } as any))) return;
       toast.success(`Pengguna ${formData.name} berhasil ditambahkan`);
     } else if (selectedUser) {
       const updateData: Partial<User> & { assignedSectorId?: string } = {
@@ -115,18 +115,18 @@ export function UserManagement() {
         updateData.password = formData.password;
       }
 
-        updateUser(selectedUser.id, updateData);
+      if (!(await updateUser(selectedUser.id, updateData))) return;
       toast.success('Data pengguna berhasil diperbarui');
     }
 
     setIsFormOpen(false);
   };
 
-  const handleResetPassword = () => {
+  const handleResetPassword = async () => {
     if (resetPasswordUser) {
       const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
       const tempPassword = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-      updateUser(resetPasswordUser.id, { password: tempPassword });
+      if (!(await updateUser(resetPasswordUser.id, { password: tempPassword }))) return;
       setResetPasswordUser(null);
       setGeneratedPassword(tempPassword);
       setCopied(false);
